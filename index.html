@@ -79,6 +79,11 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid var(--line);
 #base{top:10px;right:10px;padding:3px;display:flex;gap:2px}
 #base button{border:0;background:none;border-radius:4px;padding:4px 10px;font-size:14px}
 #base button[aria-pressed=true]{background:var(--ink);color:#fff}
+#cellsbtn{top:52px;right:10px;padding:6px 11px;font-size:14px;display:flex;align-items:center;gap:7px}
+#cellsbtn i{width:12px;height:12px;border-radius:2px;background:var(--ink);border:1.5px solid var(--ink);flex:none}
+#cellsbtn[aria-pressed=false]{color:var(--muted)}
+#cellsbtn[aria-pressed=false] i{background:none;border-color:#8E9A92}
+#cellsbtn:hover{border-color:var(--ink)}
 #note{top:52px;left:54px;padding:5px 10px;font-size:13px;max-width:300px;display:none}
 #legend{left:10px;bottom:24px;padding:9px 11px;max-width:250px;font-size:13px}
 #legend h3{font-size:15px;margin:0}
@@ -185,6 +190,8 @@ dialog::backdrop{background:rgba(23,48,43,.45)}
   .leaflet-control-zoom{display:none}
   #note{left:10px}
   #base{top:auto;bottom:20px}
+  #cellsbtn{top:52px;right:auto;left:10px;padding:5px 9px;font-size:13px}
+  #note{top:92px}
   #stripread{text-align:left}
 }
 </style>
@@ -207,6 +214,7 @@ dialog::backdrop{background:rgba(23,48,43,.45)}
 <div id="mapwrap">
   <div id="map" role="application" aria-label="Map of the Appalachian Trail corridor grid"></div>
   <div id="levels" class="mapctl" role="group" aria-label="Cell size"></div>
+  <button id="cellsbtn" class="mapctl" type="button" aria-pressed="true" title="Turn the colored cells on or off to see the basemap"><i aria-hidden="true"></i><span>Cells on</span></button>
   <div id="base" class="mapctl" role="group" aria-label="Basemap">
     <button type="button" data-b="topo" aria-pressed="true">Topo</button>
     <button type="button" data-b="img" aria-pressed="false">Imagery</button>
@@ -365,7 +373,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c)); }));
 
 /* ---------- state ---------- */
-const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:'topo', legend: innerWidth > 860, secOpen: {}};
+const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:'topo', legend: innerWidth > 860, secOpen: {}, cells: true};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
@@ -460,7 +468,7 @@ function restyle(){ const lv = dispLevel(), ps = POLY[lv], m = S.m, w = lv === '
     if (v == null) ps[c].setStyle({fill:true, fillOpacity:0, stroke:true, color:'#7F8C84', weight:.5, opacity:ins ? .4 : .12});
     else ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:!ins ? .1 : faded(m, lv, c) ? .32 : .86, stroke:true, color:'#fff', weight:w, opacity:ins ? .9 : .2}); } }
 function draw(){ const lv = dispLevel();
-  if (shown !== lv){ if (shown) map.removeLayer(GROUP[shown]); group(lv); shown = lv; restyle(); GROUP[lv].addTo(map); }
+  if (shown !== lv){ if (shown) map.removeLayer(GROUP[shown]); group(lv); shown = lv; restyle(); if (S.cells) GROUP[lv].addTo(map); }
   else restyle();
   const want = S.level === 'auto' ? autoLevel() : S.level, note = $('#note');
   if (want !== lv){ note.style.display = 'block'; note.textContent = 'Review priorities are shown at 7 and 49 sq mi, not for single square miles.'; } else note.style.display = 'none';
@@ -475,6 +483,10 @@ $('#levels').addEventListener('click', e => { const b = e.target.closest('button
 $('#base').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.dataset.b === S.base) return;
   map.removeLayer(BASES[S.base]); S.base = b.dataset.b; BASES[S.base].addTo(map);
   document.querySelectorAll('#base button').forEach(x => x.setAttribute('aria-pressed', x.dataset.b === S.base)); });
+
+$('#cellsbtn').onclick = () => { S.cells = !S.cells; const b = $('#cellsbtn');
+  b.setAttribute('aria-pressed', S.cells); b.querySelector('span').textContent = S.cells ? 'Cells on' : 'Cells off';
+  if (shown){ if (S.cells) GROUP[shown].addTo(map); else { map.removeLayer(GROUP[shown]); tip.remove(); } } };
 
 function fitSection(){ const lv = 'wheel', L_ = D.levels[lv], pts = [];
   for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) pts.push(L_.c[c]);
