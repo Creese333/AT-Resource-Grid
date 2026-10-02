@@ -518,8 +518,10 @@ secSel.addEventListener('change', () => { S.sec = secSel.value; fitSection(); dr
 
 /* ---------- cell profile ---------- */
 const wiki = name => 'https://en.wikipedia.org/wiki/Special:Search?go=Go&search=' + encodeURIComponent(name);
+const PEST_NAMES = {'Adelges tsugae':'Hemlock woolly adelgid', 'Agrilus planipennis':'Emerald ash borer', 'Fiorinia externa':'Elongate hemlock scale',
+  'Litylenchus crenatae':'Beech leaf disease nematode', 'Lycorma delicatula':'Spotted lanternfly', 'Lymantria dispar':'Spongy moth'};
 function sppItem(i, edrr){ const s = D.spp[i], m = s.match(/^(.*?)\s*\(([^)]*)\)\s*(\[.*\])?$/);
-  const sci = m ? m[2] : s.replace(/\s*\[.*\]$/, ''), tx = m ? `${esc(m[1])} <em>${esc(m[2])}</em>` : `<em>${esc(sci)}</em>`;
+  const sci = m ? m[2] : s.replace(/\s*\[.*\]$/, ''), cn = m ? m[1] : PEST_NAMES[sci], tx = cn ? `${esc(cn)} <em>${esc(sci)}</em>` : `<em>${esc(sci)}</em>`;
   let h = `<a href="${wiki(sci)}" target="_blank" rel="noopener" title="Look up ${esc(sci)} on Wikipedia">${tx}</a>`;
   if (m && m[3]) h += `<span class="tag">${esc(m[3].slice(1,-1))}</span>`;
   if (edrr) h += '<span class="tag edrr">priority invasive</span>';
