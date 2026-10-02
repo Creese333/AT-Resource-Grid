@@ -78,7 +78,12 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid var(--line);
 #base button[aria-pressed=true]{background:var(--ink);color:#fff}
 #note{top:52px;left:54px;padding:5px 10px;font-size:13px;max-width:300px;display:none}
 #legend{left:10px;bottom:24px;padding:9px 11px;max-width:250px;font-size:13px}
-#legend h3{font-size:15px;margin-bottom:5px}
+#legend h3{font-size:15px;margin:0}
+#legtog{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;padding:0;font:inherit;text-align:left}
+#legtog i{flex:none;width:0;height:0;border:5px solid transparent;border-top:6px solid var(--ink);border-bottom:0;transition:transform .15s}
+#legtog[aria-expanded=false] i{transform:rotate(-90deg)}
+#legbody{margin-top:5px}
+#legbody[hidden]{display:none}
 #legend .row{display:grid;grid-template-columns:16px 1fr;gap:7px;align-items:center;padding:1.5px 0}
 #legend i{width:16px;height:12px;border-radius:2px;display:block}
 #legend .hollow{border:1px solid #8E9A92;background:none}
@@ -351,7 +356,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c)); }));
 
 /* ---------- state ---------- */
-const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:'topo'};
+const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:'topo', legend: innerWidth > 860};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
@@ -467,7 +472,7 @@ function fitSection(){ const lv = 'wheel', L_ = D.levels[lv], pts = [];
   if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(.08)); }
 
 /* ---------- legend ---------- */
-function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3>${esc(m.label)}</h3>`;
+function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3><button type="button" id="legtog" aria-expanded="${S.legend}" aria-controls="legbody"><span>${esc(m.label)}</span><i aria-hidden="true"></i></button></h3><div id="legbody"${S.legend ? '' : ' hidden'}>`;
   if (m.kind === 'cat'){ const present = new Set(); const n = D.levels[lv].id.length;
     for (let c = 0; c < n; c++){ const v = m.get(lv, c); if (v != null) present.add(D.cats[m.f][v]); }
     if (m.many){ const cnt = new Map(); for (let c = 0; c < n; c++){ const v = m.get(lv, c); if (v != null && inSec(lv, c)) cnt.set(v, (cnt.get(v) || 0) + 1); }
@@ -484,7 +489,8 @@ function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3>${esc(m.label)}
   h += `<div class="row"><i class="hollow"></i><span>No data for this measure</span></div>`;
   h += `<p class="sub">Per ${LV[lv].name} cell</p>`;
   if (m.fade) h += `<label><input type="checkbox" id="fadebox" ${S.fade ? 'checked' : ''}> ${m.th === 'veg' ? 'Fade cells with under ' + THIN_AC + ' acres mapped' : 'Fade thinly sampled cells'}</label>`;
-  $('#legend').innerHTML = h;
+  $('#legend').innerHTML = h + '</div>';
+  $('#legtog').onclick = () => { S.legend = !S.legend; legend(); };
   const fb = $('#fadebox'); if (fb) fb.onchange = () => { S.fade = fb.checked; restyle(); }; }
 
 /* ---------- side panel ---------- */
