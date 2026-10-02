@@ -39,10 +39,12 @@ header p{margin:0;color:#BFD0C9;font-size:14px;flex:1 1 260px;min-width:0}
 
 /* side */
 aside{grid-area:side;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;min-height:0}
-.secpick{padding:12px 14px 12px 15px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
-.secpick label{font-size:13px;color:var(--muted)}
-.secpick select{width:100%;background:#fff;border:1px solid #AEB9B0;border-radius:4px;padding:6px 8px}
-.qs{border-bottom:1px solid var(--line);padding:6px 0}
+.secpick{padding:12px 14px 16px 16px;background:var(--ink);color:#fff;display:flex;flex-direction:column;gap:6px;border-top:1px solid #35524B;border-bottom:6px solid var(--ground)}
+.secpick label{font-family:var(--cond);font-size:17px;font-weight:600;letter-spacing:.01em}
+.secpick select{width:100%;background:#fff;color:var(--ink);border:2px solid #fff;border-radius:5px;padding:8px 10px;font-size:16px;font-weight:500;cursor:pointer}
+.secpick select:hover{border-color:#9CC3E6}
+.secpick select:focus-visible{outline:3px solid #9CC3E6;outline-offset:1px}
+.qs{border-bottom:1px solid var(--line);padding:10px 0 6px}
 .qs button{display:flex;width:100%;text-align:left;background:none;border:0;padding:6px 14px 6px 0;align-items:center;gap:10px;font-family:var(--cond);font-size:18.5px;font-weight:500;color:#33443F}
 .qs button::before{content:"";width:5px;align-self:stretch;min-height:22px;background:var(--hue);opacity:.3;flex:none}
 .qs button:hover{color:var(--ink)}
