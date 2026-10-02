@@ -46,7 +46,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .secpick select:focus-visible{outline:3px solid #9CC3E6;outline-offset:1px}
 .qs{border-bottom:1px solid var(--line);padding:10px 0 6px}
 .qs button{display:flex;width:100%;text-align:left;background:none;border:0;padding:6px 14px 6px 0;align-items:center;gap:10px;font-family:var(--cond);font-size:17px;font-weight:500;color:#C9D0D3}
-.qs button::before{content:"";width:5px;align-self:stretch;min-height:22px;background:var(--hue);opacity:.6;flex:none}
+.qs button::before{content:"";width:12px;align-self:stretch;min-height:24px;background:var(--hue);opacity:.75;flex:none;border-radius:0 2px 2px 0}
 .qs button:hover{color:var(--ink)}
 .qs button:hover::before{opacity:.7}
 .qs button[aria-current=true]{font-weight:600;color:var(--ink);background:var(--ground)}
@@ -97,7 +97,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 #cellsbtn[aria-pressed=false] i{background:none;border-color:#8E9A92}
 #cellsbtn:hover{border-color:var(--ink)}
 #note{top:52px;left:54px;padding:5px 10px;font-size:12.5px;max-width:300px;display:none}
-#legend{left:10px;bottom:24px;padding:9px 11px;max-width:250px;font-size:12.5px}
+#legend{left:10px;bottom:8px;padding:9px 11px;max-width:250px;font-size:12.5px}
 #legend h3{font-size:14px;margin:0}
 #legtog{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;padding:0;font:inherit;text-align:left}
 #legtog i{flex:none;width:0;height:0;border:5px solid transparent;border-top:6px solid var(--ink);border-bottom:0;transition:transform .15s}
@@ -106,7 +106,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 #legbody[hidden]{display:none}
 #legend .row{display:grid;grid-template-columns:16px 1fr;gap:7px;align-items:center;padding:1.5px 0}
 #legend i{width:16px;height:12px;border-radius:2px;display:block}
-#legend i,.keys i,.catrow i{box-shadow:0 0 0 1px rgba(255,255,255,.22)}
+#legend .row i,.keys i,.catrow i{box-shadow:0 0 0 1px rgba(255,255,255,.22)}
 #legend .hollow{border:1px solid #98A2A6;background:none}
 #legend label{display:flex;gap:6px;align-items:center;margin-top:6px;color:var(--muted)}
 #legend .sub{color:var(--muted);margin:4px 0 0}
@@ -197,7 +197,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   #mapwrap{height:62vh;min-height:360px}
   aside{border-right:0;overflow:visible}
   #profile{position:fixed;top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:70vh;border-radius:12px 12px 0 0}
-  #legend{max-width:180px;font-size:12px;bottom:20px}
+  #legend{max-width:180px;font-size:12px;bottom:8px}
   #levels{left:10px}
   #levels button{padding:4px 8px;font-size:12.5px;white-space:nowrap}
   #base span{display:none}
@@ -340,7 +340,7 @@ const Q = [
   use:'A count of the agencies and organizations that administer mapped land in each cell, to show how many parties a project may need to coordinate with. It is generalized to grid cells and does not show boundaries or who administers any particular spot. Check the tract records before relying on it.',
   m:[{id:'mgrs', label:'Number of land administrators', f:'N_MGR', int:1, noun:['administrator','administrators']}]},
  {id:'veg', th:'veg', hue:HUE.veg, ramp:'veg', title:'What grows here?',
-  use:'From the NPS vegetation map of the A.T., using its own vegetation types rather than broad land cover. Use it to see which plant communities a cell holds, where many of them meet, and where open habitat sits. The map covers only part of most cells, so habitat is shown in acres, and cells with under 10 mapped acres are faded.',
+  use:'Data from the NPS Vegetation Map. This is the finest scale of vegetation information for the A.T. Corridor. The map covers only part of most cells, so vegetation types are shown in acres, and cells with under 10 mapped acres are faded.',
   m:[{id:'type', label:'Main vegetation type', kind:'cat', f:'DOM_TYPE', many:1, fade:1},
      {id:'types', label:'Number of vegetation types', f:'N_TYPES', int:1, fade:1, noun:['type','types']},
      {id:'cover', label:'Land cover (NLCD level 2)', kind:'cat', f:'L2_DOM', fade:1},
