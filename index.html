@@ -81,9 +81,9 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid var(--line);
 #levels{top:10px;left:54px;display:flex;padding:3px;gap:2px}
 #levels button{border:0;background:none;border-radius:4px;padding:4px 10px;font-size:13px}
 #levels button[aria-pressed=true]{background:var(--ink);color:#fff}
-#base{top:10px;right:10px;padding:3px;display:flex;gap:2px}
-#base button{border:0;background:none;border-radius:4px;padding:4px 10px;font-size:13px}
-#base button[aria-pressed=true]{background:var(--ink);color:#fff}
+#base{top:10px;right:10px;padding:4px 6px 4px 10px;display:flex;gap:7px;align-items:center;font-size:13px}
+#base span{color:var(--muted)}
+#base select{border:0;background:none;padding:3px 2px;font-size:13px;font-weight:500;cursor:pointer;max-width:190px}
 #cellsbtn{top:52px;right:10px;padding:6px 11px;font-size:13px;display:flex;align-items:center;gap:7px}
 #cellsbtn i{width:12px;height:12px;border-radius:2px;background:var(--ink);border:1.5px solid var(--ink);flex:none}
 #cellsbtn[aria-pressed=false]{color:var(--muted)}
@@ -164,7 +164,7 @@ details.gd .spp{margin:3px 0 8px;padding-left:12px}
 .striphead{display:flex;justify-content:space-between;gap:16px;align-items:baseline;flex-wrap:wrap}
 .striphead h2{font-size:16px}
 #stripread{font-size:13px;color:var(--muted);min-height:1.45em;text-align:right;flex:1 1 300px}
-#stripsvg{display:block;width:100%;height:118px;cursor:crosshair;touch-action:pan-y}
+#stripsvg{display:block;width:100%;height:136px;cursor:crosshair;touch-action:pan-y}
 #stripsvg text{font-family:var(--body);font-size:12px;fill:var(--muted)}
 #stripsvg .end{font-family:var(--cond);font-size:13px;font-weight:600;fill:var(--ink)}
 #stripsvg .reg{fill:var(--ink);font-size:12.5px;font-weight:500}
@@ -191,7 +191,10 @@ dialog::backdrop{background:rgba(23,48,43,.45)}
   #profile{position:fixed;top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:70vh;border-radius:12px 12px 0 0}
   #legend{max-width:180px;font-size:12px;bottom:20px}
   #levels{left:10px}
-  #levels button,#base button{padding:4px 8px;font-size:12.5px;white-space:nowrap}
+  #levels button{padding:4px 8px;font-size:12.5px;white-space:nowrap}
+  #base span{display:none}
+  #base{padding:3px 4px}
+  #base select{max-width:150px}
   .leaflet-control-zoom{display:none}
   #note{left:10px}
   #base{top:auto;bottom:20px}
@@ -220,10 +223,7 @@ dialog::backdrop{background:rgba(23,48,43,.45)}
   <div id="map" role="application" aria-label="Map of the Appalachian Trail corridor grid"></div>
   <div id="levels" class="mapctl" role="group" aria-label="Cell size"></div>
   <button id="cellsbtn" class="mapctl" type="button" aria-pressed="true" title="Turn the colored cells on or off to see the basemap"><i aria-hidden="true"></i><span>Cells on</span></button>
-  <div id="base" class="mapctl" role="group" aria-label="Basemap">
-    <button type="button" data-b="topo" aria-pressed="true">Topo</button>
-    <button type="button" data-b="img" aria-pressed="false">Imagery</button>
-  </div>
+  <label id="base" class="mapctl"><span>Basemap</span><select id="basesel"></select></label>
   <div id="note" class="mapctl"></div>
   <div id="legend" class="mapctl" aria-live="polite"></div>
   <section id="profile" aria-label="Cell profile">
@@ -381,10 +381,11 @@ const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null,
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
+  if (h.get('base')) S.base = h.get('base');
   if (h.get('sec')) S.sec = h.get('sec');
   if (h.get('cell')){ for (const lv of ['hex','cog','wheel']) if (IDX[lv].has(h.get('cell'))){ S.cell = IDX[lv].get(h.get('cell')); S.cellLv = lv; } } }
 function writeHash(){ const p = new URLSearchParams({q:S.q.id, m:S.m.id, size:S.level});
-  if (S.sec !== 'all') p.set('sec', S.sec); if (S.cell != null) p.set('cell', D.levels[S.cellLv].id[S.cell]);
+  if (S.sec !== 'all') p.set('sec', S.sec); if (S.base !== 'topo') p.set('base', S.base); if (S.cell != null) p.set('cell', D.levels[S.cellLv].id[S.cell]);
   history.replaceState(null, '', '#' + p.toString()); }
 readHash();
 
@@ -432,11 +433,19 @@ const faded = (m, lv, c) => S.fade && m.fade && (m.fadeFn ? m.fadeFn(lv, c) : m.
 const map = L.map('map', {preferCanvas:true, zoomSnap:.5, minZoom:4, maxZoom:15, attributionControl:true});
 map.attributionControl.setPrefix(false);
 const ATTR = 'Basemap: USGS The National Map';
-const BASES = {
-  topo:L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR, className:'muted-tiles'}),
-  img:L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR})
-};
-BASES.topo.addTo(map);
+const TNM = 'https://basemap.nationalmap.gov/arcgis/rest/services/', OSMA = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+const BASEDEF = [
+  ['topo', 'USGS topo', L.tileLayer(TNM + 'USGSTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR, className:'muted-tiles'})],
+  ['imgl', 'USGS imagery with labels', L.tileLayer(TNM + 'USGSImageryTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR}), 1],
+  ['relief', 'USGS shaded relief', L.tileLayer(TNM + 'USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR})],
+  ['hydro', 'USGS hydrography', L.tileLayer(TNM + 'USGSHydroCached/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR})],
+  ['osm', 'OpenStreetMap', L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxNativeZoom:19, attribution:OSMA})],
+  ['otm', 'OpenTopoMap', L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {maxNativeZoom:17, subdomains:'abc', attribution:'Map data: ' + OSMA + ', SRTM. Style: &copy; <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA)'})],
+  ['dark', 'CARTO dark', L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {maxNativeZoom:20, subdomains:'abcd', attribution:OSMA + ' &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'}), 1]
+];
+const BASES = {}, DARKBASE = {}; BASEDEF.forEach(b => { BASES[b[0]] = b[2]; DARKBASE[b[0]] = !!b[3]; });
+if (!BASES[S.base]) S.base = 'topo';
+BASES[S.base].addTo(map);
 map.createPane('cells').style.zIndex = 410;
 map.createPane('trail').style.zIndex = 420; map.getPane('trail').style.pointerEvents = 'none';
 map.createPane('sel').style.zIndex = 430; map.getPane('sel').style.pointerEvents = 'none';
@@ -444,7 +453,7 @@ const cellRenderer = L.canvas({pane:'cells', padding:.4});
 const trailR = L.svg({pane:'trail'}), selR = L.svg({pane:'sel'});
 const trailCase = L.polyline(D.trail, {renderer:trailR, color:'#fff', weight:4, opacity:.9, interactive:false}).addTo(map);
 const trailLine = L.polyline(D.trail, {renderer:trailR, color:'#17302B', weight:1.5, interactive:false}).addTo(map);
-function trailStyle(){ const z = map.getZoom(), far = z < 9; trailCase.setStyle({opacity: far ? 0 : .9}); trailLine.setStyle({weight: far ? 1 : 1.6, opacity: far ? .75 : 1}); }
+function trailStyle(){ const z = map.getZoom(), far = z < 9, dk = DARKBASE[S.base]; trailCase.setStyle({color: dk ? '#17302B' : '#fff', opacity: far ? 0 : .9}); trailLine.setStyle({color: dk ? '#fff' : '#17302B', weight: far ? 1 : 1.6, opacity: far ? .9 : 1}); }
 const selOuter = L.polygon([], {renderer:selR, color:'#fff', weight:6, fill:false, interactive:false}).addTo(map);
 const selInner = L.polygon([], {renderer:selR, color:'#17302B', weight:2.5, fill:false, interactive:false}).addTo(map);
 
@@ -469,7 +478,7 @@ function dispLevel(){ let lv = S.level === 'auto' ? autoLevel() : S.level;
   if (!D.themes[S.m.th][lv]) lv = 'cog'; return lv; }
 function restyle(){ const lv = dispLevel(), ps = POLY[lv], m = S.m, w = lv === 'hex' ? .4 : .7;
   for (let c = 0; c < ps.length; c++){ const v = m.get(lv, c), ins = inSec(lv, c);
-    if (v == null) ps[c].setStyle({fill:true, fillOpacity:0, stroke:true, color:'#7F8C84', weight:.5, opacity:ins ? .4 : .12});
+    if (v == null) ps[c].setStyle({fill:true, fillOpacity:0, stroke:true, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
     else ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:!ins ? .1 : faded(m, lv, c) ? .32 : .86, stroke:true, color:'#fff', weight:w, opacity:ins ? .9 : .2}); } }
 function draw(){ const lv = dispLevel();
   if (shown !== lv){ if (shown) map.removeLayer(GROUP[shown]); group(lv); shown = lv; restyle(); if (S.cells) GROUP[lv].addTo(map); }
@@ -484,9 +493,10 @@ map.on('moveend', viewWindow);
 
 $('#levels').innerHTML = [['auto','Auto'],['wheel','49 sq mi'],['cog','7 sq mi'],['hex','1 sq mi']].map(x => `<button type="button" data-lv="${x[0]}">${x[1]}</button>`).join('');
 $('#levels').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.level = b.dataset.lv; draw(); strip(); writeHash(); });
-$('#base').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.dataset.b === S.base) return;
-  map.removeLayer(BASES[S.base]); S.base = b.dataset.b; BASES[S.base].addTo(map);
-  document.querySelectorAll('#base button').forEach(x => x.setAttribute('aria-pressed', x.dataset.b === S.base)); });
+$('#basesel').innerHTML = BASEDEF.map(b => `<option value="${b[0]}">${b[1]}</option>`).join(''); $('#basesel').value = S.base;
+function setBase(k){ if (!BASES[k] || k === S.base) return; map.removeLayer(BASES[S.base]); S.base = k; BASES[k].addTo(map); BASES[k].bringToBack();
+  $('#map').style.background = DARKBASE[k] ? '#1D2422' : '#DDE3DC'; trailStyle(); if (shown) restyle(); writeHash(); }
+$('#basesel').addEventListener('change', e => setBase(e.target.value));
 
 $('#cellsbtn').onclick = () => { S.cells = !S.cells; const b = $('#cellsbtn');
   b.setAttribute('aria-pressed', S.cells); b.querySelector('span').textContent = S.cells ? 'Cells on' : 'Cells off';
@@ -645,7 +655,7 @@ function profile(){ const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = pa
 const BIN = 10, NB = Math.ceil(D.totalMi / BIN);
 let stripBins = [];
 function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stripsvg');
-  const W = svg.clientWidth || 800, H = 118, pl = 4, pr = 4, top = 6, base = 74, pw = W - pl - pr, bw = pw / NB;
+  const W = svg.clientWidth || 800, H = 136, pl = 4, pr = 4, top = 6, base = 92, pw = W - pl - pr, bw = pw / NB;
   const bins = Array.from({length:NB}, () => ({v:[], clubs:new Map()}));
   for (let c = 0; c < L_.id.length; c++){ const b = bins[Math.min(NB-1, Math.floor(L_.mi[c] / BIN))]; const v = m.get(lv, c);
     b.clubs.set(L_.club[c], (b.clubs.get(L_.club[c]) || 0) + 1); if (v != null) b.v.push(v); }
@@ -704,6 +714,7 @@ $('#about').addEventListener('click', e => { if (e.target === $('#about')) $('#a
 /* ---------- start ---------- */
 const allPts = D.levels.wheel.c;
 map.fitBounds(L.latLngBounds(allPts).pad(.03)); trailStyle();
+$('#map').style.background = DARKBASE[S.base] ? '#1D2422' : '#DDE3DC';
 if (S.sec !== 'all') fitSection();
 draw(); strip();
 if (S.cell != null) select(S.cellLv, S.cell, true);
