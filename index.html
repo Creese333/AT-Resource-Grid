@@ -160,14 +160,14 @@ details.gd summary:hover{background:var(--ground)}
 details.gd .spp{margin:3px 0 8px;padding-left:12px}
 
 /* strip */
-#strip{grid-area:strip;background:var(--panel);border-top:1px solid var(--line);padding:8px 16px 8px}
+#strip{grid-area:strip;background:#1D2023;color:#fff;border-top:1px solid #0E1011;padding:10px 16px 8px}
 .striphead{display:flex;justify-content:space-between;gap:16px;align-items:baseline;flex-wrap:wrap}
-.striphead h2{font-size:16px}
-#stripread{font-size:13px;color:var(--muted);min-height:1.45em;text-align:right;flex:1 1 300px}
+.striphead h2{font-size:16px;color:#fff;letter-spacing:.01em}
+#stripread{font-size:13px;color:#D5DADC;min-height:1.45em;text-align:right;flex:1 1 300px}
 #stripsvg{display:block;width:100%;height:136px;cursor:crosshair;touch-action:pan-y}
-#stripsvg text{font-family:var(--body);font-size:12px;fill:var(--muted)}
-#stripsvg .end{font-family:var(--cond);font-size:13px;font-weight:600;fill:var(--ink)}
-#stripsvg .reg{fill:var(--ink);font-size:12.5px;font-weight:500}
+#stripsvg text{font-family:var(--body);font-size:12px;fill:#B4BCBF}
+#stripsvg .end{font-family:var(--cond);font-size:13.5px;font-weight:600;fill:#fff;letter-spacing:.01em}
+#stripsvg .reg{fill:#F1F3F4;font-size:12.5px;font-weight:500}
 
 /* dialog */
 dialog{border:0;border-radius:8px;padding:0;max-width:640px;width:calc(100% - 32px);color:var(--ink);box-shadow:0 10px 40px rgba(23,48,43,.35)}
@@ -252,6 +252,7 @@ dialog::backdrop{background:rgba(23,48,43,.45)}
     </table>
     <h3>Reading the maps</h3>
     <ul>
+      <li>Cell colors fade as you zoom in, so the basemap shows through. At the closest zoom the fill is 90% transparent and the white cell outlines remain.</li>
       <li>Filled cells have data for the measure on screen. Outlined cells have data in another layer but none for this measure.</li>
       <li>Colors are five equal-count classes of the cells with data at the cell size on screen, so the classes change when you change cell size.</li>
       <li>The strip under the map runs from Springer Mountain to Katahdin. Each bar is a ten-mile stretch, averaged from the 49 sq mi cells.</li>
@@ -436,12 +437,12 @@ const ATTR = 'Basemap: USGS The National Map';
 const TNM = 'https://basemap.nationalmap.gov/arcgis/rest/services/', OSMA = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
 const BASEDEF = [
   ['topo', 'USGS topo', L.tileLayer(TNM + 'USGSTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR, className:'muted-tiles'})],
+  ['img', 'USGS imagery', L.tileLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR}), 1],
   ['imgl', 'USGS imagery with labels', L.tileLayer(TNM + 'USGSImageryTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR}), 1],
   ['relief', 'USGS shaded relief', L.tileLayer(TNM + 'USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR})],
   ['hydro', 'USGS hydrography', L.tileLayer(TNM + 'USGSHydroCached/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR})],
   ['osm', 'OpenStreetMap', L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxNativeZoom:19, attribution:OSMA})],
-  ['otm', 'OpenTopoMap', L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {maxNativeZoom:17, subdomains:'abc', attribution:'Map data: ' + OSMA + ', SRTM. Style: &copy; <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA)'})],
-  ['dark', 'CARTO dark', L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {maxNativeZoom:20, subdomains:'abcd', attribution:OSMA + ' &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'}), 1]
+  ['otm', 'OpenTopoMap', L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {maxNativeZoom:17, subdomains:'abc', attribution:'Map data: ' + OSMA + ', SRTM. Style: &copy; <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA)'})]
 ];
 const BASES = {}, DARKBASE = {}; BASEDEF.forEach(b => { BASES[b[0]] = b[2]; DARKBASE[b[0]] = !!b[3]; });
 if (!BASES[S.base]) S.base = 'topo';
@@ -476,10 +477,13 @@ let shown = null;
 function autoLevel(){ const z = map.getZoom(); return z >= 10.5 ? 'hex' : z >= 8.5 ? 'cog' : 'wheel'; }
 function dispLevel(){ let lv = S.level === 'auto' ? autoLevel() : S.level;
   if (!D.themes[S.m.th][lv]) lv = 'cog'; return lv; }
-function restyle(){ const lv = dispLevel(), ps = POLY[lv], m = S.m, w = lv === 'hex' ? .4 : .7;
+/* Cell fill thins out as you zoom in: full strength up to zoom 9, down to 10% opacity (90% transparent) at the closest zoom. */
+const FADE_FROM = 9, FADE_TO = 15, FILL_FAR = .86, FILL_NEAR = .10;
+function zoomFade(){ const k = Math.max(0, Math.min(1, (map.getZoom() - FADE_FROM) / (FADE_TO - FADE_FROM))); return (FILL_FAR - k * (FILL_FAR - FILL_NEAR)) / FILL_FAR; }
+function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, w = lv === 'hex' ? .4 : .7;
   for (let c = 0; c < ps.length; c++){ const v = m.get(lv, c), ins = inSec(lv, c);
     if (v == null) ps[c].setStyle({fill:true, fillOpacity:0, stroke:true, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
-    else ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:!ins ? .1 : faded(m, lv, c) ? .32 : .86, stroke:true, color:'#fff', weight:w, opacity:ins ? .9 : .2}); } }
+    else ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf, stroke:true, color:'#fff', weight:w, opacity:ins ? .9 : .2}); } }
 function draw(){ const lv = dispLevel();
   if (shown !== lv){ if (shown) map.removeLayer(GROUP[shown]); group(lv); shown = lv; restyle(); if (S.cells) GROUP[lv].addTo(map); }
   else restyle();
@@ -488,7 +492,7 @@ function draw(){ const lv = dispLevel();
   document.querySelectorAll('#levels button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.lv === S.level);
     if (b.dataset.lv === 'auto') b.textContent = (S.level === 'auto' && innerWidth > 860) ? 'Auto: ' + LV[lv].name : 'Auto'; });
   legend(); side(); if (S.cell != null && $('#profile').classList.contains('open')) profile(); }
-map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown) draw(); });
+map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown) draw(); else if (shown) restyle(); });
 map.on('moveend', viewWindow);
 
 $('#levels').innerHTML = [['auto','Auto'],['wheel','49 sq mi'],['cog','7 sq mi'],['hex','1 sq mi']].map(x => `<button type="button" data-lv="${x[0]}">${x[1]}</button>`).join('');
@@ -667,22 +671,22 @@ function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stri
   stripBins = bins;
   const x = mi => pl + pw * mi / D.totalMi, rng = secRange();
   let h = '';
-  if (rng) h += `<rect x="${x(rng[0])}" y="${top-4}" width="${Math.max(2, x(rng[1]) - x(rng[0]))}" height="${base - top + 6}" fill="#E3EEF8"/>`;
-  h += `<line x1="${pl}" x2="${W-pr}" y1="${base+.5}" y2="${base+.5}" stroke="#B9C3BB"/>`;
+  if (rng) h += `<rect x="${x(rng[0])}" y="${top-4}" width="${Math.max(2, x(rng[1]) - x(rng[0]))}" height="${base - top + 6}" fill="#fff" opacity=".09"/>`;
+  h += `<line x1="${pl}" x2="${W-pr}" y1="${base+.5}" y2="${base+.5}" stroke="#596267"/>`;
   bins.forEach((b,i) => { if (b.val == null) return; const bx = pl + i*bw;
     const inR = !rng || ((i+1)*BIN > rng[0] && i*BIN < rng[1]);
-    if (m.kind === 'cat') h += `<rect x="${bx}" y="${top+18}" width="${Math.max(1,bw-.6)}" height="${base-top-18}" fill="${colorOf(m, lv, b.val)}" opacity="${inR ? 1 : .3}"/>`;
-    else { const hh = Math.max(1.5, (base - top) * (mx ? b.val / mx : 0)), col = (m.zero && b.val === 0) ? '#C9D0C8' : colorOf(m, lv, b.val);
-      h += `<rect x="${bx}" y="${base-hh}" width="${Math.max(1,bw-.6)}" height="${hh}" fill="${col}" opacity="${inR ? 1 : .3}"/>`; } });
-  h += `<rect id="vwin" x="0" y="${top-4}" width="0" height="${base-top+6}" fill="none" stroke="#17302B" stroke-width="1.5" rx="2"/>`;
-  h += `<rect id="shover" x="0" y="${top-4}" width="${bw}" height="${base-top+6}" fill="#17302B" opacity="0"/>`;
+    if (m.kind === 'cat') h += `<rect x="${bx}" y="${top+18}" width="${Math.max(1,bw-.6)}" height="${base-top-18}" fill="${colorOf(m, lv, b.val)}" opacity="${inR ? 1 : .3}" stroke="#fff" stroke-opacity=".22" stroke-width=".5"/>`;
+    else { const hh = Math.max(1.5, (base - top) * (mx ? b.val / mx : 0)), col = (m.zero && b.val === 0) ? '#6A7378' : colorOf(m, lv, b.val);
+      h += `<rect x="${bx}" y="${base-hh}" width="${Math.max(1,bw-.6)}" height="${hh}" fill="${col}" opacity="${inR ? 1 : .3}" stroke="#fff" stroke-opacity=".22" stroke-width=".5"/>`; } });
+  h += `<rect id="vwin" x="0" y="${top-4}" width="0" height="${base-top+6}" fill="none" stroke="#fff" stroke-width="1.5" rx="2"/>`;
+  h += `<rect id="shover" x="0" y="${top-4}" width="${bw}" height="${base-top+6}" fill="#fff" opacity="0"/>`;
   D.regions.forEach((r,i) => { const x0 = x(r[1]), x1 = x(r[2]);
-    h += `<line x1="${x0+.5}" x2="${x0+.5}" y1="${base}" y2="${base+22}" stroke="#B9C3BB"/>`;
+    h += `<line x1="${x0+.5}" x2="${x0+.5}" y1="${base}" y2="${base+22}" stroke="#596267"/>`;
     if (x1 - x0 > 70) h += `<text class="reg" x="${x0+6}" y="${base+16}">${esc(r[0])}</text>`; });
-  h += `<line x1="${W-pr-.5}" x2="${W-pr-.5}" y1="${base}" y2="${base+22}" stroke="#B9C3BB"/>`;
+  h += `<line x1="${W-pr-.5}" x2="${W-pr-.5}" y1="${base}" y2="${base+22}" stroke="#596267"/>`;
   const wide = W > 520;
   h += `<text class="end" x="${pl}" y="${H-4}">${wide ? 'Springer Mountain, Georgia' : 'Georgia'}</text><text class="end" x="${W-pr}" y="${H-4}" text-anchor="end">${wide ? 'Katahdin, Maine' : 'Maine'}</text>`;
-  if (W > 620) [500,1000,1500].forEach(mi => { h += `<text x="${x(mi)}" y="${H-4}" text-anchor="middle">mile ${fmt(mi,0)}</text><line x1="${x(mi)}" x2="${x(mi)}" y1="${base}" y2="${base+4}" stroke="#8E9A92"/>`; });
+  if (W > 620) [500,1000,1500].forEach(mi => { h += `<text x="${x(mi)}" y="${H-4}" text-anchor="middle">mile ${fmt(mi,0)}</text><line x1="${x(mi)}" x2="${x(mi)}" y1="${base}" y2="${base+4}" stroke="#7C868B"/>`; });
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = h;
   svg._geo = {pl, pw, bw};
   $('#striptitle').textContent = m.label + ', south to north';
@@ -691,7 +695,7 @@ function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stri
 function binAt(e){ const svg = $('#stripsvg'), r = svg.getBoundingClientRect(), g = svg._geo; if (!g) return -1;
   const px = (e.clientX - r.left) * (svg.viewBox.baseVal.width / r.width); return Math.max(0, Math.min(NB-1, Math.floor((px - g.pl) / g.bw))); }
 $('#stripsvg').addEventListener('pointermove', e => { const i = binAt(e); if (i < 0) return; const b = stripBins[i], g = $('#stripsvg')._geo, hv = $('#shover');
-  hv.setAttribute('x', g.pl + i*g.bw); hv.setAttribute('opacity', .12);
+  hv.setAttribute('x', g.pl + i*g.bw); hv.setAttribute('opacity', .16);
   const where = `Miles ${fmt(i*BIN,0)} to ${fmt(Math.min(D.totalMi,(i+1)*BIN),0)}`;
   const club = b.club != null ? ', ' + shortClub(cat('club', b.club) || '') : '';
   let txt = 'no data'; if (b.val != null) txt = S.m.kind === 'cat' ? 'mostly ' + show(S.m, b.val) : (S.m.unit === '%' ? fmt(b.val, 1) + '%' : fmt(b.val, b.val < 10 ? 1 : 0)) + ' on average per 49 sq mi cell';
