@@ -216,11 +216,11 @@ dialog::backdrop{background:rgba(23,48,43,.45)}
 <dialog id="about">
   <div class="dlg">
     <h2>About this data</h2>
-    <p>Every dataset here is summarized on the same grid, so a single cell can be read across vegetation, citizen-science records, review priority and land managers. The grid is NatureServe's nested hexagon system: a one square mile hexagon, a cluster of seven hexagons (7 sq mi), and a cluster of seven clusters (49 sq mi). Cell IDs are the NatureServe IDs, so the numbers here join back to the source tables.</p>
+    <p>Every dataset here is summarized on the same grid, so a single cell can be read across vegetation, citizen-science records, review priority and land administrators. The grid is NatureServe's nested hexagon system: a one square mile hexagon, a cluster of seven hexagons (7 sq mi), and a cluster of seven clusters (49 sq mi). Cell IDs are the NatureServe IDs, so the numbers here join back to the source tables.</p>
     <h3>What each layer is</h3>
     <table>
       <tr><th>Layer</th><th>Source</th><th>Keep in mind</th></tr>
-      <tr><td>Land managers</td><td>A.T. corridor lands and tracts</td><td>Lists who has at least one mapped acre in a cell. Generalized to the grid; not a boundary or ownership record.</td></tr>
+      <tr><td>Land administrators</td><td>A.T. corridor lands and tracts</td><td>Lists who administers at least one mapped acre in a cell. Generalized to the grid; not a boundary record.</td></tr>
       <tr><td>Vegetation</td><td>NPS vegetation map for the A.T., by mapped vegetation type</td><td>The map stops at the edge of the surveyed lands, so most cells are only partly covered.</td></tr>
       <tr><td>iNaturalist</td><td>Research-grade records, <span class="run"></span></td><td>Records follow people. Few records means few visits, not few species.</td></tr>
       <tr><td>eBird</td><td>Checklists, <span class="run"></span></td><td>Same caution. Thinly sampled cells are faded on the bird maps.</td></tr>
@@ -303,9 +303,9 @@ const HUE = {lands:'#4F7590', veg:'#55903F', inat:'#C4562A', ebird:'#3874A9', nr
 
 /* ---------- questions and measures ---------- */
 const Q = [
- {id:'land', th:'lands', hue:HUE.lands, ramp:'land', title:'Who manages land here?',
-  use:'A count of the agencies and organizations with mapped land in each cell, to show how many parties a project may need to coordinate with. It is generalized to grid cells and does not show boundaries or who owns any particular spot. Check the tract records before relying on it.',
-  m:[{id:'mgrs', label:'Number of land managers', f:'N_MGR', int:1, noun:['manager','managers']}]},
+ {id:'land', th:'lands', hue:HUE.lands, ramp:'land', title:'Who administers land here?',
+  use:'A count of the agencies and organizations that administer mapped land in each cell, to show how many parties a project may need to coordinate with. It is generalized to grid cells and does not show boundaries or who administers any particular spot. Check the tract records before relying on it.',
+  m:[{id:'mgrs', label:'Number of land administrators', f:'N_MGR', int:1, noun:['administrator','administrators']}]},
  {id:'veg', th:'veg', hue:HUE.veg, ramp:'veg', title:'What grows here?',
   use:'From the NPS vegetation map of the A.T., using its own vegetation types rather than broad land cover. Use it to see which plant communities a cell holds, where many of them meet, and where open habitat sits. The map covers only part of most cells, so habitat is shown in acres, and cells with under 10 mapped acres are faded.',
   m:[{id:'type', label:'Main vegetation type', kind:'cat', f:'DOM_TYPE', many:1, fade:1},
@@ -545,11 +545,11 @@ function profile(){ const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = pa
 
   // land
   let landSec = '';
-  if (D.themes.lands){ landSec = `<div class="sec" style="--hue:${HUE.lands}"><h3>Land managers</h3>`;
+  if (D.themes.lands){ landSec = `<div class="sec" style="--hue:${HUE.lands}"><h3>Land administrators</h3>`;
     if (has('lands', lv, c)){ const mg = (v('lands','MGRS') || []).map(i => D.cats.MGR[i]), n = mg.length;
-      landSec += `<p>${n} ${n === 1 ? 'manager has' : 'managers have'} mapped land in this cell, listed from most to least:</p><ul class="spp">${mg.slice(0, 6).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
+      landSec += `<p>${n} ${n === 1 ? 'administrator has' : 'administrators have'} mapped land in this cell, listed from most to least:</p><ul class="spp">${mg.slice(0, 6).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
       if (n > 6) landSec += `<details><summary>${n - 6} more</summary><ul class="spp">${mg.slice(6).map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>`;
-      landSec += '<p class="none" style="font-size:13px;margin-top:8px">Generalized to the cell from tract records. Not a boundary or an ownership determination.</p>';
+      landSec += '<p class="none" style="font-size:13px;margin-top:8px">Generalized to the cell from tract records. Not a boundary determination, and not a record of who administers any given spot.</p>';
     } else landSec += '<p class="none">No land records summarized for this cell.</p>';
     landSec += '</div>'; }
 
