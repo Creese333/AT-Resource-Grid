@@ -252,7 +252,7 @@ for (const th in D.themes){ ROW[th] = {};
   for (const lv in D.themes[th]){ const a = new Int32Array(D.levels[lv].id.length).fill(-1);
     D.themes[th][lv].ix.forEach((c,k) => a[c] = k); ROW[th][lv] = a; } }
 const IDX = {}; for (const lv in D.levels){ const m = new Map(); D.levels[lv].id.forEach((id,i) => m.set(id,i)); IDX[lv] = m; }
-function val(th, f, lv, c){ const t = D.themes[th][lv]; if (!t) return null; const r = ROW[th][lv][c]; if (r < 0) return null; const x = t.f[f][r]; return (x == null || x === -1) ? null : x; }
+function val(th, f, lv, c){ const t = D.themes[th][lv]; if (!t) return null; const r = ROW[th][lv][c]; if (r < 0) return null; const a = t.f[f]; if (!a) return null; const x = a[r]; return (x == null || x === -1) ? null : x; }
 const has = (th, lv, c) => !!D.themes[th][lv] && ROW[th][lv][c] >= 0;
 const cat = (name, i) => i == null ? null : D.cats[name][i];
 function regionOf(mi){ for (const r of D.regions) if (mi <= r[2]) return r[0]; return D.regions[D.regions.length-1][0]; }
@@ -574,7 +574,7 @@ function profile(){ const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = pa
 
   // birds
   b += `<div class="sec" style="--hue:${HUE.ebird}"><h3>Birds</h3>`;
-  if (has('ebird', lv, c)){ const G = [['FOREST_INT_SPP','Forest interior','FOREST_INT_LIST'],['FOREST_GEN_SPP','Forest generalist'],['CONIFER_SPP','High-elev. conifer','CONIFER_LIST'],['SHRUB_SPP','Shrubland','SHRUB_LIST'],['GRASS_SPP','Grassland','GRASS_LIST'],['EDGE_SPP','Edge'],['WETLAND_SPP','Wetland'],['RIPARIAN_SPP','Riparian'],['WATERBIRD_SPP','Waterbird'],['SHORE_SPP','Shorebird'],['SEABIRD_SPP','Seabird']]
+  if (has('ebird', lv, c)){ const G = [['FOREST_INT_SPP','Forest interior','FOREST_INT_LIST'],['FOREST_GEN_SPP','Forest generalist','FOREST_GEN_LIST'],['CONIFER_SPP','High-elev. conifer','CONIFER_LIST'],['SHRUB_SPP','Shrubland','SHRUB_LIST'],['GRASS_SPP','Grassland','GRASS_LIST'],['EDGE_SPP','Edge','EDGE_LIST'],['WETLAND_SPP','Wetland','WETLAND_LIST'],['RIPARIAN_SPP','Riparian','RIPARIAN_LIST'],['WATERBIRD_SPP','Waterbird','WATERBIRD_LIST'],['SHORE_SPP','Shorebird','SHORE_LIST'],['SEABIRD_SPP','Seabird','SEABIRD_LIST']]
       .map(g => [g[1], v('ebird', g[0]) || 0, g[2] ? (v('ebird', g[2]) || []) : null, g[0]]); const mx = Math.max(1, ...G.map(g => g[1])); const soc = v('ebird','SOC_LIST') || [];
     b += `<div class="facts"><div><b>${fmt(v('ebird','N_SPP'),0)}</b>species</div><div><b>${fmt(v('ebird','N_CHECKLISTS'),0)}</b>checklists</div><div><b>${fmt(v('ebird','N_BCC_SPP'),0)}</b>of conservation concern</div></div>`;
     b += `<p><span class="badge">${esc(cat('DATA_STATUS', v('ebird','DATA_STATUS')) || '')}</span> Latest checklist ${esc(v('ebird','LAST_OBS') || 'unknown')}</p>`;
