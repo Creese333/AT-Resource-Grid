@@ -306,7 +306,7 @@ const Q = [
      {id:'open', label:'Open habitat share', unit:'%', d:0, zero:1, fn:(lv,c)=>{ if(!has('veg',lv,c)) return null; return (val('veg','L1_HERB',lv,c)||0)+(val('veg','L1_SHRUB',lv,c)||0)+(val('veg','L1_AGRIC',lv,c)||0); }},
      {id:'forest', label:'Forest share', f:'L1_FOREST', unit:'%', d:0},
      {id:'mapped', label:'Share of cell mapped', f:'PCT_MAPPED', unit:'%', d:0}]},
- {id:'inv', th:'inat', hue:HUE.inat, ramp:'inv', title:'Where are invasive species turning up?',
+ {id:'inv', th:'inat', hue:HUE.inat, ramp:'inv', title:'What invasive species are turning up?',
   use:'Invasive plants and forest pests reported on iNaturalist. Use it to aim early-detection surveys and volunteer workdays. A blank cell means nothing was reported, which is not the same as nothing there.',
   m:[{id:'spp', label:'Invasive species reported', f:'N_INV_SPP', int:1, zero:1, noun:['species','species']},
      {id:'edrr', label:'Early-detection species', f:'N_EDRR_SPP', int:1, zero:1, noun:['species','species']},
