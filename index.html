@@ -252,6 +252,7 @@ dialog::backdrop{background:rgba(23,48,43,.45)}
       <li>Filled cells have data for the measure on screen. Outlined cells have data in another layer but none for this measure.</li>
       <li>Colors are five equal-count classes of the cells with data at the cell size on screen, so the classes change when you change cell size.</li>
       <li>The strip under the map runs from Springer Mountain to Katahdin. Each bar is a ten-mile stretch, averaged from the 49 sq mi cells.</li>
+      <li>Vegetation variety compares the number of vegetation types in a cell with the number usually found in cells with the same mapped acreage. A third more than usual is rated more varied, a quarter fewer is rated less varied, and cells with under 10 mapped acres are not rated.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
       <li>Trail miles are measured along the mapped centerline and are approximate.</li>
     </ul>
@@ -303,6 +304,7 @@ const CATCOL = {
   L2_DOM:[['Open Water','#466B9F'],['Developed, Open Space','#DEC5C5'],['Developed, Low Intensity','#D99282'],['Developed, Medium Intensity','#EB0000'],['Developed, High Intensity','#AB0000'],
     ['Barren Land','#B3AC9F'],['Deciduous Forest','#68AB5F'],['Evergreen Forest','#1C5F2C'],['Mixed Forest','#B5C58F'],['Shrub/Scrub','#CCB879'],['Grassland/Herbaceous','#DFDFC2'],
     ['Pasture/Hay','#DCD939'],['Cultivated Crops','#AB6C28'],['Woody Wetlands','#B8D9EB'],['Emergent Herbaceous Wetlands','#6C9FB8'],['Unassigned','#ECEFEA']],
+  VARIETY:[['More varied than typical','#285E25'],['About typical','#8BB868'],['Less varied than typical','#DCE9C8'],['Too little mapped to rate','#DADFD9']],
   review_tie:[['Avoid','#9E2B4E'],['Minimize','#E0A23A'],['Standard Review','#A9B8AE','Standard review']]
 };
 const L1 = [['L1_FOREST','Forest','#5E9C56'],['L1_SHRUB','Shrubland','#C9A85C'],['L1_HERB','Grass and herbaceous','#E3D58C'],['L1_AGRIC','Planted or cultivated','#D4CE3A'],
@@ -323,15 +325,25 @@ const ADMINCOL = ['#24475F','#819FB4','#C9D6DE','#E6E9E4'];
 const HUE = {lands:'#4F7590', veg:'#55903F', inat:'#C4562A', ebird:'#3874A9', nrpz:'#9E2B4E', eff:'#685A9C'};
 
 /* ---------- questions and measures ---------- */
+/* Vegetation variety: types found vs. types expected for the cell's mapped acres (types-area curve fitted per cell size) */
+D.cats.VARIETY = ['More varied than typical','About typical','Less varied than typical','Too little mapped to rate'];
+const VFIT = {};
+function vfit(lv){ if (VFIT[lv]) return VFIT[lv]; const t = D.themes.veg[lv], A = t.f.VEG_AREA, N = t.f.N_TYPES; let n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
+  for (let i = 0; i < A.length; i++) if (A[i] >= 10 && N[i] > 0){ const x = Math.log10(A[i]), y = Math.log10(N[i]); n++; sx += x; sy += y; sxx += x*x; sxy += x*y; }
+  const b = (n*sxy - sx*sy) / (n*sxx - sx*sx), a = (sy - b*sx) / n; return VFIT[lv] = {a, b}; }
+function variety(lv, c){ if (!has('veg', lv, c)) return null; const ac = val('veg','VEG_AREA',lv,c), nt = val('veg','N_TYPES',lv,c);
+  if (ac == null || ac < 10 || !nt) return {cat:3}; const f = vfit(lv), exp = Math.pow(10, f.a + f.b * Math.log10(ac)), r = nt / exp;
+  return {cat: r >= 1.33 ? 0 : r <= 0.75 ? 2 : 1, exp, n: nt}; }
+
 const Q = [
  {id:'land', th:'lands', hue:HUE.lands, ramp:'land', title:'Who administers land here?',
   use:'A count of the agencies and organizations that administer mapped land in each cell, to show how many parties a project may need to coordinate with. It is generalized to grid cells and does not show boundaries or who administers any particular spot. Check the tract records before relying on it.',
   m:[{id:'mgrs', label:'Number of land administrators', f:'N_MGR', int:1, noun:['administrator','administrators']}]},
  {id:'veg', th:'veg', hue:HUE.veg, ramp:'veg', title:'What grows here?',
-  use:'From the NPS vegetation map of the A.T., using its own vegetation types rather than broad land cover. Use it to see which plant communities a cell holds, where many of them meet, and where open habitat sits. The map covers only part of most cells, so habitat is shown in acres, and cells with under 10 mapped acres are faded.',
+  use:'From the NPS vegetation map of the A.T., using its own vegetation types rather than broad land cover. Use it to see which plant communities a cell holds, where the mix is more varied than usual, and where open habitat sits. The map covers only part of most cells, so habitat is shown in acres, and cells with under 10 mapped acres are faded.',
   m:[{id:'type', label:'Main vegetation type', kind:'cat', f:'DOM_TYPE', many:1, fade:1},
      {id:'types', label:'Number of vegetation types', f:'N_TYPES', int:1, fade:1, noun:['type','types']},
-     {id:'div', label:'Vegetation diversity', f:'SHANNON_H', d:2, fade:1},
+     {id:'div', label:'Vegetation variety', kind:'cat', f:'VARIETY', fn:(lv,c)=>{ const r = variety(lv,c); return r ? r.cat : null; }},
      {id:'cover', label:'Land cover (NLCD level 2)', kind:'cat', f:'L2_DOM', fade:1},
      {id:'open', label:'Open habitat, acres', int:1, zero:1, noun:['acre','acres'], fn:(lv,c)=>{ if(!has('veg',lv,c)) return null; return Math.round(val('veg','VEG_AREA',lv,c) * ((val('veg','L1_HERB',lv,c)||0)+(val('veg','L1_SHRUB',lv,c)||0)+(val('veg','L1_AGRIC',lv,c)||0)) / 100); }},
      {id:'forest', label:'Forest, acres', int:1, zero:1, noun:['acre','acres'], fn:(lv,c)=>{ if(!has('veg',lv,c)) return null; return Math.round(val('veg','VEG_AREA',lv,c) * (val('veg','L1_FOREST',lv,c)||0) / 100); }},
@@ -585,6 +597,8 @@ function profile(){ const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = pa
   b += `<div class="sec" style="--hue:${HUE.veg}"><h3>Vegetation</h3>`;
   if (has('veg', lv, c)){ const l1 = L2.map(x => [x[1], v('veg', x[0]) || 0, x[2]]).filter(x => x[1] >= 1).sort((a,b) => b[1] - a[1]); const un = 100 - l1.reduce((s,x) => s + x[1], 0); if (un >= 1) l1.push(['Unassigned', un, '#ECEFEA']);
     b += `<div class="facts"><div><b>${v('veg','VEG_AREA') < 1 ? '<1' : fmt(v('veg','VEG_AREA'),0)}</b>acres mapped</div><div><b>${fmt(v('veg','PCT_MAPPED'), v('veg','PCT_MAPPED') < 10 ? 1 : 0)}%</b>of the cell</div><div><b>${fmt(v('veg','N_TYPES'),0)}</b>vegetation types</div></div>`;
+    { const vr = variety(lv, c); if (vr && vr.cat < 3){ const e = Math.max(1, Math.round(vr.exp)); b += `<p><span class="badge" style="background:${CATCOL.VARIETY[vr.cat][1]};color:${vr.cat === 0 ? '#fff' : 'inherit'}">${CATCOL.VARIETY[vr.cat][0]}</span> ${vr.n} ${vr.n === 1 ? 'type' : 'types'} here; a cell with this much mapped land usually has about ${e}.</p>`; }
+      else if (vr) b += '<p class="none">Too little land mapped here to rate its variety.</p>'; }
     const cp = v('veg','COMP') || [], ty = []; for (let k = 0; k < cp.length; k += 2) ty.push([D.cats.DOM_TYPE[cp[k]], cp[k+1]]);
     const row = x => `<div><i style="background:${CATMAP.DOM_TYPE.get(x[0])[1]}"></i><span>${esc(x[0])}</span><span>${x[1] < 1 ? '<1' : fmt(x[1],0)}%</span></div>`;
     b += '<p>Vegetation types, by share of the mapped acres:</p><div class="keys">' + ty.slice(0, 6).map(row).join('') + '</div>';
