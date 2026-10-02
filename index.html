@@ -107,7 +107,13 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid var(--line);
 .pnav button:hover{border-color:var(--ink)}
 .pbody{overflow-y:auto;padding:0 14px 14px}
 .sec{padding:12px 0 12px 12px;border-bottom:1px solid var(--line);border-left:4px solid var(--hue);margin:12px 0 0;padding-left:11px;border-bottom:0}
-.sec h3{font-size:18px;margin-bottom:4px}
+.sec h3{font-size:18px;margin:0}
+.sectog{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;padding:2px 0;font:inherit;color:inherit;text-align:left}
+.sectog i{flex:none;width:0;height:0;border:5px solid transparent;border-top:6px solid var(--ink);border-bottom:0;transition:transform .15s}
+.sectog[aria-expanded=false] i{transform:rotate(-90deg)}
+.sectog:hover span{text-decoration:underline;text-underline-offset:3px}
+.secbody{margin-top:4px}
+.secbody[hidden]{display:none}
 .sec p{margin:3px 0}
 .sec .none{color:var(--muted)}
 .facts{display:flex;gap:16px;flex-wrap:wrap;margin:4px 0 6px}
@@ -354,7 +360,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c)); }));
 
 /* ---------- state ---------- */
-const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:'topo', legend: innerWidth > 860};
+const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:'topo', legend: innerWidth > 860, secOpen: {}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
@@ -515,8 +521,8 @@ function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows =
   rows.slice(0, 6).forEach(r => { h += `<li><button type="button" data-cell="${r[0]}" data-lv="${lv}"><span class="where">${cellLabel(lv, r[0])}</span><span class="val">${m.unit === '%' ? fmt(r[1], m.d) + '%' : fmt(r[1], m.d)}</span><span class="club">${esc(cat('club', L_.club[r[0]]) || '')}</span></button></li>`; });
   return h + '</ol></div>'; }
 $('#side').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q){ S.q = q; S.m = q.m[0]; draw(); strip(); writeHash(); } }
-  else if (b.dataset.m){ S.m = S.q.m.find(x => x.id === b.dataset.m); draw(); strip(); writeHash(); }
+  if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q){ S.q = q; S.m = q.m[0]; S.secOpen = {}; draw(); strip(); writeHash(); } }
+  else if (b.dataset.m){ const m0 = S.m; S.m = S.q.m.find(x => x.id === b.dataset.m); if (S.m.th !== m0.th) S.secOpen = {}; draw(); strip(); writeHash(); }
   else if (b.dataset.cell) select(b.dataset.lv, +b.dataset.cell, true); });
 secSel.addEventListener('change', () => { S.sec = secSel.value; fitSection(); draw(); strip(); writeHash(); });
 
@@ -599,7 +605,15 @@ function profile(){ const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = pa
     if (viaParent) b += '<p class="none">Shown for the 7 sq mi cell this square mile sits in.</p>';
   } else b += `<p class="none">No rare species priority zone ${viaParent ? 'in the surrounding 7 sq mi cell' : 'in this cell'}.</p>`;
   b += '</div>';
-  $('#pbody').innerHTML = b + landSec; $('#pbody').scrollTop = 0; $('#profile').classList.add('open'); }
+  $('#pbody').innerHTML = b + landSec;
+  const SECKEY = {'Vegetation':'veg', 'iNaturalist records':'inat', 'Birds':'ebird', 'Review priority':'nrpz', 'Land administrators':'lands'};
+  document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
+    const open = key in S.secOpen ? S.secOpen[key] : key === S.m.th;
+    const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
+    while (h.nextSibling) body.appendChild(h.nextSibling);
+    sec.appendChild(body);
+    h.innerHTML = `<button type="button" class="sectog" aria-expanded="${open}" aria-controls="${body.id}"><span>${esc(h.textContent)}</span><i aria-hidden="true"></i></button>`;
+    h.firstChild.onclick = () => { const now = body.hidden; body.hidden = !now; S.secOpen[key] = now; h.firstChild.setAttribute('aria-expanded', now); }; }); $('#pbody').scrollTop = 0; $('#profile').classList.add('open'); }
 
 /* ---------- trail strip ---------- */
 const BIN = 10, NB = Math.ceil(D.totalMi / BIN);
