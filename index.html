@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{
-  --hdr:#17302B; --ink:#F1F3F4; --ink2:#2C4A43; --ground:#2A2E32; --panel:#1D2023; --line:#3B4146; --onlight:#1D2023;
+  --hdr:#0F3A40; --ink:#F1F3F4; --ink2:#1D5158; --ground:#2A2E32; --panel:#1D2023; --line:#3B4146; --onlight:#1D2023;
   --muted:#B4BCBF; --blaze:#8EC2F0; --blaze-soft:#E3EEF8;
   --body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --cond:'Barlow Condensed','Arial Narrow',var(--body);
@@ -19,7 +19,7 @@
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{font-family:var(--body);font-size:14px;line-height:1.42;color:var(--ink);background:var(--panel);
-  display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:330px 1fr;grid-template-areas:"head head" "side map" "strip strip";
+  display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:330px 1fr;grid-template-areas:"head head" "side map" "side strip";
   font-variant-numeric:tabular-nums}
 button,select{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -33,37 +33,37 @@ header h1{font-size:21px;letter-spacing:.01em}
 header p{margin:0;color:#BFD0C9;font-size:13px;flex:1 1 260px;min-width:0}
 .hctl{display:flex;gap:8px;align-items:center}
 .hctl label{font-size:12.5px;color:#BFD0C9}
-.hctl select{background:var(--ink2);color:#fff;border:1px solid #4A6860;border-radius:4px;padding:5px 8px;max-width:240px}
-.hctl button{background:none;border:1px solid #4A6860;color:#fff;border-radius:4px;padding:5px 10px}
+.hctl select{background:var(--ink2);color:#fff;border:1px solid #4C7B82;border-radius:4px;padding:5px 8px;max-width:240px}
+.hctl button{background:none;border:1px solid #4C7B82;color:#fff;border-radius:4px;padding:5px 10px}
 .hctl button:hover{background:var(--ink2)}
 
 /* side */
 aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;overflow-y:auto;min-height:0;color-scheme:dark}
-.secpick{padding:12px 14px 16px 16px;background:var(--hdr);color:#fff;display:flex;flex-direction:column;gap:6px;border-top:1px solid #35524B;border-bottom:1px solid #0E1011}
-.secpick label{font-family:var(--cond);font-size:16px;font-weight:600;letter-spacing:.01em}
-.secpick select{width:100%;color-scheme:light;background:#fff;color:#17302B;border:2px solid #fff;border-radius:5px;padding:7px 10px;font-size:15px;font-weight:500;cursor:pointer}
+.secpick{padding:9px 14px 12px 16px;background:var(--hdr);color:#fff;display:flex;flex-direction:column;gap:4px;border-top:1px solid #2F5F66;border-bottom:1px solid #0E1011}
+.secpick label{font-family:var(--cond);font-size:15px;font-weight:600;letter-spacing:.01em}
+.secpick select{width:100%;color-scheme:light;background:#fff;color:#17302B;border:2px solid #fff;border-radius:5px;padding:5px 10px;font-size:14px;font-weight:500;cursor:pointer}
 .secpick select:hover{border-color:#9CC3E6}
 .secpick select:focus-visible{outline:3px solid #9CC3E6;outline-offset:1px}
-.qs{border-bottom:1px solid var(--line);padding:10px 0 6px}
-.qs button{display:flex;width:100%;text-align:left;background:none;border:0;padding:6px 14px 6px 0;align-items:center;gap:10px;font-family:var(--cond);font-size:17px;font-weight:500;color:#C9D0D3}
+.qs{border-bottom:1px solid var(--line);padding:6px 0 4px}
+.qs button{display:flex;width:100%;text-align:left;background:none;border:0;padding:4px 14px 4px 0;align-items:center;gap:10px;font-family:var(--cond);font-size:16px;font-weight:500;color:#C9D0D3}
 .qs button::before{content:"";width:12px;align-self:stretch;min-height:24px;background:var(--hue);opacity:.75;flex:none;border-radius:0 2px 2px 0}
 .qs button:hover{color:var(--ink)}
 .qs button:hover::before{opacity:.7}
 .qs button[aria-current=true]{font-weight:600;color:var(--ink);background:var(--ground)}
 .qs button[aria-current=true]::before{opacity:1}
-.qbody{padding:14px 14px 16px 15px}
-.use{margin:0 0 10px;color:#D5DADC;max-width:36em}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
-.chips button{border:1px solid #545C62;background:none;color:#E6EAEB;border-radius:999px;padding:3px 10px;font-size:12.5px}
+.qbody{padding:8px 14px 10px 15px}
+.use{margin:0 0 8px;color:#D5DADC;max-width:40em;font-size:12.5px;line-height:1.36}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 8px}
+.chips button{border:1px solid #545C62;background:none;color:#E6EAEB;border-radius:999px;padding:2px 9px;font-size:12.5px}
 .chips button:hover{border-color:var(--ink)}
 .chips button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--onlight);font-weight:500}
-.statline{font-size:13px;color:var(--muted);margin:0 0 8px}
-.rank h3{font-size:16px;margin:10px 0 4px}
+.statline{font-size:12.5px;color:var(--muted);margin:0 0 4px}
+.rank h3{font-size:15px;margin:6px 0 3px;flex:none}
 .rank ol{list-style:none;margin:0;padding:0}
 .rank ol.scroll{max-height:264px;overflow-y:auto;border-bottom:1px solid var(--line);padding-right:8px;overscroll-behavior:contain;scrollbar-width:thin}
 .rank ol.scroll li:first-child button{border-top:0}
 .rank .cnt{font-family:var(--body);font-size:12.5px;font-weight:400;color:var(--muted);margin-left:6px}
-.rank li button{display:grid;grid-template-columns:1fr auto;gap:2px 10px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:6px 0}
+.rank li button{display:grid;grid-template-columns:1fr auto;gap:2px 10px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:4px 0}
 .rank li button:hover{background:var(--ground)}
 .rank .where{font-weight:500}
 .rank .club{grid-column:1;font-size:12.5px;color:var(--muted)}
@@ -195,6 +195,16 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .dlg th{font-weight:600}
 .dlg .close{margin-top:14px;background:var(--ink);color:var(--onlight);font-weight:500;border:0;border-radius:4px;padding:7px 16px}
 
+@media (min-width:861px){
+  aside{display:flex;flex-direction:column}
+  .secpick{flex:none}
+  #side{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .qs{flex:none}
+  .qbody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .qbody>*{flex:none}
+  .qbody>.rank{flex:1 1 auto;min-height:96px;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin}
+  .rank ol.scroll{flex:1 1 auto;min-height:0;max-height:none}
+}
 @media (max-width:860px){
   body{display:block;height:auto}
   header p{display:none}
@@ -347,7 +357,7 @@ const Q = [
   use:'A count of the agencies and organizations that administer mapped land in each cell, to show how many parties a project may need to coordinate with. It is generalized to grid cells and does not show boundaries or who administers any particular spot. Check the tract records before relying on it.',
   m:[{id:'mgrs', label:'Number of land administrators', f:'N_MGR', int:1, noun:['administrator','administrators']}]},
  {id:'veg', th:'veg', hue:HUE.veg, ramp:'veg', title:'What grows here?',
-  use:'Data from the NPS Vegetation Map. This is the finest scale of vegetation information for the A.T. Corridor. The map covers only part of most cells, so vegetation types are shown in acres, and cells with under 10 mapped acres are faded.',
+  use:'Data from the NPS Vegetation Map. This is the finest scale vegetation information for the A.T. Corridor. The map covers only part of most cells, so vegetation types are shown in acres, and cells with under 10 mapped acres are faded.',
   m:[{id:'type', label:'Main vegetation type', kind:'cat', f:'DOM_TYPE', many:1, fade:1},
      {id:'types', label:'Number of vegetation types', f:'N_TYPES', int:1, fade:1, noun:['type','types']},
      {id:'cover', label:'Land cover (NLCD level 2)', kind:'cat', f:'L2_DOM', fade:1},
