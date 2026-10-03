@@ -32,6 +32,25 @@ header{grid-area:head;background:var(--hdr);color:#fff;display:flex;align-items:
 header h1{font-size:21px;letter-spacing:.01em}
 header p{margin:0;color:#BFD0C9;font-size:13px;flex:1 1 260px;min-width:0}
 .hctl{display:flex;gap:8px;align-items:center}
+.find{position:relative;flex:0 1 320px;min-width:190px}
+#find{width:100%;background:rgba(255,255,255,.1);border:1px solid #4C7B82;border-radius:5px;color:#fff;padding:5px 10px;font:inherit;font-size:13.5px;color-scheme:dark}
+#find::placeholder{color:#B9CDD0}
+#find:focus{background:rgba(255,255,255,.16);outline:2px solid #8EC2F0;outline-offset:1px}
+#findlist{position:absolute;z-index:2000;top:calc(100% + 5px);left:0;right:0;min-width:300px;margin:0;padding:4px;list-style:none;background:#1D2023;border:1px solid #3B4146;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.55);max-height:62vh;overflow-y:auto}
+#findlist[hidden]{display:none}
+#findlist li{padding:6px 8px;border-radius:4px;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:1px 10px;font-size:13px;color:#F1F3F4;line-height:1.3}
+#findlist li[aria-selected=true],#findlist li[data-i]:hover{background:#2F3439}
+#findlist em{color:#B4BCBF}
+#findlist .k{grid-column:1;font-size:12px;color:#B4BCBF}
+#findlist .n{grid-row:1/3;grid-column:2;align-self:center;font-size:12px;color:#B4BCBF;white-space:nowrap}
+#findlist .none{cursor:default;color:#B4BCBF;display:block}
+.findbar{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin:2px 0 8px;padding:8px 10px;border:1px solid #6B5A1E;border-left:5px solid #FFC233;border-radius:4px;background:#2A2718}
+.findbar b{font-family:var(--cond);font-size:17px;font-weight:600;display:block;line-height:1.2}
+.findbar em{font-size:12.5px;color:var(--muted)}
+.findbar span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.findbar button,.lbtn{flex:none;border:1px solid #545C62;background:none;color:#E6EAEB;border-radius:4px;padding:2px 9px;font-size:12.5px}
+.findbar button:hover,.lbtn:hover{border-color:#fff}
+.lbtn{margin-top:7px}
 .hctl label{font-size:12.5px;color:#BFD0C9}
 .hctl select{background:var(--ink2);color:#fff;border:1px solid #4C7B82;border-radius:4px;padding:5px 8px;max-width:240px}
 .hctl button{background:none;border:1px solid #4C7B82;color:#fff;border-radius:4px;padding:5px 10px}
@@ -208,6 +227,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 @media (max-width:860px){
   body{display:block;height:auto}
   header p{display:none}
+  .find{flex:1 1 100%;order:5}
   .hctl select{max-width:170px}
   #mapwrap{height:62vh;min-height:360px}
   aside{border-right:0;overflow:visible}
@@ -232,6 +252,10 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   <span class="blaze" aria-hidden="true"></span>
   <h1>A.T. Resource Grid</h1>
   <p>What we know about the Appalachian Trail corridor, one square mile at a time.</p>
+  <div class="find" role="search">
+    <input id="find" type="search" autocomplete="off" spellcheck="false" placeholder="Find a species or vegetation type" aria-label="Find a species or vegetation type" role="combobox" aria-expanded="false" aria-controls="findlist" aria-autocomplete="list">
+    <ul id="findlist" role="listbox" aria-label="Matching species" hidden></ul>
+  </div>
   <div class="hctl">
     <button id="aboutbtn" type="button">About the data</button>
   </div>
@@ -281,6 +305,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>Filled cells have data for the measure on screen. Outlined cells have data in another layer but none for this measure.</li>
       <li>Colors are five equal-count classes of the cells with data at the cell size on screen, so the classes change when you change cell size.</li>
       <li>The strip under the map runs from Springer Mountain to Katahdin. Each bar is a ten-mile stretch, averaged from the 49 sq mi cells.</li>
+      <li>The search box finds birds, invasive plants, forest pests and vegetation types in every cell where they were recorded. Other iNaturalist species are only searchable where they rank among a cell's ten most-recorded, so those results are partial. Rare species are not searchable.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
       <li>Trail miles are measured along the mapped centerline and are approximate.</li>
     </ul>
@@ -347,6 +372,7 @@ function shade(hex, f, dh){ let r = parseInt(hex.slice(1,3),16)/255, g = parseIn
   const col = {}; for (const f in fam){ const base = (CATCOL.L2_DOM.find(e => e[0] === f) || [0,'#BBBBBB'])[1], a = fam[f].sort(), n = a.length;
     a.forEach((name,k) => col[name] = shade(base, n === 1 ? 0 : (k/(n-1) - .5) * .42, ((k % 3) - 1) * 14)); }
   CATCOL.DOM_TYPE = D.cats.DOM_TYPE.map(n => [n, col[n]]); })();
+const FINDCOL = '#FFC233'; CATCOL.FIND = [['Recorded here', FINDCOL]]; D.cats.FIND = ['Recorded here'];
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 const ADMINCOL = ['#24475F','#819FB4','#C9D6DE','#E6E9E4'];
 const HUE = {lands:'#4F7590', veg:'#2F7A2C', inat:'#C4562A', ebird:'#3874A9', nrpz:'#9E2B4E', eff:'#685A9C'};
@@ -413,8 +439,10 @@ function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
   if (h.get('base')) S.base = h.get('base');
   if (h.get('sec')) S.sec = h.get('sec');
+  if (h.get('find')) S.pendingFind = h.get('find');
   if (h.get('cell')){ for (const lv of ['hex','cog','wheel']) if (IDX[lv].has(h.get('cell'))){ S.cell = IDX[lv].get(h.get('cell')); S.cellLv = lv; } } }
 function writeHash(){ const p = new URLSearchParams({q:S.q.id, m:S.m.id, size:S.level});
+  if (S.m.find) p.set('find', S.m.find.key);
   if (S.sec !== 'all') p.set('sec', S.sec); if (S.base !== 'topo') p.set('base', S.base); if (S.cell != null) p.set('cell', D.levels[S.cellLv].id[S.cell]);
   history.replaceState(null, '', '#' + p.toString()); }
 readHash();
@@ -451,7 +479,7 @@ function colorOf(m, lv, v){ if (v == null) return null;
   if (m.kind === 'cat'){ const e = CATMAP[m.f].get(D.cats[m.f][v]); return e ? e[1] : '#999'; }
   if (m.zero && v === 0) return ZERO;
   const B = breaks(m, lv); let i = 0; while (i < B.b.length && v > B.b[i]) i++; return B.cols[i]; }
-function show(m, v){ if (v == null) return 'no data';
+function show(m, v){ if (m.find) return v == null ? 'Not recorded' : 'Recorded here'; if (v == null) return 'no data';
   if (m.kind === 'cat'){ const lab = D.cats[m.f][v], e = CATCOL[m.f].find(x => x[0] === lab); return (e && e[2]) || lab; }
   if (m.unit === '%') return fmt(v, m.d) + '%';
   if (m.noun) return fmt(v, 0) + ' ' + m.noun[v === 1 ? 0 : 1];
@@ -520,6 +548,7 @@ function draw(){ const lv = dispLevel();
   if (want !== lv){ note.style.display = 'block'; note.textContent = 'Review priorities are shown at 7 and 49 sq mi, not for single square miles.'; } else note.style.display = 'none';
   document.querySelectorAll('#levels button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.lv === S.level);
     if (b.dataset.lv === 'auto') b.textContent = (S.level === 'auto' && innerWidth > 860) ? 'Auto: ' + LV[lv].name : 'Auto'; });
+  if (!S.m.find && document.activeElement !== $('#find')) $('#find').value = '';
   legend(); side(); if (S.cell != null && $('#profile').classList.contains('open')) profile(); }
 map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown) draw(); else if (shown) restyle(); });
 map.on('moveend', viewWindow);
@@ -554,17 +583,21 @@ function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3><button type="b
       if (m.int) t = lo >= hi ? fmt(hi,0) : `${fmt(lo,0)} to ${fmt(hi,0)}`;
       else t = i === 0 ? `up to ${fmt(hi,m.d)}${u}` : i === B.cols.length-1 ? `over ${fmt(B.b[i-1],m.d)}${u}` : `${fmt(B.b[i-1],m.d)} to ${fmt(hi,m.d)}${u}`;
       h += `<div class="row"><i style="background:${col}"></i><span>${t}</span></div>`; }); }
-  h += `<div class="row"><i class="hollow"></i><span>No data for this measure</span></div>`;
+  h += `<div class="row"><i class="hollow"></i><span>${m.find ? 'Not recorded' : 'No data for this measure'}</span></div>`;
+  if (m.find) h += `<p class="sub">${m.find.complete ? 'A blank cell means no record there. It does not mean the species is absent.' : 'Partial results. Only each cell\'s ten most-recorded iNaturalist species can be searched, so a blank cell is not an absence.'}</p>`;
   h += `<p class="sub">Per ${LV[lv].name} cell</p>`;
+  if (m.find) h += '<button type="button" id="findclear" class="lbtn">Clear search</button>';
   if (m.fade) h += `<label><input type="checkbox" id="fadebox" ${S.fade ? 'checked' : ''}> ${m.fadeLabel ? m.fadeLabel : m.th === 'veg' ? 'Fade cells with under ' + THIN_AC + ' acres mapped' : 'Fade thinly sampled cells'}</label>`;
   $('#legend').innerHTML = h + '</div>';
   $('#legtog').onclick = () => { S.legend = !S.legend; legend(); };
+  { const fc = $('#findclear'); if (fc) fc.onclick = clearFind; }
   const fb = $('#fadebox'); if (fb) fb.onchange = () => { S.fade = fb.checked; restyle(); }; }
 
 /* ---------- side panel ---------- */
 function cellLabel(lv, c){ return `Near mile ${fmt(D.levels[lv].mi[c], 0)}`; }
 function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
-  let h = '<nav class="qs" aria-label="Questions">' + Q.map(x => `<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${x === q}">${esc(x.title)}</button>`).join('') + '</nav>';
+  let h = '<nav class="qs" aria-label="Questions">' + Q.map(x => `<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${x === q && !S.m.find}">${esc(x.title)}</button>`).join('') + '</nav>';
+  if (S.m.find){ el.innerHTML = h + `<div class="qbody">${findSummary(lv)}</div>`; return; }
   h += `<div class="qbody" style="--hue:${q.hue}"><p class="use">${esc(q.use)}</p><div class="chips" role="group" aria-label="Measure">` +
     q.m.map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m}">${esc(m.label)}</button>`).join('') + '</div>' + summary(lv) + '</div>';
   el.innerHTML = h; }
@@ -586,10 +619,61 @@ function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows =
   rows.slice(0, 50).forEach(r => { h += `<li><button type="button" data-cell="${r[0]}" data-lv="${lv}"><span class="where">${cellLabel(lv, r[0])}</span><span class="val">${m.unit === '%' ? fmt(r[1], m.d) + '%' : fmt(r[1], m.d)}</span><span class="club">${esc(cat('club', L_.club[r[0]]) || '')}</span></button></li>`; });
   return h + '</ol></div>'; }
 $('#side').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q){ S.q = q; S.m = q.m[0]; S.secOpen = {}; draw(); strip(); writeHash(); } }
+  if (b.dataset.clearfind){ clearFind(); return; }
+  if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q || S.m.find){ S.q = q; S.m = q.m[0]; S.secOpen = {}; draw(); strip(); writeHash(); } }
   else if (b.dataset.m){ const m0 = S.m; S.m = S.q.m.find(x => x.id === b.dataset.m); if (S.m.th !== m0.th) S.secOpen = {}; draw(); strip(); writeHash(); }
   else if (b.dataset.cell) select(b.dataset.lv, +b.dataset.cell, true); });
 secSel.addEventListener('change', () => { S.sec = secSel.value; fitSection(); draw(); strip(); writeHash(); });
+
+/* ---------- species search ---------- */
+let FIDX = null;
+function findIndex(){ if (FIDX) return FIDX; const M = new Map(), P = new Map();
+  const parse = i => { let r = P.get(i); if (r) return r; const s = D.spp[i], m = s.match(/^(.*?)\s*\(([^)]*)\)\s*(\[.*\])?$/);
+    const sci = m ? m[2] : s.replace(/\s*\[.*\]$/, ''), common = m ? m[1] : (PEST_NAMES[sci] || ''); r = [sci.toLowerCase(), common, sci]; P.set(i, r); return r; };
+  const add = (key, common, sci, kind, th, complete, lv, c) => { let e = M.get(key);
+    if (!e){ e = {key, common, sci, kind, th, complete, lc:common.toLowerCase(), ls:sci.toLowerCase(), cells:{hex:new Set(), cog:new Set(), wheel:new Set()}}; M.set(key, e); }
+    else if (complete && !e.complete){ e.complete = true; e.kind = kind; e.th = th; }
+    e.cells[lv].add(c); };
+  const lists = (th, lv, fields, kind, complete) => { const t = D.themes[th] && D.themes[th][lv]; if (!t) return;
+    fields.forEach(f => { const col = t.f[f]; if (!col) return; for (let r = 0; r < col.length; r++){ const a = col[r]; for (let k = 0; k < a.length; k++){ const p = parse(a[k]); add(p[0], p[1], p[2], kind, th, complete, lv, t.ix[r]); } } }); };
+  for (const lv of ['hex','cog','wheel']){
+    const eb = D.themes.ebird && D.themes.ebird[lv]; if (eb) lists('ebird', lv, Object.keys(eb.f).filter(k => k.endsWith('_LIST')), 'Bird', true);
+    lists('inat', lv, ['INVASIVE_LIST','EDRR_LIST'], 'Invasive plant', true);
+    lists('inat', lv, ['PEST_LIST'], 'Forest pest', true);
+    lists('inat', lv, ['TOP10_SPECIES'], 'iNaturalist species', false);
+    const vg = D.themes.veg && D.themes.veg[lv]; if (vg && vg.f.COMP) for (let r = 0; r < vg.f.COMP.length; r++){ const a = vg.f.COMP[r]; for (let k = 0; k < a.length; k += 2){ const nm = D.cats.DOM_TYPE[a[k]]; add('veg:' + nm.toLowerCase(), nm, '', 'Vegetation type', 'veg', true, lv, vg.ix[r]); } } }
+  return FIDX = M; }
+function findMetric(e){ return {id:'find', find:e, q:S.q, th:e.th, kind:'cat', f:'FIND', label:e.common || e.sci, get:(lv, c) => e.cells[lv].has(c) ? 0 : null}; }
+function setFind(e, fly){ S.m = findMetric(e); S.secOpen = {}; $('#find').value = S.m.label; closeFind(); draw(); strip(); writeHash();
+  if (fly){ const L_ = D.levels.wheel, pts = []; e.cells.wheel.forEach(c => { if (inSec('wheel', c)) pts.push(L_.c[c]); }); if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(.12), {maxZoom:9}); } }
+function clearFind(){ if (!S.m.find) return; S.m = S.q.m[0]; $('#find').value = ''; draw(); strip(); writeHash(); }
+function findSummary(lv){ const e = S.m.find, L_ = D.levels[lv], rows = []; let total = 0;
+  for (let c = 0; c < L_.id.length; c++){ if (!inSec(lv, c)) continue; total++; if (e.cells[lv].has(c)) rows.push(c); }
+  rows.sort((a,b) => L_.mi[a] - L_.mi[b]); const where = S.sec === 'all' ? '' : ' in ' + esc(secName());
+  let h = `<div class="findbar"><div><b>${esc(e.common || e.sci)}</b>${e.common && e.sci ? `<em>${esc(e.sci)}</em>` : ''}<span>${e.kind}${e.complete ? '' : ', partial results'}</span></div><button type="button" data-clearfind="1">Clear</button></div>`;
+  h += `<p class="statline">Recorded in ${fmt(rows.length,0)} of ${fmt(total,0)} ${LV[lv].name} cells${where}.${e.complete ? '' : ' Only cells where it is among the ten most-recorded iNaturalist species are shown.'}</p>`;
+  if (!rows.length) return h + '<p class="statline">None here at this cell size. Try another section or a larger cell size.</p>';
+  h += `<div class="rank"><h3>Cells where recorded<span class="cnt">south to north</span></h3><ol class="scroll" tabindex="0" aria-label="Cells where recorded, scrollable list">`;
+  rows.slice(0, 400).forEach(c => { h += `<li><button type="button" data-cell="${c}" data-lv="${lv}"><span class="where">${cellLabel(lv, c)}</span><span class="club">${esc(cat('club', L_.club[c]) || '')}</span></button></li>`; });
+  return h + '</ol></div>'; }
+const fin = $('#find'), fl = $('#findlist'); let fsel = -1, fres = [];
+function closeFind(){ fl.hidden = true; fin.setAttribute('aria-expanded', 'false'); fin.removeAttribute('aria-activedescendant'); fsel = -1; }
+function listFind(){ const q = fin.value.trim().toLowerCase(); if (q.length < 2){ closeFind(); return; }
+  const out = []; findIndex().forEach(e => { const c = e.lc, s = e.ls; let sc = -1;
+    if (c.startsWith(q)) sc = 0; else if (c.includes(' ' + q) || c.includes('-' + q)) sc = 1; else if (c.includes(q)) sc = 2; else if (s.startsWith(q)) sc = 3; else if (s.includes(q)) sc = 4;
+    if (sc >= 0) out.push([sc, -e.cells.wheel.size, e]); });
+  out.sort((a,b) => a[0] - b[0] || a[1] - b[1]); fres = out.slice(0, 12).map(x => x[2]);
+  fl.innerHTML = fres.length ? fres.map((e,i) => `<li role="option" id="fo${i}" data-i="${i}" aria-selected="${i === fsel}"><span>${esc(e.common || e.sci)}${e.common && e.sci ? ` <em>${esc(e.sci)}</em>` : ''}</span><span class="n">${e.cells.wheel.size} ${e.cells.wheel.size === 1 ? 'cell' : 'cells'}</span><span class="k">${e.kind}${e.complete ? '' : ', partial'}</span></li>`).join('')
+    : '<li class="none">No match. Rare species are not searchable, and most iNaturalist species only where they are among a cell\'s ten most recorded.</li>';
+  fl.hidden = false; fin.setAttribute('aria-expanded', 'true'); if (fsel >= 0) fin.setAttribute('aria-activedescendant', 'fo' + fsel); }
+fin.addEventListener('input', () => { fsel = -1; if (!fin.value && S.m.find) clearFind(); listFind(); });
+fin.addEventListener('focus', () => { if (fin.value.trim().length >= 2) listFind(); });
+fin.addEventListener('blur', () => setTimeout(closeFind, 150));
+fin.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (!fl.hidden) closeFind(); else { fin.value = ''; clearFind(); } return; }
+  if (fl.hidden || !fres.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); fsel = (fsel + (e.key === 'ArrowDown' ? 1 : -1) + fres.length) % fres.length; listFind(); const o = $('#fo' + fsel); if (o) o.scrollIntoView({block:'nearest'}); }
+  else if (e.key === 'Enter'){ e.preventDefault(); setFind(fres[fsel >= 0 ? fsel : 0], true); fin.blur(); } });
+fl.addEventListener('mousedown', e => { const li = e.target.closest('li[data-i]'); e.preventDefault(); if (li){ setFind(fres[+li.dataset.i], true); fin.blur(); } });
 
 /* ---------- cell profile ---------- */
 const wiki = name => 'https://en.wikipedia.org/wiki/Special:Search?go=Go&search=' + encodeURIComponent(name);
@@ -727,7 +811,7 @@ $('#stripsvg').addEventListener('pointermove', e => { const i = binAt(e); if (i 
   hv.setAttribute('x', g.pl + i*g.bw); hv.setAttribute('opacity', .16);
   const where = `Miles ${fmt(i*BIN,0)} to ${fmt(Math.min(D.totalMi,(i+1)*BIN),0)}`;
   const club = b.club != null ? ', ' + shortClub(cat('club', b.club) || '') : '';
-  let txt = 'no data'; if (b.val != null) txt = S.m.kind === 'cat' ? 'mostly ' + show(S.m, b.val) : (S.m.unit === '%' ? fmt(b.val, 1) + '%' : fmt(b.val, b.val < 10 ? 1 : 0)) + ' on average per 49 sq mi cell';
+  let txt = S.m.find ? 'not recorded' : 'no data'; if (b.val != null) txt = S.m.find ? 'recorded in this stretch' : S.m.kind === 'cat' ? 'mostly ' + show(S.m, b.val) : (S.m.unit === '%' ? fmt(b.val, 1) + '%' : fmt(b.val, b.val < 10 ? 1 : 0)) + ' on average per 49 sq mi cell';
   $('#stripread').textContent = `${where}${club}: ${txt}`; });
 $('#stripsvg').addEventListener('pointerleave', () => { $('#shover').setAttribute('opacity', 0); });
 $('#stripsvg').addEventListener('click', e => { const i = binAt(e); if (i < 0) return; const L_ = D.levels.wheel, pts = [];
@@ -750,6 +834,7 @@ map.fitBounds(L.latLngBounds(allPts).pad(.03)); trailStyle();
 $('#map').style.background = DARKBASE[S.base] ? '#1D2422' : '#DDE3DC';
 if (S.sec !== 'all') fitSection();
 draw(); strip();
+if (S.pendingFind){ const e = findIndex().get(S.pendingFind); if (e) setFind(e, false); }
 if (S.cell != null) select(S.cellLv, S.cell, true);
 })();
 </script>
