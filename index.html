@@ -32,11 +32,13 @@ header{grid-area:head;background:var(--hdr);color:#fff;display:flex;align-items:
 header h1{font-size:21px;letter-spacing:.01em}
 header p{margin:0;color:#BFD0C9;font-size:13px;flex:1 1 260px;min-width:0}
 .hctl{display:flex;gap:8px;align-items:center}
-.find{position:relative;flex:0 1 320px;min-width:190px}
-#find{width:100%;background:rgba(255,255,255,.1);border:1px solid #4C7B82;border-radius:5px;color:#fff;padding:5px 10px;font:inherit;font-size:13.5px;color-scheme:dark}
-#find::placeholder{color:#B9CDD0}
-#find:focus{background:rgba(255,255,255,.16);outline:2px solid #8EC2F0;outline-offset:1px}
-#findlist{position:absolute;z-index:2000;top:calc(100% + 5px);left:0;right:0;min-width:300px;margin:0;padding:4px;list-style:none;background:#1D2023;border:1px solid #3B4146;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.55);max-height:62vh;overflow-y:auto}
+.find{position:relative}
+.findlabel{margin-top:6px}
+#find{width:100%;box-sizing:border-box;color-scheme:light;background:#fff;color:#17302B;border:2px solid #fff;border-radius:5px;padding:5px 10px;font:inherit;font-size:14px;font-weight:500}
+#find::placeholder{color:#6B7A76;font-weight:400}
+#find:hover{border-color:#9CC3E6}
+#find:focus{outline:3px solid #9CC3E6;outline-offset:1px}
+#findlist{position:absolute;z-index:2000;top:calc(100% + 5px);left:0;right:0;margin:0;padding:4px;list-style:none;background:#1D2023;border:1px solid #3B4146;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.55);max-height:62vh;overflow-y:auto}
 #findlist[hidden]{display:none}
 #findlist li{padding:6px 8px;border-radius:4px;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:1px 10px;font-size:13px;color:#F1F3F4;line-height:1.3}
 #findlist li[aria-selected=true],#findlist li[data-i]:hover{background:#2F3439}
@@ -227,7 +229,6 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 @media (max-width:860px){
   body{display:block;height:auto}
   header p{display:none}
-  .find{flex:1 1 100%;order:5}
   .hctl select{max-width:170px}
   #mapwrap{height:62vh;min-height:360px}
   aside{border-right:0;overflow:visible}
@@ -252,17 +253,18 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   <span class="blaze" aria-hidden="true"></span>
   <h1>A.T. Resource Grid</h1>
   <p>What we know about the Appalachian Trail corridor, one square mile at a time.</p>
-  <div class="find" role="search">
-    <input id="find" type="search" autocomplete="off" spellcheck="false" placeholder="Find a species or vegetation type" aria-label="Find a species or vegetation type" role="combobox" aria-expanded="false" aria-controls="findlist" aria-autocomplete="list">
-    <ul id="findlist" role="listbox" aria-label="Matching species" hidden></ul>
-  </div>
   <div class="hctl">
     <button id="aboutbtn" type="button">About the data</button>
   </div>
 </header>
 
 <aside aria-label="Questions this data answers">
-  <div class="secpick"><label for="section">Section of trail</label><select id="section"></select></div>
+  <div class="secpick"><label for="section">Section of trail</label><select id="section"></select>
+    <label for="find" class="findlabel">Find a species or vegetation type</label>
+    <div class="find" role="search">
+      <input id="find" type="search" autocomplete="off" spellcheck="false" placeholder="Type a name, such as wood thrush" role="combobox" aria-expanded="false" aria-controls="findlist" aria-autocomplete="list">
+      <ul id="findlist" role="listbox" aria-label="Matching species" hidden></ul>
+    </div></div>
   <div id="side"></div>
 </aside>
 
