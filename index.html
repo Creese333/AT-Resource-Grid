@@ -305,7 +305,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 <dialog id="about">
   <div class="dlg">
     <h2>About this data</h2>
-    <p>Every dataset here is summarized on the same grid, so a single cell can be read across vegetation, citizen-science records, review priority and land administrators. The grid is NatureServe's nested hexagon system: a one square mile hexagon, a cluster of seven hexagons (7 sq mi), and a cluster of seven clusters (49 sq mi). Cell IDs are the NatureServe IDs, so the numbers here join back to the source tables.</p>
+    <p>Every dataset here is summarized on the same grid, so a single cell can be read across vegetation, citizen-science records, unique species and land administrators. The grid is NatureServe's nested hexagon system: a one square mile hexagon, a cluster of seven hexagons (7 sq mi), and a cluster of seven clusters (49 sq mi). Cell IDs are the NatureServe IDs, so the numbers here join back to the source tables.</p>
     <h3>What each layer is</h3>
     <table>
       <tr><th>Layer</th><th>Source</th><th>Keep in mind</th></tr>
@@ -313,7 +313,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Vegetation</td><td>NPS vegetation map for the A.T., by mapped vegetation type</td><td>The map stops at the edge of the surveyed lands, so most cells are only partly covered.</td></tr>
       <tr><td>iNaturalist</td><td>Research-grade records, <span class="run"></span></td><td>Records follow people. Few records means few visits, not few species.</td></tr>
       <tr><td>eBird</td><td>Checklists, <span class="run"></span></td><td>Same caution. Thinly sampled cells are faded on the bird maps.</td></tr>
-      <tr><td>Review priority</td><td>Rare species priority zones</td><td>Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
+      <tr><td>Unique species</td><td>Rare species priority zones</td><td>Rates how fragile the populations of unique species are in each cell, from rare plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
     </table>
     <h3>Reading the maps</h3>
     <ul>
@@ -373,7 +373,7 @@ const CATCOL = {
   L2_DOM:[['Open Water','#466B9F'],['Developed, Open Space','#DEC5C5'],['Developed, Low Intensity','#D99282'],['Developed, Medium Intensity','#EB0000'],['Developed, High Intensity','#AB0000'],
     ['Barren Land','#B3AC9F'],['Deciduous Forest','#68AB5F'],['Evergreen Forest','#1C5F2C'],['Mixed Forest','#B5C58F'],['Shrub/Scrub','#CCB879'],['Grassland/Herbaceous','#DFDFC2'],
     ['Pasture/Hay','#DCD939'],['Cultivated Crops','#AB6C28'],['Woody Wetlands','#B8D9EB'],['Emergent Herbaceous Wetlands','#6C9FB8'],['Unassigned','#ECEFEA']],
-  review_tie:[['Avoid','#9E2B4E'],['Minimize','#E0A23A'],['Standard Review','#A9B8AE','Standard review']]
+  review_tie:[['Avoid','#9E2B4E','Very highly fragile populations'],['Minimize','#E0A23A','Highly fragile populations'],['Standard Review','#A9B8AE','Moderately fragile populations']]
 };
 const L1 = [['L1_FOREST','Forest','#5E9C56'],['L1_SHRUB','Shrubland','#C9A85C'],['L1_HERB','Grass and herbaceous','#E3D58C'],['L1_AGRIC','Planted or cultivated','#D4CE3A'],
   ['L1_WETLAND','Wetland','#7FB2CE'],['L1_WATER','Water','#41639A'],['L1_DEVELOPED','Developed','#D58E7F'],['L1_BARREN','Barren','#A9A295']];
@@ -439,8 +439,8 @@ const Q = [
      {id:'sb', label:'Shorebird species', f:'SHORE_SPP', int:1, zero:1, fade:1, noun:['species','species']},
      {id:'se', label:'Seabird species', f:'SEABIRD_SPP', int:1, zero:1, fade:1, noun:['species','species']}]},
  {id:'pri', th:'nrpz', hue:HUE.nrpz, ramp:'pri', title:'Where do projects need to take a closer look?',
-  use:'Review tiers built from rare species records. Use it to screen a proposed project site early. Avoid and Minimize cells are where rare species records concentrate, so bring in resource staff before plans firm up.',
-  m:[{id:'tier', label:'Review tier', kind:'cat', f:'review_tie'},
+  use:'Shows where unique species have fragile populations, based on rare plant and animal records. Use it to screen a proposed project site early, and bring in resource staff before plans firm up where populations are highly or very highly fragile.',
+  m:[{id:'tier', label:'Unique Species', kind:'cat', f:'review_tie'},
      {id:'rich', label:'Rare species recorded', f:'richness', int:1, noun:['species','species']}]}
 ];
 for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
@@ -561,7 +561,7 @@ function draw(){ const lv = dispLevel();
   if (shown !== lv){ if (shown) map.removeLayer(GROUP[shown]); group(lv); shown = lv; restyle(); if (S.cells) GROUP[lv].addTo(map); }
   else restyle();
   const want = S.level === 'auto' ? autoLevel() : S.level, note = $('#note');
-  if (want !== lv){ note.style.display = 'block'; note.textContent = 'Review priorities are shown at 7 and 49 sq mi, not for single square miles.'; } else note.style.display = 'none';
+  if (want !== lv){ note.style.display = 'block'; note.textContent = 'Unique species ratings are shown at 7 and 49 sq mi, not for single square miles.'; } else note.style.display = 'none';
   document.querySelectorAll('#levels button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.lv === S.level);
     if (b.dataset.lv === 'auto') b.textContent = (S.level === 'auto' && innerWidth > 860) ? 'Auto: ' + LV[lv].name : 'Auto'; });
   if (!S.m.find && document.activeElement !== $('#find')) $('#find').value = '';
@@ -771,14 +771,14 @@ function profile(){ const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = pa
   // review priority
   let plv = lv, pc = c, viaParent = false;
   if (!D.themes.nrpz[lv] && par){ plv = par[0]; pc = par[1]; viaParent = true; }
-  b += `<div class="sec" style="--hue:${HUE.nrpz}"><h3>Review priority</h3>`;
+  b += `<div class="sec" style="--hue:${HUE.nrpz}"><h3>Unique species</h3>`;
   if (D.themes.nrpz[plv] && has('nrpz', plv, pc)){ const t = cat('review_tie', val('nrpz','review_tie',plv,pc)), e = CATCOL.review_tie.find(x => x[0] === t);
     b += `<p><span class="badge" style="background:${e[1]};color:${t === 'Avoid' ? '#fff' : '#1D2023'}">${esc(e[2] || t)}</span> ${fmt(val('nrpz','richness',plv,pc),0)} rare species recorded</p>`;
     if (viaParent) b += '<p class="none">Shown for the 7 sq mi cell this square mile sits in.</p>';
   } else b += `<p class="none">No rare species priority zone ${viaParent ? 'in the surrounding 7 sq mi cell' : 'in this cell'}.</p>`;
   b += '</div>';
   $('#pbody').innerHTML = b + landSec;
-  const SECKEY = {'Vegetation':'veg', 'iNaturalist records':'inat', 'Birds':'ebird', 'Review priority':'nrpz', 'Land administrators':'lands'};
+  const SECKEY = {'Vegetation':'veg', 'iNaturalist records':'inat', 'Birds':'ebird', 'Unique species':'nrpz', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
     const open = key in S.secOpen ? S.secOpen[key] : key === S.m.th;
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
