@@ -249,17 +249,19 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   .hctl select{max-width:170px}
   #mapwrap{height:62vh;min-height:360px}
   aside{border-right:0;overflow:visible}
-  #profile{position:fixed;top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:78vh;border-radius:12px 12px 0 0;box-shadow:0 -6px 22px rgba(0,0,0,.5)}
-  #profile .phead{padding-top:0}
-  .phandle{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;background:none;border:0;padding:7px 0 4px;color:#B4BCBF;font-size:12px}
-  .phandle i{width:40px;height:4px;border-radius:2px;background:#6A7378}
+  /* phones: the cell details are a block in the page, under the graph, so nothing is covered */
+  #profile{position:static;width:auto;max-width:none;max-height:none;border-radius:0;border:0;border-top:1px solid #0E1011;box-shadow:none}
+  #profile .pbody{overflow:visible}
+  .phandle{display:inline-flex;align-items:center;gap:8px;margin-top:9px;background:none;border:1px solid #545C62;border-radius:4px;padding:4px 12px;color:#E6EAEB;font-size:13px}
+  .phandle i{width:0;height:0;border:5px solid transparent;border-top:6px solid #C9D0D3;border-bottom:0}
+  .phandle[aria-expanded=true] i{transform:rotate(180deg)}
   .peekval{display:block;margin:5px 0 0 !important;font-size:14px;color:#F1F3F4 !important}
   .peekval span{color:var(--muted)}
   .peekval b{font-weight:600}
   #profile.peek .pbody,#profile.peek .phead .id,#profile.peek .pnav{display:none}
   #profile.peek .phead{border-bottom:0;padding-bottom:14px}
   #profile.peek .phead h2{font-size:18px}
-  #profile.full .peekval{display:none}
+  body{padding-bottom:10px}
   #legend{max-width:180px;font-size:12px;bottom:8px}
   .leaflet-container .leaflet-control-attribution{max-width:calc(100vw - 206px);font-size:9.5px}
   #levels{left:10px}
@@ -306,7 +308,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   <div id="note" class="mapctl"></div>
   <div id="legend" class="mapctl" aria-live="polite"></div>
   <section id="profile" aria-label="Cell profile">
-    <div class="phead"><button id="phandle" class="phandle" type="button" aria-expanded="false" aria-controls="pbody"><i aria-hidden="true"></i><span>Show details</span></button><div id="phead"></div><button id="pclose" type="button" aria-label="Close cell profile">&times;</button></div>
+    <div class="phead"><div id="phead"></div><button id="phandle" class="phandle" type="button" aria-expanded="false" aria-controls="pbody"><span>Show details</span><i aria-hidden="true"></i></button><button id="pclose" type="button" aria-label="Close cell profile">&times;</button></div>
     <div class="pbody" id="pbody"></div>
   </section>
 </div>
@@ -731,20 +733,23 @@ function parentOf(lv, c){ const id = D.levels[lv].id[c], up = lv === 'hex' ? 'co
 function select(lv, c, fly){ S.cell = c; S.cellLv = lv; const r = ring(lv, c); selOuter.setLatLngs(r); selInner.setLatLngs(r);
   if (fly) map.fitBounds(L.latLngBounds(r).pad(lv === 'hex' ? 4 : 1.5), {maxZoom: lv === 'hex' ? 12 : lv === 'cog' ? 10 : 8});
   profile(); writeHash();
-  if (isPhone()){ sheet('peek'); if (fly) $('#mapwrap').scrollIntoView({block:'start'}); keepCellVisible(lv, c, fly ? 600 : 60); } }
+  if (isPhone()){ placeProfile(); sheet('peek'); if (fly) $('#mapwrap').scrollIntoView({block:'start'}); showBar(); } }
 function clearSel(){ S.cell = null; selOuter.setLatLngs([]); selInner.setLatLngs([]); $('#profile').classList.remove('open', 'peek', 'full'); writeHash(); }
-/* Phones only: the cell popup opens as a short bar and expands on tap or swipe. Wide screens never get the peek/full classes. */
+/* Phones only: the cell details sit in the page under the graph, as a short summary that expands in place.
+   Wide screens keep the popup inside the map and never get the peek/full classes. */
 const isPhone = () => window.innerWidth <= 860;
+function placeProfile(){ const p = $('#profile'), phone = isPhone();
+  if (phone && p.parentNode !== document.body) $('#strip').after(p);
+  else if (!phone && p.parentNode !== $('#mapwrap')) $('#mapwrap').appendChild(p); }
 function sheet(state){ const p = $('#profile'), hb = $('#phandle'); p.classList.toggle('peek', state === 'peek'); p.classList.toggle('full', state === 'full');
-  hb.setAttribute('aria-expanded', state === 'full'); hb.querySelector('span').textContent = state === 'full' ? 'Hide details' : 'Show details'; if (state === 'full') $('#pbody').scrollTop = 0; }
-function keepCellVisible(lv, c, wait){ setTimeout(() => { if (S.cell !== c || S.cellLv !== lv) return; const p = $('#profile').getBoundingClientRect(), m = $('#map').getBoundingClientRect();
-  const y = m.top + map.latLngToContainerPoint(D.levels[lv].c[c]).y, limit = p.top - 36; if (y > limit) map.panBy([0, Math.min(y - limit + 24, m.height * .6)]); }, wait); }
-$('#phandle').onclick = () => sheet($('#profile').classList.contains('full') ? 'peek' : 'full');
-$('#phead').addEventListener('click', e => { if (isPhone() && !e.target.closest('button') && $('#profile').classList.contains('peek')) sheet('full'); });
-{ let ty = null; const ph = document.querySelector('#profile .phead');
-  ph.addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, {passive:true});
-  ph.addEventListener('touchend', e => { if (ty == null) return; const dy = e.changedTouches[0].clientY - ty; ty = null; if (!isPhone()) return; if (dy < -30) sheet('full'); else if (dy > 30) sheet('peek'); }, {passive:true}); }
-window.addEventListener('resize', () => { if (!isPhone()) $('#profile').classList.remove('peek', 'full'); else if (S.cell != null && !$('#profile').classList.contains('full')) $('#profile').classList.add('peek'); });
+  hb.setAttribute('aria-expanded', state === 'full'); hb.querySelector('span').textContent = state === 'full' ? 'Hide details' : 'Show details'; }
+function showBar(){ setTimeout(() => { const r = $('#profile').getBoundingClientRect(); if (r.height && r.bottom > window.innerHeight) window.scrollBy({top: r.bottom - window.innerHeight + 10, behavior:'smooth'}); }, 90); }
+function toggleSheet(){ const full = $('#profile').classList.contains('full');
+  if (full){ sheet('peek'); $('#mapwrap').scrollIntoView({block:'start'}); showBar(); }
+  else { sheet('full'); setTimeout(() => $('#profile').scrollIntoView({block:'start', behavior:'smooth'}), 60); } }
+$('#phandle').onclick = toggleSheet;
+$('#phead').addEventListener('click', e => { if (isPhone() && !e.target.closest('button') && $('#profile').classList.contains('peek')) toggleSheet(); });
+window.addEventListener('resize', () => { placeProfile(); if (!isPhone()) $('#profile').classList.remove('peek', 'full'); else if (S.cell != null && !$('#profile').classList.contains('full')) $('#profile').classList.add('peek'); });
 $('#pclose').onclick = clearSel;
 function profile(){ const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c);
   let h = `<h2>${LV[lv].name} cell near mile ${fmt(L_.mi[c],0)}</h2><p>${esc(cat('club', L_.club[c]) || '')}, ${esc(regionOf(L_.mi[c]))} region</p><p class="id">Grid ID ${esc(L_.id[c])}</p>`;
