@@ -520,6 +520,7 @@ function shade(hex, f, dh){ let r = parseInt(hex.slice(1,3),16)/255, g = parseIn
     a.forEach((name,k) => col[name] = shade(base, n === 1 ? 0 : (k/(n-1) - .5) * .42, ((k % 3) - 1) * 14)); }
   CATCOL.DOM_TYPE = D.cats.DOM_TYPE.map(n => [n, col[n]]); })();
 const FINDCOL = '#FFC233'; CATCOL.FIND = [['Recorded here', FINDCOL]]; D.cats.FIND = ['Recorded here'];
+CATCOL.APPA_YN = [['NPS - APPA land', '#4FA3D9']]; D.cats.APPA_YN = ['NPS - APPA land'];
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 const ADMINCOL = ['#24475F','#819FB4','#C9D6DE','#E6E9E4'];
 const HUE = {lands:'#4F7590', veg:'#2F7A2C', inat:'#C4562A', ebird:'#3874A9', nrpz:'#9E2B4E', eff:'#685A9C'};
@@ -533,9 +534,9 @@ const Q = [
  {id:'land', th:'lands', hue:HUE.lands, ramp:'land', title:'Who administers land here?',
   use:'A count of the agencies and organizations that administer mapped land in each cell, to show how many parties a project may need to coordinate with. It is generalized to grid cells and does not show boundaries or who administers any particular spot. Check the tract records before relying on it.',
   m:[{id:'mgrs', label:'Number of land administrators', f:'N_MGR', int:1, noun:['administrator','administrators']},
-     /* filter: only cells where NPS - APPA administers mapped land, shaded by its share of that mapped land */
-     {id:'appa', label:'NPS - APPA lands', unit:'%', d:0, none:'No NPS - APPA land', note:'Only cells where NPS - APPA administers mapped land are filled, shaded by its share of the mapped land in the cell.',
-      fn:(lv,c)=>{ const r = val('lands','MGRS',lv,c); if (!r) return null; const k = D.cats.MGR.indexOf('NPS - APPA'); for (let i = 0; i < r.length; i += 2) if (r[i] === k) return r[i+1]; return null; }}]},
+     /* yes-or-no filter: cells where NPS - APPA administers at least one mapped acre are filled in a single color; all others are left empty */
+     {id:'appa', label:'NPS - APPA lands', kind:'cat', f:'APPA_YN', yn:'NPS - APPA land', none:'No NPS - APPA land',
+      fn:(lv,c)=>{ const r = val('lands','MGRS',lv,c); if (!r) return null; const k = D.cats.MGR.indexOf('NPS - APPA'); for (let i = 0; i < r.length; i += 2) if (r[i] === k) return 0; return null; }}]},
  {id:'veg', th:'veg', hue:HUE.veg, ramp:'veg', title:'What grows here?',
   use:'Data from the NPS Vegetation Map. This is the finest scale vegetation information for the A.T. Corridor. The map covers only part of most cells, so vegetation types are shown in acres, and cells with under 10 mapped acres are faded.',
   m:[{id:'type', label:'Main vegetation type', kind:'cat', f:'DOM_TYPE', many:1, fade:1},
@@ -632,7 +633,7 @@ function colorOf(m, lv, v){ if (v == null) return null;
   if (m.kind === 'cat'){ const e = CATMAP[m.f].get(D.cats[m.f][v]); return e ? e[1] : '#999'; }
   if (m.zero && v === 0) return ZERO;
   const B = breaks(m, lv); let i = 0; while (i < B.b.length && v > B.b[i]) i++; return B.cols[i]; }
-function show(m, v){ if (m.find) return v == null ? 'Not recorded' : 'Recorded here'; if (v == null) return 'no data';
+function show(m, v){ if (m.find) return v == null ? 'Not recorded' : 'Recorded here'; if (v == null) return m.none || 'no data';
   if (m.kind === 'cat'){ const lab = D.cats[m.f][v], e = CATCOL[m.f].find(x => x[0] === lab); return (e && e[2]) || lab; }
   if (m.unit === '%') return fmt(v, m.d) + '%';
   if (m.noun) return fmt(v, 0) + ' ' + m.noun[v === 1 ? 0 : 1];
@@ -965,8 +966,12 @@ function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows =
   let total = 0;
   for (let c = 0; c < n; c++){ if (!inSec(lv, c)) continue; total++; const v = m.get(lv, c); if (v != null) rows.push([c, v]); }
   const where = S.sec === 'all' ? '' : ' in ' + esc(secName());
-  let h = `<p class="statline">${fmt(rows.length,0)} of ${fmt(total,0)} cells${where} have data for this measure.</p>`;
+  let h = `<p class="statline">${fmt(rows.length,0)} of ${fmt(total,0)} cells${where} ${m.yn ? 'have ' + esc(m.yn) : 'have data for this measure'}.</p>`;
   if (!rows.length) return h + '<p class="statline">Nothing to show for this measure here. Try a larger cell size or another section.</p>';
+  if (m.yn){ rows.sort((a,b) => L_.mi[a[0]] - L_.mi[b[0]]);
+    h += `<div class="rank"><h3>Cells with ${esc(m.yn)}<span class="cnt">${rows.length > 400 ? 'first 400, ' : ''}south to north</span></h3><ol class="scroll" tabindex="0" aria-label="Cells with ${esc(m.yn)}, scrollable list">`;
+    rows.slice(0, 400).forEach(r => { h += `<li><button type="button" data-cell="${r[0]}" data-lv="${lv}"><span class="where">${cellLabel(lv, r[0])}</span><span class="club">${esc(cat('club', L_.club[r[0]]) || '')}</span></button></li>`; });
+    return h + '</ol></div>'; }
   if (m.kind === 'cat'){ const cnt = new Map(); rows.forEach(r => cnt.set(r[1], (cnt.get(r[1]) || 0) + 1));
     h += '<div class="rank"><h3>Share of cells</h3>';
     const order = m.many ? [...cnt].sort((a,b) => b[1] - a[1]).slice(0, 10).map(x => CATMAP[m.f].get(D.cats[m.f][x[0]])) : CATCOL[m.f];
@@ -1375,7 +1380,7 @@ $('#stripsvg').addEventListener('pointermove', e => { const i = binAt(e); if (i 
   hv.setAttribute('x', g.pl + i*g.bw); hv.setAttribute('opacity', .16);
   const where = `Miles ${fmt(i*BIN,0)} to ${fmt(Math.min(D.totalMi,(i+1)*BIN),0)}`;
   const club = b.club != null ? ', ' + shortClub(cat('club', b.club) || '') : '';
-  let txt = S.m.find ? 'not recorded' : 'no data'; if (b.val != null) txt = S.m.find ? 'recorded in this stretch' : S.m.kind === 'cat' ? 'mostly ' + show(S.m, b.val) : (S.m.unit === '%' ? fmt(b.val, 1) + '%' : fmt(b.val, b.val < 10 ? 1 : 0)) + ' on average per 49 sq mi cell';
+  let txt = S.m.find ? 'not recorded' : (S.m.none ? S.m.none.toLowerCase().replace('nps - appa', 'NPS - APPA') : 'no data'); if (b.val != null) txt = S.m.find ? 'recorded in this stretch' : S.m.yn ? S.m.yn + ' in this stretch' : S.m.kind === 'cat' ? 'mostly ' + show(S.m, b.val) : (S.m.unit === '%' ? fmt(b.val, 1) + '%' : fmt(b.val, b.val < 10 ? 1 : 0)) + ' on average per 49 sq mi cell';
   $('#stripread').textContent = `${where}${club}: ${txt}`; });
 $('#stripsvg').addEventListener('pointerleave', () => { $('#shover').setAttribute('opacity', 0); });
 $('#stripsvg').addEventListener('click', e => { const i = binAt(e); if (i < 0) return; const L_ = D.levels.wheel, pts = [];
