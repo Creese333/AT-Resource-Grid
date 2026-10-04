@@ -260,6 +260,8 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .badge{display:inline-block;border-radius:3px;padding:1px 7px;font-size:12.5px;font-weight:500;background:var(--ground)}
 .spp{margin:4px 0 0;padding:0;list-style:none;font-size:13px}
 .spp li{padding:1.5px 0}
+details.t10{margin-top:8px}
+details.t10>summary{color:var(--ink);font-size:14px;font-weight:500}
 ol.spp.top10{list-style:decimal;padding-left:22px}
 ol.spp.top10 li::marker{color:var(--muted);font-size:12.5px}
 .spp em{color:var(--muted)}
@@ -1097,7 +1099,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
     b += `<p><span class="badge">${esc(cat('DATA_STATUS', v('inat','DATA_STATUS')) || '')}</span> Latest record ${esc(v('inat','LAST_OBS') || 'unknown')}</p>`;
     b += inv.length ? `<p style="margin-top:8px">${inv.length} invasive plant ${inv.length === 1 ? 'species' : 'species'} reported:</p><ul class="spp">${inv.map(i => sppItem(i, ed.has(i))).join('')}</ul>` : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
     if (pest.length) b += `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(i => sppItem(i)).join('')}</ul>`;
-    if (top.length) b += `<details><summary>Most recorded species</summary><ul class="spp">${top.map(i => sppItem(i)).join('')}</ul></details>`;
+    if (top.length){ const tn = v('inat','TOP10_COUNTS') || []; b += `<details><summary>Most recorded species</summary><ul class="spp">${top.map((i, k) => tn[k] != null ? sppItem(i).replace('</li>', `<span class="tag">${fmt(tn[k], 0)} ${tn[k] === 1 ? 'record' : 'records'}</span></li>`) : sppItem(i)).join('')}</ul></details>`; }
   } else b += '<p class="none">No iNaturalist records in this cell yet.</p>';
   b += '</div>';
 
@@ -1124,6 +1126,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
   b += '</div>';
   finishProfile(b + landSec); }
 function finishProfile(html){ $('#pbody').innerHTML = html;
+  { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
   const SECKEY = {'Vegetation':'veg', 'iNaturalist records':'inat', 'Birds':'ebird', 'Unique species':'nrpz', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
     const open = key in S.secOpen ? S.secOpen[key] : key === S.m.th;
@@ -1230,10 +1233,16 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
       b += `<div class="facts"><div><b>${fmt(rec,0)}</b>records</div><div><b>${inv.length}</b>invasive plant species</div><div><b>${cs.length}</b>of ${N} cells with records</div></div>`;
       b += inv.length ? `<p style="margin-top:8px">Invasive plants reported, with the number of selected cells each was found in:</p><ul class="spp">${inv.slice(0, 12).map(x => item(x[0], x[1], ed.has(x[0]))).join('')}</ul>` + (inv.length > 12 ? `<details><summary>${inv.length - 12} more</summary><ul class="spp">${inv.slice(12).map(x => item(x[0], x[1], ed.has(x[0]))).join('')}</ul></details>` : '') : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
       if (pest.length) b += `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(x => item(x[0], x[1])).join('')}</ul>`;
-      { /* combined top ten: every cell's ten most-recorded species, merged. A species scores 10 points for a first place down to 1 for a tenth, summed over the selected cells. */
-        const sc = new Map(); cs.forEach(c => (val('inat','TOP10_SPECIES',lv,c) || []).forEach((i, r) => { const e = sc.get(i) || [0, 0]; e[0] += Math.max(1, 10 - r); e[1]++; sc.set(i, e); }));
+      { /* Combined top ten, collapsible. With record counts in the data (TOP10_COUNTS) the counts are added across cells.
+           Without them, each cell's ranking is merged: 10 points for a first place down to 1 for a tenth. */
+        const hasN = !!(D.themes.inat[lv].f.TOP10_COUNTS), sc = new Map();
+        cs.forEach(c => { const ids = val('inat','TOP10_SPECIES',lv,c) || [], ns = hasN ? (val('inat','TOP10_COUNTS',lv,c) || []) : [];
+          ids.forEach((i, r) => { const e = sc.get(i) || [0, 0]; e[0] += hasN ? (ns[r] || 0) : Math.max(1, 10 - r); e[1]++; sc.set(i, e); }); });
         const top = [...sc].sort((a,b) => b[1][0] - a[1][0] || b[1][1] - a[1][1] || D.spp[a[0]].localeCompare(D.spp[b[0]])).slice(0, 10);
-        if (top.length) b += `<p style="margin-top:8px">Top ten species across the selection, with the number of selected cells where each is among the ten most recorded:</p><ol class="spp top10">${top.map(x => item(x[0], x[1][1])).join('')}</ol><p class="none" style="font-size:12.5px;margin-top:6px">Ranked from each cell's own top ten: first place in a cell counts most, tenth least. The data holds each cell's ranking but not record counts per species, so this is a combined ranking and not a count of records.</p>`; }
+        const tag = x => sppItem(x[0]).replace('</li>', `<span class="tag">${hasN ? fmt(x[1][0], 0) + (x[1][0] === 1 ? ' record, ' : ' records, ') : ''}${nc(x[1][1])}</span></li>`);
+        if (top.length) b += `<details class="t10" ${S.t10 === false ? '' : 'open'}><summary>Top ten species across the selection</summary><ol class="spp top10">${top.map(tag).join('')}</ol><p class="none" style="font-size:12.5px;margin-top:6px">` +
+          (hasN ? 'Record counts are added across the selected cells. A species is counted only in cells where it is among the ten most recorded, so its true total can be higher.'
+                : 'Ranked from each cell\'s own top ten: first place in a cell counts most, tenth least. The number beside each species is how many selected cells list it. The data holds each cell\'s ranking but not record counts, so this is a combined ranking and not a count of records.') + '</p></details>'; }
     } else b += '<p class="none">No iNaturalist records in the selected cells.</p>';
     b += '</div>'; }
 
