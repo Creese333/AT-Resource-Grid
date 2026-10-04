@@ -747,14 +747,14 @@ const LANDKEY = [['FEDERAL LAND - NPS - APPA FEE','NPS, A.T. fee land','rgb(0,77
   ['STATE LAND','State','rgb(85,255,0)'],['CONSERVATION LAND','Conservation land','rgb(211,255,190)'],['TOWN LAND','Town','rgb(255,255,115)']];
 const LANDMAP = new Map(LANDKEY.map(k => [k[0], k]));
 const LIVE = [
-  {id:'lands', name:'Administrative areas', url:SVC + 'AT_Lands/FeatureServer/1', type:'poly', bbox:1, minZoom:11, fields:'NAME,ADMIN,ACRES,TRACT1,LEGEND3', color:'rgb(0,77,168)'},
   {id:'shelters', name:'Shelters', url:SVC + 'ANST_Facilities/FeatureServer/4', type:'pt', color:'#E4572E'},
   {id:'campsites', name:'Campsites', url:SVC + 'ANST_Facilities/FeatureServer/1', type:'pt', color:'#2E933C'},
   {id:'parking', name:'Parking', url:SVC + 'ANST_Facilities/FeatureServer/2', type:'pt', color:'#3D6FD6'},
   {id:'privies', name:'Privies', url:SVC + 'ANST_Facilities/FeatureServer/3', type:'pt', color:'#8E6C3A'},
   {id:'bridges', name:'Bridges', url:SVC + 'ANST_Facilities/FeatureServer/0', type:'pt', color:'#7C8794'},
   {id:'vistas', name:'Vistas', url:SVC + 'ANST_Facilities/FeatureServer/5', type:'pt', color:'#B03FA8'},
-  {id:'sidetrails', name:'Side trails', url:SVC + 'ANST_Facilities/FeatureServer/6', type:'line', bbox:1, minZoom:10, color:'#35A7FF'}
+  {id:'sidetrails', name:'Side trails', url:SVC + 'ANST_Facilities/FeatureServer/6', type:'line', bbox:1, minZoom:10, color:'#35A7FF'},
+  {id:'lands', name:'Administrative areas', url:SVC + 'AT_Lands/FeatureServer/1', type:'poly', bbox:1, minZoom:11, fields:'NAME,ADMIN,ACRES,TRACT1,LEGEND3', color:'rgb(0,77,168)'}
 ];
 const GLYPH = {
   shelters:'<path d="M2.5 9.5 8 3.5l5.5 6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 8.5V13h7V8.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>',
@@ -792,18 +792,33 @@ function featPopup(l, p){ const kind = ({lands:'Administrative area', shelters:'
 function liveStatus(l, s){ l.status = s; const e = document.querySelector('#layerspanel [data-st="' + l.id + '"]'); if (e) e.textContent = s; }
 const ICONZ = 9;
 function liveDraw(l, feats){ l.group.clearLayers();
-  if (l.type === 'pt'){ if (feats) l.feats = feats.filter(f => f.geometry && f.geometry.type === 'Point'); const z = map.getZoom(), b = map.getBounds().pad(.15), pop = (m, f) => () => L.popup({maxWidth:260, offset:[0, -6]}).setLatLng(m.getLatLng()).setContent(featPopup(l, f.properties || {})).openOn(map); let n = 0;
+  if (l.type === 'pt'){ if (feats) l.feats = feats.filter(f => f.geometry && f.geometry.type === 'Point'); const z = map.getZoom(), b = map.getBounds().pad(.15), pop = (m, f) => () => L.popup({autoPan:false, maxWidth:260, offset:[0, -6]}).setLatLng(m.getLatLng()).setContent(featPopup(l, f.properties || {})).openOn(map); let n = 0;
     (l.feats || []).forEach(f => { const c = f.geometry.coordinates, ll = [c[1], c[0]]; let mk;
       if (z >= ICONZ){ if (!b.contains(ll) || n >= 700) return; n++; mk = L.marker(ll, {pane:'feat', keyboard:false, title:featName(l, f.properties || {}), icon:L.divIcon({className:'ficm', html:glyphHTML(l, 24), iconSize:[24, 24], iconAnchor:[12, 12]})}); }
       else mk = L.circleMarker(ll, {renderer:featR, pane:'feat', radius:3.5, color:'#fff', weight:1, fillColor:l.color, fillOpacity:1, bubblingMouseEvents:false});
       mk.on('click', pop(mk, f)).addTo(l.group); mk._p = f.properties || {}; mk._nm = featName(l, mk._p); }); }
   else L.geoJSON({type:'FeatureCollection', features:feats.filter(f => f.geometry)}, {renderer:l.type === 'poly' ? landsR : featR, pane:l.type === 'poly' ? 'lands' : 'feat', bubblingMouseEvents:false,
     style:f => l.type === 'poly' ? {color:'#4A4A4A', weight:.6, fillColor:(LANDMAP.get((f.properties || {}).LEGEND3) || [0, 0, '#BBBBBB'])[2], fillOpacity:.5} : {color:l.color, weight:2.2, dashArray:'6 4', opacity:.95},
-    onEachFeature:(f, ly) => { if (l.type === 'line') ly._nm = featName(l, f.properties || {}); return ly.on('click', e => L.popup({maxWidth:260}).setLatLng(e.latlng).setContent(featPopup(l, f.properties || {})).openOn(map)); }}).addTo(l.group);
+    onEachFeature:(f, ly) => { if (l.type === 'line') ly._nm = featName(l, f.properties || {}); return ly.on('click', e => L.popup({autoPan:false, maxWidth:260}).setLatLng(e.latlng).setContent(featPopup(l, f.properties || {})).openOn(map)); }}).addTo(l.group);
   labelSync(l); }
+/* Keep a popup or the pinned value label clear of everything that sits on top of the map: the cell-size, Map tools, basemap and Map layers controls,
+   the zoom buttons, an open layers list, the legend, and the details panel. The map is nudged just far enough to clear them. */
+function keepClear(el){ if (!el || !el.getBoundingClientRect) return; const m = $('#map').getBoundingClientRect(), r = el.getBoundingClientRect(); if (!r.width) return;
+  const obs = []; document.querySelectorAll('#ctlrow1 > *, #ctlrow2 > .mapctl, #note, .leaflet-control-zoom, #legend, #layerspanel, #profile.open').forEach(o => { if (o.hidden || o.offsetParent === null || (o.id === 'profile' && isPhone())) return; const q = o.getBoundingClientRect(); if (q.width && q.height && q.bottom > m.top && q.top < m.bottom) obs.push(q); });
+  const g = 8; let sx = 0, sy = 0;
+  const fits = (dx, dy) => r.left + dx >= m.left + 4 && r.right + dx <= m.right - 4 && r.top + dy >= m.top + 4 && r.bottom + dy <= m.bottom - 4;
+  const clash = (dx, dy) => obs.find(q => r.left + dx < q.right + g && r.right + dx > q.left - g && r.top + dy < q.bottom + g && r.bottom + dy > q.top - g);
+  for (let pass = 0; pass < 8; pass++){
+    if (r.left + sx < m.left + 4) sx = m.left + 4 - r.left; if (r.right + sx > m.right - 4) sx = m.right - 4 - r.right;
+    if (r.top + sy < m.top + 4) sy = m.top + 4 - r.top; if (r.bottom + sy > m.bottom - 4) sy = m.bottom - 4 - r.bottom;
+    const q = clash(sx, sy); if (!q) break;
+    const moves = [[q.right + g - r.left, sy], [q.left - g - r.right, sy], [sx, q.bottom + g - r.top], [sx, q.top - g - r.bottom]].filter(v => fits(v[0], v[1])).sort((a, b) => (Math.abs(a[0] - sx) + Math.abs(a[1] - sy)) - (Math.abs(b[0] - sx) + Math.abs(b[1] - sy)));
+    const free = moves.find(v => !clash(v[0], v[1])) || moves[0]; if (!free) break; sx = free[0]; sy = free[1]; }
+  if (Math.abs(sx) > 1 || Math.abs(sy) > 1) map.panBy([-sx, -sy], {animate:true, duration:.25}); }
+map.on('popupopen', e => setTimeout(() => keepClear(e.popup.getElement()), 40));
 /* A click on the map goes to a feature of a switched-on layer when one is under it (points within a fingertip, then side trails, then administrative areas). Only otherwise does it select a grid cell. */
 function liveHit(latlng){ if (typeof LIVE === 'undefined') return false; const cp = map.latLngToContainerPoint(latlng), tol = TOUCHDEV ? 20 : 11; let best = null, bd = Infinity, bl = null;
-  const open = (l, p) => { L.popup({maxWidth:260}).setLatLng(latlng).setContent(featPopup(l, p)).openOn(map); return true; };
+  const open = (l, p) => { L.popup({autoPan:false, maxWidth:260}).setLatLng(latlng).setContent(featPopup(l, p)).openOn(map); return true; };
   LIVE.forEach(l => { if (!l.on || l.type !== 'pt') return; l.group.eachLayer(m => { if (!m.getLatLng) return; const d = map.latLngToContainerPoint(m.getLatLng()).distanceTo(cp); if (d <= tol && d < bd){ bd = d; best = m; bl = l; } }); });
   if (best) return open(bl, best._p || {});
   const lp = map.latLngToLayerPoint(latlng);
@@ -1034,6 +1049,7 @@ function parentOf(lv, c){ const id = D.levels[lv].id[c], up = lv === 'hex' ? 'co
 function select(lv, c, fly){ S.box = null; boxRect.remove(); S.pinOff = false; S.cell = c; S.cellLv = lv; const r = ring(lv, c); selOuter.setLatLngs(r); selInner.setLatLngs(r);
   if (fly) map.fitBounds(L.latLngBounds(r).pad(lv === 'hex' ? 4 : 1.5), {maxZoom: lv === 'hex' ? 12 : lv === 'cog' ? 10 : 8});
   profile(); pinSync(); $('#clearbtn').hidden = false; writeHash();
+  setTimeout(() => { if (S.cell === c && S.cellLv === lv) keepClear(pin.getElement && pin.getElement()); }, fly ? 750 : 60);
   if (isPhone()){ placeProfile(); sheet(S.sheetFull ? 'full' : 'peek'); if (fly) $('#mapwrap').scrollIntoView({block:'start'}); showBar(); } }
 function clearSel(){ S.cell = null; S.box = null; boxRect.remove(); pin.remove(); $('#clearbtn').hidden = true; selOuter.setLatLngs([]); selInner.setLatLngs([]); $('#profile').classList.remove('open', 'peek', 'full'); S.sheetFull = false; writeHash(); }
 /* Phones only: the cell details sit in the page under the graph, as a short summary that expands in place.
