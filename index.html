@@ -198,7 +198,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#1D2023;color:#F1F3F4;box-shadow:0 4px 16px rgba(0,0,0,.55)}
 .leaflet-popup-content-wrapper{border:1px solid #3B4146;border-radius:6px}
 .leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.4}
-.leaflet-popup-content h4{font-family:var(--cond);font-size:16px;font-weight:600;margin:0 0 4px}
+.leaflet-popup-content h4{font-family:var(--cond);font-size:16px;font-weight:600;margin:0}
 .leaflet-popup-content .k{color:#B4BCBF}
 .pbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .leaflet-container a.pbtn{display:inline-block;background:#F1F3F4;color:#1D2023;font-weight:600;font-size:12.5px;border-radius:4px;padding:4px 12px;text-decoration:none}
@@ -740,7 +740,7 @@ const LANDKEY = [['FEDERAL LAND - NPS - APPA FEE','NPS, A.T. fee land','rgb(0,77
   ['STATE LAND','State','rgb(85,255,0)'],['CONSERVATION LAND','Conservation land','rgb(211,255,190)'],['TOWN LAND','Town','rgb(255,255,115)']];
 const LANDMAP = new Map(LANDKEY.map(k => [k[0], k]));
 const LIVE = [
-  {id:'lands', name:'Administrative areas', url:SVC + 'AT_Lands/FeatureServer/1', type:'poly', bbox:1, minZoom:11, fields:'NAME,ADMIN,LEGEND3', color:'rgb(0,77,168)'},
+  {id:'lands', name:'Administrative areas', url:SVC + 'AT_Lands/FeatureServer/1', type:'poly', bbox:1, minZoom:11, fields:'NAME,LEGEND3', color:'rgb(0,77,168)'},
   {id:'shelters', name:'Shelters', url:SVC + 'ANST_Facilities/FeatureServer/4', type:'pt', color:'#E4572E'},
   {id:'campsites', name:'Campsites', url:SVC + 'ANST_Facilities/FeatureServer/1', type:'pt', color:'#2E933C'},
   {id:'parking', name:'Parking', url:SVC + 'ANST_Facilities/FeatureServer/2', type:'pt', color:'#3D6FD6'},
@@ -768,17 +768,9 @@ async function arcMeta(l){ if (l.meta) return l.meta; try { const r = await fetc
 const tcase = s => String(s || '').toLowerCase().replace(/(^|[\s\-\/(])([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Nps|Usfs|Usfws|Appa|Hafe|Grsm|Blri|Shen|Choh|Dewa|Nhp|Nra|Nf|Np|Wma|Atc|Row|Us|Usa|Dcr|Dec|Dep|Dnr|Dcnr|Tva|Llc|Inc|Ii|Iii)\b/g, x => x.toUpperCase()).replace(/ (Of|The|And|For|At|In) /g, x => x.toLowerCase());
 const SKIPF = /^(OBJECTID|FID|GlobalID|Shape|GFID|LINK_ID|RELATE_ID)|Edit|Creat|Editor|FMSS|Asset|FBMS|^API$|^OB$|PDOP|HDOP|Avg_|Worst_|GPS|GNSS|Datafile|Unfilt|Filt_|Data_Dicti|Corr_|Rcvr|Publish|Version|Update_Sta|Feat_Name|Hist_|TRACT|PARCEL|DEED|OWNER|Length|^X$|^Y$|^Lat|^Lon|POINT_/i;
 function featName(l, p){ const df = (l.meta || {}).displayField, k = [df, 'Name', 'NAME', 'Label'].find(k => k && p[k] != null && String(p[k]).trim() && String(p[k]).trim() !== 'NA'); return k ? String(p[k]).trim() : ''; }
-const EXTRAF = {shelters:[/capac|sleep/i, 'Sleeps'], campsites:[/capac|tent|site/i, ''], parking:[/space|capac/i, ''], bridges:[/^type$|span|material/i, ''], privies:[/^type$/i, '']};
-function featPopup(l, p){ let h = '';
-  if (l.id === 'lands'){ const k = LANDMAP.get(p.LEGEND3); h = `<h4>${esc(tcase(p.NAME) || 'Unnamed area')}</h4><div class="ty">Administrative area</div>` + (p.ADMIN ? `<div><span class="k">Administered by</span> ${esc(tcase(p.ADMIN))}</div>` : '') + (p.LEGEND3 ? `<div><span class="k">Category</span> ${esc(k ? k[1] : tcase(p.LEGEND3))}</div>` : ''); return h; }
-  const m = l.meta || {}, al = new Map((m.fields || []).map(f => [f.name, f.alias || f.name])), nm = featName(l, p), kind = ({shelters:'Shelter', campsites:'Campsite', parking:'Parking area', privies:'Privy', bridges:'Bridge', vistas:'Vista', sidetrails:'Side trail'})[l.id] || l.name;
-  const clean = v => { if (v == null) return ''; const s = String(v).trim(); return (!s || /^(na|n\/a|none|unknown|0)$/i.test(s)) ? '' : s; };
-  h = `<h4>${esc(nm || kind)}</h4><div class="ty">${esc(kind)}</div>`;
-  const st = clean(p.State), co = clean(p.County);
-  if (st) h += `<div><span class="k">State</span> ${esc(st)}</div>`;
-  if (co) h += `<div><span class="k">County</span> ${esc(co)}</div>`;
-  const ex = EXTRAF[l.id]; if (ex){ const k = Object.keys(p).find(k => ex[0].test(k) && !SKIPF.test(k) && clean(p[k]) && clean(p[k]).length < 60 && p[k] !== nm);
-    if (k) h += `<div><span class="k">${esc(ex[1] || String(al.get(k) || k).replace(/_/g, ' '))}</span> ${esc(clean(p[k]))}</div>`; }
+/* Popups for the live layers show the feature's name only, until the source attributes are reliable. Vistas also keep their photo buttons. */
+function featPopup(l, p){ const kind = ({lands:'Administrative area', shelters:'Shelter', campsites:'Campsite', parking:'Parking area', privies:'Privy', bridges:'Bridge', vistas:'Vista', sidetrails:'Side trail'})[l.id] || l.name;
+  const nm = l.id === 'lands' ? tcase(p.NAME) : featName(l, p); let h = `<h4>${esc(nm || 'Unnamed ' + kind.toLowerCase())}</h4>`;
   if (l.id === 'vistas'){ const ph = []; for (let k = 1; k <= 10; k++){ const u = String(p['Photo' + k] || '').trim(); if (/^https?:\/\//i.test(u)) ph.push(u); }
     if (ph.length) h += '<div class="pbtns">' + ph.map((u, k) => `<a class="pbtn" href="${esc(u)}" target="_blank" rel="noopener">${ph.length === 1 ? 'View photo' : 'Photo ' + (k + 1)}</a>`).join('') + '</div>'; }
   return h; }
