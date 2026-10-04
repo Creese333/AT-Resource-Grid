@@ -198,7 +198,8 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#1D2023;color:#F1F3F4;box-shadow:0 4px 16px rgba(0,0,0,.55)}
 .leaflet-popup-content-wrapper{border:1px solid #3B4146;border-radius:6px}
 .leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.4}
-.leaflet-popup-content h4{font-family:var(--cond);font-size:16px;font-weight:600;margin:0}
+.leaflet-popup-content h4{font-family:var(--cond);font-size:16px;font-weight:600;margin:0 0 3px}
+.leaflet-popup-content h4:last-child{margin:0}
 .leaflet-popup-content .k{color:#B4BCBF}
 .pthumb{display:block;width:230px;height:153px;margin:7px 0 0;border-radius:4px;overflow:hidden;background:#2A2E32}
 .pthumb img{display:block;width:100%;height:100%;object-fit:cover}
@@ -742,7 +743,7 @@ const LANDKEY = [['FEDERAL LAND - NPS - APPA FEE','NPS, A.T. fee land','rgb(0,77
   ['STATE LAND','State','rgb(85,255,0)'],['CONSERVATION LAND','Conservation land','rgb(211,255,190)'],['TOWN LAND','Town','rgb(255,255,115)']];
 const LANDMAP = new Map(LANDKEY.map(k => [k[0], k]));
 const LIVE = [
-  {id:'lands', name:'Administrative areas', url:SVC + 'AT_Lands/FeatureServer/1', type:'poly', bbox:1, minZoom:11, fields:'NAME,LEGEND3', color:'rgb(0,77,168)'},
+  {id:'lands', name:'Administrative areas', url:SVC + 'AT_Lands/FeatureServer/1', type:'poly', bbox:1, minZoom:11, fields:'NAME,ADMIN,ACRES,TRACT1,LEGEND3', color:'rgb(0,77,168)'},
   {id:'shelters', name:'Shelters', url:SVC + 'ANST_Facilities/FeatureServer/4', type:'pt', color:'#E4572E'},
   {id:'campsites', name:'Campsites', url:SVC + 'ANST_Facilities/FeatureServer/1', type:'pt', color:'#2E933C'},
   {id:'parking', name:'Parking', url:SVC + 'ANST_Facilities/FeatureServer/2', type:'pt', color:'#3D6FD6'},
@@ -773,6 +774,10 @@ function featName(l, p){ const df = (l.meta || {}).displayField, k = [df, 'Name'
 /* Popups for the live layers show the feature's name only, until the source attributes are reliable. Vistas also keep their photo buttons. */
 function featPopup(l, p){ const kind = ({lands:'Administrative area', shelters:'Shelter', campsites:'Campsite', parking:'Parking area', privies:'Privy', bridges:'Bridge', vistas:'Vista', sidetrails:'Side trail'})[l.id] || l.name;
   const nm = l.id === 'lands' ? tcase(p.NAME) : featName(l, p); let h = `<h4>${esc(nm || 'Unnamed ' + kind.toLowerCase())}</h4>`;
+  if (l.id === 'lands'){ const ad = String(p.ADMIN == null ? '' : p.ADMIN).trim(), ac = p.ACRES == null || p.ACRES === '' ? NaN : +p.ACRES, tr = String(p.TRACT1 == null ? '' : p.TRACT1).trim();
+    if (ad) h += `<div><span class="k">Administered by</span> ${esc(tcase(ad))}</div>`;
+    if (isFinite(ac) && ac > 0) h += `<div><span class="k">Acres</span> ${fmt(ac, ac < 100 ? 1 : 0)}</div>`;
+    if (tr) h += `<div><span class="k">Tract</span> ${esc(tr)}</div>`; }
   if (l.id === 'vistas'){ const ph = []; for (let k = 1; k <= 10; k++){ const u = String(p['Photo' + k] || '').trim(); if (/^https?:\/\//i.test(u)) ph.push(u); }
     /* Google Drive links: show a small preview straight from Drive, loaded only when the popup opens. If Drive will not serve it, the preview removes itself and the button remains. */
     const did = u => { const m = u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=|thumbnail\?(?:[^#]*&)?id=)([\w-]{20,})/) || u.match(/docs\.google\.com\/[^?#]*\/d\/([\w-]{20,})/); return m ? m[1] : null; };
