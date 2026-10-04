@@ -200,6 +200,8 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.4}
 .leaflet-popup-content h4{font-family:var(--cond);font-size:16px;font-weight:600;margin:0}
 .leaflet-popup-content .k{color:#B4BCBF}
+.pthumb{display:block;width:230px;height:153px;margin:7px 0 0;border-radius:4px;overflow:hidden;background:#2A2E32}
+.pthumb img{display:block;width:100%;height:100%;object-fit:cover}
 .pbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .leaflet-container a.pbtn{display:inline-block;background:#F1F3F4;color:#1D2023;font-weight:600;font-size:12.5px;border-radius:4px;padding:4px 12px;text-decoration:none}
 .leaflet-container a.pbtn:hover{background:#fff}
@@ -772,6 +774,10 @@ function featName(l, p){ const df = (l.meta || {}).displayField, k = [df, 'Name'
 function featPopup(l, p){ const kind = ({lands:'Administrative area', shelters:'Shelter', campsites:'Campsite', parking:'Parking area', privies:'Privy', bridges:'Bridge', vistas:'Vista', sidetrails:'Side trail'})[l.id] || l.name;
   const nm = l.id === 'lands' ? tcase(p.NAME) : featName(l, p); let h = `<h4>${esc(nm || 'Unnamed ' + kind.toLowerCase())}</h4>`;
   if (l.id === 'vistas'){ const ph = []; for (let k = 1; k <= 10; k++){ const u = String(p['Photo' + k] || '').trim(); if (/^https?:\/\//i.test(u)) ph.push(u); }
+    /* Google Drive links: show a small preview straight from Drive, loaded only when the popup opens. If Drive will not serve it, the preview removes itself and the button remains. */
+    const did = u => { const m = u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=|thumbnail\?(?:[^#]*&)?id=)([\w-]{20,})/) || u.match(/docs\.google\.com\/[^?#]*\/d\/([\w-]{20,})/); return m ? m[1] : null; };
+    const first = ph.map(did).findIndex(x => x);
+    if (first >= 0) h += `<a class="pthumb" href="${esc(ph[first])}" target="_blank" rel="noopener" title="Open the full photo"><img src="https://drive.google.com/thumbnail?id=${did(ph[first])}&sz=w480" alt="Photo of ${esc(nm || 'this vista')}" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></a>`;
     if (ph.length) h += '<div class="pbtns">' + ph.map((u, k) => `<a class="pbtn" href="${esc(u)}" target="_blank" rel="noopener">${ph.length === 1 ? 'View photo' : 'Photo ' + (k + 1)}</a>`).join('') + '</div>'; }
   return h; }
 function liveStatus(l, s){ l.status = s; const e = document.querySelector('#layerspanel [data-st="' + l.id + '"]'); if (e) e.textContent = s; }
