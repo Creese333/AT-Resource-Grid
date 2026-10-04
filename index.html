@@ -116,9 +116,12 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .leaflet-bar a,.leaflet-touch .leaflet-bar a{width:30px;height:30px;line-height:30px;box-sizing:border-box}
 .leaflet-bar a:first-child{height:31px}
 /* zoom control spans 10px to 73px; the two control rows beside it share that height */
-#ctlrow2{position:absolute;z-index:500;top:44px;left:48px;display:flex;gap:6px;height:29px}
-#ctlrow2 .mapctl{position:static;height:29px;box-sizing:border-box}
-#levels{top:10px;left:48px;display:flex;padding:3px;gap:2px;height:29px;box-sizing:border-box}
+#ctls{position:absolute;z-index:500;top:10px;left:48px;display:flex;flex-direction:column;align-items:flex-start;gap:5px;pointer-events:none}
+#ctls>*{pointer-events:auto}
+#ctlrow1,#ctlrow2{display:flex;gap:6px;min-height:29px}
+#ctls .mapctl{position:static;box-sizing:border-box}
+#ctlrow1>.mapctl,#ctlrow2>.mapctl{height:29px}
+#levels{display:flex;padding:3px;gap:2px}
 #levels button{border:0;background:none;border-radius:4px;padding:0 10px;font-size:13px;line-height:21px}
 #levels button{color:#D5DADC}
 #levels button[aria-pressed=true]{background:var(--ink);color:var(--onlight);font-weight:500}
@@ -127,12 +130,30 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 #base select{color:var(--ink);color-scheme:dark}
 #base select option{color:#F1F3F4;background:#1D2023}
 #base select{border:0;background:none;padding:2px 2px;font-size:13px;font-weight:500;cursor:pointer;max-width:190px}
-#cellsbtn{padding:0 11px;font-size:13px;display:flex;align-items:center;gap:7px;white-space:nowrap}
-#cellsbtn i{width:12px;height:12px;border-radius:2px;background:var(--ink);border:1.5px solid var(--ink);flex:none}
+/* Map tools: a box beside the cell-size buttons that opens to the right and stays open until its title is clicked */
+#tools{display:flex;align-items:stretch;padding:3px;gap:2px}
+#toolstog{display:flex;align-items:center;gap:7px;border:0;background:none;border-radius:4px;padding:0 8px 0 9px;font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap}
+#toolstog i{width:0;height:0;border:4.5px solid transparent;border-left:6px solid #C9D0D3;border-right:0;transition:transform .15s}
+#toolstog[aria-expanded=true] i{transform:rotate(180deg)}
+#toolstog:hover{background:var(--ground)}
+#toolsbody{display:flex;gap:2px;padding-left:5px;margin-left:3px;border-left:1px solid var(--line)}
+#toolsbody[hidden]{display:none}
+#toolsbody button{display:flex;align-items:center;gap:6px;border:0;background:none;border-radius:4px;padding:0 9px;font-size:13px;line-height:21px;color:#D5DADC;white-space:nowrap}
+#toolsbody button:hover{background:var(--ground);color:#fff}
+#cellsbtn i{width:11px;height:11px;border-radius:2px;background:#E6EAEB;border:1.5px solid #E6EAEB;flex:none}
 #cellsbtn[aria-pressed=false]{color:var(--muted)}
 #cellsbtn[aria-pressed=false] i{background:none;border-color:#8E9A92}
-#cellsbtn:hover{border-color:var(--ink)}
-#note{top:80px;left:48px;padding:5px 10px;font-size:12.5px;max-width:300px;display:none}
+#boxbtn i{width:12px;height:10px;border:1.5px dashed #C9D0D3;border-radius:1px;flex:none}
+#toolsbody #boxbtn[aria-pressed=true]{background:var(--ink);color:var(--onlight);font-weight:500}
+#boxbtn[aria-pressed=true] i{border-color:var(--onlight)}
+#toolsbody #clearbtn{color:#F4B08E}
+#clearbtn[hidden]{display:none !important}
+#boxdraw{position:absolute;z-index:640;border:2px dashed #fff;background:rgba(255,255,255,.14);box-shadow:0 0 0 1px rgba(23,48,43,.7);pointer-events:none}
+#boxdraw[hidden]{display:none}
+#mapwrap.drawing #map,#mapwrap.drawing #map .leaflet-interactive{cursor:crosshair !important}
+#mapwrap.drawing #map{touch-action:none !important}
+.leaflet-tooltip.pin{z-index:1}
+#note{padding:5px 10px;font-size:12.5px;max-width:300px;display:none}
 #legend{left:10px;bottom:8px;padding:9px 11px;max-width:250px;font-size:12.5px}
 #legend h3{font-size:14px;margin:0}
 #legtog{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;padding:0;font:inherit;text-align:left}
@@ -164,6 +185,9 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 #pclose{position:absolute;top:8px;right:8px;width:30px;height:30px;border:0;background:none;color:#fff;font-size:22px;line-height:1;border-radius:4px}
 #pclose:hover{background:var(--ground)}
 .phandle,.peekval{display:none}
+.boxm{margin:10px 0 0;font-size:14px}
+.boxm span{color:var(--muted)}
+.boxm b{font-weight:600}
 .pnav{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .pnav button{border:1px solid #545C62;background:none;color:#E6EAEB;border-radius:4px;padding:3px 9px;font-size:12.5px}
 .pnav button:hover{border-color:var(--ink)}
@@ -264,20 +288,21 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   #profile.peek .phead{border-bottom:0;padding-bottom:14px}
   #profile.peek .phead h2{font-size:18px}
   body{padding-bottom:10px}
+  .boxm{display:none}
   .rank ol.scroll,#findlist{overscroll-behavior:auto}
   #stripsvg{touch-action:pan-y}
   #legend{max-width:180px;font-size:12px;bottom:8px}
   .leaflet-container .leaflet-control-attribution{max-width:calc(100vw - 206px);font-size:9.5px}
-  #levels{left:10px}
+  #ctls{left:10px;right:10px}
+  .leaflet-control-zoom{display:none}
+  #ctlrow1{flex-wrap:wrap}
   #levels button{padding:0 8px;font-size:12.5px;white-space:nowrap}
-  #ctlrow2{left:10px}
   #base span{display:none}
   #base{padding:0 4px}
   #base select{max-width:150px}
-  .leaflet-control-zoom{display:none}
-  #note{left:10px}
-  #cellsbtn{padding:0 9px;font-size:12.5px}
-  #note{top:80px}
+  #toolstog,#toolsbody button{font-size:12.5px;padding:0 7px}
+  #tools{flex-wrap:wrap;height:auto !important;min-height:29px}
+  #toolsbody{flex-wrap:wrap}
   #stripread{text-align:left}
 }
 </style>
@@ -304,12 +329,24 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 
 <div id="mapwrap">
   <div id="map" role="application" aria-label="Map of the Appalachian Trail corridor grid"></div>
-  <div id="levels" class="mapctl" role="group" aria-label="Cell size"></div>
-  <div id="ctlrow2">
-    <label id="base" class="mapctl"><span>Basemap</span><select id="basesel"></select></label>
-    <button id="cellsbtn" class="mapctl" type="button" aria-pressed="true" title="Turn the colored cells on or off to see the basemap"><i aria-hidden="true"></i><span>Cells on</span></button>
+  <div id="ctls">
+    <div id="ctlrow1">
+      <div id="levels" class="mapctl" role="group" aria-label="Cell size"></div>
+      <div id="tools" class="mapctl">
+        <button id="toolstog" type="button" aria-expanded="true" aria-controls="toolsbody"><span>Map tools</span><i aria-hidden="true"></i></button>
+        <div id="toolsbody" role="group" aria-label="Map tools">
+          <button id="cellsbtn" type="button" aria-pressed="true" title="Turn the colored cells on or off to see the basemap"><i aria-hidden="true"></i><span>Cells on</span></button>
+          <button id="boxbtn" type="button" aria-pressed="false" title="Draw a box on the map to select every cell inside it"><i aria-hidden="true"></i><span>Select area</span></button>
+          <button id="clearbtn" type="button" hidden>Clear selection</button>
+        </div>
+      </div>
+    </div>
+    <div id="ctlrow2">
+      <label id="base" class="mapctl"><span>Basemap</span><select id="basesel"></select></label>
+    </div>
+    <div id="note" class="mapctl"></div>
   </div>
-  <div id="note" class="mapctl"></div>
+  <div id="boxdraw" hidden></div>
   <div id="maphint" aria-hidden="true">Use two fingers to move the map</div>
   <div id="legend" class="mapctl" aria-live="polite"></div>
   <section id="profile" aria-label="Cell profile">
@@ -343,6 +380,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>Colors are five equal-count classes of the cells with data at the cell size on screen, so the classes change when you change cell size.</li>
       <li>The strip under the map runs from Springer Mountain to Katahdin. Each bar is a ten-mile stretch, averaged from the 49 sq mi cells.</li>
       <li>The search box finds birds, invasive plants, forest pests and vegetation types in every cell where they were recorded. Other iNaturalist species are only searchable where they rank among a cell's ten most-recorded, so those results are partial. Rare species are not searchable.</li>
+      <li>Select area draws a box on the map and summarizes every cell whose center falls inside it. Records and acres are added up; species and vegetation types are counted once.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
       <li>Trail miles are measured along the mapped centerline and are approximate.</li>
     </ul>
@@ -469,7 +507,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c)); }));
 
 /* ---------- state ---------- */
-const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:'topo', legend: innerWidth > 860, secOpen: {}, cells: true, sheetFull: false, side: {about:true, measures:true, results:true}};
+const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:'topo', legend: innerWidth > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, side: {about:true, measures:true, results:true}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
@@ -556,6 +594,7 @@ const trailLine = L.polyline(D.trail, {renderer:trailR, color:'#17302B', weight:
 function trailStyle(){ const z = map.getZoom(), far = z < 9, dk = DARKBASE[S.base]; trailCase.setStyle({color: dk ? '#17302B' : '#fff', opacity: far ? 0 : .9}); trailLine.setStyle({color: dk ? '#fff' : '#17302B', weight: far ? 1 : 1.6, opacity: far ? .9 : 1}); }
 const selOuter = L.polygon([], {renderer:selR, color:'#fff', weight:6, fill:false, interactive:false}).addTo(map);
 const selInner = L.polygon([], {renderer:selR, color:'#17302B', weight:2.5, fill:false, interactive:false}).addTo(map);
+const boxRect = L.rectangle([[0,0],[0,0]], {renderer:selR, color:'#fff', weight:2, dashArray:'7 5', fill:false, interactive:false});
 
 function ring(lv, c){ const g = D.levels[lv].g[c], out = []; let la = g[0], lo = g[1]; out.push([la/1e5, lo/1e5]);
   for (let i = 2; i < g.length; i += 2){ la += g[i]; lo += g[i+1]; out.push([la/1e5, lo/1e5]); } return out; }
@@ -564,13 +603,19 @@ function group(lv){ if (GROUP[lv]) return GROUP[lv];
   const n = D.levels[lv].id.length, ps = new Array(n);
   for (let c = 0; c < n; c++){ const p = L.polygon(ring(lv, c), {renderer:cellRenderer, pane:'cells', bubblingMouseEvents:false}); p._c = c; ps[c] = p; }
   POLY[lv] = ps; const g = L.featureGroup(ps);
-  g.on('click', e => select(lv, e.propagatedFrom._c, false));
-  g.on('mouseover', e => { const c = e.propagatedFrom._c, L_ = D.levels[lv];
+  g.on('click', e => { if (S.drawing || Date.now() - S.boxAt < 450) return; select(lv, e.propagatedFrom._c, false); });
+  g.on('mouseover', e => { const c = e.propagatedFrom._c, L_ = D.levels[lv]; if (S.drawing || (TOUCHDEV && isPhone()) || (c === S.cell && lv === S.cellLv)) return;
     tip.setLatLng(e.latlng).setContent(`<b>${esc(show(S.m, S.m.get(lv, c)))}</b><br>${S.m.label}<br>Near mile ${fmt(L_.mi[c],0)}`); tip.addTo(map); });
   g.on('mousemove', e => tip.setLatLng(e.latlng));
   g.on('mouseout', () => tip.remove());
   return GROUP[lv] = g; }
 const tip = L.tooltip({className:'tip', direction:'top', offset:[0,-6], opacity:1, interactive:false});
+/* The value label for the selected cell stays on the map until another cell is chosen or the selection is cleared. */
+const pin = L.tooltip({className:'tip pin', direction:'top', offset:[0,-8], opacity:1, interactive:false, permanent:true});
+function pinSync(){ if (S.cell == null){ pin.remove(); return; } const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c);
+  let pv = S.m.get(lv, c); if (pv == null && par && !(D.themes[S.m.th] || {})[lv]) pv = S.m.get(par[0], par[1]);
+  const top = ring(lv, c).reduce((a, p) => p[0] > a[0] ? p : a);
+  pin.setLatLng(top).setContent(`<b>${esc(show(S.m, pv))}</b><br>${esc(S.m.label)}<br>Near mile ${fmt(L_.mi[c],0)}`); if (!map.hasLayer(pin)) pin.addTo(map); }
 
 let shown = null;
 function autoLevel(){ const z = map.getZoom(); return z >= 10.5 ? 'hex' : z >= 8.5 ? 'cog' : 'wheel'; }
@@ -591,7 +636,7 @@ function draw(){ const lv = dispLevel();
   document.querySelectorAll('#levels button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.lv === S.level);
     if (b.dataset.lv === 'auto') b.textContent = (S.level === 'auto' && innerWidth > 860) ? 'Auto: ' + LV[lv].name : 'Auto'; });
   if (!S.m.find && document.activeElement !== $('#find')) $('#find').value = '';
-  legend(); side(); if (S.cell != null && $('#profile').classList.contains('open')) profile(); }
+  legend(); side(); if ((S.cell != null || S.box) && $('#profile').classList.contains('open')) profile(); pinSync(); }
 map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown) draw(); else if (shown) restyle(); });
 map.on('moveend', viewWindow);
 
@@ -620,7 +665,7 @@ const TOUCHDEV = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 function mapGestures(){ if (TOUCHDEV && window.innerWidth <= 860) map.dragging.disable(); else map.dragging.enable(); }
 { const mc = map.getContainer(), hint = $('#maphint'); let sx = 0, sy = 0, ht = null;
   const showHint = () => { hint.classList.add('on'); clearTimeout(ht); ht = setTimeout(() => hint.classList.remove('on'), 1600); };
-  const onTouch = e => { if (!(TOUCHDEV && window.innerWidth <= 860)) return;
+  const onTouch = e => { if (S.drawing){ if (e.cancelable) e.preventDefault(); return; } if (!(TOUCHDEV && window.innerWidth <= 860)) return;
     if (e.touches.length >= 2){ if (e.cancelable) e.preventDefault(); hint.classList.remove('on'); return; }
     if (e.type === 'touchstart'){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; return; }
     const dx = Math.abs(e.touches[0].clientX - sx), dy = Math.abs(e.touches[0].clientY - sy); if (dx > 18 && dx > dy * 1.3) showHint(); };
@@ -748,11 +793,11 @@ function sppItem(i, edrr){ const s = D.spp[i], m = s.match(/^(.*?)\s*\(([^)]*)\)
   return `<li>${h}</li>`; }
 function parentOf(lv, c){ const id = D.levels[lv].id[c], up = lv === 'hex' ? 'cog' : lv === 'cog' ? 'wheel' : null; if (!up) return null;
   const pid = id.slice(0, id.lastIndexOf('-')); return IDX[up].has(pid) ? [up, IDX[up].get(pid)] : null; }
-function select(lv, c, fly){ S.cell = c; S.cellLv = lv; const r = ring(lv, c); selOuter.setLatLngs(r); selInner.setLatLngs(r);
+function select(lv, c, fly){ S.box = null; boxRect.remove(); S.cell = c; S.cellLv = lv; const r = ring(lv, c); selOuter.setLatLngs(r); selInner.setLatLngs(r);
   if (fly) map.fitBounds(L.latLngBounds(r).pad(lv === 'hex' ? 4 : 1.5), {maxZoom: lv === 'hex' ? 12 : lv === 'cog' ? 10 : 8});
-  profile(); writeHash();
+  profile(); pinSync(); $('#clearbtn').hidden = false; writeHash();
   if (isPhone()){ placeProfile(); sheet(S.sheetFull ? 'full' : 'peek'); if (fly) $('#mapwrap').scrollIntoView({block:'start'}); showBar(); } }
-function clearSel(){ S.cell = null; selOuter.setLatLngs([]); selInner.setLatLngs([]); $('#profile').classList.remove('open', 'peek', 'full'); S.sheetFull = false; writeHash(); }
+function clearSel(){ S.cell = null; S.box = null; boxRect.remove(); pin.remove(); $('#clearbtn').hidden = true; selOuter.setLatLngs([]); selInner.setLatLngs([]); $('#profile').classList.remove('open', 'peek', 'full'); S.sheetFull = false; writeHash(); }
 /* Phones only: the cell details sit in the page under the graph, as a short summary that expands in place.
    Wide screens keep the popup inside the map and never get the peek/full classes. */
 const isPhone = () => window.innerWidth <= 860;
@@ -772,7 +817,8 @@ $('#phandle').onclick = toggleSheet;
 $('#phead').addEventListener('click', e => { if (isPhone() && !e.target.closest('button') && $('#profile').classList.contains('peek')) toggleSheet(); });
 window.addEventListener('resize', () => { placeProfile(); if (!isPhone()) $('#profile').classList.remove('peek', 'full'); else if (S.cell != null) sheet(S.sheetFull ? 'full' : 'peek'); mapGestures(); });
 $('#pclose').onclick = clearSel;
-function profile(){ const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c);
+$('#clearbtn').onclick = clearSel;
+function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c);
   let h = `<h2>${LV[lv].name} cell near mile ${fmt(L_.mi[c],0)}</h2><p>${esc(cat('club', L_.club[c]) || '')}, ${esc(regionOf(L_.mi[c]))} region</p><p class="id">Grid ID ${esc(L_.id[c])}</p>`;
   { let pv = S.m.get(lv, c); if (pv == null && par && !(D.themes[S.m.th] || {})[lv]) pv = S.m.get(par[0], par[1]);
     h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(show(S.m, pv))}</b></p>`; }
@@ -840,7 +886,8 @@ function profile(){ const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = pa
     if (viaParent) b += '<p class="none">Shown for the 7 sq mi cell this square mile sits in.</p>';
   } else b += `<p class="none">No rare species priority zone ${viaParent ? 'in the surrounding 7 sq mi cell' : 'in this cell'}.</p>`;
   b += '</div>';
-  $('#pbody').innerHTML = b + landSec;
+  finishProfile(b + landSec); }
+function finishProfile(html){ $('#pbody').innerHTML = html;
   const SECKEY = {'Vegetation':'veg', 'iNaturalist records':'inat', 'Birds':'ebird', 'Unique species':'nrpz', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
     const open = key in S.secOpen ? S.secOpen[key] : key === S.m.th;
@@ -849,6 +896,115 @@ function profile(){ const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = pa
     sec.appendChild(body);
     h.innerHTML = `<button type="button" class="sectog" aria-expanded="${open}" aria-controls="${body.id}"><span>${esc(h.textContent)}</span><i aria-hidden="true"></i></button>`;
     h.firstChild.onclick = () => { const now = body.hidden; body.hidden = !now; S.secOpen[key] = now; h.firstChild.setAttribute('aria-expanded', now); }; }); $('#pbody').scrollTop = 0; $('#profile').classList.add('open'); }
+
+/* ---------- box selection: combined summary of the selected cells ---------- */
+function boxMeasure(m, lv, cells){ const vals = []; cells.forEach(c => { const v = m.get(lv, c); if (v != null) vals.push(v); }); const N = cells.length;
+  if (m.find) return `recorded in ${vals.length} of ${N} cells`;
+  if (!vals.length) return 'no data in the selected cells';
+  if (m.kind === 'cat'){ const cnt = new Map(); vals.forEach(v => cnt.set(v, (cnt.get(v) || 0) + 1)); const top = [...cnt].sort((a,b) => b[1] - a[1])[0]; return `mostly ${show(m, top[0])} (${top[1]} of ${vals.length} cells with data)`; }
+  const sum = vals.reduce((a,b) => a + b, 0), mx = Math.max(...vals), noun = m.noun ? m.noun[1] : '';
+  if (m.unit === '%') return `${fmt(sum / vals.length, 1)}% on average, up to ${fmt(mx, m.d)}%`;
+  if (['acres','records','checklists'].includes(noun)) return `${fmt(sum, 0)} ${noun} in total`;
+  return `${fmt(sum / vals.length, 1)} ${noun} per cell on average, up to ${fmt(mx, 0)}`.replace('  ', ' '); }
+function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[lv], N = cells.length;
+  const mis = cells.map(c => L_.mi[c]), lo = Math.min(...mis), hi = Math.max(...mis);
+  let h = `<h2>${fmt(N,0)} ${N === 1 ? 'cell' : 'cells'} selected</h2><p>${LV[lv].name} cells, trail miles ${fmt(lo,0)} to ${fmt(hi,0)}</p>`;
+  h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p>`;
+  h += '<div class="pnav"><button type="button" id="pclearbox">Clear selection</button></div>';
+  $('#phead').innerHTML = h; $('#pclearbox').onclick = clearSel;
+  const withTh = th => D.themes[th] && D.themes[th][lv] ? cells.filter(c => has(th, lv, c)) : [];
+  const nc = n => `${fmt(n,0)} ${n === 1 ? 'cell' : 'cells'}`, ctag = n => `<span class="tag">${nc(n)}</span>`;
+  const item = (i, n, ed) => sppItem(i, ed).replace('</li>', ctag(n) + '</li>');
+  const union = (th, f, cs) => { const m = new Map(); cs.forEach(c => (val(th, f, lv, c) || []).forEach(i => m.set(i, (m.get(i) || 0) + 1))); return [...m].sort((a,b) => b[1] - a[1] || D.spp[a[0]].localeCompare(D.spp[b[0]])); };
+  let b = `<p class="boxm"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p><p class="none" style="font-size:12.5px;margin:6px 0 0">Combined from the ${nc(N)} whose centers fall inside the box. Records and acres are added up. Species and types are counted once, however many cells they occur in.</p>`;
+
+  // vegetation
+  { const cs = withTh('veg'); b += `<div class="sec" style="--hue:${HUE.veg}"><h3>Vegetation</h3>`;
+    if (cs.length){ let ac = 0; const ty = new Map(), l2 = L2.map(() => 0);
+      cs.forEach(c => { const a = val('veg','VEG_AREA',lv,c) || 0; ac += a; const cp = val('veg','COMP',lv,c) || []; for (let k = 0; k < cp.length; k += 2) ty.set(cp[k], (ty.get(cp[k]) || 0) + a * cp[k+1] / 100);
+        L2.forEach((x, k) => l2[k] += a * (val('veg', x[0], lv, c) || 0) / 100); });
+      const tl = [...ty].sort((a,b) => b[1] - a[1]).map(x => [D.cats.DOM_TYPE[x[0]], ac ? 100 * x[1] / ac : 0]);
+      const row = x => `<div><i style="background:${CATMAP.DOM_TYPE.get(x[0])[1]}"></i><span>${esc(x[0])}</span><span>${x[1] < 1 ? '<1' : fmt(x[1],0)}%</span></div>`;
+      b += `<div class="facts"><div><b>${fmt(ac,0)}</b>acres mapped</div><div><b>${tl.length}</b>vegetation types</div><div><b>${cs.length}</b>of ${N} cells mapped</div></div>`;
+      b += '<p>Vegetation types, by share of the mapped acres:</p><div class="keys">' + tl.slice(0, 6).map(row).join('') + '</div>';
+      if (tl.length > 6) b += `<details><summary>${tl.length - 6} more types</summary><div class="keys">${tl.slice(6).map(row).join('')}</div></details>`;
+      const l = L2.map((x, k) => [x[1], ac ? 100 * l2[k] / ac : 0, x[2]]).filter(x => x[1] >= 1).sort((a,b) => b[1] - a[1]); const un = 100 - l.reduce((s,x) => s + x[1], 0); if (un >= 1) l.push(['Unassigned', un, '#ECEFEA']);
+      b += '<p style="margin-top:10px">NLCD level 2 land cover:</p><div class="stack">' + l.map(x => `<span style="width:${x[1]}%;background:${x[2]}"></span>`).join('') + '</div><div class="keys">' + l.map(x => `<div><i style="background:${x[2]}"></i><span>${x[0]}</span><span>${fmt(x[1],0)}%</span></div>`).join('') + '</div>';
+    } else b += '<p class="none">The vegetation map does not reach the selected cells.</p>';
+    b += '</div>'; }
+
+  // iNaturalist
+  { const cs = withTh('inat'); b += `<div class="sec" style="--hue:${HUE.inat}"><h3>iNaturalist records</h3>`;
+    if (cs.length){ const rec = cs.reduce((s,c) => s + (val('inat','N_OBS',lv,c) || 0), 0), inv = union('inat','INVASIVE_LIST',cs), ed = new Set(union('inat','EDRR_LIST',cs).map(x => x[0])), pest = union('inat','PEST_LIST',cs);
+      b += `<div class="facts"><div><b>${fmt(rec,0)}</b>records</div><div><b>${inv.length}</b>invasive plant species</div><div><b>${cs.length}</b>of ${N} cells with records</div></div>`;
+      b += inv.length ? `<p style="margin-top:8px">Invasive plants reported, with the number of selected cells each was found in:</p><ul class="spp">${inv.slice(0, 12).map(x => item(x[0], x[1], ed.has(x[0]))).join('')}</ul>` + (inv.length > 12 ? `<details><summary>${inv.length - 12} more</summary><ul class="spp">${inv.slice(12).map(x => item(x[0], x[1], ed.has(x[0]))).join('')}</ul></details>` : '') : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
+      if (pest.length) b += `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(x => item(x[0], x[1])).join('')}</ul>`;
+      b += '<p class="none" style="font-size:12.5px;margin-top:8px">A combined species total is not shown, because the data holds each cell\'s species count but not its full species list.</p>';
+    } else b += '<p class="none">No iNaturalist records in the selected cells.</p>';
+    b += '</div>'; }
+
+  // birds
+  { const cs = withTh('ebird'); b += `<div class="sec" style="--hue:${HUE.ebird}"><h3>Birds</h3>`;
+    if (cs.length){ const G = [['FOREST_INT_SPP','Forest interior','FOREST_INT_LIST'],['FOREST_GEN_SPP','Forest generalist','FOREST_GEN_LIST'],['CONIFER_SPP','High-elev. conifer','CONIFER_LIST'],['SHRUB_SPP','Shrubland','SHRUB_LIST'],['GRASS_SPP','Grassland','GRASS_LIST'],['EDGE_SPP','Edge','EDGE_LIST'],['WETLAND_SPP','Wetland','WETLAND_LIST'],['RIPARIAN_SPP','Riparian','RIPARIAN_LIST'],['WATERBIRD_SPP','Waterbird','WATERBIRD_LIST'],['SHORE_SPP','Shorebird','SHORE_LIST'],['SEABIRD_SPP','Seabird','SEABIRD_LIST']]
+        .map(g => [g[1], union('ebird', g[2], cs), g[0]]).filter(g => g[1].length);
+      const soc = union('ebird','SOC_LIST',cs), key = i => D.spp[i].replace(/\s*\[.*\]$/, ''), all = new Set(); G.forEach(g => g[1].forEach(x => all.add(key(x[0])))); soc.forEach(x => all.add(key(x[0])));
+      const ck = cs.reduce((s,c) => s + (val('ebird','N_CHECKLISTS',lv,c) || 0), 0), mx = Math.max(1, ...G.map(g => g[1].length));
+      b += `<div class="facts"><div><b>${all.size}</b>species</div><div><b>${fmt(ck,0)}</b>checklists</div><div><b>${cs.length}</b>of ${N} cells with checklists</div></div>`;
+      b += '<p style="margin-top:8px">Species by habitat group. Open a group to see its species and how many selected cells each was found in.</p>' + G.map(g => `<details class="gd"${S.m.f === g[2] ? ' open' : ''}><summary class="guild"><div>${g[0]}</div><div><span style="width:${100*g[1].length/mx}%"></span></div><div>${g[1].length}</div></summary><ul class="spp">${g[1].map(x => item(x[0], x[1])).join('')}</ul></details>`).join('');
+      if (soc.length) b += `<details><summary>${soc.length} species on watch lists</summary><ul class="spp">${soc.map(x => item(x[0], x[1])).join('')}</ul><p class="none" style="font-size:12.5px">BCC is the USFWS Birds of Conservation Concern list. PIF is Partners in Flight.</p></details>`;
+    } else b += '<p class="none">No eBird checklists in the selected cells.</p>';
+    b += '</div>'; }
+
+  // unique species
+  { b += `<div class="sec" style="--hue:${HUE.nrpz}"><h3>Unique species</h3>`; let plv = lv, pcs = cells, via = false;
+    if (!D.themes.nrpz[lv]){ const s = new Set(); cells.forEach(c => { const p = parentOf(lv, c); if (p) s.add(p[1]); }); plv = 'cog'; pcs = [...s]; via = true; }
+    const cnt = new Map(); pcs.forEach(c => { const v = val('nrpz','review_tie',plv,c); if (v != null) cnt.set(v, (cnt.get(v) || 0) + 1); });
+    if (cnt.size){ b += '<div class="keys">' + CATCOL.review_tie.map(e => { const k = cnt.get(D.cats.review_tie.indexOf(e[0])) || 0; return k ? `<div><i style="background:${e[1]}"></i><span>${esc(e[2] || e[0])}</span><span>${nc(k)}</span></div>` : ''; }).join('') + '</div>';
+      if (via) b += '<p class="none">Counted for the 7 sq mi cells that the selected square miles sit in.</p>';
+    } else b += '<p class="none">No rare species priority zone in the selected cells.</p>';
+    b += '</div>'; }
+
+  // land administrators
+  if (D.themes.lands){ const cs = withTh('lands'); b += `<div class="sec" style="--hue:${HUE.lands}"><h3>Land administrators</h3>`;
+    if (cs.length){ const ac = new Map(), nn = new Map(); let tot = 0;
+      cs.forEach(c => { const a = val('lands','LAND_AC',lv,c) || 0, raw = val('lands','MGRS',lv,c) || []; tot += a; for (let k = 0; k < raw.length; k += 2){ ac.set(raw[k], (ac.get(raw[k]) || 0) + a * raw[k+1] / 100); nn.set(raw[k], (nn.get(raw[k]) || 0) + 1); } });
+      const mg = [...ac].sort((a,b) => b[1] - a[1]).map(x => [D.cats.MGR[x[0]], tot ? 100 * x[1] / tot : 0, nn.get(x[0])]), pc = x => x < 1 ? '<1%' : fmt(x, 0) + '%';
+      const row = x => `<div><span>${esc(x[0])} <em style="color:var(--muted);font-style:normal;font-size:12px">${nc(x[2])}</em></span><span>${pc(x[1])}</span></div>`;
+      b += `<p>${mg.length} ${mg.length === 1 ? 'administrator has' : 'administrators have'} mapped land in the selected cells. Each share is of the mapped land in the selection, not of the whole area:</p><div class="keys nosw">${mg.slice(0, 6).map(row).join('')}</div>`;
+      if (mg.length > 6) b += `<details><summary>${mg.length - 6} more</summary><div class="keys nosw">${mg.slice(6).map(row).join('')}</div></details>`;
+      b += '<p class="none" style="font-size:12.5px;margin-top:8px">Generalized to the cells from tract records. Not a boundary determination, and not a record of who administers any given spot.</p>';
+    } else b += '<p class="none">No land records summarized for the selected cells.</p>';
+    b += '</div>'; }
+  finishProfile(b); }
+
+/* drawing the box */
+function drawMode(on){ S.drawing = on; $('#mapwrap').classList.toggle('drawing', on); $('#boxbtn').setAttribute('aria-pressed', on); $('#boxdraw').hidden = true;
+  const hint = $('#maphint'); if (on){ map.dragging.disable(); tip.remove(); hint.textContent = 'Drag on the map to draw a box'; hint.classList.add('on'); }
+  else { mapGestures(); hint.classList.remove('on'); setTimeout(() => { hint.textContent = 'Use two fingers to move the map'; }, 250); } }
+$('#boxbtn').onclick = () => drawMode(!S.drawing);
+function toolsOpen(on){ S.tools = on; $('#toolsbody').hidden = !on; $('#toolstog').setAttribute('aria-expanded', on); }
+$('#toolstog').onclick = () => toolsOpen(!S.tools);
+toolsOpen(window.innerWidth > 860);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.drawing) drawMode(false); });
+{ const mc = map.getContainer(), bd = $('#boxdraw'); let st = null;
+  const pt = e => { const r = $('#mapwrap').getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  mc.addEventListener('pointerdown', e => { if (!S.drawing || !e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return; e.preventDefault(); e.stopPropagation();
+    st = pt(e); try { mc.setPointerCapture(e.pointerId); } catch (x) {} bd.style.left = st[0] + 'px'; bd.style.top = st[1] + 'px'; bd.style.width = '0px'; bd.style.height = '0px'; bd.hidden = false; $('#maphint').classList.remove('on'); }, true);
+  mc.addEventListener('pointermove', e => { if (!st || !e.isPrimary) return; e.preventDefault(); e.stopPropagation(); const p = pt(e);
+    bd.style.left = Math.min(st[0], p[0]) + 'px'; bd.style.top = Math.min(st[1], p[1]) + 'px'; bd.style.width = Math.abs(p[0] - st[0]) + 'px'; bd.style.height = Math.abs(p[1] - st[1]) + 'px'; }, true);
+  const end = e => { if (!st || !e.isPrimary) return; e.stopPropagation(); const p = pt(e), a = st; st = null; bd.hidden = true; try { mc.releasePointerCapture(e.pointerId); } catch (x) {}
+    S.boxAt = Date.now(); if (e.type === 'pointercancel' || Math.abs(p[0] - a[0]) < 8 || Math.abs(p[1] - a[1]) < 8) return;
+    const mr = mc.getBoundingClientRect(), wr = $('#mapwrap').getBoundingClientRect(), ox = wr.left - mr.left, oy = wr.top - mr.top;
+    finishBox(L.latLngBounds(map.containerPointToLatLng([a[0] + ox, a[1] + oy]), map.containerPointToLatLng([p[0] + ox, p[1] + oy]))); };
+  mc.addEventListener('pointerup', end, true); mc.addEventListener('pointercancel', end, true); }
+function finishBox(bounds){ const lv = shown, L_ = D.levels[lv], cells = [];
+  for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c) && bounds.contains(L_.c[c])) cells.push(c);
+  const hint = $('#maphint');
+  if (!cells.length){ hint.textContent = 'No cells in that box. Try again.'; hint.classList.add('on'); return; }
+  drawMode(false); S.cell = null; pin.remove(); S.box = {lv, cells}; $('#clearbtn').hidden = false;
+  const rings = cells.map(c => [ring(lv, c)]); selOuter.setLatLngs(rings); selInner.setLatLngs(rings); boxRect.setBounds(bounds).addTo(map);
+  profile(); writeHash();
+  if (isPhone()){ placeProfile(); sheet(S.sheetFull ? 'full' : 'peek'); showBar(); } }
 
 /* ---------- trail strip ---------- */
 const BIN = 10, NB = Math.ceil(D.totalMi / BIN);
