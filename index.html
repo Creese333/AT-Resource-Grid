@@ -205,6 +205,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .leaflet-container a.pbtn:hover{background:#fff}
 .featlab{background:rgba(15,17,19,.82);color:#fff;border:0;border-radius:3px;padding:1px 6px;font-size:11.5px;font-weight:500;box-shadow:none;white-space:nowrap}
 .featlab::before{display:none}
+.leaflet-tooltip.featlab{pointer-events:auto;cursor:pointer}
 .leaflet-popup-content .ty{font-size:12px;color:#B4BCBF;margin-bottom:4px}
 .leaflet-container a.leaflet-popup-close-button{color:#C9D0D3}
 .tip{background:#0F1113;color:#fff;border:1px solid #3B4146;border-radius:4px;padding:5px 8px;font-size:12.5px;box-shadow:none}
@@ -430,7 +431,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>The strip under the map runs from Springer Mountain to Katahdin. Each bar is a ten-mile stretch, averaged from the 49 sq mi cells.</li>
       <li>The search box finds birds, invasive plants, forest pests and vegetation types in every cell where they were recorded. Other iNaturalist species are only searchable where they rank among a cell's ten most-recorded, so those results are partial. Rare species are not searchable.</li>
       <li>Export CSV and Export Excel, in the details panel, download everything shown for the selected cell or cells. The Excel workbook has separate sheets for cells, species, vegetation types and land administrators; the CSV holds the same rows in one long table.</li>
-      <li>Map layers adds the official mile markers, administrative areas, shelters, campsites, parking, privies, bridges, vistas and side trails. They load live from the NPS and ATC map services when switched on, so they stay current. Administrative areas and side trails appear once you zoom in.</li>
+      <li>Map layers adds the official mile markers, administrative areas, shelters, campsites, parking, privies, bridges, vistas and side trails. They load live from the NPS and ATC map services when switched on, so they stay current. Administrative areas and side trails appear once you zoom in. A click on one of these features opens its details; a click anywhere else selects the grid cell.</li>
       <li>Select area draws a box on the map and summarizes every cell whose center falls inside it. Records and acres are added up; species and vegetation types are counted once.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
       <li>Trail miles are miles from Springer Mountain, taken from the official A.T. mile markers: each cell carries the mileage of its nearest marker. If the marker service cannot be reached, the page falls back to its own approximate measurement along the centerline.</li>
@@ -667,7 +668,7 @@ function group(lv){ if (GROUP[lv]) return GROUP[lv];
   const n = D.levels[lv].id.length, ps = new Array(n);
   for (let c = 0; c < n; c++){ const p = L.polygon(ring(lv, c), {renderer:cellRenderer, pane:'cells', bubblingMouseEvents:false}); p._c = c; ps[c] = p; }
   POLY[lv] = ps; const g = L.featureGroup(ps);
-  g.on('click', e => { if (S.drawing || Date.now() - S.boxAt < 450) return; select(lv, e.propagatedFrom._c, false); });
+  g.on('click', e => { if (S.drawing || Date.now() - S.boxAt < 450) return; if (liveHit(e.latlng)) return; select(lv, e.propagatedFrom._c, false); });
   g.on('mouseover', e => { const c = e.propagatedFrom._c, L_ = D.levels[lv]; if (S.drawing || (TOUCHDEV && isPhone()) || (c === S.cell && lv === S.cellLv)) return;
     tip.setLatLng(e.latlng).setContent(`<b>${esc(show(S.m, S.m.get(lv, c)))}</b><br>${S.m.label}<br>Near mile ${fmt(L_.mi[c],0)}`); tip.addTo(map); });
   g.on('mousemove', e => tip.setLatLng(e.latlng));
@@ -747,10 +748,11 @@ const LIVE = [
   {id:'sidetrails', name:'Side trails', url:SVC + 'ANST_Facilities/FeatureServer/6', type:'line', bbox:1, minZoom:10, color:'#35A7FF'}
 ];
 LIVE.forEach(l => { l.on = false; l.group = L.layerGroup(); l.status = ''; l.loaded = false; l.req = 0; });
-async function arcQuery(url, params, maxPages){ let out = [], off = 0;
+async function arcQuery(url, params, maxPages){ let out = [], off = 0; const seen = new Set();
   for (let pg = 0; pg < (maxPages || 15); pg++){ const u = url + '/query?' + new URLSearchParams(Object.assign({where:'1=1', outSR:4326, f:'geojson', resultOffset:off, resultRecordCount:2000}, params));
     const r = await fetch(u); if (!r.ok) throw new Error('HTTP ' + r.status); const j = await r.json(); if (j.error) throw new Error(j.error.message || 'service error');
-    const f = j.features || []; out = out.concat(f); if (!f.length || !((j.properties && j.properties.exceededTransferLimit) || j.exceededTransferLimit)) break; off += f.length; }
+    const got = j.features || [], f = got.filter(x => { const id = x.id != null ? x.id : (x.properties ? (x.properties.OBJECTID != null ? x.properties.OBJECTID : x.properties.FID) : null); if (id == null) return true; if (seen.has(id)) return false; seen.add(id); return true; });
+    out = out.concat(f); if (!got.length || !f.length || !((j.properties && j.properties.exceededTransferLimit) || j.exceededTransferLimit)) break; off += got.length; }
   return out; }
 async function arcMeta(l){ if (l.meta) return l.meta; try { const r = await fetch(l.url + '?f=json'); l.meta = await r.json(); } catch (e){ l.meta = {}; } return l.meta; }
 const tcase = s => String(s || '').toLowerCase().replace(/(^|[\s\-\/(])([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Nps|Usfs|Usfws|Appa|Hafe|Grsm|Blri|Shen|Choh|Dewa|Nhp|Nra|Nf|Np|Wma|Atc|Row|Us|Usa|Dcr|Dec|Dep|Dnr|Dcnr|Tva|Llc|Inc|Ii|Iii)\b/g, x => x.toUpperCase()).replace(/ (Of|The|And|For|At|In) /g, x => x.toLowerCase());
@@ -774,24 +776,37 @@ function featPopup(l, p){ let h = '';
 function liveStatus(l, s){ l.status = s; const e = document.querySelector('#layerspanel [data-st="' + l.id + '"]'); if (e) e.textContent = s; }
 function liveDraw(l, feats){ l.group.clearLayers();
   if (l.type === 'pt') feats.forEach(f => { if (!f.geometry || f.geometry.type !== 'Point') return; const c = f.geometry.coordinates;
-    const mk = L.circleMarker([c[1], c[0]], {renderer:featR, pane:'feat', radius:5, color:'#fff', weight:1.5, fillColor:l.color, fillOpacity:1, bubblingMouseEvents:false}).on('click', e => L.popup({maxWidth:260}).setLatLng(e.latlng).setContent(featPopup(l, f.properties || {})).openOn(map)).addTo(l.group);
-    mk._nm = featName(l, f.properties || {}); });
+    const mk = L.circleMarker([c[1], c[0]], {renderer:featR, pane:'feat', radius:6, color:'#fff', weight:1.5, fillColor:l.color, fillOpacity:1, bubblingMouseEvents:false}).on('click', e => L.popup({maxWidth:260}).setLatLng(mk.getLatLng()).setContent(featPopup(l, f.properties || {})).openOn(map)).addTo(l.group);
+    mk._p = f.properties || {}; mk._nm = featName(l, mk._p); });
   else L.geoJSON({type:'FeatureCollection', features:feats.filter(f => f.geometry)}, {renderer:l.type === 'poly' ? landsR : featR, pane:l.type === 'poly' ? 'lands' : 'feat', bubblingMouseEvents:false,
     style:f => l.type === 'poly' ? {color:'#4A4A4A', weight:.6, fillColor:(LANDMAP.get((f.properties || {}).LEGEND3) || [0, 0, '#BBBBBB'])[2], fillOpacity:.5} : {color:l.color, weight:2.2, dashArray:'6 4', opacity:.95},
     onEachFeature:(f, ly) => { if (l.type === 'line') ly._nm = featName(l, f.properties || {}); return ly.on('click', e => L.popup({maxWidth:260}).setLatLng(e.latlng).setContent(featPopup(l, f.properties || {})).openOn(map)); }}).addTo(l.group);
   labelSync(l); }
+/* A click on the map goes to a feature of a switched-on layer when one is under it (points within a fingertip, then side trails, then administrative areas). Only otherwise does it select a grid cell. */
+function liveHit(latlng){ if (typeof LIVE === 'undefined') return false; const cp = map.latLngToContainerPoint(latlng), tol = TOUCHDEV ? 20 : 11; let best = null, bd = Infinity, bl = null;
+  const open = (l, p) => { L.popup({maxWidth:260}).setLatLng(latlng).setContent(featPopup(l, p)).openOn(map); return true; };
+  LIVE.forEach(l => { if (!l.on || l.type !== 'pt') return; l.group.eachLayer(m => { if (!m.getLatLng) return; const d = map.latLngToContainerPoint(m.getLatLng()).distanceTo(cp); if (d <= tol && d < bd){ bd = d; best = m; bl = l; } }); });
+  if (best) return open(bl, best._p || {});
+  const lp = map.latLngToLayerPoint(latlng);
+  for (const l of LIVE){ if (!l.on || l.type !== 'line') continue; let hit = null; l.group.eachLayer(g => { if (g.eachLayer) g.eachLayer(ly => { if (!hit && ly.closestLayerPoint){ const c = ly.closestLayerPoint(lp); if (c && c.distance <= tol) hit = ly; } }); }); if (hit) return open(l, hit.feature ? hit.feature.properties || {} : {}); }
+  for (const l of LIVE){ if (!l.on || l.type !== 'poly') continue; let hit = null; const inside = (ring) => { let c = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++){ const a = ring[i], b = ring[j]; if (((a.lat > latlng.lat) !== (b.lat > latlng.lat)) && (latlng.lng < (b.lng - a.lng) * (latlng.lat - a.lat) / (b.lat - a.lat) + a.lng)) c = !c; } return c; };
+    const polyHit = ll => Array.isArray(ll[0]) && Array.isArray(ll[0][0]) ? ll.some(polyHit) : (Array.isArray(ll[0]) ? (inside(ll[0]) && !ll.slice(1).some(inside)) : inside(ll));
+    l.group.eachLayer(g => { if (g.eachLayer) g.eachLayer(ly => { if (!hit && ly.getLatLngs && ly.getBounds().contains(latlng) && polyHit(ly.getLatLngs())) hit = ly; }); }); if (hit) return open(l, hit.feature ? hit.feature.properties || {} : {}); }
+  return false; }
+map.on('click', e => { if (!S.drawing && Date.now() - S.boxAt > 450) liveHit(e.latlng); });
 /* Features of a switched-on layer are labelled with their names once the map is zoomed in far enough to read them. */
 const LABELZ = 11;
 function labelSync(l){ if (l.type === 'miles' || l.type === 'poly') return; const show = l.on && map.getZoom() >= LABELZ, b = map.getBounds().pad(.1); let n = 0;
   const each = ly => { if (ly.eachLayer && !ly.getLatLng && !ly.getBounds){ ly.eachLayer(each); return; } if (ly.eachLayer && ly.getLayers && !ly._nm){ ly.eachLayer(each); return; }
     const at = ly.getLatLng ? ly.getLatLng() : (ly.getBounds ? ly.getBounds().getCenter() : null), want = show && ly._nm && at && b.contains(at) && n < 150;
-    if (want){ n++; if (!ly.getTooltip()) ly.bindTooltip(esc(ly._nm), {permanent:true, direction:'right', offset:[7, 0], className:'featlab', interactive:false, pane:'tooltipPane'}); ly.openTooltip(); }
+    if (want){ n++; if (!ly.getTooltip()) ly.bindTooltip(esc(ly._nm), {permanent:true, direction:'right', offset:[7, 0], className:'featlab', interactive:true, pane:'tooltipPane'}); ly.openTooltip(); }
     else if (ly.getTooltip()) ly.unbindTooltip(); };
   l.group.eachLayer(each); }
 function mileDraw(l){ l.group.clearLayers(); if (!l.pts) return; const z = map.getZoom(), step = z >= 12 ? 1 : z >= 11 ? 5 : z >= 9.5 ? 10 : z >= 8 ? 25 : z >= 6.5 ? 100 : 250, b = map.getBounds().pad(.1); let n = 0;
-  for (const p of l.pts){ if (Math.floor(p[2]) % step || !b.contains([p[0], p[1]])) continue; if (++n > 400) break;
+  const placed = [];
+  for (const p of l.pts){ if (Math.floor(p[2]) % step || !b.contains([p[0], p[1]])) continue; const cp = map.latLngToContainerPoint([p[0], p[1]]); if (placed.some(q => Math.abs(q.x - cp.x) < 46 && Math.abs(q.y - cp.y) < 18)) continue; placed.push(cp); if (++n > 400) break;
     L.marker([p[0], p[1]], {pane:'feat', interactive:false, keyboard:false, icon:L.divIcon({className:'milelab', html:fmt(step === 1 ? p[2] : Math.floor(p[2]), step === 1 ? 1 : 0), iconSize:null})}).addTo(l.group); }
-  liveStatus(l, step === 1 ? 'Every mile' : 'Every ' + step + ' miles. Zoom in for more.'); }
+  liveStatus(l, (step === 1 ? 'Every mile' : 'Every ' + step + ' miles. Zoom in for more.') + (l.rawCount > l.pts.length ? ' Duplicate records in the service are skipped.' : '')); }
 async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZoom();
   try {
     if (l.type === 'miles'){ if (!l.pts){ liveStatus(l, 'Loading…'); await milePts(); if (my !== l.req) return; }
@@ -799,7 +814,7 @@ async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZo
     if (l.bbox){ if (z < l.minZoom){ l.group.clearLayers(); liveStatus(l, 'Zoom in to see these'); return; }
       liveStatus(l, 'Loading…'); const b = map.getBounds().pad(.15), px = (b.getEast() - b.getWest()) / (map.getSize().x * 1.3); await arcMeta(l);
       const f = await arcQuery(l.url, {geometry:[b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].join(','), geometryType:'esriGeometryEnvelope', inSR:4326, spatialRel:'esriSpatialRelIntersects', outFields:l.fields || '*', maxAllowableOffset:px.toFixed(7), geometryPrecision:6}, 3);
-      if (my !== l.req) return; liveDraw(l, f); liveStatus(l, f.length ? fmt(f.length, 0) + ' in view' + (l.id === 'lands' ? '. Turn cells off to click an area.' : '') : 'None in view'); return; }
+      if (my !== l.req) return; liveDraw(l, f); liveStatus(l, f.length ? fmt(f.length, 0) + ' in view' + (l.id === 'lands' ? '. Click an area for its details. Switch this layer off to select grid cells here.' : '') : 'None in view'); return; }
     if (!l.loaded){ liveStatus(l, 'Loading…'); const [f] = await Promise.all([arcQuery(l.url, {outFields:'*', geometryPrecision:6}), arcMeta(l)]); if (my !== l.req) return; liveDraw(l, f); l.loaded = true; liveStatus(l, fmt(f.length, 0) + ' along the trail'); }
   } catch (e){ if (my === l.req) liveStatus(l, 'Could not load this layer just now'); } }
 function liveToggle(l, on){ l.on = on; if (on){ l.group.addTo(map); liveLoad(l); labelSync(l); } else { map.removeLayer(l.group); l.req++; liveStatus(l, ''); } layersUI(); writeHash(); }
@@ -811,9 +826,16 @@ $('#layerspanel').innerHTML = LIVE.map(l => `<label><input type="checkbox" data-
 $('#layerspanel').addEventListener('change', e => { const l = LIVE.find(x => x.id === e.target.dataset.live); if (l) liveToggle(l, e.target.checked); });
 $('#layerstog').onclick = () => { const p = $('#layerspanel'); p.hidden = !p.hidden; $('#layerstog').setAttribute('aria-expanded', !p.hidden); };
 { let lt; map.on('moveend', () => { clearTimeout(lt); lt = setTimeout(() => LIVE.forEach(l => { if (!l.on) return; if (l.type === 'miles') mileDraw(l); else if (l.bbox) liveLoad(l); else labelSync(l); }), 350); }); }
+/* squared distance, in rough degrees, from a point to the trail line the page is drawing */
+function trailDist(la, lo){ const k = Math.cos(la * Math.PI / 180), lines = trailLine.getLatLngs(); let best = Infinity;
+  const seg = (a, b) => { const ax = (a.lng - lo) * k, ay = a.lat - la, bx = (b.lng - lo) * k, by = b.lat - la, dx = bx - ax, dy = by - ay, L2 = dx*dx + dy*dy; let u = L2 ? -(ax*dx + ay*dy) / L2 : 0; u = u < 0 ? 0 : u > 1 ? 1 : u; const x = ax + u*dx, y = ay + u*dy; return x*x + y*y; };
+  const walk = arr => { if (!arr.length) return; if (Array.isArray(arr[0])){ arr.forEach(walk); return; } for (let i = 1; i < arr.length; i++){ if (Math.abs(arr[i].lat - la) > .3 && Math.abs(arr[i-1].lat - la) > .3) continue; const d = seg(arr[i-1], arr[i]); if (d < best) best = d; } };
+  walk(lines); return best; }
 let MILEP = null;
 function milePts(){ const l = LIVE[0]; if (!MILEP) MILEP = arcQuery(l.url, {outFields:'MileNumber', geometryPrecision:5}).then(f => {
-    l.pts = f.filter(x => x.geometry && x.properties && x.properties.MileNumber != null).map(x => [x.geometry.coordinates[1], x.geometry.coordinates[0], +x.properties.MileNumber]).sort((a,b) => a[2] - b[2]);
+    const raw = f.filter(x => x.geometry && x.geometry.type === 'Point' && x.properties && x.properties.MileNumber != null && isFinite(+x.properties.MileNumber)).map(x => [x.geometry.coordinates[1], x.geometry.coordinates[0], Math.round(+x.properties.MileNumber * 10) / 10]);
+    const by = new Map(); raw.forEach(p => { const g = by.get(p[2]); if (g) g.push(p); else by.set(p[2], [p]); });
+    l.rawCount = raw.length; l.pts = [...by.values()].map(g => g.length === 1 ? g[0] : g.map(p => [trailDist(p[0], p[1]), p]).sort((a,b) => a[0] - b[0])[0][1]).sort((a,b) => a[2] - b[2]);
     if (!l.pts.length) throw new Error('no markers'); return l.pts; }).catch(e => { MILEP = null; throw e; });
   return MILEP; }
 /* Give every cell the MileNumber of its nearest official marker, then move the region and club bands and the graph onto the same scale. */
