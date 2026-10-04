@@ -161,6 +161,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .phead .id{font-size:12.5px;color:var(--muted);letter-spacing:.02em}
 #pclose{position:absolute;top:8px;right:8px;width:30px;height:30px;border:0;background:none;color:#fff;font-size:22px;line-height:1;border-radius:4px}
 #pclose:hover{background:var(--ground)}
+.phandle,.peekval{display:none}
 .pnav{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .pnav button{border:1px solid #545C62;background:none;color:#E6EAEB;border-radius:4px;padding:3px 9px;font-size:12.5px}
 .pnav button:hover{border-color:var(--ink)}
@@ -248,7 +249,17 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   .hctl select{max-width:170px}
   #mapwrap{height:62vh;min-height:360px}
   aside{border-right:0;overflow:visible}
-  #profile{position:fixed;top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:70vh;border-radius:12px 12px 0 0}
+  #profile{position:fixed;top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:78vh;border-radius:12px 12px 0 0;box-shadow:0 -6px 22px rgba(0,0,0,.5)}
+  #profile .phead{padding-top:0}
+  .phandle{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;background:none;border:0;padding:7px 0 4px;color:#B4BCBF;font-size:12px}
+  .phandle i{width:40px;height:4px;border-radius:2px;background:#6A7378}
+  .peekval{display:block;margin:5px 0 0 !important;font-size:14px;color:#F1F3F4 !important}
+  .peekval span{color:var(--muted)}
+  .peekval b{font-weight:600}
+  #profile.peek .pbody,#profile.peek .phead .id,#profile.peek .pnav{display:none}
+  #profile.peek .phead{border-bottom:0;padding-bottom:14px}
+  #profile.peek .phead h2{font-size:18px}
+  #profile.full .peekval{display:none}
   #legend{max-width:180px;font-size:12px;bottom:8px}
   .leaflet-container .leaflet-control-attribution{max-width:calc(100vw - 206px);font-size:9.5px}
   #levels{left:10px}
@@ -295,7 +306,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   <div id="note" class="mapctl"></div>
   <div id="legend" class="mapctl" aria-live="polite"></div>
   <section id="profile" aria-label="Cell profile">
-    <div class="phead"><div id="phead"></div><button id="pclose" type="button" aria-label="Close cell profile">&times;</button></div>
+    <div class="phead"><button id="phandle" class="phandle" type="button" aria-expanded="false" aria-controls="pbody"><i aria-hidden="true"></i><span>Show details</span></button><div id="phead"></div><button id="pclose" type="button" aria-label="Close cell profile">&times;</button></div>
     <div class="pbody" id="pbody"></div>
   </section>
 </div>
@@ -719,11 +730,26 @@ function parentOf(lv, c){ const id = D.levels[lv].id[c], up = lv === 'hex' ? 'co
   const pid = id.slice(0, id.lastIndexOf('-')); return IDX[up].has(pid) ? [up, IDX[up].get(pid)] : null; }
 function select(lv, c, fly){ S.cell = c; S.cellLv = lv; const r = ring(lv, c); selOuter.setLatLngs(r); selInner.setLatLngs(r);
   if (fly) map.fitBounds(L.latLngBounds(r).pad(lv === 'hex' ? 4 : 1.5), {maxZoom: lv === 'hex' ? 12 : lv === 'cog' ? 10 : 8});
-  profile(); writeHash(); }
-function clearSel(){ S.cell = null; selOuter.setLatLngs([]); selInner.setLatLngs([]); $('#profile').classList.remove('open'); writeHash(); }
+  profile(); writeHash();
+  if (isPhone()){ sheet('peek'); if (fly) $('#mapwrap').scrollIntoView({block:'start'}); keepCellVisible(lv, c, fly ? 600 : 60); } }
+function clearSel(){ S.cell = null; selOuter.setLatLngs([]); selInner.setLatLngs([]); $('#profile').classList.remove('open', 'peek', 'full'); writeHash(); }
+/* Phones only: the cell popup opens as a short bar and expands on tap or swipe. Wide screens never get the peek/full classes. */
+const isPhone = () => window.innerWidth <= 860;
+function sheet(state){ const p = $('#profile'), hb = $('#phandle'); p.classList.toggle('peek', state === 'peek'); p.classList.toggle('full', state === 'full');
+  hb.setAttribute('aria-expanded', state === 'full'); hb.querySelector('span').textContent = state === 'full' ? 'Hide details' : 'Show details'; if (state === 'full') $('#pbody').scrollTop = 0; }
+function keepCellVisible(lv, c, wait){ setTimeout(() => { if (S.cell !== c || S.cellLv !== lv) return; const p = $('#profile').getBoundingClientRect(), m = $('#map').getBoundingClientRect();
+  const y = m.top + map.latLngToContainerPoint(D.levels[lv].c[c]).y, limit = p.top - 36; if (y > limit) map.panBy([0, Math.min(y - limit + 24, m.height * .6)]); }, wait); }
+$('#phandle').onclick = () => sheet($('#profile').classList.contains('full') ? 'peek' : 'full');
+$('#phead').addEventListener('click', e => { if (isPhone() && !e.target.closest('button') && $('#profile').classList.contains('peek')) sheet('full'); });
+{ let ty = null; const ph = document.querySelector('#profile .phead');
+  ph.addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, {passive:true});
+  ph.addEventListener('touchend', e => { if (ty == null) return; const dy = e.changedTouches[0].clientY - ty; ty = null; if (!isPhone()) return; if (dy < -30) sheet('full'); else if (dy > 30) sheet('peek'); }, {passive:true}); }
+window.addEventListener('resize', () => { if (!isPhone()) $('#profile').classList.remove('peek', 'full'); else if (S.cell != null && !$('#profile').classList.contains('full')) $('#profile').classList.add('peek'); });
 $('#pclose').onclick = clearSel;
 function profile(){ const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c);
   let h = `<h2>${LV[lv].name} cell near mile ${fmt(L_.mi[c],0)}</h2><p>${esc(cat('club', L_.club[c]) || '')}, ${esc(regionOf(L_.mi[c]))} region</p><p class="id">Grid ID ${esc(L_.id[c])}</p>`;
+  { let pv = S.m.get(lv, c); if (pv == null && par && !(D.themes[S.m.th] || {})[lv]) pv = S.m.get(par[0], par[1]);
+    h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(show(S.m, pv))}</b></p>`; }
   if (par) h += `<div class="pnav"><button type="button" id="pup">Step out to the ${LV[par[0]].name} cell</button></div>`;
   $('#phead').innerHTML = h; if (par) $('#pup').onclick = () => select(par[0], par[1], true);
   const v = (th, f) => val(th, f, lv, c); let b = '';
