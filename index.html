@@ -50,6 +50,8 @@ header p{margin:0;color:#BFD0C9;font-size:13px;flex:1 1 260px;min-width:0}
 .findbar b{font-family:var(--cond);font-size:17px;font-weight:600;display:block;line-height:1.2}
 .findbar em{font-size:12.5px;color:var(--muted)}
 .findbar span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.selall{display:block;width:100%;margin:2px 0 6px;border:1px solid #FFC233;background:#2A2718;color:#FFE08A;border-radius:4px;padding:5px 10px;font-size:13px;font-weight:500;text-align:center}
+.selall:hover{background:#3A3520;color:#fff}
 .findbar button,.lbtn{flex:none;border:1px solid #545C62;background:none;color:#E6EAEB;border-radius:4px;padding:2px 9px;font-size:12.5px}
 .findbar button:hover,.lbtn:hover{border-color:#fff}
 .lbtn{margin-top:7px}
@@ -193,6 +195,9 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .pnav{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .pnav button{border:1px solid #545C62;background:none;color:#E6EAEB;border-radius:4px;padding:3px 9px;font-size:12.5px}
 .pnav button:hover{border-color:var(--ink)}
+.pnav .exp{border-color:#6F8798;color:#CFE3F5}
+.pexmsg{flex:1 1 100%;font-size:12.5px;color:var(--muted);margin:0 !important}
+.pexmsg:empty{display:none}
 .pbody{overflow-y:auto;padding:0 14px 14px}
 .sec{padding:12px 0 12px 12px;border-bottom:1px solid var(--line);border-left:4px solid var(--hue);margin:12px 0 0;padding-left:11px;border-bottom:0}
 .sec h3{font-size:17px;margin:0}
@@ -382,6 +387,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>Colors are five equal-count classes of the cells with data at the cell size on screen, so the classes change when you change cell size.</li>
       <li>The strip under the map runs from Springer Mountain to Katahdin. Each bar is a ten-mile stretch, averaged from the 49 sq mi cells.</li>
       <li>The search box finds birds, invasive plants, forest pests and vegetation types in every cell where they were recorded. Other iNaturalist species are only searchable where they rank among a cell's ten most-recorded, so those results are partial. Rare species are not searchable.</li>
+      <li>Export CSV and Export Excel, in the details panel, download everything shown for the selected cell or cells. The Excel workbook has separate sheets for cells, species, vegetation types and land administrators; the CSV holds the same rows in one long table.</li>
       <li>Select area draws a box on the map and summarizes every cell whose center falls inside it. Records and acres are added up; species and vegetation types are counted once.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
       <li>Trail miles are measured along the mapped centerline and are approximate.</li>
@@ -510,7 +516,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 
 /* ---------- state ---------- */
 /* The basemap the page opens on. Falls back to USGS topo if no Mapbox token is set. */
-const DEFBASE = 'mbout';
+const DEFBASE = 'mbsat';
 const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: innerWidth > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, side: {about:true, measures:true, results:true}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
@@ -731,6 +737,8 @@ function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows =
   return h + '</ol></div>'; }
 $('#side').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.blk){ S.side[b.dataset.blk] = !S.side[b.dataset.blk]; side(); return; }
+  if (b.dataset.selall && S.m.find){ const lv = dispLevel(), e = S.m.find, L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c) && e.cells[lv].has(c)) cells.push(c);
+    if (cells.length) selectMany(lv, cells, null, e.common || e.sci); return; }
   if (b.dataset.clearfind){ clearFind(); return; }
   if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q || S.m.find){ S.q = q; S.m = q.m[0]; S.secOpen = {}; draw(); strip(); writeHash(); } }
   else if (b.dataset.m){ const m0 = S.m; S.m = S.q.m.find(x => x.id === b.dataset.m); if (S.m.th !== m0.th) S.secOpen = {}; draw(); strip(); writeHash(); }
@@ -765,6 +773,7 @@ function findSummary(lv){ const e = S.m.find, L_ = D.levels[lv], rows = []; let 
   const bar = `<div class="findbar"><div><b>${esc(e.common || e.sci)}</b>${e.common && e.sci ? `<em>${esc(e.sci)}</em>` : ''}<span>${e.kind}${e.complete ? '' : ', partial results'}</span></div><button type="button" data-clearfind="1">Clear</button></div>`;
   let h = `<p class="statline">Recorded in ${fmt(rows.length,0)} of ${fmt(total,0)} ${LV[lv].name} cells${where}.${e.complete ? '' : ' Only cells where it is among the ten most-recorded iNaturalist species are shown.'}</p>`;
   if (!rows.length) return [bar, h + '<p class="statline">None here at this cell size. Try another section or a larger cell size.</p>'];
+  h += `<button type="button" class="selall" data-selall="1">Select all ${fmt(rows.length,0)} ${rows.length === 1 ? 'cell' : 'cells'}</button>`;
   h += `<div class="rank"><h3>Cells where recorded<span class="cnt">south to north</span></h3><ol class="scroll" tabindex="0" aria-label="Cells where recorded, scrollable list">`;
   rows.slice(0, 400).forEach(c => { h += `<li><button type="button" data-cell="${c}" data-lv="${lv}"><span class="where">${cellLabel(lv, c)}</span><span class="club">${esc(cat('club', L_.club[c]) || '')}</span></button></li>`; });
   return [bar, h + '</ol></div>']; }
@@ -828,8 +837,8 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
   let h = `<h2>${LV[lv].name} cell near mile ${fmt(L_.mi[c],0)}</h2><p>${esc(cat('club', L_.club[c]) || '')}, ${esc(regionOf(L_.mi[c]))} region</p><p class="id">Grid ID ${esc(L_.id[c])}</p>`;
   { let pv = S.m.get(lv, c); if (pv == null && par && !(D.themes[S.m.th] || {})[lv]) pv = S.m.get(par[0], par[1]);
     h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(show(S.m, pv))}</b></p>`; }
-  if (par) h += `<div class="pnav"><button type="button" id="pup">Step out to the ${LV[par[0]].name} cell</button></div>`;
-  $('#phead').innerHTML = h; if (par) $('#pup').onclick = () => select(par[0], par[1], true);
+  h += `<div class="pnav">${par ? `<button type="button" id="pup">Step out to the ${LV[par[0]].name} cell</button>` : ''}${EXPORTBTNS}</div>`;
+  $('#phead').innerHTML = h; if (par) $('#pup').onclick = () => select(par[0], par[1], true); exportWire();
   const v = (th, f) => val(th, f, lv, c); let b = '';
 
   // land
@@ -903,6 +912,61 @@ function finishProfile(html){ $('#pbody').innerHTML = html;
     h.innerHTML = `<button type="button" class="sectog" aria-expanded="${open}" aria-controls="${body.id}"><span>${esc(h.textContent)}</span><i aria-hidden="true"></i></button>`;
     h.firstChild.onclick = () => { const now = body.hidden; body.hidden = !now; S.secOpen[key] = now; h.firstChild.setAttribute('aria-expanded', now); }; }); $('#pbody').scrollTop = 0; $('#profile').classList.add('open'); }
 
+/* ---------- export of the selection shown in the popup ---------- */
+const EXPORTBTNS = '<button type="button" class="exp" id="pexcsv" title="Download everything in this panel as a CSV file">Export CSV</button><button type="button" class="exp" id="pexxls" title="Download everything in this panel as an Excel workbook">Export Excel</button><p class="pexmsg" id="pexmsg" role="status"></p>';
+function exportWire(){ const a = $('#pexcsv'), b = $('#pexxls'); if (a) a.onclick = () => exportRun('csv'); if (b) b.onclick = () => exportRun('xlsx'); }
+function sppParts(i){ const s = D.spp[i], m = s.match(/^(.*?)\s*\(([^)]*)\)\s*(\[.*\])?$/), sci = m ? m[2] : s.replace(/\s*\[.*\]$/, ''), tg = (s.match(/\[(.*)\]$/) || [])[1] || '';
+  return [m ? m[1] : (PEST_NAMES[sci] || ''), sci, tg]; }
+function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S.box.cells : [S.cell], L_ = D.levels[lv];
+  const v = (th, f, c) => val(th, f, lv, c), ct = (name, x) => x == null ? '' : D.cats[name][x], nz = x => x == null ? '' : x;
+  const G = [['Forest interior','FOREST_INT_LIST'],['Forest generalist','FOREST_GEN_LIST'],['High-elevation conifer','CONIFER_LIST'],['Shrubland','SHRUB_LIST'],['Grassland','GRASS_LIST'],['Edge','EDGE_LIST'],['Wetland','WETLAND_LIST'],['Riparian','RIPARIAN_LIST'],['Waterbird','WATERBIRD_LIST'],['Shorebird','SHORE_LIST'],['Seabird','SEABIRD_LIST']];
+  const out = {cells:[], species:[], veg:[], land:[], about:[]};
+  cells.slice().sort((a,b) => L_.mi[a] - L_.mi[b]).forEach(c => { const id = L_.id[c], base = {grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c], trail_club:cat('club', L_.club[c]) || '', region:regionOf(L_.mi[c])};
+    let plv = lv, pc = c; if (!D.themes.nrpz[lv]){ const p = parentOf(lv, c); if (p){ plv = p[0]; pc = p[1]; } }
+    const tier = D.themes.nrpz[plv] ? val('nrpz','review_tie',plv,pc) : null, te = tier == null ? null : CATCOL.review_tie.find(x => x[0] === D.cats.review_tie[tier]);
+    out.cells.push(Object.assign({}, base, {
+      veg_acres_mapped:nz(v('veg','VEG_AREA',c)), veg_pct_of_cell_mapped:nz(v('veg','PCT_MAPPED',c)), veg_types:nz(v('veg','N_TYPES',c)), veg_main_type:ct('DOM_TYPE', v('veg','DOM_TYPE',c)), nlcd_main_cover:ct('L2_DOM', v('veg','L2_DOM',c)),
+      inat_records:nz(v('inat','N_OBS',c)), inat_species:nz(v('inat','N_SPP',c)), inat_observers:nz(v('inat','N_OBSERVERS',c)), inat_invasive_species:nz(v('inat','N_INV_SPP',c)), inat_priority_invasives:nz(v('inat','N_EDRR_SPP',c)), inat_forest_pest_records:nz(v('inat','N_PEST_OBS',c)), inat_data_status:ct('DATA_STATUS', v('inat','DATA_STATUS',c)), inat_latest_record:nz(v('inat','LAST_OBS',c)),
+      ebird_checklists:nz(v('ebird','N_CHECKLISTS',c)), ebird_records:nz(v('ebird','N_RECORDS',c)), ebird_species:nz(v('ebird','N_SPP',c)), ebird_observers:nz(v('ebird','N_OBSERVERS',c)), ebird_birds_of_conservation_concern:nz(v('ebird','N_BCC_SPP',c)), ebird_data_status:ct('DATA_STATUS', v('ebird','DATA_STATUS',c)), ebird_latest_checklist:nz(v('ebird','LAST_OBS',c)),
+      unique_species_rating:te ? (te[2] || te[0]) : '', unique_species_rating_cell_size:te ? LV[plv].name : '',
+      land_administrators:nz(v('lands','N_MGR',c)), land_pct_of_cell_mapped:nz(v('lands','PCT_LAND',c)) }));
+    const sp = (group, detail, list, edset) => (list || []).forEach(i => { const p = sppParts(i); out.species.push({grid_id:id, trail_mile:L_.mi[c], group, habitat_group_or_list:detail, common_name:p[0], scientific_name:p[1], lists:[p[2], edset && edset.has(i) ? 'priority invasive' : ''].filter(Boolean).join('; ')}); });
+    const ed = new Set(v('inat','EDRR_LIST',c) || []);
+    sp('Invasive plant', 'iNaturalist', v('inat','INVASIVE_LIST',c), ed); sp('Forest pest', 'iNaturalist', v('inat','PEST_LIST',c)); sp('iNaturalist most recorded', 'Top ten in the cell', v('inat','TOP10_SPECIES',c));
+    G.forEach(g => sp('Bird', g[0], v('ebird', g[1], c))); sp('Bird on a watch list', 'eBird', v('ebird','SOC_LIST',c));
+    const cp = v('veg','COMP',c) || [], ac = v('veg','VEG_AREA',c) || 0; for (let k = 0; k < cp.length; k += 2) out.veg.push({grid_id:id, trail_mile:L_.mi[c], vegetation_type:D.cats.DOM_TYPE[cp[k]], pct_of_mapped_acres:cp[k+1], acres:Math.round(ac * cp[k+1]) / 100});
+    const mg = v('lands','MGRS',c) || []; for (let k = 0; k < mg.length; k += 2) out.land.push({grid_id:id, trail_mile:L_.mi[c], administrator:D.cats.MGR[mg[k]], pct_of_mapped_land:mg[k+1]}); });
+  const ab = (k, x) => out.about.push({item:k, value:x});
+  ab('Source', 'A.T. Resource Grid dashboard'); ab('Exported', new Date().toISOString().slice(0, 10)); ab('iNaturalist and eBird data run', D.run);
+  ab('Cells exported', cells.length); ab('Cell size', LV[lv].name); ab('Section of trail', secName()); ab('Measure on screen', S.m.label);
+  ab('Selection', S.box ? (S.box.label ? 'Every cell with ' + S.box.label : 'Cells inside a box drawn on the map') : 'One cell clicked on the map');
+  ab('Note', 'Each row is a grid cell summary, not a field record. A blank value means no data for that layer in the cell.');
+  ab('Note', 'Species lists: birds, invasive plants and forest pests are complete for each cell. Other iNaturalist species are only the ten most recorded.');
+  ab('Note', 'Land administrator shares are of the mapped land in the cell. Generalized to the grid; not a boundary determination.');
+  ab('Note', 'Unique species ratings are held at 7 and 49 sq mi; 1 sq mi cells carry the rating of the 7 sq mi cell they sit in.');
+  return out; }
+function download(name, blob){ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+function loadXLSX(){ return window.XLSX ? Promise.resolve() : new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = () => res(); s.onerror = () => rej(new Error('load')); document.head.appendChild(s); }); }
+function exportRun(kind){ const msg = $('#pexmsg'), d = exportData(), n = d.cells.length, stamp = new Date().toISOString().slice(0, 10), name = `AT_resource_grid_${n}_${n === 1 ? 'cell' : 'cells'}_${stamp}`;
+  const say = x => { if (msg) msg.textContent = x; };
+  if (kind === 'csv'){ /* one long table so a single file holds everything */
+    const q = x => { x = x == null ? '' : String(x); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+    const rows = [['grid_id','trail_mile','table','item','scientific_name','detail','value','unit']];
+    const info = new Map(d.cells.map(c => [c.grid_id, c]));
+    d.about.forEach(a => rows.push(['', '', 'About this export', a.item, '', '', a.value, '']));
+    d.cells.forEach(c => Object.keys(c).forEach(k => { if (k !== 'grid_id' && k !== 'trail_mile' && c[k] !== '') rows.push([c.grid_id, c.trail_mile, 'Cell summary', k, '', '', c[k], '']); }));
+    d.veg.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Vegetation type', r.vegetation_type, '', r.acres + ' acres', r.pct_of_mapped_acres, '% of mapped acres']));
+    d.species.forEach(r => rows.push([r.grid_id, r.trail_mile, r.group, r.common_name, r.scientific_name, [r.habitat_group_or_list, r.lists].filter(Boolean).join('; '), '', '']));
+    d.land.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Land administrator', r.administrator, '', '', r.pct_of_mapped_land, '% of mapped land']));
+    download(name + '.csv', new Blob(['\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n')], {type:'text/csv;charset=utf-8'}));
+    say(`CSV downloaded: ${fmt(rows.length - 1, 0)} rows for ${fmt(n, 0)} ${n === 1 ? 'cell' : 'cells'}.`); return; }
+  say('Preparing the Excel file...');
+  loadXLSX().then(() => { const wb = XLSX.utils.book_new(); const add = (nm, arr) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(arr.length ? arr : [{note:'No rows for this selection'}]), nm);
+    add('Cells', d.cells); add('Species', d.species); add('Vegetation types', d.veg); add('Land administrators', d.land); add('About', d.about);
+    const buf = XLSX.write(wb, {bookType:'xlsx', type:'array'}); download(name + '.xlsx', new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    say(`Excel workbook downloaded: ${fmt(n, 0)} ${n === 1 ? 'cell' : 'cells'}, ${fmt(d.species.length, 0)} species rows.`);
+  }).catch(() => say('The Excel export could not load its helper file. Check the internet connection, or use Export CSV, which needs no download.')); }
+
 /* ---------- box selection: combined summary of the selected cells ---------- */
 function boxMeasure(m, lv, cells){ const vals = []; cells.forEach(c => { const v = m.get(lv, c); if (v != null) vals.push(v); }); const N = cells.length;
   if (m.find) return `recorded in ${vals.length} of ${N} cells`;
@@ -914,10 +978,10 @@ function boxMeasure(m, lv, cells){ const vals = []; cells.forEach(c => { const v
   return `${fmt(sum / vals.length, 1)} ${noun} per cell on average, up to ${fmt(mx, 0)}`.replace('  ', ' '); }
 function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[lv], N = cells.length;
   const mis = cells.map(c => L_.mi[c]), lo = Math.min(...mis), hi = Math.max(...mis);
-  let h = `<h2>${fmt(N,0)} ${N === 1 ? 'cell' : 'cells'} selected</h2><p>${LV[lv].name} cells, trail miles ${fmt(lo,0)} to ${fmt(hi,0)}</p>`;
+  let h = `<h2>${fmt(N,0)} ${N === 1 ? 'cell' : 'cells'} selected</h2><p>${S.box.label ? 'Every cell with ' + esc(S.box.label) + '. ' : ''}${LV[lv].name} cells, trail miles ${fmt(lo,0)} to ${fmt(hi,0)}</p>`;
   h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p>`;
-  h += '<div class="pnav"><button type="button" id="pclearbox">Clear selection</button></div>';
-  $('#phead').innerHTML = h; $('#pclearbox').onclick = clearSel;
+  h += `<div class="pnav"><button type="button" id="pclearbox">Clear selection</button>${EXPORTBTNS}</div>`;
+  $('#phead').innerHTML = h; $('#pclearbox').onclick = clearSel; exportWire();
   const withTh = th => D.themes[th] && D.themes[th][lv] ? cells.filter(c => has(th, lv, c)) : [];
   const nc = n => `${fmt(n,0)} ${n === 1 ? 'cell' : 'cells'}`, ctag = n => `<span class="tag">${nc(n)}</span>`;
   const item = (i, n, ed) => sppItem(i, ed).replace('</li>', ctag(n) + '</li>');
@@ -1007,10 +1071,12 @@ function finishBox(bounds){ const lv = shown, L_ = D.levels[lv], cells = [];
   for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c) && bounds.contains(L_.c[c])) cells.push(c);
   const hint = $('#maphint');
   if (!cells.length){ hint.textContent = 'No cells in that box. Try again.'; hint.classList.add('on'); return; }
-  drawMode(false); S.cell = null; pin.remove(); S.box = {lv, cells}; $('#clearbtn').hidden = false;
-  const rings = cells.map(c => [ring(lv, c)]); selOuter.setLatLngs(rings); selInner.setLatLngs(rings); boxRect.setBounds(bounds).addTo(map);
+  drawMode(false); selectMany(lv, cells, bounds, null); }
+function selectMany(lv, cells, bounds, label){ S.cell = null; pin.remove(); S.box = {lv, cells, label}; $('#clearbtn').hidden = false;
+  const rings = cells.map(c => [ring(lv, c)]); selOuter.setLatLngs(rings); selInner.setLatLngs(rings);
+  if (bounds) boxRect.setBounds(bounds).addTo(map); else boxRect.remove();
   profile(); writeHash();
-  if (isPhone()){ placeProfile(); sheet(S.sheetFull ? 'full' : 'peek'); showBar(); } }
+  if (isPhone()){ placeProfile(); sheet(S.sheetFull ? 'full' : 'peek'); if (!bounds) $('#mapwrap').scrollIntoView({block:'start'}); showBar(); } }
 
 /* ---------- trail strip ---------- */
 const BIN = 10, NB = Math.ceil(D.totalMi / BIN);
