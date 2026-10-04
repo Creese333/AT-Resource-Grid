@@ -209,7 +209,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .fic{display:flex;align-items:center;justify-content:center;border-radius:50%;border:1.5px solid #fff;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.45)}
 .ficm{background:none !important;border:0 !important}
 #layerspanel label .fic{border-width:1px;box-shadow:none}
-.featlab{background:rgba(15,17,19,.82);color:#fff;border:0;border-radius:3px;padding:1px 6px;font-size:11.5px;font-weight:500;box-shadow:none;white-space:nowrap}
+.featlab{max-width:230px;overflow:hidden;text-overflow:ellipsis;background:rgba(15,17,19,.82);color:#fff;border:0;border-radius:3px;padding:1px 6px;font-size:11.5px;font-weight:500;box-shadow:none;white-space:nowrap}
 .featlab::before{display:none}
 .leaflet-tooltip.featlab{pointer-events:none}
 .leaflet-popup-content .ty{font-size:12px;color:#B4BCBF;margin-bottom:4px}
@@ -811,12 +811,25 @@ function liveHit(latlng){ if (typeof LIVE === 'undefined') return false; const c
 map.on('click', e => { if (!S.drawing && Date.now() - S.boxAt > 450) liveHit(e.latlng); });
 /* Features of a switched-on layer are labelled with their names once the map is zoomed in far enough to read them. */
 const LABELZ = 11;
-function labelSync(l){ if (l.type === 'miles' || l.type === 'poly') return; const show = l.on && map.getZoom() >= LABELZ, b = map.getBounds().pad(.1); let n = 0;
-  const each = ly => { if (ly.eachLayer && !ly.getLatLng && !ly.getBounds){ ly.eachLayer(each); return; } if (ly.eachLayer && ly.getLayers && !ly._nm){ ly.eachLayer(each); return; }
-    const at = ly.getLatLng ? ly.getLatLng() : (ly.getBounds ? ly.getBounds().getCenter() : null), want = show && ly._nm && at && b.contains(at) && n < 150;
-    if (want){ n++; if (!ly.getTooltip()) ly.bindTooltip(esc(ly._nm), {permanent:true, direction:'right', offset:[7, 0], className:'featlab', interactive:false, pane:'tooltipPane'}); ly.openTooltip(); }
-    else if (ly.getTooltip()) ly.unbindTooltip(); };
-  l.group.eachLayer(each); }
+/* One pass places every name label for all switched-on layers together, so none overlap:
+   each side trail gets a single label however many segments it has, a label never covers another feature's icon,
+   and a label that cannot be placed clear of the others (right, left, above, below) is left out until you zoom in. */
+const LABELS = L.layerGroup().addTo(map); let labT = 0;
+function labelSync(){ cancelAnimationFrame(labT); labT = requestAnimationFrame(labelAll); }
+function labelAll(){ LABELS.clearLayers(); if (map.getZoom() < LABELZ) return; const b = map.getBounds().pad(.05), ctr = map.latLngToContainerPoint(map.getCenter()), cand = [], taken = [];
+  LIVE.forEach((l, li) => { if (!l.on) return;
+    if (l.type === 'pt') l.group.eachLayer(m => { if (!m.getLatLng) return; const ll = m.getLatLng(); if (!b.contains(ll)) return; const p = map.latLngToContainerPoint(ll); taken.push([p.x - 12, p.y - 12, p.x + 12, p.y + 12]); if (m._nm) cand.push({nm:m._nm, ll, p, r:13, pri:li}); });
+    else if (l.type === 'line'){ const by = new Map(); /* trail name -> the segment in view nearest the middle of the screen */
+      l.group.eachLayer(g => { if (g.eachLayer) g.eachLayer(ly => { if (!ly._nm || !ly.getBounds || !ly.getBounds().intersects(b)) return; let ll; try { ll = ly.getCenter(); } catch (e){ ll = ly.getBounds().getCenter(); } if (!b.contains(ll)) return;
+        const p = map.latLngToContainerPoint(ll), d = p.distanceTo(ctr), cur = by.get(ly._nm); if (!cur || d < cur.d) by.set(ly._nm, {nm:ly._nm, ll, p, r:5, pri:li + 100, d}); }); });
+      by.forEach(v => cand.push(v)); } });
+  cand.sort((a, c) => a.pri - c.pri || a.p.y - c.p.y || a.p.x - c.p.x);
+  const hit = bx => taken.some(t => bx[0] < t[2] && bx[2] > t[0] && bx[1] < t[3] && bx[3] > t[1]); let n = 0;
+  for (const c of cand){ if (n >= 120) break; const w = Math.min(230, c.nm.length * 6.1 + 14), h = 18, x = c.p.x, y = c.p.y, g = c.r + 2;
+    const opts = [['right', [x + g, y - h/2, x + g + w, y + h/2], [g - 6, 0]], ['left', [x - g - w, y - h/2, x - g, y + h/2], [-(g - 6), 0]], ['top', [x - w/2, y - g - h, x + w/2, y - g], [0, -(g - 6)]], ['bottom', [x - w/2, y + g, x + w/2, y + g + h], [0, g - 6]]];
+    const o = opts.find(o => !hit(o[1])); if (!o) continue; taken.push(o[1]); n++;
+    LABELS.addLayer(L.tooltip({permanent:true, direction:o[0], offset:o[2], className:'featlab', interactive:false, opacity:1}).setLatLng(c.ll).setContent(esc(c.nm))); } }
+map.on('moveend zoomend', () => labelSync());
 function mileDraw(l){ l.group.clearLayers(); if (!l.pts) return; const z = map.getZoom(), step = z >= 12 ? 1 : z >= 11 ? 5 : z >= 9.5 ? 10 : z >= 8 ? 25 : z >= 6.5 ? 100 : 250, b = map.getBounds().pad(.1); let n = 0;
   const placed = [];
   for (const p of l.pts){ if (Math.floor(p[2]) % step || !b.contains([p[0], p[1]])) continue; const cp = map.latLngToContainerPoint([p[0], p[1]]); if (placed.some(q => Math.abs(q.x - cp.x) < 46 && Math.abs(q.y - cp.y) < 18)) continue; placed.push(cp); if (++n > 400) break;
@@ -832,7 +845,7 @@ async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZo
       if (my !== l.req) return; liveDraw(l, f); liveStatus(l, f.length ? fmt(f.length, 0) + ' in view' + (l.id === 'lands' ? '. Click an area for its details. Switch this layer off to select grid cells here.' : '') : 'None in view'); return; }
     if (!l.loaded){ liveStatus(l, 'Loading…'); const [f] = await Promise.all([arcQuery(l.url, {outFields:'*', geometryPrecision:6}), arcMeta(l)]); if (my !== l.req) return; liveDraw(l, f); l.loaded = true; liveStatus(l, fmt(f.length, 0) + ' along the trail'); }
   } catch (e){ if (my === l.req) liveStatus(l, 'Could not load this layer just now'); } }
-function liveToggle(l, on){ l.on = on; if (on){ l.group.addTo(map); liveLoad(l); if (l.type === 'pt' && l.loaded) liveDraw(l); else labelSync(l); } else { map.removeLayer(l.group); l.req++; liveStatus(l, ''); } layersUI(); writeHash(); }
+function liveToggle(l, on){ l.on = on; if (on){ l.group.addTo(map); liveLoad(l); if (l.type === 'pt' && l.loaded) liveDraw(l); } else { map.removeLayer(l.group); l.req++; liveStatus(l, ''); } labelSync(); layersUI(); writeHash(); }
 function layersUI(){ const n = LIVE.filter(l => l.on).length; $('#layerstog span').innerHTML = 'Map layers' + (n ? ` <b>${n}</b>` : '');
   const lk = $('#landkey'); if (lk) lk.hidden = !LIVE.find(l => l.id === 'lands').on; }
 $('#layerspanel').innerHTML = LIVE.map(l => `<label><input type="checkbox" data-live="${l.id}">${l.type === 'pt' ? glyphHTML(l, 18) : `<i class="${l.type === 'poly' ? 'sq' : 'ln'}" style="background:${l.color};justify-self:center"></i>`}<span>${l.name}</span><span class="st" data-st="${l.id}"></span></label>` +
