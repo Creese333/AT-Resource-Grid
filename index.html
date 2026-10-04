@@ -152,7 +152,9 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 #boxdraw[hidden]{display:none}
 #mapwrap.drawing #map,#mapwrap.drawing #map .leaflet-interactive{cursor:crosshair !important}
 #mapwrap.drawing #map{touch-action:none !important}
-.leaflet-tooltip.pin{z-index:1}
+.leaflet-tooltip.pin{z-index:1;pointer-events:auto;cursor:default;padding-right:26px}
+.pinx{position:absolute;top:2px;right:2px;width:20px;height:20px;border:0;border-radius:3px;background:none;color:#C9D0D3;font-size:15px;line-height:18px;padding:0;cursor:pointer}
+.pinx:hover{background:#2F3439;color:#fff}
 #note{padding:5px 10px;font-size:12.5px;max-width:300px;display:none}
 #legend{left:10px;bottom:8px;padding:9px 11px;max-width:250px;font-size:12.5px}
 #legend h3{font-size:14px;margin:0}
@@ -611,11 +613,13 @@ function group(lv){ if (GROUP[lv]) return GROUP[lv];
   return GROUP[lv] = g; }
 const tip = L.tooltip({className:'tip', direction:'top', offset:[0,-6], opacity:1, interactive:false});
 /* The value label for the selected cell stays on the map until another cell is chosen or the selection is cleared. */
-const pin = L.tooltip({className:'tip pin', direction:'top', offset:[0,-8], opacity:1, interactive:false, permanent:true});
-function pinSync(){ if (S.cell == null){ pin.remove(); return; } const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c);
+const pin = L.tooltip({className:'tip pin', direction:'top', offset:[0,-8], opacity:1, interactive:true, permanent:true});
+function pinSync(){ if (S.cell == null || S.pinOff){ pin.remove(); return; } const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c);
   let pv = S.m.get(lv, c); if (pv == null && par && !(D.themes[S.m.th] || {})[lv]) pv = S.m.get(par[0], par[1]);
   const top = ring(lv, c).reduce((a, p) => p[0] > a[0] ? p : a);
-  pin.setLatLng(top).setContent(`<b>${esc(show(S.m, pv))}</b><br>${esc(S.m.label)}<br>Near mile ${fmt(L_.mi[c],0)}`); if (!map.hasLayer(pin)) pin.addTo(map); }
+  pin.setLatLng(top).setContent(`<button type="button" class="pinx" aria-label="Close this label" title="Close this label">&times;</button><b>${esc(show(S.m, pv))}</b><br>${esc(S.m.label)}<br>Near mile ${fmt(L_.mi[c],0)}`); if (!map.hasLayer(pin)) pin.addTo(map); }
+/* the small x on the pinned label closes the label only; the cell stays selected */
+document.getElementById('map').addEventListener('click', e => { if (e.target.closest && e.target.closest('.pinx')){ e.stopPropagation(); e.preventDefault(); S.pinOff = true; pin.remove(); } }, true);
 
 let shown = null;
 function autoLevel(){ const z = map.getZoom(); return z >= 10.5 ? 'hex' : z >= 8.5 ? 'cog' : 'wheel'; }
@@ -793,7 +797,7 @@ function sppItem(i, edrr){ const s = D.spp[i], m = s.match(/^(.*?)\s*\(([^)]*)\)
   return `<li>${h}</li>`; }
 function parentOf(lv, c){ const id = D.levels[lv].id[c], up = lv === 'hex' ? 'cog' : lv === 'cog' ? 'wheel' : null; if (!up) return null;
   const pid = id.slice(0, id.lastIndexOf('-')); return IDX[up].has(pid) ? [up, IDX[up].get(pid)] : null; }
-function select(lv, c, fly){ S.box = null; boxRect.remove(); S.cell = c; S.cellLv = lv; const r = ring(lv, c); selOuter.setLatLngs(r); selInner.setLatLngs(r);
+function select(lv, c, fly){ S.box = null; boxRect.remove(); S.pinOff = false; S.cell = c; S.cellLv = lv; const r = ring(lv, c); selOuter.setLatLngs(r); selInner.setLatLngs(r);
   if (fly) map.fitBounds(L.latLngBounds(r).pad(lv === 'hex' ? 4 : 1.5), {maxZoom: lv === 'hex' ? 12 : lv === 'cog' ? 10 : 8});
   profile(); pinSync(); $('#clearbtn').hidden = false; writeHash();
   if (isPhone()){ placeProfile(); sheet(S.sheetFull ? 'full' : 'peek'); if (fly) $('#mapwrap').scrollIntoView({block:'start'}); showBar(); } }
