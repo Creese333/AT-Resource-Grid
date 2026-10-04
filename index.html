@@ -183,7 +183,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 #layerstog b{font-weight:600;color:var(--onlight);background:var(--ink);border-radius:9px;padding:0 6px;font-size:11.5px;line-height:17px}
 #layerspanel{position:absolute;top:calc(100% + 6px);left:-1px;width:250px;max-height:min(60vh,430px);overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.5);padding:6px 4px;color-scheme:dark}
 #layerspanel[hidden]{display:none}
-#layerspanel label{display:grid;grid-template-columns:auto 12px 1fr;gap:8px;align-items:center;padding:5px 8px;border-radius:4px;font-size:13px;cursor:pointer}
+#layerspanel label{display:grid;grid-template-columns:auto 18px 1fr;gap:8px;align-items:center;padding:5px 8px;border-radius:4px;font-size:13px;cursor:pointer}
 #layerspanel label:hover{background:var(--ground)}
 #layerspanel label i{width:11px;height:11px;border-radius:50%;border:1.5px solid #fff}
 #layerspanel label i.sq{border-radius:2px}
@@ -203,9 +203,12 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .pbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .leaflet-container a.pbtn{display:inline-block;background:#F1F3F4;color:#1D2023;font-weight:600;font-size:12.5px;border-radius:4px;padding:4px 12px;text-decoration:none}
 .leaflet-container a.pbtn:hover{background:#fff}
+.fic{display:flex;align-items:center;justify-content:center;border-radius:50%;border:1.5px solid #fff;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.45)}
+.ficm{background:none !important;border:0 !important}
+#layerspanel label .fic{border-width:1px;box-shadow:none}
 .featlab{background:rgba(15,17,19,.82);color:#fff;border:0;border-radius:3px;padding:1px 6px;font-size:11.5px;font-weight:500;box-shadow:none;white-space:nowrap}
 .featlab::before{display:none}
-.leaflet-tooltip.featlab{pointer-events:auto;cursor:pointer}
+.leaflet-tooltip.featlab{pointer-events:none}
 .leaflet-popup-content .ty{font-size:12px;color:#B4BCBF;margin-bottom:4px}
 .leaflet-container a.leaflet-popup-close-button{color:#C9D0D3}
 .tip{background:#0F1113;color:#fff;border:1px solid #3B4146;border-radius:4px;padding:5px 8px;font-size:12.5px;box-shadow:none}
@@ -431,10 +434,10 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>The strip under the map runs from Springer Mountain to Katahdin. Each bar is a ten-mile stretch, averaged from the 49 sq mi cells.</li>
       <li>The search box finds birds, invasive plants, forest pests and vegetation types in every cell where they were recorded. Other iNaturalist species are only searchable where they rank among a cell's ten most-recorded, so those results are partial. Rare species are not searchable.</li>
       <li>Export CSV and Export Excel, in the details panel, download everything shown for the selected cell or cells. The Excel workbook has separate sheets for cells, species, vegetation types and land administrators; the CSV holds the same rows in one long table.</li>
-      <li>Map layers adds the official mile markers, administrative areas, shelters, campsites, parking, privies, bridges, vistas and side trails. They load live from the NPS and ATC map services when switched on, so they stay current. Administrative areas and side trails appear once you zoom in. A click on one of these features opens its details; a click anywhere else selects the grid cell.</li>
+      <li>Map layers adds administrative areas, shelters, campsites, parking, privies, bridges, vistas and side trails. They load live from the NPS and ATC map services when switched on, so they stay current. Administrative areas and side trails appear once you zoom in. A click on one of these features opens its details; a click anywhere else selects the grid cell.</li>
       <li>Select area draws a box on the map and summarizes every cell whose center falls inside it. Records and acres are added up; species and vegetation types are counted once.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
-      <li>Trail miles are miles from Springer Mountain, taken from the official A.T. mile markers: each cell carries the mileage of its nearest marker. If the marker service cannot be reached, the page falls back to its own approximate measurement along the centerline.</li>
+      <li>Trail miles are measured along the mapped centerline, south to north from Springer Mountain, and are approximate.</li>
     </ul>
     <h3>Updates</h3>
     <p>iNaturalist and eBird summaries are refreshed quarterly. This page shows the <span class="run"></span> run.</p>
@@ -737,7 +740,6 @@ const LANDKEY = [['FEDERAL LAND - NPS - APPA FEE','NPS, A.T. fee land','rgb(0,77
   ['STATE LAND','State','rgb(85,255,0)'],['CONSERVATION LAND','Conservation land','rgb(211,255,190)'],['TOWN LAND','Town','rgb(255,255,115)']];
 const LANDMAP = new Map(LANDKEY.map(k => [k[0], k]));
 const LIVE = [
-  {id:'miles', name:'Mile markers', url:SVC + 'MilePointsFromSpringer/FeatureServer/0', type:'miles', color:'#17302B'},
   {id:'lands', name:'Administrative areas', url:SVC + 'AT_Lands/FeatureServer/1', type:'poly', bbox:1, minZoom:11, fields:'NAME,ADMIN,LEGEND3', color:'rgb(0,77,168)'},
   {id:'shelters', name:'Shelters', url:SVC + 'ANST_Facilities/FeatureServer/4', type:'pt', color:'#E4572E'},
   {id:'campsites', name:'Campsites', url:SVC + 'ANST_Facilities/FeatureServer/1', type:'pt', color:'#2E933C'},
@@ -747,6 +749,14 @@ const LIVE = [
   {id:'vistas', name:'Vistas', url:SVC + 'ANST_Facilities/FeatureServer/5', type:'pt', color:'#B03FA8'},
   {id:'sidetrails', name:'Side trails', url:SVC + 'ANST_Facilities/FeatureServer/6', type:'line', bbox:1, minZoom:10, color:'#35A7FF'}
 ];
+const GLYPH = {
+  shelters:'<path d="M2.5 9.5 8 3.5l5.5 6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 8.5V13h7V8.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>',
+  campsites:'<path d="M8 2.8 2.2 13h11.6z" fill="#fff"/><path d="M8 7.6 5.9 13h4.2z" fill="currentColor"/>',
+  parking:'<path d="M5.2 13V3.2h3.6a3 3 0 0 1 0 6H5.2" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>',
+  privies:'<path d="M4.3 13.3V6.4L8 2.8l3.7 3.6v6.9z" fill="#fff"/><path d="M8.9 7.2a1.9 1.9 0 1 0 0 3.4 2.3 2.3 0 0 1 0-3.4z" fill="currentColor"/>',
+  bridges:'<path d="M1.6 6h12.8M2.8 6v6.4M13.2 6v6.4M2.8 12.2Q8 3.6 13.2 12.2" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>',
+  vistas:'<path d="M1.6 13 6 5.8l2.6 3.4 1.7-2.1L14.4 13z" fill="#fff"/><circle cx="11.6" cy="4" r="1.5" fill="#fff"/>'};
+const glyphHTML = (l, size) => `<span class="fic" style="background:${l.color};color:${l.color};width:${size}px;height:${size}px"><svg viewBox="0 0 16 16" width="${Math.round(size * .68)}" height="${Math.round(size * .68)}" aria-hidden="true">${GLYPH[l.id] || ''}</svg></span>`;
 LIVE.forEach(l => { l.on = false; l.group = L.layerGroup(); l.status = ''; l.loaded = false; l.req = 0; });
 async function arcQuery(url, params, maxPages){ let out = [], off = 0; const seen = new Set();
   for (let pg = 0; pg < (maxPages || 15); pg++){ const u = url + '/query?' + new URLSearchParams(Object.assign({where:'1=1', outSR:4326, f:'geojson', resultOffset:off, resultRecordCount:2000}, params));
@@ -758,26 +768,28 @@ async function arcMeta(l){ if (l.meta) return l.meta; try { const r = await fetc
 const tcase = s => String(s || '').toLowerCase().replace(/(^|[\s\-\/(])([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Nps|Usfs|Usfws|Appa|Hafe|Grsm|Blri|Shen|Choh|Dewa|Nhp|Nra|Nf|Np|Wma|Atc|Row|Us|Usa|Dcr|Dec|Dep|Dnr|Dcnr|Tva|Llc|Inc|Ii|Iii)\b/g, x => x.toUpperCase()).replace(/ (Of|The|And|For|At|In) /g, x => x.toLowerCase());
 const SKIPF = /^(OBJECTID|FID|GlobalID|Shape|GFID|LINK_ID|RELATE_ID)|Edit|Creat|Editor|FMSS|Asset|FBMS|^API$|^OB$|PDOP|HDOP|Avg_|Worst_|GPS|GNSS|Datafile|Unfilt|Filt_|Data_Dicti|Corr_|Rcvr|Publish|Version|Update_Sta|Feat_Name|Hist_|TRACT|PARCEL|DEED|OWNER|Length|^X$|^Y$|^Lat|^Lon|POINT_/i;
 function featName(l, p){ const df = (l.meta || {}).displayField, k = [df, 'Name', 'NAME', 'Label'].find(k => k && p[k] != null && String(p[k]).trim() && String(p[k]).trim() !== 'NA'); return k ? String(p[k]).trim() : ''; }
-const PREFF = ['Type', 'Capacity', 'Location', 'Trail_Club', 'State', 'County', 'Status', 'Comments'];
+const EXTRAF = {shelters:[/capac|sleep/i, 'Sleeps'], campsites:[/capac|tent|site/i, ''], parking:[/space|capac/i, ''], bridges:[/^type$|span|material/i, ''], privies:[/^type$/i, '']};
 function featPopup(l, p){ let h = '';
   if (l.id === 'lands'){ const k = LANDMAP.get(p.LEGEND3); h = `<h4>${esc(tcase(p.NAME) || 'Unnamed area')}</h4><div class="ty">Administrative area</div>` + (p.ADMIN ? `<div><span class="k">Administered by</span> ${esc(tcase(p.ADMIN))}</div>` : '') + (p.LEGEND3 ? `<div><span class="k">Category</span> ${esc(k ? k[1] : tcase(p.LEGEND3))}</div>` : ''); return h; }
-  const m = l.meta || {}, al = new Map((m.fields || []).map(f => [f.name, f.alias || f.name])), nm = featName(l, p), kind = l.name.replace(/s$/, '');
+  const m = l.meta || {}, al = new Map((m.fields || []).map(f => [f.name, f.alias || f.name])), nm = featName(l, p), kind = ({shelters:'Shelter', campsites:'Campsite', parking:'Parking area', privies:'Privy', bridges:'Bridge', vistas:'Vista', sidetrails:'Side trail'})[l.id] || l.name;
+  const clean = v => { if (v == null) return ''; const s = String(v).trim(); return (!s || /^(na|n\/a|none|unknown|0)$/i.test(s)) ? '' : s; };
   h = `<h4>${esc(nm || kind)}</h4><div class="ty">${esc(kind)}</div>`;
-  if (l.id === 'vistas'){ /* name, plus a button for each photo link the record carries */
-    const ph = []; for (let k = 1; k <= 10; k++){ const u = String(p['Photo' + k] || '').trim(); if (/^https?:\/\//i.test(u)) ph.push(u); }
-    if (ph.length) h += '<div class="pbtns">' + ph.map((u, k) => `<a class="pbtn" href="${esc(u)}" target="_blank" rel="noopener">${ph.length === 1 ? 'View photo' : 'Photo ' + (k + 1)}</a>`).join('') + '</div>';
-    else h += '<div class="k">No photo link on this record.</div>';
-    return h; }
-  const ok = (k, v) => { if (v == null || SKIPF.test(k)) return ''; const sv = String(v).trim(); return (!sv || sv === 'NA' || sv === 'N/A' || sv === '0' || sv === 'None' || sv.length > 120 || /^https?:/i.test(sv)) ? '' : sv; };
-  const row = (k, sv) => `<div><span class="k">${esc(String(al.get(k) || k).replace(/_/g, ' '))}</span> ${esc(sv)}</div>`; let n = 0;
-  PREFF.forEach(k => { const sv = ok(k, p[k]); if (sv && n < 6){ h += row(k, sv); n++; } });
-  if (n < 2) for (const k in p){ if (n >= 5) break; if (PREFF.includes(k) || p[k] === nm) continue; const sv = ok(k, p[k]); if (sv){ h += row(k, sv); n++; } }
+  const st = clean(p.State), co = clean(p.County);
+  if (st) h += `<div><span class="k">State</span> ${esc(st)}</div>`;
+  if (co) h += `<div><span class="k">County</span> ${esc(co)}</div>`;
+  const ex = EXTRAF[l.id]; if (ex){ const k = Object.keys(p).find(k => ex[0].test(k) && !SKIPF.test(k) && clean(p[k]) && clean(p[k]).length < 60 && p[k] !== nm);
+    if (k) h += `<div><span class="k">${esc(ex[1] || String(al.get(k) || k).replace(/_/g, ' '))}</span> ${esc(clean(p[k]))}</div>`; }
+  if (l.id === 'vistas'){ const ph = []; for (let k = 1; k <= 10; k++){ const u = String(p['Photo' + k] || '').trim(); if (/^https?:\/\//i.test(u)) ph.push(u); }
+    if (ph.length) h += '<div class="pbtns">' + ph.map((u, k) => `<a class="pbtn" href="${esc(u)}" target="_blank" rel="noopener">${ph.length === 1 ? 'View photo' : 'Photo ' + (k + 1)}</a>`).join('') + '</div>'; }
   return h; }
 function liveStatus(l, s){ l.status = s; const e = document.querySelector('#layerspanel [data-st="' + l.id + '"]'); if (e) e.textContent = s; }
+const ICONZ = 9;
 function liveDraw(l, feats){ l.group.clearLayers();
-  if (l.type === 'pt') feats.forEach(f => { if (!f.geometry || f.geometry.type !== 'Point') return; const c = f.geometry.coordinates;
-    const mk = L.circleMarker([c[1], c[0]], {renderer:featR, pane:'feat', radius:6, color:'#fff', weight:1.5, fillColor:l.color, fillOpacity:1, bubblingMouseEvents:false}).on('click', e => L.popup({maxWidth:260}).setLatLng(mk.getLatLng()).setContent(featPopup(l, f.properties || {})).openOn(map)).addTo(l.group);
-    mk._p = f.properties || {}; mk._nm = featName(l, mk._p); });
+  if (l.type === 'pt'){ if (feats) l.feats = feats.filter(f => f.geometry && f.geometry.type === 'Point'); const z = map.getZoom(), b = map.getBounds().pad(.15), pop = (m, f) => () => L.popup({maxWidth:260, offset:[0, -6]}).setLatLng(m.getLatLng()).setContent(featPopup(l, f.properties || {})).openOn(map); let n = 0;
+    (l.feats || []).forEach(f => { const c = f.geometry.coordinates, ll = [c[1], c[0]]; let mk;
+      if (z >= ICONZ){ if (!b.contains(ll) || n >= 700) return; n++; mk = L.marker(ll, {pane:'feat', keyboard:false, title:featName(l, f.properties || {}), icon:L.divIcon({className:'ficm', html:glyphHTML(l, 24), iconSize:[24, 24], iconAnchor:[12, 12]})}); }
+      else mk = L.circleMarker(ll, {renderer:featR, pane:'feat', radius:3.5, color:'#fff', weight:1, fillColor:l.color, fillOpacity:1, bubblingMouseEvents:false});
+      mk.on('click', pop(mk, f)).addTo(l.group); mk._p = f.properties || {}; mk._nm = featName(l, mk._p); }); }
   else L.geoJSON({type:'FeatureCollection', features:feats.filter(f => f.geometry)}, {renderer:l.type === 'poly' ? landsR : featR, pane:l.type === 'poly' ? 'lands' : 'feat', bubblingMouseEvents:false,
     style:f => l.type === 'poly' ? {color:'#4A4A4A', weight:.6, fillColor:(LANDMAP.get((f.properties || {}).LEGEND3) || [0, 0, '#BBBBBB'])[2], fillOpacity:.5} : {color:l.color, weight:2.2, dashArray:'6 4', opacity:.95},
     onEachFeature:(f, ly) => { if (l.type === 'line') ly._nm = featName(l, f.properties || {}); return ly.on('click', e => L.popup({maxWidth:260}).setLatLng(e.latlng).setContent(featPopup(l, f.properties || {})).openOn(map)); }}).addTo(l.group);
@@ -799,7 +811,7 @@ const LABELZ = 11;
 function labelSync(l){ if (l.type === 'miles' || l.type === 'poly') return; const show = l.on && map.getZoom() >= LABELZ, b = map.getBounds().pad(.1); let n = 0;
   const each = ly => { if (ly.eachLayer && !ly.getLatLng && !ly.getBounds){ ly.eachLayer(each); return; } if (ly.eachLayer && ly.getLayers && !ly._nm){ ly.eachLayer(each); return; }
     const at = ly.getLatLng ? ly.getLatLng() : (ly.getBounds ? ly.getBounds().getCenter() : null), want = show && ly._nm && at && b.contains(at) && n < 150;
-    if (want){ n++; if (!ly.getTooltip()) ly.bindTooltip(esc(ly._nm), {permanent:true, direction:'right', offset:[7, 0], className:'featlab', interactive:true, pane:'tooltipPane'}); ly.openTooltip(); }
+    if (want){ n++; if (!ly.getTooltip()) ly.bindTooltip(esc(ly._nm), {permanent:true, direction:'right', offset:[7, 0], className:'featlab', interactive:false, pane:'tooltipPane'}); ly.openTooltip(); }
     else if (ly.getTooltip()) ly.unbindTooltip(); };
   l.group.eachLayer(each); }
 function mileDraw(l){ l.group.clearLayers(); if (!l.pts) return; const z = map.getZoom(), step = z >= 12 ? 1 : z >= 11 ? 5 : z >= 9.5 ? 10 : z >= 8 ? 25 : z >= 6.5 ? 100 : 250, b = map.getBounds().pad(.1); let n = 0;
@@ -817,22 +829,23 @@ async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZo
       if (my !== l.req) return; liveDraw(l, f); liveStatus(l, f.length ? fmt(f.length, 0) + ' in view' + (l.id === 'lands' ? '. Click an area for its details. Switch this layer off to select grid cells here.' : '') : 'None in view'); return; }
     if (!l.loaded){ liveStatus(l, 'Loading…'); const [f] = await Promise.all([arcQuery(l.url, {outFields:'*', geometryPrecision:6}), arcMeta(l)]); if (my !== l.req) return; liveDraw(l, f); l.loaded = true; liveStatus(l, fmt(f.length, 0) + ' along the trail'); }
   } catch (e){ if (my === l.req) liveStatus(l, 'Could not load this layer just now'); } }
-function liveToggle(l, on){ l.on = on; if (on){ l.group.addTo(map); liveLoad(l); labelSync(l); } else { map.removeLayer(l.group); l.req++; liveStatus(l, ''); } layersUI(); writeHash(); }
+function liveToggle(l, on){ l.on = on; if (on){ l.group.addTo(map); liveLoad(l); if (l.type === 'pt' && l.loaded) liveDraw(l); else labelSync(l); } else { map.removeLayer(l.group); l.req++; liveStatus(l, ''); } layersUI(); writeHash(); }
 function layersUI(){ const n = LIVE.filter(l => l.on).length; $('#layerstog span').innerHTML = 'Map layers' + (n ? ` <b>${n}</b>` : '');
-  const lk = $('#landkey'); if (lk) lk.hidden = !LIVE[1].on; }
-$('#layerspanel').innerHTML = LIVE.map(l => `<label><input type="checkbox" data-live="${l.id}"><i class="${l.type === 'poly' ? 'sq' : l.type === 'line' ? 'ln' : ''}" style="background:${l.color}"></i><span>${l.name}</span><span class="st" data-st="${l.id}"></span></label>` +
+  const lk = $('#landkey'); if (lk) lk.hidden = !LIVE.find(l => l.id === 'lands').on; }
+$('#layerspanel').innerHTML = LIVE.map(l => `<label><input type="checkbox" data-live="${l.id}">${l.type === 'pt' ? glyphHTML(l, 18) : `<i class="${l.type === 'poly' ? 'sq' : 'ln'}" style="background:${l.color};justify-self:center"></i>`}<span>${l.name}</span><span class="st" data-st="${l.id}"></span></label>` +
   (l.id === 'lands' ? `<div class="lk" id="landkey" hidden>${LANDKEY.map(k => `<div><i style="background:${k[2]}"></i><span>${k[1]}</span></div>`).join('')}</div>` : '')).join('') +
   '<p>Live from the National Park Service and Appalachian Trail Conservancy map services.</p>';
 $('#layerspanel').addEventListener('change', e => { const l = LIVE.find(x => x.id === e.target.dataset.live); if (l) liveToggle(l, e.target.checked); });
 $('#layerstog').onclick = () => { const p = $('#layerspanel'); p.hidden = !p.hidden; $('#layerstog').setAttribute('aria-expanded', !p.hidden); };
-{ let lt; map.on('moveend', () => { clearTimeout(lt); lt = setTimeout(() => LIVE.forEach(l => { if (!l.on) return; if (l.type === 'miles') mileDraw(l); else if (l.bbox) liveLoad(l); else labelSync(l); }), 350); }); }
+{ let lt; map.on('moveend', () => { clearTimeout(lt); lt = setTimeout(() => LIVE.forEach(l => { if (!l.on) return; if (l.bbox) liveLoad(l); else if (l.type === 'pt' && l.loaded){ liveDraw(l); } else labelSync(l); }), 350); }); }
 /* squared distance, in rough degrees, from a point to the trail line the page is drawing */
 function trailDist(la, lo){ const k = Math.cos(la * Math.PI / 180), lines = trailLine.getLatLngs(); let best = Infinity;
   const seg = (a, b) => { const ax = (a.lng - lo) * k, ay = a.lat - la, bx = (b.lng - lo) * k, by = b.lat - la, dx = bx - ax, dy = by - ay, L2 = dx*dx + dy*dy; let u = L2 ? -(ax*dx + ay*dy) / L2 : 0; u = u < 0 ? 0 : u > 1 ? 1 : u; const x = ax + u*dx, y = ay + u*dy; return x*x + y*y; };
   const walk = arr => { if (!arr.length) return; if (Array.isArray(arr[0])){ arr.forEach(walk); return; } for (let i = 1; i < arr.length; i++){ if (Math.abs(arr[i].lat - la) > .3 && Math.abs(arr[i-1].lat - la) > .3) continue; const d = seg(arr[i-1], arr[i]); if (d < best) best = d; } };
   walk(lines); return best; }
 let MILEP = null;
-function milePts(){ const l = LIVE[0]; if (!MILEP) MILEP = arcQuery(l.url, {outFields:'MileNumber', geometryPrecision:5}).then(f => {
+const MILESRC = {url:SVC + 'MilePointsFromSpringer/FeatureServer/0', on:false};
+function milePts(){ const l = MILESRC; if (!MILEP) MILEP = arcQuery(l.url, {outFields:'MileNumber', geometryPrecision:5}).then(f => {
     const raw = f.filter(x => x.geometry && x.geometry.type === 'Point' && x.properties && x.properties.MileNumber != null && isFinite(+x.properties.MileNumber)).map(x => [x.geometry.coordinates[1], x.geometry.coordinates[0], Math.round(+x.properties.MileNumber * 10) / 10]);
     const by = new Map(); raw.forEach(p => { const g = by.get(p[2]); if (g) g.push(p); else by.set(p[2], [p]); });
     l.rawCount = raw.length; l.pts = [...by.values()].map(g => g.length === 1 ? g[0] : g.map(p => [trailDist(p[0], p[1]), p]).sort((a,b) => a[0] - b[0])[0][1]).sort((a,b) => a[2] - b[2]);
@@ -852,7 +865,9 @@ function alignMiles(pts){ if (pts.length < 1500) return; const old = D.levels.wh
   D.clubs.forEach(c => { c[1] = mapMi(c[1]); c[2] = mapMi(c[2]); });
   NB = Math.ceil(D.totalMi / BIN); S.milesOfficial = true;
   side(); strip(); pinSync(); if ((S.cell != null || S.box) && $('#profile').classList.contains('open')) profile(); }
-milePts().then(pts => { alignMiles(pts); if (LIVE[0].on) mileDraw(LIVE[0]); }).catch(() => {});
+/* Mile markers are switched off until the source layer is cleaned up. Set this to true to bring back the marker-based mileage. */
+const USE_MILE_MARKERS = false;
+if (USE_MILE_MARKERS) milePts().then(pts => { alignMiles(pts); }).catch(() => {});
 /* the trail line itself: refreshed from the official centerline service, keeping the built-in line if that fails */
 arcQuery(SVC + 'ANST_Centerline/FeatureServer/0', {outFields:'OBJECTID', maxAllowableOffset:'0.0003', geometryPrecision:5}).then(f => { const lines = [];
   f.forEach(x => { const g = x.geometry; if (!g) return; (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach(c => { if (c.length > 1) lines.push(c.map(p => [p[1], p[0]])); }); });
