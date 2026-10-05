@@ -34,7 +34,7 @@ header p{margin:0;color:#BFD0C9;font-size:13px;flex:1 1 260px;min-width:0}
 .hctl{display:flex;gap:8px;align-items:center}
 .find{position:relative}
 .findlabel{margin-top:6px}
-#find{width:100%;box-sizing:border-box;color-scheme:light;background:#fff;color:#17302B;border:2px solid #fff;border-radius:5px;padding:5px 8px;font:inherit;font-size:14px;font-weight:500}
+#find{width:100%;color-scheme:light;background:#fff;color:#17302B;border:2px solid #fff;border-radius:5px;padding:5px 8px;font:inherit;font-size:14px;font-weight:500}
 #find::placeholder{color:#6B7A76;font-weight:400;font-size:12px;letter-spacing:-.01em}
 #find:hover{border-color:#9CC3E6}
 #find:focus{outline:3px solid #9CC3E6;outline-offset:1px}
@@ -79,9 +79,11 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .qbody>.blk:first-child{border-top:0}
 .blk h2{font-size:14.5px;margin:0;letter-spacing:.02em}
 .blktog{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;padding:6px 0 5px;font:inherit;color:#fff;text-align:left}
-.blktog i{flex:none;width:0;height:0;border:5px solid transparent;border-top:6px solid #C9D0D3;border-bottom:0;transition:transform .15s}
-.blktog[aria-expanded=false] i{transform:rotate(-90deg)}
-.blktog:hover span{text-decoration:underline;text-underline-offset:3px}
+/* collapse chevrons on the side panel blocks, the legend and the profile sections */
+.blktog i,#legtog i,.sectog i{flex:none;width:0;height:0;border:5px solid transparent;border-top:6px solid var(--ink);border-bottom:0;transition:transform .15s}
+.blktog i{border-top-color:#C9D0D3}
+.blktog[aria-expanded=false] i,#legtog[aria-expanded=false] i,.sectog[aria-expanded=false] i{transform:rotate(-90deg)}
+.blktog:hover span,.sectog:hover span{text-decoration:underline;text-underline-offset:3px}
 .blkbody{padding-bottom:8px}
 .blkbody[hidden],.blk.res>.blkbody[hidden]{display:none !important}
 .findbar+.blk{border-top:0}
@@ -121,17 +123,15 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 #ctls{position:absolute;z-index:500;top:10px;left:48px;display:flex;flex-direction:column;align-items:flex-start;gap:5px;pointer-events:none}
 #ctls>*{pointer-events:auto}
 #ctlrow1,#ctlrow2{display:flex;gap:6px;min-height:29px}
-#ctls .mapctl{position:static;box-sizing:border-box}
+#ctls .mapctl{position:static}
 #ctlrow1>.mapctl,#ctlrow2>.mapctl{height:29px}
 #levels{display:flex;padding:3px;gap:2px}
-#levels button{border:0;background:none;border-radius:4px;padding:0 10px;font-size:13px;line-height:21px}
-#levels button{color:#D5DADC}
+#levels button{border:0;background:none;border-radius:4px;padding:0 10px;font-size:13px;line-height:21px;color:#D5DADC}
 #levels button[aria-pressed=true]{background:var(--ink);color:var(--onlight);font-weight:500}
 #base{padding:0 6px 0 10px;display:flex;gap:7px;align-items:center;font-size:13px}
 #base span{color:var(--muted)}
-#base select{color:var(--ink);color-scheme:dark}
+#base select{color:var(--ink);color-scheme:dark;border:0;background:none;padding:2px;font-size:13px;font-weight:500;cursor:pointer;max-width:190px}
 #base select option{color:#F1F3F4;background:#1D2023}
-#base select{border:0;background:none;padding:2px 2px;font-size:13px;font-weight:500;cursor:pointer;max-width:190px}
 /* Map tools: a box beside the cell-size buttons that opens to the right and stays open until its title is clicked */
 #tools{display:flex;align-items:stretch;padding:3px;gap:2px}
 #toolstog{display:flex;align-items:center;gap:7px;border:0;background:none;border-radius:4px;padding:0 8px 0 9px;font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap}
@@ -161,8 +161,6 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 #legend{left:10px;bottom:8px;padding:9px 11px;max-width:250px;font-size:12.5px}
 #legend h3{font-size:14px;margin:0}
 #legtog{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;padding:0;font:inherit;text-align:left}
-#legtog i{flex:none;width:0;height:0;border:5px solid transparent;border-top:6px solid var(--ink);border-bottom:0;transition:transform .15s}
-#legtog[aria-expanded=false] i{transform:rotate(-90deg)}
 #legbody{margin-top:5px}
 #legbody[hidden]{display:none}
 #legend .row{display:grid;grid-template-columns:16px 1fr;gap:7px;align-items:center;padding:1.5px 0}
@@ -195,7 +193,6 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 #layerspanel .lk div{display:grid;grid-template-columns:11px 1fr;gap:7px;align-items:center;padding:1px 0}
 #layerspanel .lk i{width:11px;height:9px;border-radius:1.5px;display:block}
 #layerspanel p{margin:6px 8px 2px;font-size:11.5px;color:var(--muted);line-height:1.35}
-.milelab{background:#17302B;color:#fff;border:1.5px solid #fff;border-radius:9px;font:600 11px/15px var(--body);padding:0 6px;white-space:nowrap;width:auto !important;height:auto !important;transform:translate(-50%,-50%);box-shadow:0 1px 3px rgba(0,0,0,.4);pointer-events:none}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#1D2023;color:#F1F3F4;box-shadow:0 4px 16px rgba(0,0,0,.55)}
 .leaflet-popup-content-wrapper{border:1px solid #3B4146;border-radius:6px}
 .leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.4}
@@ -207,7 +204,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .pbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .leaflet-container a.pbtn{display:inline-block;background:#F1F3F4;color:#1D2023;font-weight:600;font-size:12.5px;border-radius:4px;padding:4px 12px;text-decoration:none}
 .leaflet-container a.pbtn:hover{background:#fff}
-.fic{display:flex;align-items:center;justify-content:center;border-radius:50%;border:1.5px solid #fff;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.45)}
+.fic{display:flex;align-items:center;justify-content:center;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.45)}
 .ficm{background:none !important;border:0 !important}
 #layerspanel label .fic{border-width:1px;box-shadow:none}
 .featlab{max-width:230px;overflow:hidden;text-overflow:ellipsis;background:none;color:#fff;border:0;border-radius:0;padding:1px 3px;font-size:12px;font-weight:600;letter-spacing:.01em;box-shadow:none;white-space:nowrap;-webkit-text-stroke:3px rgba(12,14,16,.92);paint-order:stroke fill;text-shadow:0 0 3px rgba(12,14,16,.9)}
@@ -239,12 +236,9 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .pexmsg{flex:1 1 100%;font-size:12.5px;color:var(--muted);margin:0 !important}
 .pexmsg:empty{display:none}
 .pbody{overflow-y:auto;padding:0 14px 14px}
-.sec{padding:12px 0 12px 12px;border-bottom:1px solid var(--line);border-left:4px solid var(--hue);margin:12px 0 0;padding-left:11px;border-bottom:0}
+.sec{padding:12px 0 12px 11px;border-left:4px solid var(--hue);margin:12px 0 0}
 .sec h3{font-size:17px;margin:0}
 .sectog{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;padding:2px 0;font:inherit;color:inherit;text-align:left}
-.sectog i{flex:none;width:0;height:0;border:5px solid transparent;border-top:6px solid var(--ink);border-bottom:0;transition:transform .15s}
-.sectog[aria-expanded=false] i{transform:rotate(-90deg)}
-.sectog:hover span{text-decoration:underline;text-underline-offset:3px}
 .secbody{margin-top:4px}
 .secbody[hidden]{display:none}
 .sec p{margin:3px 0}
@@ -331,7 +325,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   #mapwrap{height:62vh;height:62svh;min-height:360px}
   aside{border-right:0;overflow:visible}
   /* phones: the cell details are a block in the page, under the graph, so nothing is covered */
-  #profile{position:static;width:auto;max-width:none;max-height:none;border-radius:0;border:0;border-top:1px solid #0E1011;box-shadow:none}
+  #profile{position:static;width:auto;max-width:none;border-radius:0;border:0;border-top:1px solid #0E1011;box-shadow:none}
   #profile .pbody{overflow:visible}
   .phandle{display:inline-flex;align-items:center;gap:8px;margin-top:9px;background:none;border:1px solid #545C62;border-radius:4px;padding:4px 12px;color:#E6EAEB;font-size:13px}
   .phandle i{width:0;height:0;border:5px solid transparent;border-top:6px solid #C9D0D3;border-bottom:0}
@@ -345,7 +339,6 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   body{padding-bottom:10px}
   .boxm{display:none}
   .rank ol.scroll,#findlist{overscroll-behavior:auto}
-  #stripsvg{touch-action:pan-y}
   #legend{max-width:180px;font-size:12px;bottom:8px}
   .leaflet-container .leaflet-control-attribution{max-width:calc(100vw - 206px);font-size:9.5px}
   #ctls{left:10px;right:10px}
@@ -471,6 +464,7 @@ const D = JSON.parse(document.getElementById('payload').textContent);
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt = (v, d) => v == null ? '–' : Number(v).toLocaleString('en-US', {maximumFractionDigits: d == null ? (Math.abs(v) < 10 && v % 1 ? 1 : 0) : d});
+const nCells = n => `${fmt(n, 0)} ${n === 1 ? 'cell' : 'cells'}`;
 document.querySelectorAll('.run').forEach(e => e.textContent = D.run);
 
 /* ---------- data access ---------- */
@@ -524,6 +518,10 @@ CATCOL.APPA_YN = [['NPS - APPA land', '#4FA3D9']]; D.cats.APPA_YN = ['NPS - APPA
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 const ADMINCOL = ['#24475F','#819FB4','#C9D6DE','#E6E9E4'];
 const HUE = {lands:'#4F7590', veg:'#2F7A2C', inat:'#C4562A', ebird:'#3874A9', nrpz:'#9E2B4E', eff:'#685A9C'};
+/* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
+const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
+  ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
+  .map(g => ({spp:g[0] + '_SPP', list:g[0] + '_LIST', label:g[1], full:g[2] || g[1]}));
 
 /* ---------- questions and measures ---------- */
 /* iNaturalist and eBird species added together. Birds are counted once: the larger of the two bird counts, plus iNaturalist's non-bird species. */
@@ -596,7 +594,7 @@ function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   if (h.get('cell')){ for (const lv of ['hex','cog','wheel']) if (IDX[lv].has(h.get('cell'))){ S.cell = IDX[lv].get(h.get('cell')); S.cellLv = lv; } } }
 function writeHash(){ const p = new URLSearchParams({q:S.q.id, m:S.m.id, size:S.level});
   if (S.m.find) p.set('find', S.m.find.key);
-  { const on = (typeof LIVE === 'undefined') ? [] : LIVE.filter(l => l.on).map(l => l.id); if (on.length) p.set('layers', on.join(',')); }
+  { const on = LIVE.filter(l => l.on).map(l => l.id); if (on.length) p.set('layers', on.join(',')); }
   if (S.sec !== 'all') p.set('sec', S.sec); if (S.base !== DEFBASE) p.set('base', S.base); if (S.cell != null) p.set('cell', D.levels[S.cellLv].id[S.cell]);
   history.replaceState(null, '', '#' + p.toString()); }
 readHash();
@@ -692,8 +690,9 @@ function group(lv){ if (GROUP[lv]) return GROUP[lv];
 const tip = L.tooltip({className:'tip', direction:'top', offset:[0,-6], opacity:1, interactive:false});
 /* The value label for the selected cell stays on the map until another cell is chosen or the selection is cleared. */
 const pin = L.tooltip({className:'tip pin', direction:'top', offset:[0,-8], opacity:1, interactive:true, permanent:true});
-function pinSync(){ if (S.cell == null || S.pinOff){ pin.remove(); return; } const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c);
-  let pv = S.m.get(lv, c); if (pv == null && par && !(D.themes[S.m.th] || {})[lv]) pv = S.m.get(par[0], par[1]);
+/* the measure's value for a cell; a cell size the theme does not cover borrows the value of the cell it sits in */
+function cellValue(lv, c){ const v = S.m.get(lv, c), par = parentOf(lv, c); return v == null && par && !(D.themes[S.m.th] || {})[lv] ? S.m.get(par[0], par[1]) : v; }
+function pinSync(){ if (S.cell == null || S.pinOff){ pin.remove(); return; } const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], pv = cellValue(lv, c);
   const top = ring(lv, c).reduce((a, p) => p[0] > a[0] ? p : a);
   pin.setLatLng(top).setContent(`<button type="button" class="pinx" aria-label="Close this label" title="Close this label">&times;</button><b>${esc(show(S.m, pv))}</b><br>${esc(S.m.label)}<br>Near mile ${fmt(L_.mi[c],0)}`); if (!map.hasLayer(pin)) pin.addTo(map); }
 /* the small x on the pinned label closes the label only; the cell stays selected */
@@ -718,18 +717,20 @@ function draw(){ const lv = dispLevel();
   document.querySelectorAll('#levels button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.lv === S.level);
     if (b.dataset.lv === 'auto') b.textContent = (S.level === 'auto' && innerWidth > 860) ? 'Auto: ' + LV[lv].name : 'Auto'; });
   if (!S.m.find && document.activeElement !== $('#find')) $('#find').value = '';
-  legend(); side(); if ((S.cell != null || S.box) && $('#profile').classList.contains('open')) profile(); pinSync(); }
+  legend(); side(); refreshProfile(); pinSync(); }
+function redraw(){ draw(); strip(); writeHash(); }
+function refreshProfile(){ if ((S.cell != null || S.box) && $('#profile').classList.contains('open')) profile(); }
 map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown) draw(); else if (shown) restyle(); });
 map.on('moveend', viewWindow);
 
 $('#levels').innerHTML = [['auto','Auto'],['wheel','49 sq mi'],['cog','7 sq mi'],['hex','1 sq mi']].map(x => `<button type="button" data-lv="${x[0]}">${x[1]}</button>`).join('');
-$('#levels').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.level = b.dataset.lv; draw(); strip(); writeHash(); });
+$('#levels').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.level = b.dataset.lv; redraw(); });
 const mbLogo = L.control({position:'bottomright'});
 mbLogo.onAdd = () => { const a = L.DomUtil.create('a', 'mblogo'); a.href = 'https://www.mapbox.com/'; a.target = '_blank'; a.rel = 'noopener'; a.setAttribute('aria-label', 'Mapbox homepage'); return a; };
-function mbLogoSync(){ if (S.base.startsWith('mb')) mbLogo.addTo(map); else mbLogo.remove(); }
 $('#basesel').innerHTML = BASEDEF.map(b => `<option value="${b[0]}">${b[1]}</option>`).join(''); $('#basesel').value = S.base;
+function baseSync(){ $('#map').style.background = DARKBASE[S.base] ? '#1D2422' : '#DDE3DC'; trailStyle(); if (S.base.startsWith('mb')) mbLogo.addTo(map); else mbLogo.remove(); }
 function setBase(k){ if (!BASES[k] || k === S.base) return; map.removeLayer(BASES[S.base]); S.base = k; BASES[k].addTo(map); BASES[k].bringToBack();
-  $('#map').style.background = DARKBASE[k] ? '#1D2422' : '#DDE3DC'; trailStyle(); mbLogoSync(); if (shown) restyle(); writeHash(); }
+  baseSync(); if (shown) restyle(); writeHash(); }
 $('#basesel').addEventListener('change', e => setBase(e.target.value));
 
 $('#cellsbtn').onclick = () => { S.cells = !S.cells; map.getPane('cells').style.pointerEvents = S.cells ? '' : 'none'; const b = $('#cellsbtn');
@@ -794,17 +795,18 @@ function featPopup(l, p){ const kind = ({lands:'Administrative area', shelters:'
     if (first >= 0) h += `<a class="pthumb" href="${esc(ph[first])}" target="_blank" rel="noopener" title="Open the full photo"><img src="https://drive.google.com/thumbnail?id=${did(ph[first])}&sz=w480" alt="Photo of ${esc(nm || 'this vista')}" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></a>`;
     if (ph.length) h += '<div class="pbtns">' + ph.map((u, k) => `<a class="pbtn" href="${esc(u)}" target="_blank" rel="noopener">${ph.length === 1 ? 'View photo' : 'Photo ' + (k + 1)}</a>`).join('') + '</div>'; }
   return h; }
+const featOpen = (l, p, latlng, offset) => L.popup(Object.assign({autoPan:false, maxWidth:260}, offset && {offset})).setLatLng(latlng).setContent(featPopup(l, p || {})).openOn(map);
 function liveStatus(l, s){ l.status = s; const e = document.querySelector('#layerspanel [data-st="' + l.id + '"]'); if (e) e.textContent = s; }
 const ICONZ = 9;
 function liveDraw(l, feats){ l.group.clearLayers();
-  if (l.type === 'pt'){ if (feats) l.feats = feats.filter(f => f.geometry && f.geometry.type === 'Point'); const z = map.getZoom(), b = map.getBounds().pad(.15), pop = (m, f) => () => L.popup({autoPan:false, maxWidth:260, offset:[0, -6]}).setLatLng(m.getLatLng()).setContent(featPopup(l, f.properties || {})).openOn(map); let n = 0;
+  if (l.type === 'pt'){ if (feats) l.feats = feats.filter(f => f.geometry && f.geometry.type === 'Point'); const z = map.getZoom(), b = map.getBounds().pad(.15); let n = 0;
     (l.feats || []).forEach(f => { const c = f.geometry.coordinates, ll = [c[1], c[0]]; let mk;
       if (z >= ICONZ){ if (!b.contains(ll) || n >= 700) return; n++; mk = L.marker(ll, {pane:'feat', keyboard:false, title:featName(l, f.properties || {}), icon:L.divIcon({className:'ficm', html:glyphHTML(l, 24), iconSize:[24, 24], iconAnchor:[12, 12]})}); }
       else mk = L.circleMarker(ll, {renderer:featR, pane:'feat', radius:3.5, color:'#fff', weight:1, fillColor:l.color, fillOpacity:1, bubblingMouseEvents:false});
-      mk.on('click', pop(mk, f)).addTo(l.group); mk._p = f.properties || {}; mk._nm = featName(l, mk._p); }); }
+      mk.on('click', () => featOpen(l, f.properties, mk.getLatLng(), [0, -6])).addTo(l.group); mk._p = f.properties || {}; mk._nm = featName(l, mk._p); }); }
   else L.geoJSON({type:'FeatureCollection', features:feats.filter(f => f.geometry)}, {renderer:l.type === 'poly' ? landsR : featR, pane:l.type === 'poly' ? 'lands' : 'feat', bubblingMouseEvents:false,
     style:f => l.type === 'poly' ? {color:'#4A4A4A', weight:.6, fillColor:(LANDMAP.get((f.properties || {}).LEGEND3) || [0, 0, '#BBBBBB'])[2], fillOpacity:.5} : {color:l.color, weight:2.2, dashArray:'6 4', opacity:.95},
-    onEachFeature:(f, ly) => { if (l.type === 'line') ly._nm = featName(l, f.properties || {}); return ly.on('click', e => L.popup({autoPan:false, maxWidth:260}).setLatLng(e.latlng).setContent(featPopup(l, f.properties || {})).openOn(map)); }}).addTo(l.group);
+    onEachFeature:(f, ly) => { if (l.type === 'line') ly._nm = featName(l, f.properties || {}); return ly.on('click', e => featOpen(l, f.properties, e.latlng)); }}).addTo(l.group);
   labelSync(l); }
 /* Keep a popup or the pinned value label clear of everything that sits on top of the map: the cell-size, Map tools, basemap and Map layers controls,
    the zoom buttons, an open layers list, the legend, and the details panel. The map is nudged just far enough to clear them. */
@@ -822,8 +824,8 @@ function keepClear(el){ if (!el || !el.getBoundingClientRect) return; const m = 
   if (Math.abs(sx) > 1 || Math.abs(sy) > 1) map.panBy([-sx, -sy], {animate:true, duration:.25}); }
 map.on('popupopen', e => setTimeout(() => keepClear(e.popup.getElement()), 40));
 /* A click on the map goes to a feature of a switched-on layer when one is under it (points within a fingertip, then side trails, then administrative areas). Only otherwise does it select a grid cell. */
-function liveHit(latlng){ if (typeof LIVE === 'undefined') return false; const cp = map.latLngToContainerPoint(latlng), tol = TOUCHDEV ? 20 : 11; let best = null, bd = Infinity, bl = null;
-  const open = (l, p) => { L.popup({autoPan:false, maxWidth:260}).setLatLng(latlng).setContent(featPopup(l, p)).openOn(map); return true; };
+function liveHit(latlng){ const cp = map.latLngToContainerPoint(latlng), tol = TOUCHDEV ? 20 : 11; let best = null, bd = Infinity, bl = null;
+  const open = (l, p) => { featOpen(l, p, latlng); return true; };
   LIVE.forEach(l => { if (!l.on || l.type !== 'pt') return; l.group.eachLayer(m => { if (!m.getLatLng) return; const d = map.latLngToContainerPoint(m.getLatLng()).distanceTo(cp); if (d <= tol && d < bd){ bd = d; best = m; bl = l; } }); });
   if (best) return open(bl, best._p || {});
   const lp = map.latLngToLayerPoint(latlng);
@@ -854,15 +856,8 @@ function labelAll(){ LABELS.clearLayers(); if (map.getZoom() < LABELZ) return; c
     const o = opts.find(o => !hit(o[1])); if (!o) continue; taken.push(o[1]); n++;
     LABELS.addLayer(L.tooltip({permanent:true, direction:o[0], offset:o[2], className:'featlab', interactive:false, opacity:1}).setLatLng(c.ll).setContent(esc(c.nm))); } }
 map.on('moveend zoomend', () => labelSync());
-function mileDraw(l){ l.group.clearLayers(); if (!l.pts) return; const z = map.getZoom(), step = z >= 12 ? 1 : z >= 11 ? 5 : z >= 9.5 ? 10 : z >= 8 ? 25 : z >= 6.5 ? 100 : 250, b = map.getBounds().pad(.1); let n = 0;
-  const placed = [];
-  for (const p of l.pts){ if (Math.floor(p[2]) % step || !b.contains([p[0], p[1]])) continue; const cp = map.latLngToContainerPoint([p[0], p[1]]); if (placed.some(q => Math.abs(q.x - cp.x) < 46 && Math.abs(q.y - cp.y) < 18)) continue; placed.push(cp); if (++n > 400) break;
-    L.marker([p[0], p[1]], {pane:'feat', interactive:false, keyboard:false, icon:L.divIcon({className:'milelab', html:fmt(step === 1 ? p[2] : Math.floor(p[2]), step === 1 ? 1 : 0), iconSize:null})}).addTo(l.group); }
-  liveStatus(l, (step === 1 ? 'Every mile' : 'Every ' + step + ' miles. Zoom in for more.') + (l.rawCount > l.pts.length ? ' Duplicate records in the service are skipped.' : '')); }
 async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZoom();
   try {
-    if (l.type === 'miles'){ if (!l.pts){ liveStatus(l, 'Loading…'); await milePts(); if (my !== l.req) return; }
-      mileDraw(l); return; }
     if (l.bbox){ if (z < l.minZoom){ l.group.clearLayers(); liveStatus(l, 'Zoom in to see these'); return; }
       liveStatus(l, 'Loading…'); const b = map.getBounds().pad(.15), px = (b.getEast() - b.getWest()) / (map.getSize().x * 1.3); await arcMeta(l);
       const f = await arcQuery(l.url, {geometry:[b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].join(','), geometryType:'esriGeometryEnvelope', inSR:4326, spatialRel:'esriSpatialRelIntersects', outFields:l.fields || '*', maxAllowableOffset:px.toFixed(7), geometryPrecision:6}, 3);
@@ -884,12 +879,12 @@ function trailDist(la, lo){ const k = Math.cos(la * Math.PI / 180), lines = trai
   const walk = arr => { if (!arr.length) return; if (Array.isArray(arr[0])){ arr.forEach(walk); return; } for (let i = 1; i < arr.length; i++){ if (Math.abs(arr[i].lat - la) > .3 && Math.abs(arr[i-1].lat - la) > .3) continue; const d = seg(arr[i-1], arr[i]); if (d < best) best = d; } };
   walk(lines); return best; }
 let MILEP = null;
-const MILESRC = {url:SVC + 'MilePointsFromSpringer/FeatureServer/0', on:false};
-function milePts(){ const l = MILESRC; if (!MILEP) MILEP = arcQuery(l.url, {outFields:'MileNumber', geometryPrecision:5}).then(f => {
+function milePts(){ if (!MILEP) MILEP = arcQuery(SVC + 'MilePointsFromSpringer/FeatureServer/0', {outFields:'MileNumber', geometryPrecision:5}).then(f => {
     const raw = f.filter(x => x.geometry && x.geometry.type === 'Point' && x.properties && x.properties.MileNumber != null && isFinite(+x.properties.MileNumber)).map(x => [x.geometry.coordinates[1], x.geometry.coordinates[0], Math.round(+x.properties.MileNumber * 10) / 10]);
     const by = new Map(); raw.forEach(p => { const g = by.get(p[2]); if (g) g.push(p); else by.set(p[2], [p]); });
-    l.rawCount = raw.length; l.pts = [...by.values()].map(g => g.length === 1 ? g[0] : g.map(p => [trailDist(p[0], p[1]), p]).sort((a,b) => a[0] - b[0])[0][1]).sort((a,b) => a[2] - b[2]);
-    if (!l.pts.length) throw new Error('no markers'); return l.pts; }).catch(e => { MILEP = null; throw e; });
+    /* a mile with several markers keeps the one nearest the trail line */
+    const pts = [...by.values()].map(g => g.length === 1 ? g[0] : g.map(p => [trailDist(p[0], p[1]), p]).sort((a,b) => a[0] - b[0])[0][1]).sort((a,b) => a[2] - b[2]);
+    if (!pts.length) throw new Error('no markers'); return pts; }).catch(e => { MILEP = null; throw e; });
   return MILEP; }
 /* Give every cell the MileNumber of its nearest official marker, then move the region and club bands and the graph onto the same scale. */
 function alignMiles(pts){ if (pts.length < 1500) return; const old = D.levels.wheel.mi.slice();
@@ -904,10 +899,10 @@ function alignMiles(pts){ if (pts.length < 1500) return; const old = D.levels.wh
   D.regions.forEach((r, i) => { r[2] = i === D.regions.length - 1 ? D.totalMi : mapMi(r[2]); r[1] = i === 0 ? 0 : D.regions[i - 1][2]; });
   D.clubs.forEach(c => { c[1] = mapMi(c[1]); c[2] = mapMi(c[2]); });
   NB = Math.ceil(D.totalMi / BIN); S.milesOfficial = true;
-  side(); strip(); pinSync(); if ((S.cell != null || S.box) && $('#profile').classList.contains('open')) profile(); }
+  side(); strip(); pinSync(); refreshProfile(); }
 /* Mile markers are switched off until the source layer is cleaned up. Set this to true to bring back the marker-based mileage. */
 const USE_MILE_MARKERS = false;
-if (USE_MILE_MARKERS) milePts().then(pts => { alignMiles(pts); }).catch(() => {});
+if (USE_MILE_MARKERS) milePts().then(alignMiles).catch(() => {});
 /* the trail line itself: refreshed from the official centerline service, keeping the built-in line if that fails */
 arcQuery(SVC + 'ANST_Centerline/FeatureServer/0', {outFields:'OBJECTID', maxAllowableOffset:'0.0003', geometryPrecision:5}).then(f => { const lines = [];
   f.forEach(x => { const g = x.geometry; if (!g) return; (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach(c => { if (c.length > 1) lines.push(c.map(p => [p[1], p[0]])); }); });
@@ -953,7 +948,7 @@ function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3><button type="b
   const fb = $('#fadebox'); if (fb) fb.onchange = () => { S.fade = fb.checked; restyle(); }; }
 
 /* ---------- side panel ---------- */
-function cellLabel(lv, c){ return `Near mile ${fmt(D.levels[lv].mi[c], 0)}`; }
+const cellItem = (lv, c, extra) => `<li><button type="button" data-cell="${c}" data-lv="${lv}"><span class="where">Near mile ${fmt(D.levels[lv].mi[c], 0)}</span>${extra || ''}<span class="club">${esc(cat('club', D.levels[lv].club[c]) || '')}</span></button></li>`;
 function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
   let h = '<nav class="qs" aria-label="Questions">' + Q.map(x => `<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${x === q && !S.m.find}">${esc(x.title)}</button>`).join('') + '</nav>';
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
@@ -970,7 +965,7 @@ function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows =
   if (!rows.length) return h + '<p class="statline">Nothing to show for this measure here. Try a larger cell size or another section.</p>';
   if (m.yn){ rows.sort((a,b) => L_.mi[a[0]] - L_.mi[b[0]]);
     h += `<div class="rank"><h3>Cells with ${esc(m.yn)}<span class="cnt">${rows.length > 400 ? 'first 400, ' : ''}south to north</span></h3><ol class="scroll" tabindex="0" aria-label="Cells with ${esc(m.yn)}, scrollable list">`;
-    rows.slice(0, 400).forEach(r => { h += `<li><button type="button" data-cell="${r[0]}" data-lv="${lv}"><span class="where">${cellLabel(lv, r[0])}</span><span class="club">${esc(cat('club', L_.club[r[0]]) || '')}</span></button></li>`; });
+    rows.slice(0, 400).forEach(r => { h += cellItem(lv, r[0]); });
     return h + '</ol></div>'; }
   if (m.kind === 'cat'){ const cnt = new Map(); rows.forEach(r => cnt.set(r[1], (cnt.get(r[1]) || 0) + 1));
     h += '<div class="rank"><h3>Share of cells</h3>';
@@ -981,29 +976,27 @@ function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows =
   rows.sort((a,b) => b[1] - a[1]);
   const nTop = Math.min(50, rows.length);
   h += `<div class="rank"><h3>Highest cells${where}<span class="cnt">${rows.length > nTop ? 'top ' + nTop : 'all ' + nTop}</span></h3><ol class="scroll" tabindex="0" aria-label="Highest cells, scrollable list">`;
-  rows.slice(0, 50).forEach(r => { h += `<li><button type="button" data-cell="${r[0]}" data-lv="${lv}"><span class="where">${cellLabel(lv, r[0])}</span><span class="val">${m.unit === '%' ? fmt(r[1], m.d) + '%' : fmt(r[1], m.d)}</span><span class="club">${esc(cat('club', L_.club[r[0]]) || '')}</span></button></li>`; });
+  rows.slice(0, 50).forEach(r => { h += cellItem(lv, r[0], `<span class="val">${fmt(r[1], m.d)}${m.unit === '%' ? '%' : ''}</span>`); });
   return h + '</ol></div>'; }
 $('#side').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.blk){ S.side[b.dataset.blk] = !S.side[b.dataset.blk]; side(); return; }
   if (b.dataset.selall && S.m.find){ const lv = dispLevel(), e = S.m.find, L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c) && e.cells[lv].has(c)) cells.push(c);
     if (cells.length) selectMany(lv, cells, null, e.common || e.sci); return; }
   if (b.dataset.clearfind){ clearFind(); return; }
-  if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q || S.m.find){ S.q = q; S.m = q.m[0]; S.secOpen = {}; draw(); strip(); writeHash(); } }
-  else if (b.dataset.m){ const m0 = S.m; S.m = S.q.m.find(x => x.id === b.dataset.m); if (S.m.th !== m0.th) S.secOpen = {}; draw(); strip(); writeHash(); }
+  if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q || S.m.find){ S.q = q; S.m = q.m[0]; S.secOpen = {}; redraw(); } }
+  else if (b.dataset.m){ const m0 = S.m; S.m = S.q.m.find(x => x.id === b.dataset.m); if (S.m.th !== m0.th) S.secOpen = {}; redraw(); }
   else if (b.dataset.cell) select(b.dataset.lv, +b.dataset.cell, true); });
-secSel.addEventListener('change', () => { S.sec = secSel.value; fitSection(); draw(); strip(); writeHash(); });
+secSel.addEventListener('change', () => { S.sec = secSel.value; fitSection(); redraw(); });
 
 /* ---------- species search ---------- */
 let FIDX = null;
-function findIndex(){ if (FIDX) return FIDX; const M = new Map(), P = new Map();
-  const parse = i => { let r = P.get(i); if (r) return r; const s = D.spp[i], m = s.match(/^(.*?)\s*\(([^)]*)\)\s*(\[.*\])?$/);
-    const sci = m ? m[2] : s.replace(/\s*\[.*\]$/, ''), common = m ? m[1] : (PEST_NAMES[sci] || ''); r = [sci.toLowerCase(), common, sci]; P.set(i, r); return r; };
+function findIndex(){ if (FIDX) return FIDX; const M = new Map();
   const add = (key, common, sci, kind, th, complete, lv, c) => { let e = M.get(key);
     if (!e){ e = {key, common, sci, kind, th, complete, lc:common.toLowerCase(), ls:sci.toLowerCase(), cells:{hex:new Set(), cog:new Set(), wheel:new Set()}}; M.set(key, e); }
     else if (complete && !e.complete){ e.complete = true; e.kind = kind; e.th = th; }
     e.cells[lv].add(c); };
   const lists = (th, lv, fields, kind, complete) => { const t = D.themes[th] && D.themes[th][lv]; if (!t) return;
-    fields.forEach(f => { const col = t.f[f]; if (!col) return; for (let r = 0; r < col.length; r++){ const a = col[r]; for (let k = 0; k < a.length; k++){ const p = parse(a[k]); add(p[0], p[1], p[2], kind, th, complete, lv, t.ix[r]); } } }); };
+    fields.forEach(f => { const col = t.f[f]; if (!col) return; for (let r = 0; r < col.length; r++){ const a = col[r]; for (let k = 0; k < a.length; k++){ const p = sppName(a[k]); add(p.sci.toLowerCase(), p.common, p.sci, kind, th, complete, lv, t.ix[r]); } } }); };
   for (const lv of ['hex','cog','wheel']){
     const eb = D.themes.ebird && D.themes.ebird[lv]; if (eb) lists('ebird', lv, Object.keys(eb.f).filter(k => k.endsWith('_LIST')), 'Bird', true);
     lists('inat', lv, ['INVASIVE_LIST','EDRR_LIST'], 'Invasive plant', true);
@@ -1012,18 +1005,18 @@ function findIndex(){ if (FIDX) return FIDX; const M = new Map(), P = new Map();
     const vg = D.themes.veg && D.themes.veg[lv]; if (vg && vg.f.COMP) for (let r = 0; r < vg.f.COMP.length; r++){ const a = vg.f.COMP[r]; for (let k = 0; k < a.length; k += 2){ const nm = D.cats.DOM_TYPE[a[k]]; add('veg:' + nm.toLowerCase(), nm, '', 'Vegetation type', 'veg', true, lv, vg.ix[r]); } } }
   return FIDX = M; }
 function findMetric(e){ return {id:'find', find:e, q:S.q, th:e.th, kind:'cat', f:'FIND', label:e.common || e.sci, get:(lv, c) => e.cells[lv].has(c) ? 0 : null}; }
-function setFind(e, fly){ S.m = findMetric(e); S.secOpen = {}; $('#find').value = S.m.label; closeFind(); draw(); strip(); writeHash();
+function setFind(e, fly){ S.m = findMetric(e); S.secOpen = {}; $('#find').value = S.m.label; closeFind(); redraw();
   if (fly){ const L_ = D.levels.wheel, pts = []; e.cells.wheel.forEach(c => { if (inSec('wheel', c)) pts.push(L_.c[c]); }); if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(.12), {maxZoom:9}); } }
-function clearFind(){ if (!S.m.find) return; S.m = S.q.m[0]; $('#find').value = ''; draw(); strip(); writeHash(); }
+function clearFind(){ if (!S.m.find) return; S.m = S.q.m[0]; $('#find').value = ''; redraw(); }
 function findSummary(lv){ const e = S.m.find, L_ = D.levels[lv], rows = []; let total = 0;
   for (let c = 0; c < L_.id.length; c++){ if (!inSec(lv, c)) continue; total++; if (e.cells[lv].has(c)) rows.push(c); }
   rows.sort((a,b) => L_.mi[a] - L_.mi[b]); const where = S.sec === 'all' ? '' : ' in ' + esc(secName());
   const bar = `<div class="findbar"><div><b>${esc(e.common || e.sci)}</b>${e.common && e.sci ? `<em>${esc(e.sci)}</em>` : ''}<span>${e.kind}${e.complete ? '' : ', partial results'}</span></div><button type="button" data-clearfind="1">Clear</button></div>`;
   let h = `<p class="statline">Recorded in ${fmt(rows.length,0)} of ${fmt(total,0)} ${LV[lv].name} cells${where}.${e.complete ? '' : ' Only cells where it is among the ten most-recorded iNaturalist species are shown.'}</p>`;
   if (!rows.length) return [bar, h + '<p class="statline">None here at this cell size. Try another section or a larger cell size.</p>'];
-  h += `<button type="button" class="selall" data-selall="1">Select all ${fmt(rows.length,0)} ${rows.length === 1 ? 'cell' : 'cells'}</button>`;
+  h += `<button type="button" class="selall" data-selall="1">Select all ${nCells(rows.length)}</button>`;
   h += `<div class="rank"><h3>Cells where recorded<span class="cnt">south to north</span></h3><ol class="scroll" tabindex="0" aria-label="Cells where recorded, scrollable list">`;
-  rows.slice(0, 400).forEach(c => { h += `<li><button type="button" data-cell="${c}" data-lv="${lv}"><span class="where">${cellLabel(lv, c)}</span><span class="club">${esc(cat('club', L_.club[c]) || '')}</span></button></li>`; });
+  rows.slice(0, 400).forEach(c => { h += cellItem(lv, c); });
   return [bar, h + '</ol></div>']; }
 const fin = $('#find'), fl = $('#findlist'); let fsel = -1, fres = [];
 function closeFind(){ fl.hidden = true; fin.setAttribute('aria-expanded', 'false'); fin.removeAttribute('aria-activedescendant'); fsel = -1; }
@@ -1032,7 +1025,7 @@ function listFind(){ const q = fin.value.trim().toLowerCase(); if (q.length < 2)
     if (c.startsWith(q)) sc = 0; else if (c.includes(' ' + q) || c.includes('-' + q)) sc = 1; else if (c.includes(q)) sc = 2; else if (s.startsWith(q)) sc = 3; else if (s.includes(q)) sc = 4;
     if (sc >= 0) out.push([sc, -e.cells.wheel.size, e]); });
   out.sort((a,b) => a[0] - b[0] || a[1] - b[1]); fres = out.slice(0, 12).map(x => x[2]);
-  fl.innerHTML = fres.length ? fres.map((e,i) => `<li role="option" id="fo${i}" data-i="${i}" aria-selected="${i === fsel}"><span>${esc(e.common || e.sci)}${e.common && e.sci ? ` <em>${esc(e.sci)}</em>` : ''}</span><span class="n">${e.cells.wheel.size} ${e.cells.wheel.size === 1 ? 'cell' : 'cells'}</span><span class="k">${e.kind}${e.complete ? '' : ', partial'}</span></li>`).join('')
+  fl.innerHTML = fres.length ? fres.map((e,i) => `<li role="option" id="fo${i}" data-i="${i}" aria-selected="${i === fsel}"><span>${esc(e.common || e.sci)}${e.common && e.sci ? ` <em>${esc(e.sci)}</em>` : ''}</span><span class="n">${nCells(e.cells.wheel.size)}</span><span class="k">${e.kind}${e.complete ? '' : ', partial'}</span></li>`).join('')
     : '<li class="none">No match. Rare species are not searchable, and most iNaturalist species only where they are among a cell\'s ten most recorded.</li>';
   fl.hidden = false; fin.setAttribute('aria-expanded', 'true'); if (fsel >= 0) fin.setAttribute('aria-activedescendant', 'fo' + fsel); }
 fin.addEventListener('input', () => { fsel = -1; if (!fin.value && S.m.find) clearFind(); listFind(); });
@@ -1048,10 +1041,13 @@ fl.addEventListener('mousedown', e => { const li = e.target.closest('li[data-i]'
 const wiki = name => 'https://en.wikipedia.org/wiki/Special:Search?go=Go&search=' + encodeURIComponent(name);
 const PEST_NAMES = {'Adelges tsugae':'Hemlock woolly adelgid', 'Agrilus planipennis':'Emerald ash borer', 'Fiorinia externa':'Elongate hemlock scale',
   'Litylenchus crenatae':'Beech leaf disease nematode', 'Lycorma delicatula':'Spotted lanternfly', 'Lymantria dispar':'Spongy moth'};
-function sppItem(i, edrr){ const s = D.spp[i], m = s.match(/^(.*?)\s*\(([^)]*)\)\s*(\[.*\])?$/);
-  const sci = m ? m[2] : s.replace(/\s*\[.*\]$/, ''), cn = m ? m[1] : PEST_NAMES[sci], tx = cn ? `${esc(cn)} <em>${esc(sci)}</em>` : `<em>${esc(sci)}</em>`;
+/* D.spp entries read "Common name (Scientific name) [lists]"; forest pests are often a bare scientific name */
+const SPPN = [];
+function sppName(i){ if (SPPN[i]) return SPPN[i]; const s = D.spp[i], m = s.match(/^(.*?)\s*\(([^)]*)\)\s*(\[.*\])?$/), sci = m ? m[2] : s.replace(/\s*\[.*\]$/, '');
+  return SPPN[i] = {common: m ? m[1] : (PEST_NAMES[sci] || ''), sci, tag: m && m[3] ? m[3].slice(1, -1) : ''}; }
+function sppItem(i, edrr){ const {common, sci, tag} = sppName(i), tx = common ? `${esc(common)} <em>${esc(sci)}</em>` : `<em>${esc(sci)}</em>`;
   let h = `<a href="${wiki(sci)}" target="_blank" rel="noopener" title="Look up ${esc(sci)} on Wikipedia">${tx}</a>`;
-  if (m && m[3]) h += `<span class="tag">${esc(m[3].slice(1,-1))}</span>`;
+  if (tag) h += `<span class="tag">${esc(tag)}</span>`;
   if (edrr) h += '<span class="tag edrr">priority invasive</span>';
   return `<li>${h}</li>`; }
 function parentOf(lv, c){ const id = D.levels[lv].id[c], up = lv === 'hex' ? 'cog' : lv === 'cog' ? 'wheel' : null; if (!up) return null;
@@ -1082,10 +1078,18 @@ $('#phead').addEventListener('click', e => { if (isPhone() && !e.target.closest(
 window.addEventListener('resize', () => { placeProfile(); if (!isPhone()) $('#profile').classList.remove('peek', 'full'); else if (S.cell != null) sheet(S.sheetFull ? 'full' : 'peek'); mapGestures(); });
 $('#pclose').onclick = clearSel;
 $('#clearbtn').onclick = clearSel;
+const pctLt1 = x => x < 1 ? '<1%' : fmt(x, 0) + '%';
+/* the first six rows, with the rest folded under a "N more" summary */
+const topSix = (items, row, cls, more) => `<div class="${cls}">${items.slice(0, 6).map(row).join('')}</div>` +
+  (items.length > 6 ? `<details><summary>${items.length - 6} ${more}</summary><div class="${cls}">${items.slice(6).map(row).join('')}</div></details>` : '');
+const vegRow = x => `<div><i style="background:${CATMAP.DOM_TYPE.get(x[0])[1]}"></i><span>${esc(x[0])}</span><span>${pctLt1(x[1])}</span></div>`;
+/* NLCD level 2 bar and key, from [name, percent, color] for every class */
+function coverHTML(shares){ const l = shares.filter(x => x[1] >= 1).sort((a,b) => b[1] - a[1]), un = 100 - l.reduce((s,x) => s + x[1], 0); if (un >= 1) l.push(['Unassigned', un, '#ECEFEA']);
+  return '<p style="margin-top:10px">NLCD level 2 land cover:</p><div class="stack">' + l.map(x => `<span style="width:${x[1]}%;background:${x[2]}"></span>`).join('') + '</div><div class="keys">' +
+    l.map(x => `<div><i style="background:${x[2]}"></i><span>${x[0]}</span><span>${fmt(x[1],0)}%</span></div>`).join('') + '</div>'; }
 function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c);
   let h = `<h2>${LV[lv].name} cell near mile ${fmt(L_.mi[c],0)}</h2><p>${esc(cat('club', L_.club[c]) || '')}, ${esc(regionOf(L_.mi[c]))} region</p><p class="id">Grid ID ${esc(L_.id[c])}</p>`;
-  { let pv = S.m.get(lv, c); if (pv == null && par && !(D.themes[S.m.th] || {})[lv]) pv = S.m.get(par[0], par[1]);
-    h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(show(S.m, pv))}</b></p>`; }
+  h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(show(S.m, cellValue(lv, c)))}</b></p>`;
   h += `<div class="pnav">${par ? `<button type="button" id="pup">Step out to the ${LV[par[0]].name} cell</button>` : ''}${EXPORTBTNS}</div>`;
   $('#phead').innerHTML = h; if (par) $('#pup').onclick = () => select(par[0], par[1], true); exportWire();
   const v = (th, f) => val(th, f, lv, c); let b = '';
@@ -1094,27 +1098,21 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
   let landSec = '';
   if (D.themes.lands){ landSec = `<div class="sec" style="--hue:${HUE.lands}"><h3>Land administrators</h3>`;
     if (has('lands', lv, c)){ const raw = v('lands','MGRS') || [], mg = []; for (let k = 0; k < raw.length; k += 2) mg.push([D.cats.MGR[raw[k]], raw[k+1]]);
-      const n = mg.length, pl = v('lands','PCT_LAND'), pc = x => x < 1 ? '<1%' : fmt(x, 0) + '%';
-      const row = x => `<div><span>${esc(x[0])}</span><span>${pc(x[1])}</span></div>`;
-      landSec += `<p>${n} ${n === 1 ? 'administrator has' : 'administrators have'} mapped land in this cell. Each share is of the mapped land, not of the whole cell:</p><div class="keys nosw">${mg.slice(0, 6).map(row).join('')}</div>`;
-      if (n > 6) landSec += `<details><summary>${n - 6} more</summary><div class="keys nosw">${mg.slice(6).map(row).join('')}</div></details>`;
-      if (pl != null) landSec += `<p style="margin-top:8px">Mapped land covers about ${pc(pl)} of this cell.</p>`;
+      const n = mg.length, pl = v('lands','PCT_LAND');
+      landSec += `<p>${n} ${n === 1 ? 'administrator has' : 'administrators have'} mapped land in this cell. Each share is of the mapped land, not of the whole cell:</p>` + topSix(mg, x => `<div><span>${esc(x[0])}</span><span>${pctLt1(x[1])}</span></div>`, 'keys nosw', 'more');
+      if (pl != null) landSec += `<p style="margin-top:8px">Mapped land covers about ${pctLt1(pl)} of this cell.</p>`;
       landSec += '<p class="none" style="font-size:12.5px;margin-top:8px">Generalized to the cell from tract records. Not a boundary determination, and not a record of who administers any given spot.</p>';
     } else landSec += '<p class="none">No land records summarized for this cell.</p>';
     landSec += '</div>'; }
 
   // vegetation
   b += `<div class="sec" style="--hue:${HUE.veg}"><h3>Vegetation</h3>`;
-  if (has('veg', lv, c)){ const l1 = L2.map(x => [x[1], v('veg', x[0]) || 0, x[2]]).filter(x => x[1] >= 1).sort((a,b) => b[1] - a[1]); const un = 100 - l1.reduce((s,x) => s + x[1], 0); if (un >= 1) l1.push(['Unassigned', un, '#ECEFEA']);
+  if (has('veg', lv, c)){
     b += `<div class="facts"><div><b>${v('veg','VEG_AREA') < 1 ? '<1' : fmt(v('veg','VEG_AREA'),0)}</b>acres mapped</div><div><b>${fmt(v('veg','PCT_MAPPED'), v('veg','PCT_MAPPED') < 10 ? 1 : 0)}%</b>of the cell</div><div><b>${fmt(v('veg','N_TYPES'),0)}</b>vegetation types</div></div>`;
 
     const cp = v('veg','COMP') || [], ty = []; for (let k = 0; k < cp.length; k += 2) ty.push([D.cats.DOM_TYPE[cp[k]], cp[k+1]]);
-    const row = x => `<div><i style="background:${CATMAP.DOM_TYPE.get(x[0])[1]}"></i><span>${esc(x[0])}</span><span>${x[1] < 1 ? '<1' : fmt(x[1],0)}%</span></div>`;
-    b += '<p>Vegetation types, by share of the mapped acres:</p><div class="keys">' + ty.slice(0, 6).map(row).join('') + '</div>';
-    if (ty.length > 6) b += `<details><summary>${ty.length - 6} more types</summary><div class="keys">${ty.slice(6).map(row).join('')}</div></details>`;
-    b += '<p style="margin-top:10px">NLCD level 2 land cover:</p>';
-    b += '<div class="stack">' + l1.map(x => `<span style="width:${x[1]}%;background:${x[2]}"></span>`).join('') + '</div><div class="keys">' +
-      l1.map(x => `<div><i style="background:${x[2]}"></i><span>${x[0]}</span><span>${fmt(x[1],0)}%</span></div>`).join('') + '</div>';
+    b += '<p>Vegetation types, by share of the mapped acres:</p>' + topSix(ty, vegRow, 'keys', 'more types');
+    b += coverHTML(L2.map(x => [x[1], v('veg', x[0]) || 0, x[2]]));
   } else b += '<p class="none">The vegetation map does not reach this cell.</p>';
   b += '</div>';
 
@@ -1123,7 +1121,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
   if (has('inat', lv, c)){ const inv = v('inat','INVASIVE_LIST') || [], ed = new Set(v('inat','EDRR_LIST') || []), pest = v('inat','PEST_LIST') || [], top = v('inat','TOP10_SPECIES') || [];
     b += `<div class="facts"><div><b>${fmt(v('inat','N_OBS'),0)}</b>records</div><div><b>${fmt(v('inat','N_SPP'),0)}</b>species</div><div><b>${fmt(v('inat','N_OBSERVERS'),0)}</b>observers</div></div>`;
     b += `<p><span class="badge">${esc(cat('DATA_STATUS', v('inat','DATA_STATUS')) || '')}</span> Latest record ${esc(v('inat','LAST_OBS') || 'unknown')}</p>`;
-    b += inv.length ? `<p style="margin-top:8px">${inv.length} invasive plant ${inv.length === 1 ? 'species' : 'species'} reported:</p><ul class="spp">${inv.map(i => sppItem(i, ed.has(i))).join('')}</ul>` : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
+    b += inv.length ? `<p style="margin-top:8px">${inv.length} invasive plant species reported:</p><ul class="spp">${inv.map(i => sppItem(i, ed.has(i))).join('')}</ul>` : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
     if (pest.length) b += `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(i => sppItem(i)).join('')}</ul>`;
     if (top.length){ const tn = v('inat','TOP10_COUNTS') || []; b += `<details><summary>Most recorded species</summary><ul class="spp">${top.map((i, k) => tn[k] != null ? sppItem(i).replace('</li>', `<span class="tag">${fmt(tn[k], 0)} ${tn[k] === 1 ? 'record' : 'records'}</span></li>`) : sppItem(i)).join('')}</ul></details>`; }
   } else b += '<p class="none">No iNaturalist records in this cell yet.</p>';
@@ -1131,8 +1129,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
 
   // birds
   b += `<div class="sec" style="--hue:${HUE.ebird}"><h3>Birds</h3>`;
-  if (has('ebird', lv, c)){ const G = [['FOREST_INT_SPP','Forest interior','FOREST_INT_LIST'],['FOREST_GEN_SPP','Forest generalist','FOREST_GEN_LIST'],['CONIFER_SPP','High-elev. conifer','CONIFER_LIST'],['SHRUB_SPP','Shrubland','SHRUB_LIST'],['GRASS_SPP','Grassland','GRASS_LIST'],['EDGE_SPP','Edge','EDGE_LIST'],['WETLAND_SPP','Wetland','WETLAND_LIST'],['RIPARIAN_SPP','Riparian','RIPARIAN_LIST'],['WATERBIRD_SPP','Waterbird','WATERBIRD_LIST'],['SHORE_SPP','Shorebird','SHORE_LIST'],['SEABIRD_SPP','Seabird','SEABIRD_LIST']]
-      .map(g => [g[1], v('ebird', g[0]) || 0, g[2] ? (v('ebird', g[2]) || []) : null, g[0]]); const mx = Math.max(1, ...G.map(g => g[1])); const soc = v('ebird','SOC_LIST') || [];
+  if (has('ebird', lv, c)){ const G = BIRD_GROUPS.map(g => [g.label, v('ebird', g.spp) || 0, v('ebird', g.list) || [], g.spp]); const mx = Math.max(1, ...G.map(g => g[1])); const soc = v('ebird','SOC_LIST') || [];
     b += `<div class="facts"><div><b>${fmt(v('ebird','N_SPP'),0)}</b>species</div><div><b>${fmt(v('ebird','N_CHECKLISTS'),0)}</b>checklists</div><div><b>${fmt(v('ebird','N_BCC_SPP'),0)}</b>of conservation concern</div></div>`;
     b += `<p><span class="badge">${esc(cat('DATA_STATUS', v('ebird','DATA_STATUS')) || '')}</span> Latest checklist ${esc(v('ebird','LAST_OBS') || 'unknown')}</p>`;
     b += '<p style="margin-top:8px">Species by habitat group. Open a group marked with an arrow to see its species.</p>' + G.filter(g => g[1] > 0).map(g => { const bar = `<div>${g[0]}</div><div><span style="width:${100*g[1]/mx}%"></span></div><div>${g[1]}</div>`;
@@ -1165,25 +1162,24 @@ function finishProfile(html){ $('#pbody').innerHTML = html;
 /* ---------- export of the selection shown in the popup ---------- */
 const EXPORTBTNS = '<button type="button" class="exp" id="pexcsv" title="Download everything in this panel as a CSV file">Export CSV</button><button type="button" class="exp" id="pexxls" title="Download everything in this panel as an Excel workbook">Export Excel</button><p class="pexmsg" id="pexmsg" role="status"></p>';
 function exportWire(){ const a = $('#pexcsv'), b = $('#pexxls'); if (a) a.onclick = () => exportRun('csv'); if (b) b.onclick = () => exportRun('xlsx'); }
-function sppParts(i){ const s = D.spp[i], m = s.match(/^(.*?)\s*\(([^)]*)\)\s*(\[.*\])?$/), sci = m ? m[2] : s.replace(/\s*\[.*\]$/, ''), tg = (s.match(/\[(.*)\]$/) || [])[1] || '';
-  return [m ? m[1] : (PEST_NAMES[sci] || ''), sci, tg]; }
 function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S.box.cells : [S.cell], L_ = D.levels[lv];
-  const v = (th, f, c) => val(th, f, lv, c), ct = (name, x) => x == null ? '' : D.cats[name][x], nz = x => x == null ? '' : x;
-  const G = [['Forest interior','FOREST_INT_LIST'],['Forest generalist','FOREST_GEN_LIST'],['High-elevation conifer','CONIFER_LIST'],['Shrubland','SHRUB_LIST'],['Grassland','GRASS_LIST'],['Edge','EDGE_LIST'],['Wetland','WETLAND_LIST'],['Riparian','RIPARIAN_LIST'],['Waterbird','WATERBIRD_LIST'],['Shorebird','SHORE_LIST'],['Seabird','SEABIRD_LIST']];
+  const v = (th, f, c) => val(th, f, lv, c);
   const out = {cells:[], species:[], veg:[], land:[], about:[]};
   cells.slice().sort((a,b) => L_.mi[a] - L_.mi[b]).forEach(c => { const id = L_.id[c], base = {grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c], trail_club:cat('club', L_.club[c]) || '', region:regionOf(L_.mi[c])};
     let plv = lv, pc = c; if (!D.themes.nrpz[lv]){ const p = parentOf(lv, c); if (p){ plv = p[0]; pc = p[1]; } }
     const tier = D.themes.nrpz[plv] ? val('nrpz','review_tie',plv,pc) : null, te = tier == null ? null : CATCOL.review_tie.find(x => x[0] === D.cats.review_tie[tier]);
+    /* n: a value, blank when missing. k: a category field, written as its name */
+    const n = (th, f) => { const x = v(th, f, c); return x == null ? '' : x; }, k = (th, f) => { const x = v(th, f, c); return x == null ? '' : D.cats[f][x]; };
     out.cells.push(Object.assign({}, base, {
-      veg_acres_mapped:nz(v('veg','VEG_AREA',c)), veg_pct_of_cell_mapped:nz(v('veg','PCT_MAPPED',c)), veg_types:nz(v('veg','N_TYPES',c)), veg_main_type:ct('DOM_TYPE', v('veg','DOM_TYPE',c)), nlcd_main_cover:ct('L2_DOM', v('veg','L2_DOM',c)),
-      inat_records:nz(v('inat','N_OBS',c)), inat_species:nz(v('inat','N_SPP',c)), inat_observers:nz(v('inat','N_OBSERVERS',c)), inat_invasive_species:nz(v('inat','N_INV_SPP',c)), inat_priority_invasives:nz(v('inat','N_EDRR_SPP',c)), inat_forest_pest_records:nz(v('inat','N_PEST_OBS',c)), inat_data_status:ct('DATA_STATUS', v('inat','DATA_STATUS',c)), inat_latest_record:nz(v('inat','LAST_OBS',c)),
-      ebird_checklists:nz(v('ebird','N_CHECKLISTS',c)), ebird_records:nz(v('ebird','N_RECORDS',c)), ebird_species:nz(v('ebird','N_SPP',c)), ebird_observers:nz(v('ebird','N_OBSERVERS',c)), ebird_birds_of_conservation_concern:nz(v('ebird','N_BCC_SPP',c)), ebird_data_status:ct('DATA_STATUS', v('ebird','DATA_STATUS',c)), ebird_latest_checklist:nz(v('ebird','LAST_OBS',c)),
+      veg_acres_mapped:n('veg','VEG_AREA'), veg_pct_of_cell_mapped:n('veg','PCT_MAPPED'), veg_types:n('veg','N_TYPES'), veg_main_type:k('veg','DOM_TYPE'), nlcd_main_cover:k('veg','L2_DOM'),
+      inat_records:n('inat','N_OBS'), inat_species:n('inat','N_SPP'), inat_observers:n('inat','N_OBSERVERS'), inat_invasive_species:n('inat','N_INV_SPP'), inat_priority_invasives:n('inat','N_EDRR_SPP'), inat_forest_pest_records:n('inat','N_PEST_OBS'), inat_data_status:k('inat','DATA_STATUS'), inat_latest_record:n('inat','LAST_OBS'),
+      ebird_checklists:n('ebird','N_CHECKLISTS'), ebird_records:n('ebird','N_RECORDS'), ebird_species:n('ebird','N_SPP'), ebird_observers:n('ebird','N_OBSERVERS'), ebird_birds_of_conservation_concern:n('ebird','N_BCC_SPP'), ebird_data_status:k('ebird','DATA_STATUS'), ebird_latest_checklist:n('ebird','LAST_OBS'),
       unique_species_rating:te ? (te[2] || te[0]) : '', unique_species_rating_cell_size:te ? LV[plv].name : '',
-      land_administrators:nz(v('lands','N_MGR',c)), land_pct_of_cell_mapped:nz(v('lands','PCT_LAND',c)) }));
-    const sp = (group, detail, list, edset) => (list || []).forEach(i => { const p = sppParts(i); out.species.push({grid_id:id, trail_mile:L_.mi[c], group, habitat_group_or_list:detail, common_name:p[0], scientific_name:p[1], lists:[p[2], edset && edset.has(i) ? 'priority invasive' : ''].filter(Boolean).join('; ')}); });
+      land_administrators:n('lands','N_MGR'), land_pct_of_cell_mapped:n('lands','PCT_LAND') }));
+    const sp = (group, detail, list, edset) => (list || []).forEach(i => { const p = sppName(i); out.species.push({grid_id:id, trail_mile:L_.mi[c], group, habitat_group_or_list:detail, common_name:p.common, scientific_name:p.sci, lists:[p.tag, edset && edset.has(i) ? 'priority invasive' : ''].filter(Boolean).join('; ')}); });
     const ed = new Set(v('inat','EDRR_LIST',c) || []);
     sp('Invasive plant', 'iNaturalist', v('inat','INVASIVE_LIST',c), ed); sp('Forest pest', 'iNaturalist', v('inat','PEST_LIST',c)); sp('iNaturalist most recorded', 'Top ten in the cell', v('inat','TOP10_SPECIES',c));
-    G.forEach(g => sp('Bird', g[0], v('ebird', g[1], c))); sp('Bird on a watch list', 'eBird', v('ebird','SOC_LIST',c));
+    BIRD_GROUPS.forEach(g => sp('Bird', g.full, v('ebird', g.list, c))); sp('Bird on a watch list', 'eBird', v('ebird','SOC_LIST',c));
     const cp = v('veg','COMP',c) || [], ac = v('veg','VEG_AREA',c) || 0; for (let k = 0; k < cp.length; k += 2) out.veg.push({grid_id:id, trail_mile:L_.mi[c], vegetation_type:D.cats.DOM_TYPE[cp[k]], pct_of_mapped_acres:cp[k+1], acres:Math.round(ac * cp[k+1]) / 100});
     const mg = v('lands','MGRS',c) || []; for (let k = 0; k < mg.length; k += 2) out.land.push({grid_id:id, trail_mile:L_.mi[c], administrator:D.cats.MGR[mg[k]], pct_of_mapped_land:mg[k+1]}); });
   const ab = (k, x) => out.about.push({item:k, value:x});
@@ -1209,12 +1205,12 @@ function exportRun(kind){ const msg = $('#pexmsg'), d = exportData(), n = d.cell
     d.species.forEach(r => rows.push([r.grid_id, r.trail_mile, r.group, r.common_name, r.scientific_name, [r.habitat_group_or_list, r.lists].filter(Boolean).join('; '), '', '']));
     d.land.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Land administrator', r.administrator, '', '', r.pct_of_mapped_land, '% of mapped land']));
     download(name + '.csv', new Blob(['\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n')], {type:'text/csv;charset=utf-8'}));
-    say(`CSV downloaded: ${fmt(rows.length - 1, 0)} rows for ${fmt(n, 0)} ${n === 1 ? 'cell' : 'cells'}.`); return; }
+    say(`CSV downloaded: ${fmt(rows.length - 1, 0)} rows for ${nCells(n)}.`); return; }
   say('Preparing the Excel file...');
   loadXLSX().then(() => { const wb = XLSX.utils.book_new(); const add = (nm, arr) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(arr.length ? arr : [{note:'No rows for this selection'}]), nm);
     add('Cells', d.cells); add('Species', d.species); add('Vegetation types', d.veg); add('Land administrators', d.land); add('About', d.about);
     const buf = XLSX.write(wb, {bookType:'xlsx', type:'array'}); download(name + '.xlsx', new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
-    say(`Excel workbook downloaded: ${fmt(n, 0)} ${n === 1 ? 'cell' : 'cells'}, ${fmt(d.species.length, 0)} species rows.`);
+    say(`Excel workbook downloaded: ${nCells(n)}, ${fmt(d.species.length, 0)} species rows.`);
   }).catch(() => say('The Excel export could not load its helper file. Check the internet connection, or use Export CSV, which needs no download.')); }
 
 /* ---------- box selection: combined summary of the selected cells ---------- */
@@ -1228,15 +1224,15 @@ function boxMeasure(m, lv, cells){ const vals = []; cells.forEach(c => { const v
   return `${fmt(sum / vals.length, 1)} ${noun} per cell on average, up to ${fmt(mx, 0)}`.replace('  ', ' '); }
 function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[lv], N = cells.length;
   const mis = cells.map(c => L_.mi[c]), lo = Math.min(...mis), hi = Math.max(...mis);
-  let h = `<h2>${fmt(N,0)} ${N === 1 ? 'cell' : 'cells'} selected</h2><p>${S.box.label ? 'Every cell with ' + esc(S.box.label) + '. ' : ''}${LV[lv].name} cells, trail miles ${fmt(lo,0)} to ${fmt(hi,0)}</p>`;
+  let h = `<h2>${nCells(N)} selected</h2><p>${S.box.label ? 'Every cell with ' + esc(S.box.label) + '. ' : ''}${LV[lv].name} cells, trail miles ${fmt(lo,0)} to ${fmt(hi,0)}</p>`;
   h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p>`;
   h += `<div class="pnav"><button type="button" id="pclearbox">Clear selection</button>${EXPORTBTNS}</div>`;
   $('#phead').innerHTML = h; $('#pclearbox').onclick = clearSel; exportWire();
   const withTh = th => D.themes[th] && D.themes[th][lv] ? cells.filter(c => has(th, lv, c)) : [];
-  const nc = n => `${fmt(n,0)} ${n === 1 ? 'cell' : 'cells'}`, ctag = n => `<span class="tag">${nc(n)}</span>`;
+  const ctag = n => `<span class="tag">${nCells(n)}</span>`;
   const item = (i, n, ed) => sppItem(i, ed).replace('</li>', ctag(n) + '</li>');
   const union = (th, f, cs) => { const m = new Map(); cs.forEach(c => (val(th, f, lv, c) || []).forEach(i => m.set(i, (m.get(i) || 0) + 1))); return [...m].sort((a,b) => b[1] - a[1] || D.spp[a[0]].localeCompare(D.spp[b[0]])); };
-  let b = `<p class="boxm"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p><p class="none" style="font-size:12.5px;margin:6px 0 0">Combined from the ${nc(N)} whose centers fall inside the box. Records and acres are added up. Species and types are counted once, however many cells they occur in.</p>`;
+  let b = `<p class="boxm"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p><p class="none" style="font-size:12.5px;margin:6px 0 0">Combined from the ${nCells(N)} whose centers fall inside the box. Records and acres are added up. Species and types are counted once, however many cells they occur in.</p>`;
 
   // vegetation
   { const cs = withTh('veg'); b += `<div class="sec" style="--hue:${HUE.veg}"><h3>Vegetation</h3>`;
@@ -1244,12 +1240,9 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
       cs.forEach(c => { const a = val('veg','VEG_AREA',lv,c) || 0; ac += a; const cp = val('veg','COMP',lv,c) || []; for (let k = 0; k < cp.length; k += 2) ty.set(cp[k], (ty.get(cp[k]) || 0) + a * cp[k+1] / 100);
         L2.forEach((x, k) => l2[k] += a * (val('veg', x[0], lv, c) || 0) / 100); });
       const tl = [...ty].sort((a,b) => b[1] - a[1]).map(x => [D.cats.DOM_TYPE[x[0]], ac ? 100 * x[1] / ac : 0]);
-      const row = x => `<div><i style="background:${CATMAP.DOM_TYPE.get(x[0])[1]}"></i><span>${esc(x[0])}</span><span>${x[1] < 1 ? '<1' : fmt(x[1],0)}%</span></div>`;
       b += `<div class="facts"><div><b>${fmt(ac,0)}</b>acres mapped</div><div><b>${tl.length}</b>vegetation types</div><div><b>${cs.length}</b>of ${N} cells mapped</div></div>`;
-      b += '<p>Vegetation types, by share of the mapped acres:</p><div class="keys">' + tl.slice(0, 6).map(row).join('') + '</div>';
-      if (tl.length > 6) b += `<details><summary>${tl.length - 6} more types</summary><div class="keys">${tl.slice(6).map(row).join('')}</div></details>`;
-      const l = L2.map((x, k) => [x[1], ac ? 100 * l2[k] / ac : 0, x[2]]).filter(x => x[1] >= 1).sort((a,b) => b[1] - a[1]); const un = 100 - l.reduce((s,x) => s + x[1], 0); if (un >= 1) l.push(['Unassigned', un, '#ECEFEA']);
-      b += '<p style="margin-top:10px">NLCD level 2 land cover:</p><div class="stack">' + l.map(x => `<span style="width:${x[1]}%;background:${x[2]}"></span>`).join('') + '</div><div class="keys">' + l.map(x => `<div><i style="background:${x[2]}"></i><span>${x[0]}</span><span>${fmt(x[1],0)}%</span></div>`).join('') + '</div>';
+      b += '<p>Vegetation types, by share of the mapped acres:</p>' + topSix(tl, vegRow, 'keys', 'more types');
+      b += coverHTML(L2.map((x, k) => [x[1], ac ? 100 * l2[k] / ac : 0, x[2]]));
     } else b += '<p class="none">The vegetation map does not reach the selected cells.</p>';
     b += '</div>'; }
 
@@ -1265,7 +1258,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
         cs.forEach(c => { const ids = val('inat','TOP10_SPECIES',lv,c) || [], ns = hasN ? (val('inat','TOP10_COUNTS',lv,c) || []) : [];
           ids.forEach((i, r) => { const e = sc.get(i) || [0, 0]; e[0] += hasN ? (ns[r] || 0) : Math.max(1, 10 - r); e[1]++; sc.set(i, e); }); });
         const top = [...sc].sort((a,b) => b[1][0] - a[1][0] || b[1][1] - a[1][1] || D.spp[a[0]].localeCompare(D.spp[b[0]])).slice(0, 10);
-        const tag = x => sppItem(x[0]).replace('</li>', `<span class="tag">${hasN ? fmt(x[1][0], 0) + (x[1][0] === 1 ? ' record, ' : ' records, ') : ''}${nc(x[1][1])}</span></li>`);
+        const tag = x => sppItem(x[0]).replace('</li>', `<span class="tag">${hasN ? fmt(x[1][0], 0) + (x[1][0] === 1 ? ' record, ' : ' records, ') : ''}${nCells(x[1][1])}</span></li>`);
         if (top.length) b += `<details class="t10" ${S.t10 === false ? '' : 'open'}><summary>Top ten species across the selection</summary><ol class="spp top10">${top.map(tag).join('')}</ol><p class="none" style="font-size:12.5px;margin-top:6px">` +
           (hasN ? 'Record counts are added across the selected cells. A species is counted only in cells where it is among the ten most recorded, so its true total can be higher.'
                 : 'Ranked from each cell\'s own top ten: first place in a cell counts most, tenth least. The number beside each species is how many selected cells list it. The data holds each cell\'s ranking but not record counts, so this is a combined ranking and not a count of records.') + '</p></details>'; }
@@ -1274,8 +1267,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
 
   // birds
   { const cs = withTh('ebird'); b += `<div class="sec" style="--hue:${HUE.ebird}"><h3>Birds</h3>`;
-    if (cs.length){ const G = [['FOREST_INT_SPP','Forest interior','FOREST_INT_LIST'],['FOREST_GEN_SPP','Forest generalist','FOREST_GEN_LIST'],['CONIFER_SPP','High-elev. conifer','CONIFER_LIST'],['SHRUB_SPP','Shrubland','SHRUB_LIST'],['GRASS_SPP','Grassland','GRASS_LIST'],['EDGE_SPP','Edge','EDGE_LIST'],['WETLAND_SPP','Wetland','WETLAND_LIST'],['RIPARIAN_SPP','Riparian','RIPARIAN_LIST'],['WATERBIRD_SPP','Waterbird','WATERBIRD_LIST'],['SHORE_SPP','Shorebird','SHORE_LIST'],['SEABIRD_SPP','Seabird','SEABIRD_LIST']]
-        .map(g => [g[1], union('ebird', g[2], cs), g[0]]).filter(g => g[1].length);
+    if (cs.length){ const G = BIRD_GROUPS.map(g => [g.label, union('ebird', g.list, cs), g.spp]).filter(g => g[1].length);
       const soc = union('ebird','SOC_LIST',cs), key = i => D.spp[i].replace(/\s*\[.*\]$/, ''), all = new Set(); G.forEach(g => g[1].forEach(x => all.add(key(x[0])))); soc.forEach(x => all.add(key(x[0])));
       const ck = cs.reduce((s,c) => s + (val('ebird','N_CHECKLISTS',lv,c) || 0), 0), mx = Math.max(1, ...G.map(g => g[1].length));
       b += `<div class="facts"><div><b>${all.size}</b>species</div><div><b>${fmt(ck,0)}</b>checklists</div><div><b>${cs.length}</b>of ${N} cells with checklists</div></div>`;
@@ -1288,7 +1280,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
   { b += `<div class="sec" style="--hue:${HUE.nrpz}"><h3>Unique species</h3>`; let plv = lv, pcs = cells, via = false;
     if (!D.themes.nrpz[lv]){ const s = new Set(); cells.forEach(c => { const p = parentOf(lv, c); if (p) s.add(p[1]); }); plv = 'cog'; pcs = [...s]; via = true; }
     const cnt = new Map(); pcs.forEach(c => { const v = val('nrpz','review_tie',plv,c); if (v != null) cnt.set(v, (cnt.get(v) || 0) + 1); });
-    if (cnt.size){ b += '<div class="keys">' + CATCOL.review_tie.map(e => { const k = cnt.get(D.cats.review_tie.indexOf(e[0])) || 0; return k ? `<div><i style="background:${e[1]}"></i><span>${esc(e[2] || e[0])}</span><span>${nc(k)}</span></div>` : ''; }).join('') + '</div>';
+    if (cnt.size){ b += '<div class="keys">' + CATCOL.review_tie.map(e => { const k = cnt.get(D.cats.review_tie.indexOf(e[0])) || 0; return k ? `<div><i style="background:${e[1]}"></i><span>${esc(e[2] || e[0])}</span><span>${nCells(k)}</span></div>` : ''; }).join('') + '</div>';
       if (via) b += '<p class="none">Counted for the 7 sq mi cells that the selected square miles sit in.</p>';
     } else b += '<p class="none">No rare species priority zone in the selected cells.</p>';
     b += '</div>'; }
@@ -1297,10 +1289,9 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
   if (D.themes.lands){ const cs = withTh('lands'); b += `<div class="sec" style="--hue:${HUE.lands}"><h3>Land administrators</h3>`;
     if (cs.length){ const ac = new Map(), nn = new Map(); let tot = 0;
       cs.forEach(c => { const a = val('lands','LAND_AC',lv,c) || 0, raw = val('lands','MGRS',lv,c) || []; tot += a; for (let k = 0; k < raw.length; k += 2){ ac.set(raw[k], (ac.get(raw[k]) || 0) + a * raw[k+1] / 100); nn.set(raw[k], (nn.get(raw[k]) || 0) + 1); } });
-      const mg = [...ac].sort((a,b) => b[1] - a[1]).map(x => [D.cats.MGR[x[0]], tot ? 100 * x[1] / tot : 0, nn.get(x[0])]), pc = x => x < 1 ? '<1%' : fmt(x, 0) + '%';
-      const row = x => `<div><span>${esc(x[0])} <em style="color:var(--muted);font-style:normal;font-size:12px">${nc(x[2])}</em></span><span>${pc(x[1])}</span></div>`;
-      b += `<p>${mg.length} ${mg.length === 1 ? 'administrator has' : 'administrators have'} mapped land in the selected cells. Each share is of the mapped land in the selection, not of the whole area:</p><div class="keys nosw">${mg.slice(0, 6).map(row).join('')}</div>`;
-      if (mg.length > 6) b += `<details><summary>${mg.length - 6} more</summary><div class="keys nosw">${mg.slice(6).map(row).join('')}</div></details>`;
+      const mg = [...ac].sort((a,b) => b[1] - a[1]).map(x => [D.cats.MGR[x[0]], tot ? 100 * x[1] / tot : 0, nn.get(x[0])]);
+      const row = x => `<div><span>${esc(x[0])} <em style="color:var(--muted);font-style:normal;font-size:12px">${nCells(x[2])}</em></span><span>${pctLt1(x[1])}</span></div>`;
+      b += `<p>${mg.length} ${mg.length === 1 ? 'administrator has' : 'administrators have'} mapped land in the selected cells. Each share is of the mapped land in the selection, not of the whole area:</p>` + topSix(mg, row, 'keys nosw', 'more');
       b += '<p class="none" style="font-size:12.5px;margin-top:8px">Generalized to the cells from tract records. Not a boundary determination, and not a record of who administers any given spot.</p>';
     } else b += '<p class="none">No land records summarized for the selected cells.</p>';
     b += '</div>'; }
@@ -1357,9 +1348,8 @@ function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stri
   h += `<line x1="${pl}" x2="${W-pr}" y1="${base+.5}" y2="${base+.5}" stroke="#596267"/>`;
   bins.forEach((b,i) => { if (b.val == null) return; const bx = pl + i*bw;
     const inR = !rng || ((i+1)*BIN > rng[0] && i*BIN < rng[1]);
-    if (m.kind === 'cat') h += `<rect x="${bx}" y="${top+18}" width="${Math.max(1,bw-.6)}" height="${base-top-18}" fill="${colorOf(m, lv, b.val)}" opacity="${inR ? 1 : .3}" stroke="#fff" stroke-opacity=".22" stroke-width=".5"/>`;
-    else { const hh = Math.max(1.5, (base - top) * (mx ? b.val / mx : 0)), col = (m.zero && b.val === 0) ? '#6A7378' : colorOf(m, lv, b.val);
-      h += `<rect x="${bx}" y="${base-hh}" width="${Math.max(1,bw-.6)}" height="${hh}" fill="${col}" opacity="${inR ? 1 : .3}" stroke="#fff" stroke-opacity=".22" stroke-width=".5"/>`; } });
+    const hh = m.kind === 'cat' ? base - top - 18 : Math.max(1.5, (base - top) * (mx ? b.val / mx : 0)), col = m.kind !== 'cat' && m.zero && b.val === 0 ? '#6A7378' : colorOf(m, lv, b.val);
+    h += `<rect x="${bx}" y="${base-hh}" width="${Math.max(1,bw-.6)}" height="${hh}" fill="${col}" opacity="${inR ? 1 : .3}" stroke="#fff" stroke-opacity=".22" stroke-width=".5"/>`; });
   h += `<rect id="vwin" x="0" y="${top-4}" width="0" height="${base-top+6}" fill="none" stroke="#fff" stroke-width="1.5" rx="2"/>`;
   h += `<rect id="shover" x="0" y="${top-4}" width="${bw}" height="${base-top+6}" fill="#fff" opacity="0"/>`;
   D.regions.forEach((r,i) => { const x0 = x(r[1]), x1 = x(r[2]);
@@ -1404,9 +1394,7 @@ $('#aboutclose').onclick = () => $('#about').close();
 $('#about').addEventListener('click', e => { if (e.target === $('#about')) $('#about').close(); });
 
 /* ---------- start ---------- */
-const allPts = D.levels.wheel.c;
-map.fitBounds(L.latLngBounds(allPts).pad(.03)); trailStyle(); mapGestures();
-$('#map').style.background = DARKBASE[S.base] ? '#1D2422' : '#DDE3DC'; mbLogoSync();
+map.fitBounds(L.latLngBounds(D.levels.wheel.c).pad(.03)); baseSync(); mapGestures();
 if (S.sec !== 'all') fitSection();
 draw(); strip();
 if (S.pendingLayers) S.pendingLayers.forEach(id => { const l = LIVE.find(x => x.id === id), cb = document.querySelector('#layerspanel [data-live="' + id + '"]'); if (l && cb){ cb.checked = true; liveToggle(l, true); } });
