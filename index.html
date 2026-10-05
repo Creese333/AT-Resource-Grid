@@ -235,6 +235,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .pnav .exp{border-color:#6F8798;color:#CFE3F5}
 .pexmsg{flex:1 1 100%;font-size:12.5px;color:var(--muted);margin:0 !important}
 .pexmsg:empty{display:none}
+#inatrec .inat-head{display:none}
 .pbody{overflow-y:auto;padding:0 14px 14px}
 .sec{padding:12px 0 12px 11px;border-left:4px solid var(--hue);margin:12px 0 0}
 .sec h3{font-size:17px;margin:0}
@@ -437,7 +438,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>Export CSV and Export Excel, in the details panel, download everything shown for the selected cell or cells. The Excel workbook has separate sheets for cells, species, vegetation types and land administrators; the CSV holds the same rows in one long table.</li>
       <li>Map layers adds administrative areas, shelters, campsites, parking, privies, bridges, vistas and side trails. They load live from the NPS and ATC map services when switched on, so they stay current. Administrative areas and side trails appear once you zoom in. A click on one of these features opens its details; a click anywhere else selects the grid cell.</li>
       <li>Select area draws a box on the map and summarizes every cell whose center falls inside it. Records and acres are added up; species and vegetation types are counted once.</li>
-      <li>The details panel also lists the most recent iNaturalist observations inside the selected cell or cells, fetched live from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you select them. Records with obscured locations are left out, since they cannot be placed in a cell.</li>
+      <li>Under Recent iNaturalist observations, the details panel lists the newest iNaturalist records inside the selected cell or cells, fetched live from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you select them. Records with obscured locations are left out, since they cannot be placed in a cell.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
       <li>Trail miles are measured along the mapped centerline, south to north from Springer Mountain, and are approximate.</li>
     </ul>
@@ -1304,7 +1305,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
     if (pest.length) b += `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(i => sppItem(i)).join('')}</ul>`;
     if (top.length){ const tn = v('inat','TOP10_COUNTS') || []; b += `<details><summary>Most recorded species</summary><ul class="spp">${top.map((i, k) => tn[k] != null ? sppItem(i).replace('</li>', `<span class="tag">${fmt(tn[k], 0)} ${tn[k] === 1 ? 'record' : 'records'}</span></li>`) : sppItem(i)).join('')}</ul></details>`; }
   } else b += '<p class="none">No iNaturalist records in this cell yet.</p>';
-  b += '<div id="inatlive" style="margin-top:10px"></div>';
+  b += `<details id="inatrec"${S.inatOpen ? ' open' : ''}><summary>Recent iNaturalist observations</summary><div id="inatlive" style="margin-top:6px"></div></details>`;
   b += '</div>';
 
   // birds
@@ -1332,7 +1333,11 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
    Species on the page's invasive, priority invasive and forest pest lists get a badge. */
 let INATFLAGS = null;
 const INAT_MAX_SPAN = 1; /* degrees: the API returns only the newest records in the bounding box, so a wide selection would find almost none inside its cells */
-function inatLive(rings, id){ const el = $('#inatlive'); if (!el || !window.ATiNat) return;
+/* The list is folded by default and fetched only when opened; once opened it stays open for the next cell. */
+function inatLive(rings, id){ const d = $('#inatrec'); if (!d) return; let done = false;
+  const go = () => { if (d.open && !done){ done = true; inatFetch(rings, id); } };
+  d.addEventListener('toggle', () => { S.inatOpen = d.open; go(); }); go(); }
+function inatFetch(rings, id){ const el = $('#inatlive'); if (!el || !window.ATiNat) return;
   const la = rings.flat().map(p => p[0]), lo = rings.flat().map(p => p[1]);
   if (Math.max(...la) - Math.min(...la) > INAT_MAX_SPAN || Math.max(...lo) - Math.min(...lo) > INAT_MAX_SPAN){
     el.innerHTML = '<p class="none" style="font-size:12.5px">Select a smaller area, or a single cell, to see recent iNaturalist observations.</p>'; return; }
@@ -1455,7 +1460,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
           (hasN ? 'Record counts are added across the selected cells. A species is counted only in cells where it is among the ten most recorded, so its true total can be higher.'
                 : 'Ranked from each cell\'s own top ten: first place in a cell counts most, tenth least. The number beside each species is how many selected cells list it. The data holds each cell\'s ranking but not record counts, so this is a combined ranking and not a count of records.') + '</p></details>'; }
     } else b += '<p class="none">No iNaturalist records in the selected cells.</p>';
-    b += '<div id="inatlive" style="margin-top:10px"></div>';
+    b += `<details id="inatrec"${S.inatOpen ? ' open' : ''}><summary>Recent iNaturalist observations</summary><div id="inatlive" style="margin-top:6px"></div></details>`;
     b += '</div>'; }
 
   // birds
