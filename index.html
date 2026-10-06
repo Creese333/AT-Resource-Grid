@@ -102,6 +102,8 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .rank .where{font-weight:500}
 .rank .club{grid-column:1;font-size:12.5px;color:var(--muted)}
 .rank .val{grid-row:1/3;grid-column:2;align-self:center;font-family:var(--cond);font-size:19px;font-weight:600}
+.rank .val.two{grid-row:1;align-self:end;text-align:right;line-height:1.05}
+.rank .eff{grid-row:2;grid-column:2;font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap}
 .catrow{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;padding:3px 0;font-size:13px}
 .catrow i{width:12px;height:12px;border-radius:2px}
 .catrow b{font-weight:500;color:var(--muted)}
@@ -433,6 +435,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     <ul>
       <li>Cell colors fade as you zoom in, so the basemap shows through. At the closest zoom the fill is 75% transparent and the white cell outlines remain.</li>
       <li>Filled cells have data for the measure on screen. Outlined cells have data in another layer but none for this measure.</li>
+      <li>Species counts follow survey effort: more records nearly always means more species. So the species measures fade thinly sampled cells, their rankings leave those cells out, and each ranked count shows the records or checklists behind it. A cell is thinly sampled when its data status is not Adequate, or when its records sit in too few of its square miles: only one for a 7 sq mi cell, fewer than three for a 49 sq mi cell. Bird species, standardized is an estimate at equal sampling completeness and is the fairest comparison between cells.</li>
       <li>Colors are five equal-count classes of the cells with data at the cell size on screen, so the classes change when you change cell size.</li>
       <li>The strip under the map runs from Springer Mountain to Katahdin. Each bar is a ten-mile stretch, averaged from the 49 sq mi cells.</li>
       <li>The search box finds birds, invasive plants, forest pests and vegetation types in every cell where they were recorded. Other iNaturalist species are only searchable where they rank among a cell's ten most-recorded, so those results are partial. Rare species are not searchable.</li>
@@ -712,6 +715,19 @@ const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest gene
 
 /* ---------- questions and measures ---------- */
 /* iNaturalist and eBird species added together. Birds are counted once: the larger of the two bird counts, plus iNaturalist's non-bird species. */
+/* How much of a 7 or 49 sq mi cell actually has records: the number of its 1 sq mi hexes that hold data for the layer.
+   (Not available for the 1 sq mi cells themselves, since nothing finer exists.) */
+const HEXIN = {cog:7, wheel:49}, COVER = {};
+function cover(th, lv, c){ if (lv === 'hex' || !D.themes[th] || !D.themes[th].hex) return null; const key = th + lv; let m = COVER[key];
+  if (!m){ m = COVER[key] = new Map(); const H = D.levels.hex.id, cut = lv === 'cog' ? 1 : 2;
+    D.themes[th].hex.ix.forEach(h => { let p = H[h]; for (let k = 0; k < cut; k++) p = p.slice(0, p.lastIndexOf('-')); m.set(p, (m.get(p) || 0) + 1); }); }
+  return m.get(D.levels[lv].id[c]) || 0; }
+/* Thinly sampled: the layer's own data status is not "Adequate", or the records sit in too few of the cell's square miles
+   (a single one for a 7 sq mi cell, fewer than three for a 49 sq mi cell). The corridor is narrow, so a share of the whole cell would be unfair. */
+const THIN_MIN = {cog:2, wheel:3};
+function thin(th, lv, c){ if (!D.themes[th] || !D.themes[th][lv] || ROW[th][lv][c] < 0) return false; if (cat('DATA_STATUS', val(th, 'DATA_STATUS', lv, c)) !== 'Adequate') return true;
+  const k = cover(th, lv, c); return k != null && k < THIN_MIN[lv]; }
+const sampled = m => !!m.fade && !m.fadeFn && (m.th === 'inat' || m.th === 'ebird');
 function totalSpp(lv, c){ const i = val('inat','N_SPP',lv,c), e = val('ebird','N_SPP',lv,c); if (i == null && e == null) return null;
   const ib = val('inat','BIRD_SPP',lv,c) || 0; return Math.max(0, (i || 0) - ib) + Math.max(ib, e || 0); }
 
@@ -733,20 +749,22 @@ const Q = [
      {id:'mapped', label:'Share of cell mapped', f:'PCT_MAPPED', unit:'%', d:0}]},
  {id:'inv', th:'inat', hue:HUE.inat, ramp:'inv', title:'What invasive species are turning up?',
   use:'Invasive plants and forest pests reported on iNaturalist. Use it to aim surveys and volunteer workdays at priority invasives. A blank cell means nothing was reported, which is not the same as nothing there.',
-  m:[{id:'spp', label:'Invasive species reported', f:'N_INV_SPP', int:1, zero:1, noun:['species','species']},
-     {id:'edrr', label:'Priority invasives', f:'N_EDRR_SPP', int:1, zero:1, noun:['species','species']},
-     {id:'pct', label:'Invasive share of records', f:'PCT_INV_OBS', unit:'%', d:1, zero:1},
+  m:[{id:'spp', label:'Invasive species reported', f:'N_INV_SPP', int:1, zero:1, fade:1, noun:['species','species']},
+     {id:'edrr', label:'Priority invasives', f:'N_EDRR_SPP', int:1, zero:1, fade:1, noun:['species','species']},
+     {id:'pct', label:'Invasive share of records', f:'PCT_INV_OBS', unit:'%', d:1, zero:1, fade:1},
      {id:'pest', label:'Forest pest records', f:'N_PEST_OBS', int:1, zero:1, noun:['record','records']}]},
  {id:'eff', th:'inat', hue:HUE.eff, ramp:'eff', title:'How well is it surveyed?',
   use:'Every vegetation and wildlife map here depends on where people have looked. Use this one to find survey gaps worth a bioblitz, and to judge how much weight the other maps can carry in a given cell.',
   m:[{id:'obs', label:'iNaturalist records', f:'N_OBS', int:1, noun:['record','records']},
      {id:'erec', label:'eBird records', th:'ebird', f:'N_RECORDS', int:1, noun:['record','records']},
-     {id:'spp', label:'Total species recorded', int:1, noun:['species','species'], fn:(lv,c)=>totalSpp(lv,c)},
+     {id:'spp', label:'Total species recorded', int:1, fade:1, noun:['species','species'], fn:(lv,c)=>totalSpp(lv,c)},
      {id:'obsr', label:'Total observers', int:1, noun:['observer','observers'], fn:(lv,c)=>{ const a = val('inat','N_OBSERVERS',lv,c), b = val('ebird','N_OBSERVERS',lv,c); return a == null && b == null ? null : (a || 0) + (b || 0); }}]},
  {id:'bird', th:'ebird', hue:HUE.ebird, ramp:'bird', title:'What birds are found here?',
   use:'eBird checklists grouped by the habitat each species depends on. Use it to see where forest-interior, grassland or high-elevation birds concentrate, and where species of conservation concern have been found.',
   m:[{id:'bcc', label:'Birds of Conservation Concern', f:'N_BCC_SPP', int:1, zero:1, fade:1, noun:['species','species']},
-     {id:'spp', label:'All bird species', f:'N_SPP', int:1, fade:1, noun:['species','species']},
+     {id:'spp', label:'Bird species, standardized', f:'COV_RICHNESS', int:1, noun:['species','species'], none:'Too few checklists to estimate',
+      note:'An estimate of bird species at equal sampling completeness (90% coverage), so heavily and lightly birded cells can be compared. Cells with too few checklists have no value.'},
+     {id:'sppraw', label:'Bird species, raw count', f:'N_SPP', int:1, fade:1, noun:['species','species']},
      {id:'fi', label:'Forest-interior species', f:'FOREST_INT_SPP', int:1, zero:1, fade:1, noun:['species','species']},
      {id:'fg', label:'Forest generalist species', f:'FOREST_GEN_SPP', int:1, zero:1, fade:1, noun:['species','species']},
      {id:'co', label:'High-elevation conifer species', f:'CONIFER_SPP', int:1, zero:1, fade:1, noun:['species','species']},
@@ -824,7 +842,7 @@ function show(m, v){ if (m.find) return v == null ? 'Not recorded' : 'Recorded h
   if (m.noun) return fmt(v, 0) + ' ' + m.noun[v === 1 ? 0 : 1];
   return fmt(v, m.d); }
 const THIN_AC = 10;
-const faded = (m, lv, c) => S.fade && m.fade && (m.fadeFn ? m.fadeFn(lv, c) : m.th === 'veg' ? val('veg', 'VEG_AREA', lv, c) < THIN_AC : cat('DATA_STATUS', val(m.th, 'DATA_STATUS', lv, c)) !== 'Adequate');
+const faded = (m, lv, c) => S.fade && m.fade && (m.fadeFn ? m.fadeFn(lv, c) : m.th === 'veg' ? val('veg', 'VEG_AREA', lv, c) < THIN_AC : thin(m.th, lv, c));
 
 /* ---------- map ---------- */
 const map = L.map('map', {preferCanvas:true, zoomSnap:.5, minZoom:4, maxZoom:15, attributionControl:true});
@@ -1160,10 +1178,15 @@ function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows =
     if (m.many) h = h.replace('Share of cells', 'Most common main types');
     order.forEach(e => { const i = D.cats[m.f].indexOf(e[0]), k = cnt.get(i); if (k) h += `<div class="catrow"><i style="background:${e[1]}"></i><span>${esc(e[2] || e[0])}</span><b>${fmt(100*k/rows.length, k/rows.length < .1 ? 1 : 0)}%</b></div>`; });
     return h + '</div>'; }
+  let left = 0; const lim = sampled(m);
+  if (lim){ const keep = rows.filter(r => !thin(m.th, lv, r[0])); left = rows.length - keep.length; rows.length = 0; keep.forEach(r => rows.push(r)); }
+  if (left) h += `<p class="statline">${fmt(left,0)} thinly sampled ${left === 1 ? 'cell is' : 'cells are'} left out of the ranking below.</p>`;
+  if (!rows.length) return h + '<p class="statline">No adequately sampled cells to rank here. Try a larger cell size or another section.</p>';
+  const eff = c => { if (!lim && !(m.f === 'COV_RICHNESS')) return ''; const th = m.th, n = th === 'ebird' ? val('ebird','N_CHECKLISTS',lv,c) : val('inat','N_OBS',lv,c); return n == null ? '' : `<span class="eff">from ${fmt(n,0)} ${th === 'ebird' ? (n === 1 ? 'checklist' : 'checklists') : (n === 1 ? 'record' : 'records')}</span>`; };
   rows.sort((a,b) => b[1] - a[1]);
   const nTop = Math.min(50, rows.length);
   h += `<div class="rank"><h3>Highest cells${where}<span class="cnt">${rows.length > nTop ? 'top ' + nTop : 'all ' + nTop}</span></h3><ol class="scroll" tabindex="0" aria-label="Highest cells, scrollable list">`;
-  rows.slice(0, 50).forEach(r => { h += cellItem(lv, r[0], `<span class="val">${fmt(r[1], m.d)}${m.unit === '%' ? '%' : ''}</span>`); });
+  rows.slice(0, 50).forEach(r => { const e = eff(r[0]); h += cellItem(lv, r[0], `<span class="val${e ? ' two' : ''}">${fmt(r[1], m.d)}${m.unit === '%' ? '%' : ''}</span>${e}`); });
   return h + '</ol></div>'; }
 $('#side').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.blk){ S.side[b.dataset.blk] = !S.side[b.dataset.blk]; side(); return; }
@@ -1308,6 +1331,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
   if (has('inat', lv, c)){ const inv = v('inat','INVASIVE_LIST') || [], ed = new Set(v('inat','EDRR_LIST') || []), pest = v('inat','PEST_LIST') || [], top = v('inat','TOP10_SPECIES') || [];
     b += `<div class="facts"><div><b>${fmt(v('inat','N_OBS'),0)}</b>records</div><div><b>${fmt(v('inat','N_SPP'),0)}</b>species</div><div><b>${fmt(v('inat','N_OBSERVERS'),0)}</b>observers</div></div>`;
     b += `<p><span class="badge">${esc(cat('DATA_STATUS', v('inat','DATA_STATUS')) || '')}</span> Latest record ${esc(v('inat','LAST_OBS') || 'unknown')}</p>`;
+    { const k = cover('inat', lv, c); if (k != null) b += `<p class="none" style="font-size:12.5px">Records fall in ${k} of this cell's ${HEXIN[lv]} square miles.</p>`; }
     b += inv.length ? `<p style="margin-top:8px">${inv.length} invasive plant species reported:</p><ul class="spp">${inv.map(i => sppItem(i, ed.has(i))).join('')}</ul>` : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
     if (pest.length) b += `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(i => sppItem(i)).join('')}</ul>`;
     if (top.length){ const tn = v('inat','TOP10_COUNTS') || []; b += `<details><summary>Most recorded species</summary><ul class="spp">${top.map((i, k) => tn[k] != null ? sppItem(i).replace('</li>', `<span class="tag">${fmt(tn[k], 0)} ${tn[k] === 1 ? 'record' : 'records'}</span></li>`) : sppItem(i)).join('')}</ul></details>`; }
@@ -1320,6 +1344,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
   if (has('ebird', lv, c)){ const G = BIRD_GROUPS.map(g => [g.label, v('ebird', g.spp) || 0, v('ebird', g.list) || [], g.spp]); const mx = Math.max(1, ...G.map(g => g[1])); const soc = v('ebird','SOC_LIST') || [];
     b += `<div class="facts"><div><b>${fmt(v('ebird','N_SPP'),0)}</b>species</div><div><b>${fmt(v('ebird','N_CHECKLISTS'),0)}</b>checklists</div><div><b>${fmt(v('ebird','N_BCC_SPP'),0)}</b>of conservation concern</div></div>`;
     b += `<p><span class="badge">${esc(cat('DATA_STATUS', v('ebird','DATA_STATUS')) || '')}</span> Latest checklist ${esc(v('ebird','LAST_OBS') || 'unknown')}</p>`;
+    { const k = cover('ebird', lv, c); if (k != null) b += `<p class="none" style="font-size:12.5px">Checklists fall in ${k} of this cell's ${HEXIN[lv]} square miles.</p>`; }
     b += '<p style="margin-top:8px">Species by habitat group. Open a group marked with an arrow to see its species.</p>' + G.filter(g => g[1] > 0).map(g => { const bar = `<div>${g[0]}</div><div><span style="width:${100*g[1]/mx}%"></span></div><div>${g[1]}</div>`;
       return g[2] && g[2].length ? `<details class="gd"${S.m.f === g[3] ? ' open' : ''}><summary class="guild">${bar}</summary><ul class="spp">${g[2].map(i => sppItem(i)).join('')}</ul></details>` : `<div class="guild">${bar}</div>`; }).join('');
     if (soc.length) b += `<details><summary>${soc.length} species on watch lists</summary><ul class="spp">${soc.map(i => sppItem(i)).join('')}</ul><p class="none" style="font-size:12.5px">BCC is the USFWS Birds of Conservation Concern list. PIF is Partners in Flight.</p></details>`;
