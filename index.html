@@ -443,7 +443,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>Export CSV and Export Excel, in the details panel, download everything shown for the selected cell or cells. The Excel workbook has separate sheets for cells, species, vegetation types and land administrators; the CSV holds the same rows in one long table.</li>
       <li>Map layers adds administrative areas, shelters, campsites, parking, privies, bridges, vistas and side trails. They load live from the NPS and ATC map services when switched on, so they stay current. Administrative areas and side trails appear once you zoom in. A click on one of these features opens its details; a click anywhere else selects the grid cell.</li>
       <li>Select area draws a box on the map and summarizes every cell whose center falls inside it. Records and acres are added up; species and vegetation types are counted once.</li>
-      <li>Each cell has two iNaturalist sections. Invasive species is the quarterly summary: invasive plants and forest pests counted together, with forest pests also counted as priority invasives. It is what the map, rankings and exports use. Live iNaturalist is fetched from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you open it, and lists only observations made after the summary's last date, with invasive species and forest pests first. Live records are not counted anywhere else on the page, and records with obscured locations are left out, since they cannot be placed in a cell.</li>
+      <li>Each cell has two iNaturalist sections. Invasive species is the quarterly summary: invasive plants and forest pests counted together, with forest pests also counted as priority invasives. It is what the map, rankings and exports use. Live iNaturalist is fetched from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you open it, and lists the most recent observations in the cell, with a badge on invasive species and forest pests. Live records are not counted anywhere else on the page, and records with obscured locations are left out, since they cannot be placed in a cell.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
       <li>Trail miles are measured along the mapped centerline, south to north from Springer Mountain, and are approximate.</li>
     </ul>
@@ -533,8 +533,6 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
            '&nelat=' + b.n.toFixed(5) + '&nelng=' + b.e.toFixed(5);
   }
 
-  function dayAfter(d) { var t = new Date(d + 'T00:00:00Z'); if (isNaN(t)) return d; t.setUTCDate(t.getUTCDate() + 1); return t.toISOString().slice(0, 10); }
-
   function projectQuery() {
     return CONFIG.project ? 'project_id=' + encodeURIComponent(CONFIG.project) + '&' : '';
   }
@@ -547,7 +545,6 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       '.inat-wrap{font-size:13px;line-height:1.35}' +
       '.inat-head{font-weight:600;margin:0 0 6px}' +
       '.inat-note{opacity:.7;margin:6px 0}' +
-      '.inat-new{margin:6px 0;font-weight:500}' +
       '.inat-list{list-style:none;margin:0;padding:0}' +
       '.inat-item{display:flex;gap:8px;align-items:center;padding:6px 0;border-top:1px solid rgba(128,128,128,.3)}' +
       '.inat-item a{color:inherit;text-decoration:none;display:flex;gap:8px;align-items:center;width:100%}' +
@@ -562,21 +559,14 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 
   function render(el, data, opts, b) {
     var flags = opts.flags || {};
-    var since = opts.since || '';
-    var more = CONFIG.site + '?' + projectQuery() + bboxQuery(b) + (since ? '&d1=' + dayAfter(since) : '') + '&subview=map';
-    var html = '<div class="inat-wrap"><p class="inat-head">Live iNaturalist observations</p>';
-    var isFlag = function (o) { return !!flags[((o.taxon && o.taxon.name) || '').toLowerCase()]; };
-    // listed species (invasive plants, priority invasives, forest pests) come first; within each group the newest is first
-    var items = data.items.filter(isFlag).concat(data.items.filter(function (o) { return !isFlag(o); }));
-    var nFlag = data.items.filter(isFlag).length;
+    var more = CONFIG.site + '?' + projectQuery() + bboxQuery(b) + '&subview=map';
+    var html = '<div class="inat-wrap"><p class="inat-head">Recent iNaturalist observations</p>';
 
-    if (!items.length) {
-      html += '<p class="inat-note">' + (since ? 'Nothing new here since ' + esc(since) + '.' : 'No observations with open locations in this cell.') + '</p>';
+    if (!data.items.length) {
+      html += '<p class="inat-note">No observations with open locations in this cell.</p>';
     } else {
-      html += '<p class="inat-new">' + items.length + (data.full ? ' or more' : '') + ' new ' + (items.length === 1 ? 'observation' : 'observations') + (since ? ' since ' + esc(since) : '') +
-        (nFlag ? ', including ' + nFlag + ' of invasive species or forest pests, listed first' : ', none of them invasive species or forest pests on this page\u2019s lists') + '.</p>';
       html += '<ul class="inat-list">';
-      items.slice(0, CONFIG.show).forEach(function (o) {
+      data.items.slice(0, CONFIG.show).forEach(function (o) {
         var t = o.taxon || {};
         var sci = t.name || 'Unidentified';
         var common = t.preferred_common_name || sci;
@@ -593,7 +583,6 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
           (o.quality_grade === 'research' ? ' · research grade' : '') + '</span></span></a></li>';
       });
       html += '</ul>';
-      if (items.length > CONFIG.show) html += '<p class="inat-note">Showing ' + CONFIG.show + ' of ' + items.length + '.</p>';
     }
 
     // Obscured records are excluded by the query itself, so they can't be counted per cell; say so once.
@@ -609,7 +598,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     var rs = rings(geojson);
     if (!rs.length) { el.innerHTML = ''; return Promise.resolve(null); }
     var b = bbox(rs);
-    var key = (opts.id != null ? String(opts.id) : bboxQuery(b)) + '|' + (opts.since || '');
+    var key = opts.id != null ? String(opts.id) : bboxQuery(b);
 
     var loading = '<div class="inat-wrap"><p class="inat-note">Loading iNaturalist observations…</p></div>';
     // The same cell asked for again while its request is out (the panel was redrawn): show the result in the new container.
@@ -624,7 +613,6 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 
     var url = CONFIG.api + '?' + projectQuery() + bboxQuery(b) +
       '&geoprivacy=open&taxon_geoprivacy=open' + // obscured records would only take up places in the page
-      (opts.since ? '&d1=' + dayAfter(opts.since) : '') + // only what was observed after the quarterly summary's last date
       '&order_by=observed_on&order=desc&per_page=' + CONFIG.perPage +
       (CONFIG.qualityGrade ? '&quality_grade=' + CONFIG.qualityGrade : '');
 
@@ -634,7 +622,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
         return r.json();
       })
       .then(function (json) {
-        var data = { items: [], full: (json.results || []).length >= CONFIG.perPage };
+        var data = { items: [] };
         (json.results || []).forEach(function (o) {
           // Obscured records carry randomized coordinates, so they can't be placed in a cell.
           if (o.obscured || o.geoprivacy === 'obscured' || o.geoprivacy === 'private') return;
@@ -769,7 +757,7 @@ const Q = [
      {id:'acres', label:'Acres mapped', f:'VEG_AREA', int:1, noun:['acre','acres'], fn:(lv,c)=>{ const a = val('veg','VEG_AREA',lv,c); return a == null ? null : Math.round(a); }},
      {id:'mapped', label:'Share of cell mapped', f:'PCT_MAPPED', unit:'%', d:0}]},
  {id:'inv', th:'inat', hue:HUE.inat, ramp:'inv', title:'What invasive species are turning up?',
-  use:'Invasive plants and forest pests reported on iNaturalist, from the quarterly summary. Use it to aim surveys and volunteer workdays at priority invasives. A blank cell means nothing was reported, which is not the same as nothing there. Newer records appear under Live iNaturalist when you select a cell.',
+  use:'Invasive plants and forest pests reported on iNaturalist, from the quarterly summary. Use it to aim surveys and volunteer workdays at priority invasives. A blank cell means nothing was reported, which is not the same as nothing there. The most recent observations appear under Live iNaturalist when you select a cell.',
   m:[{id:'spp', label:'Invasive species reported', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'None reported', note:'Invasive plants and forest pests, counted together.', fn:(lv,c)=>invCount(lv,c)},
      {id:'edrr', label:'Priority invasives', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'None reported', note:'Priority invasive plants plus forest pests.', fn:(lv,c)=>priCount(lv,c)},
      {id:'pct', label:'Invasive share of records', unit:'%', d:1, zero:1, fade:1, zeroText:'None reported', note:'Records of invasive plants and forest pests, as a share of all iNaturalist records.', fn:(lv,c)=>invShare(lv,c)},
@@ -1361,7 +1349,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
     b += `<p class="none" style="font-size:12.5px">Invasive plants and forest pests are counted together.</p>`;
     b += inv.length ? `<p style="margin-top:8px">${inv.length} invasive ${inv.length === 1 ? 'plant' : 'plants'}:</p><ul class="spp">${inv.map(i => sppItem(i, ed.has(i))).join('')}</ul>` : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
     b += pest.length ? `<p style="margin-top:8px">${pest.length} forest ${pest.length === 1 ? 'pest' : 'pests'}:</p><ul class="spp">${pest.map(i => sppItem(i, true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
-    b += `<p style="margin-top:10px"><span class="badge">${esc(cat('DATA_STATUS', v('inat','DATA_STATUS')) || '')}</span> Quarterly summary (${esc(D.run)}). Its newest record in this cell is from ${esc(v('inat','LAST_OBS') || 'an unknown date')}.</p>`;
+    b += `<p style="margin-top:10px"><span class="badge">${esc(cat('DATA_STATUS', v('inat','DATA_STATUS')) || '')}</span> Quarterly summary (${esc(D.run)}).</p>`;
     b += `<p class="none" style="font-size:12.5px">Based on ${fmt(v('inat','N_OBS'),0)} iNaturalist ${v('inat','N_OBS') === 1 ? 'record' : 'records'} of ${fmt(v('inat','N_SPP'),0)} species from ${fmt(v('inat','N_OBSERVERS'),0)} ${v('inat','N_OBSERVERS') === 1 ? 'observer' : 'observers'}.`;
     { const k = cover('inat', lv, c); b += (k != null ? ` Records fall in ${k} of this cell's ${HEXIN[lv]} square miles.` : '') + '</p>'; }
     if (top.length){ const tn = v('inat','TOP10_COUNTS') || []; b += `<details><summary>Most recorded species</summary><ul class="spp">${top.map((i, k) => tn[k] != null ? sppItem(i).replace('</li>', `<span class="tag">${fmt(tn[k], 0)} ${tn[k] === 1 ? 'record' : 'records'}</span></li>`) : sppItem(i)).join('')}</ul></details>`; }
@@ -1399,7 +1387,7 @@ const INAT_MAX_SPAN = 1; /* degrees: the API returns only the newest records in 
    and not in the phone's short summary. Once opened it stays open for the next cell. inatCheck() runs whenever one of those changes. */
 let inatCheck = () => {};
 /* The Live iNaturalist section. It is fetched only when it can be seen: its section open, and not in the phone's short summary. */
-const LIVESEC = `<div class="sec" style="--hue:${HUE.live}"><h3>Live iNaturalist</h3><p class="none" style="font-size:12.5px">Straight from iNaturalist: observations made after ${esc(INAT_CUTOFF)}, the last date in the quarterly summary. They are not counted in the map or in the numbers above.</p><div id="inatrec"><div id="inatlive" style="margin-top:6px"></div></div></div>`;
+const LIVESEC = `<div class="sec" style="--hue:${HUE.live}"><h3>Live iNaturalist</h3><p class="none" style="font-size:12.5px">The most recent iNaturalist observations here, fetched live. They are separate from the summary numbers on this page.</p><div id="inatrec"><div id="inatlive" style="margin-top:6px"></div></div></div>`;
 function inatLive(rings, id){ const d = $('#inatrec'); if (!d) return; let done = false;
   inatCheck = () => { if (!done && d.isConnected && d.getClientRects().length){ done = true; inatFetch(rings, id); } };
   setTimeout(() => inatCheck()); /* after select() has finished laying out the panel (on phones it then shrinks to the summary) */ }
@@ -1410,7 +1398,7 @@ function inatFetch(rings, id){ const el = $('#inatlive'); if (!el || !window.ATi
   if (!INATFLAGS){ INATFLAGS = {};
     [['INVASIVE_LIST','Invasive'],['PEST_LIST','Forest pest'],['EDRR_LIST','Priority invasive']].forEach(([f, label]) =>
       Object.values(D.themes.inat || {}).forEach(t => (t.f[f] || []).forEach(a => a.forEach(i => { INATFLAGS[sppName(i).sci.toLowerCase()] = label; })))); }
-  ATiNat.lookup({type:'MultiPolygon', coordinates:rings.map(r => [r.map(p => [p[1], p[0]])])}, el, {id, flags:INATFLAGS, since:INAT_CUTOFF}); }
+  ATiNat.lookup({type:'MultiPolygon', coordinates:rings.map(r => [r.map(p => [p[1], p[0]])])}, el, {id, flags:INATFLAGS}); }
 function finishProfile(html){ $('#pbody').innerHTML = html;
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
   const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Land administrators':'lands'};
@@ -1514,7 +1502,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
     if (cs.length){ const rec = cs.reduce((s,c) => s + (val('inat','N_OBS',lv,c) || 0), 0), inv = union('inat','INVASIVE_LIST',cs), ed = new Set(union('inat','EDRR_LIST',cs).map(x => x[0])), pest = union('inat','PEST_LIST',cs);
       const nInvAll = new Set([...inv.map(x => x[0]), ...pest.map(x => x[0])]).size;
       b += `<div class="facts"><div><b>${nInvAll ? nInvAll : 'None'}</b>invasive species</div><div><b>${fmt(rec,0)}</b>records</div><div><b>${cs.length}</b>of ${N} cells with records</div></div>`;
-      b += `<p class="none" style="font-size:12.5px">Invasive plants and forest pests are counted together. Quarterly summary (${esc(D.run)}), records through ${esc(INAT_CUTOFF)}.</p>`;
+      b += `<p class="none" style="font-size:12.5px">Invasive plants and forest pests are counted together. Quarterly summary (${esc(D.run)}).</p>`;
       b += inv.length ? `<p style="margin-top:8px">Invasive plants reported, with the number of selected cells each was found in:</p><ul class="spp">${inv.slice(0, 12).map(x => item(x[0], x[1], ed.has(x[0]))).join('')}</ul>` + (inv.length > 12 ? `<details><summary>${inv.length - 12} more</summary><ul class="spp">${inv.slice(12).map(x => item(x[0], x[1], ed.has(x[0]))).join('')}</ul></details>` : '') : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
       b += pest.length ? `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(x => item(x[0], x[1], true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
       { /* Combined top ten, collapsible. With record counts in the data (TOP10_COUNTS) the counts are added across cells.
