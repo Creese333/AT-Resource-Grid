@@ -67,13 +67,12 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .secpick select{width:100%;color-scheme:light;background:#fff;color:#17302B;border:2px solid #fff;border-radius:5px;padding:5px 10px;font-size:14px;font-weight:500;cursor:pointer}
 .secpick select:hover{border-color:#9CC3E6}
 .secpick select:focus-visible{outline:3px solid #9CC3E6;outline-offset:1px}
-.qs{border-bottom:1px solid var(--line);padding:6px 0 4px}
-.qs button{display:flex;width:100%;text-align:left;background:none;border:0;padding:4px 14px 4px 0;align-items:center;gap:10px;font-family:var(--cond);font-size:16px;font-weight:500;color:#C9D0D3}
-.qs button::before{content:"";width:12px;align-self:stretch;min-height:24px;background:var(--hue);opacity:.75;flex:none;border-radius:0 2px 2px 0}
-.qs button:hover{color:var(--ink)}
-.qs button:hover::before{opacity:.7}
-.qs button[aria-current=true]{font-weight:600;color:var(--ink);background:var(--ground)}
-.qs button[aria-current=true]::before{opacity:1}
+/* question cards, tinted with each question's color like the profile sections; the selected one is stronger (plain values are for browsers without color-mix) */
+.qs{border-bottom:1px solid var(--line);padding:8px 12px 9px 14px;display:flex;flex-direction:column;gap:5px}
+.qs button{display:block;width:100%;text-align:left;padding:5px 10px 6px;border-radius:6px;font-family:var(--cond);font-size:16px;font-weight:500;color:#D5DADC;
+  background:var(--ground);border:1px solid var(--line);background:color-mix(in srgb,var(--hue) 13%,var(--panel));border-color:color-mix(in srgb,var(--hue) 38%,var(--panel))}
+.qs button:hover{color:var(--ink);background:color-mix(in srgb,var(--hue) 22%,var(--panel))}
+.qs button[aria-current=true]{font-weight:600;color:#fff;background:color-mix(in srgb,var(--hue) 34%,var(--panel));border-color:var(--hue);box-shadow:inset 0 0 0 1px var(--hue)}
 .qbody{padding:0 14px 6px 15px}
 .blk{border-top:1px solid var(--line)}
 .qbody>.blk:first-child{border-top:0}
