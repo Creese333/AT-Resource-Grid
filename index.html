@@ -237,7 +237,9 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .pexmsg:empty{display:none}
 #inatrec .inat-head{display:none}
 .pbody{overflow-y:auto;padding:0 14px 14px}
-.sec{padding:12px 0 12px 11px;border-left:4px solid var(--hue);margin:12px 0 0}
+/* profile sections: a block tinted with the section's color (the plain values are for browsers without color-mix) */
+.sec{margin:10px 0 0;padding:9px 12px 11px;border-radius:6px;background:var(--ground);border:1px solid var(--line);
+  background:color-mix(in srgb,var(--hue) 17%,var(--panel));border-color:color-mix(in srgb,var(--hue) 45%,var(--panel))}
 .sec h3{font-size:17px;margin:0}
 .sectog{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;padding:2px 0;font:inherit;color:inherit;text-align:left}
 .secbody{margin-top:4px}
