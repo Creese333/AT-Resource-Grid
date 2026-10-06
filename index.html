@@ -104,6 +104,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;over
 .rank .val{grid-row:1/3;grid-column:2;align-self:center;font-family:var(--cond);font-size:19px;font-weight:600}
 .rank .val.two{grid-row:1;align-self:end;text-align:right;line-height:1.05}
 .rank .eff{grid-row:2;grid-column:2;font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap}
+.rank .eff.thin{color:#F4B08E}
 .catrow{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;padding:3px 0;font-size:13px}
 .catrow i{width:12px;height:12px;border-radius:2px}
 .catrow b{font-weight:500;color:var(--muted)}
@@ -435,7 +436,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     <ul>
       <li>Cell colors fade as you zoom in, so the basemap shows through. At the closest zoom the fill is 75% transparent and the white cell outlines remain.</li>
       <li>Filled cells have data for the measure on screen. Outlined cells have data in another layer but none for this measure.</li>
-      <li>Species counts follow survey effort: more records nearly always means more species. So the species measures fade thinly sampled cells, their rankings leave those cells out, and each ranked count shows the records or checklists behind it. A cell is thinly sampled when its data status is not Adequate, or when its records sit in too few of its square miles: only one for a 7 sq mi cell, fewer than three for a 49 sq mi cell. Bird species, standardized is an estimate at equal sampling completeness and is the fairest comparison between cells.</li>
+      <li>Species counts follow survey effort: more records nearly always means more species. So the species measures fade thinly sampled cells, and each ranked count shows the records or checklists behind it. Counts rank every cell, since thinly sampled cells fall to the bottom on their own. Shares, such as the invasive share of records, leave thinly sampled cells out of the ranking, because a share from a handful of records is not reliable. A cell is thinly sampled when its data status is not Adequate, or when its records sit in too few of its square miles: only one for a 7 sq mi cell, fewer than three for a 49 sq mi cell. Bird species, standardized is an estimate at equal sampling completeness and is the fairest comparison between cells.</li>
       <li>Colors are five equal-count classes of the cells with data at the cell size on screen, so the classes change when you change cell size.</li>
       <li>The strip under the map runs from Springer Mountain to Katahdin. Each bar is a ten-mile stretch, averaged from the 49 sq mi cells.</li>
       <li>The search box finds birds, invasive plants, forest pests and vegetation types in every cell where they were recorded. Other iNaturalist species are only searchable where they rank among a cell's ten most-recorded, so those results are partial. Rare species are not searchable.</li>
@@ -1178,11 +1179,16 @@ function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows =
     if (m.many) h = h.replace('Share of cells', 'Most common main types');
     order.forEach(e => { const i = D.cats[m.f].indexOf(e[0]), k = cnt.get(i); if (k) h += `<div class="catrow"><i style="background:${e[1]}"></i><span>${esc(e[2] || e[0])}</span><b>${fmt(100*k/rows.length, k/rows.length < .1 ? 1 : 0)}%</b></div>`; });
     return h + '</div>'; }
-  let left = 0; const lim = sampled(m);
+  /* Sampling and the ranking:
+     - counts (species, records): every cell is ranked. Thinly sampled cells have low counts, so they fall to the bottom on their own; if one does rank, its row says so.
+     - shares (percentages): a cell with two records can show 50%, so thinly sampled cells are left out of the ranking. */
+  let left = 0; const smp = sampled(m) || m.f === 'COV_RICHNESS', lim = sampled(m) && m.unit === '%';
   if (lim){ const keep = rows.filter(r => !thin(m.th, lv, r[0])); left = rows.length - keep.length; rows.length = 0; keep.forEach(r => rows.push(r)); }
-  if (left) h += `<p class="statline">${fmt(left,0)} thinly sampled ${left === 1 ? 'cell is' : 'cells are'} left out of the ranking below.</p>`;
+  if (left) h += `<p class="statline">${fmt(left,0)} thinly sampled ${left === 1 ? 'cell is' : 'cells are'} left out of this ranking, because a share based on a handful of records is not reliable.</p>`;
+  else if (sampled(m)){ const nThin = rows.filter(r => thin(m.th, lv, r[0])).length; if (nThin) h += `<p class="statline">All ${fmt(rows.length,0)} are ranked. ${fmt(nThin,0)} are thinly sampled: they are faded on the map and marked in the list.</p>`; }
   if (!rows.length) return h + '<p class="statline">No adequately sampled cells to rank here. Try a larger cell size or another section.</p>';
-  const eff = c => { if (!lim && !(m.f === 'COV_RICHNESS')) return ''; const th = m.th, n = th === 'ebird' ? val('ebird','N_CHECKLISTS',lv,c) : val('inat','N_OBS',lv,c); return n == null ? '' : `<span class="eff">from ${fmt(n,0)} ${th === 'ebird' ? (n === 1 ? 'checklist' : 'checklists') : (n === 1 ? 'record' : 'records')}</span>`; };
+  const eff = c => { if (!smp) return ''; const th = m.th, n = th === 'ebird' ? val('ebird','N_CHECKLISTS',lv,c) : val('inat','N_OBS',lv,c); if (n == null) return '';
+    const unit = th === 'ebird' ? (n === 1 ? 'checklist' : 'checklists') : (n === 1 ? 'record' : 'records'); return sampled(m) && thin(th, lv, c) ? `<span class="eff thin">thin sample, ${fmt(n,0)} ${unit}</span>` : `<span class="eff">from ${fmt(n,0)} ${unit}</span>`; };
   rows.sort((a,b) => b[1] - a[1]);
   const nTop = Math.min(50, rows.length);
   h += `<div class="rank"><h3>Highest cells${where}<span class="cnt">${rows.length > nTop ? 'top ' + nTop : 'all ' + nTop}</span></h3><ol class="scroll" tabindex="0" aria-label="Highest cells, scrollable list">`;
