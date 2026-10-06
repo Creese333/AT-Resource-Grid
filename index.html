@@ -438,7 +438,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>Export CSV and Export Excel, in the details panel, download everything shown for the selected cell or cells. The Excel workbook has separate sheets for cells, species, vegetation types and land administrators; the CSV holds the same rows in one long table.</li>
       <li>Map layers adds administrative areas, shelters, campsites, parking, privies, bridges, vistas and side trails. They load live from the NPS and ATC map services when switched on, so they stay current. Administrative areas and side trails appear once you zoom in. A click on one of these features opens its details; a click anywhere else selects the grid cell.</li>
       <li>Select area draws a box on the map and summarizes every cell whose center falls inside it. Records and acres are added up; species and vegetation types are counted once.</li>
-      <li>Under Recent iNaturalist observations, the details panel lists the newest iNaturalist records inside the selected cell or cells, fetched live from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you select them. Records with obscured locations are left out, since they cannot be placed in a cell.</li>
+      <li>Under Recent iNaturalist observations, the details panel lists the newest iNaturalist records inside the selected cell or cells, fetched live from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you open that list. Records with obscured locations are left out, since they cannot be placed in a cell.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
       <li>Trail miles are measured along the mapped centerline, south to north from Springer Mountain, and are approximate.</li>
     </ul>
@@ -483,7 +483,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   };
 
   var cache = new Map();
-  var controller = null;
+  var pending = null; // the request in flight: { key, el, opts, controller }
   var cssDone = false;
 
   function rings(g) {
@@ -580,10 +580,8 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       html += '</ul>';
     }
 
-    if (data.obscured) {
-      html += '<p class="inat-note">' + data.obscured + ' record' + (data.obscured === 1 ? '' : 's') +
-              ' with obscured locations left out.</p>';
-    }
+    // Obscured records are excluded by the query itself, so they can't be counted per cell; say so once.
+    html += '<p class="inat-note">Records with obscured locations are not listed, since they can\u2019t be placed in a cell.</p>';
     html += '<a class="inat-more" href="' + esc(more) + '" target="_blank" rel="noopener">See all on iNaturalist</a></div>';
     el.innerHTML = html;
   }
@@ -597,26 +595,32 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     var b = bbox(rs);
     var key = opts.id != null ? String(opts.id) : bboxQuery(b);
 
-    if (controller) controller.abort(); // drop the previous click's request
+    var loading = '<div class="inat-wrap"><p class="inat-note">Loading iNaturalist observations…</p></div>';
+    // The same cell asked for again while its request is out (the panel was redrawn): show the result in the new container.
+    if (pending && pending.key === key) { pending.el = el; pending.opts = opts; el.innerHTML = loading; return pending.promise; }
+    if (pending) pending.controller.abort(); // drop the previous click's request
+    pending = null;
     if (cache.has(key)) { render(el, cache.get(key), opts, b); return Promise.resolve(cache.get(key)); }
 
-    controller = new AbortController();
-    el.innerHTML = '<div class="inat-wrap"><p class="inat-note">Loading iNaturalist observations…</p></div>';
+    var job = { key: key, el: el, opts: opts, controller: new AbortController() };
+    pending = job;
+    el.innerHTML = loading;
 
     var url = CONFIG.api + '?' + projectQuery() + bboxQuery(b) +
+      '&geoprivacy=open&taxon_geoprivacy=open' + // obscured records would only take up places in the page
       '&order_by=observed_on&order=desc&per_page=' + CONFIG.perPage +
       (CONFIG.qualityGrade ? '&quality_grade=' + CONFIG.qualityGrade : '');
 
-    return fetch(url, { signal: controller.signal })
+    return job.promise = fetch(url, { signal: job.controller.signal })
       .then(function (r) {
         if (!r.ok) throw new Error('iNaturalist returned ' + r.status);
         return r.json();
       })
       .then(function (json) {
-        var data = { items: [], obscured: 0 };
+        var data = { items: [] };
         (json.results || []).forEach(function (o) {
           // Obscured records carry randomized coordinates, so they can't be placed in a cell.
-          if (o.obscured || o.geoprivacy === 'obscured' || o.geoprivacy === 'private') { data.obscured++; return; }
+          if (o.obscured || o.geoprivacy === 'obscured' || o.geoprivacy === 'private') return;
           var c = o.geojson && o.geojson.coordinates;
           if (!c) return;
           var x = Number(c[0]), y = Number(c[1]);
@@ -624,12 +628,14 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
           if (rs.some(function (r) { return inRing(x, y, r); })) data.items.push(o);
         });
         cache.set(key, data);
-        render(el, data, opts, b);
+        if (pending === job) pending = null;
+        render(job.el, data, job.opts, b);
         return data;
       })
       .catch(function (err) {
         if (err.name === 'AbortError') return null;
-        el.innerHTML = '<div class="inat-wrap"><p class="inat-note">Couldn’t reach iNaturalist just now. Try again in a moment.</p></div>';
+        if (pending === job) pending = null;
+        job.el.innerHTML = '<div class="inat-wrap"><p class="inat-note">Couldn’t reach iNaturalist just now. Try again in a moment.</p></div>';
         return null;
       });
   }
@@ -1244,7 +1250,7 @@ const isPhone = () => window.innerWidth <= 860;
 function placeProfile(){ const p = $('#profile'), phone = isPhone();
   if (phone && p.parentNode !== document.body) $('#strip').after(p);
   else if (!phone && p.parentNode !== $('#mapwrap')) $('#mapwrap').appendChild(p); }
-function sheet(state){ const p = $('#profile'), hb = $('#phandle'); p.classList.toggle('peek', state === 'peek'); p.classList.toggle('full', state === 'full');
+function sheet(state){ const p = $('#profile'), hb = $('#phandle'); p.classList.toggle('peek', state === 'peek'); p.classList.toggle('full', state === 'full'); inatCheck();
   hb.setAttribute('aria-expanded', state === 'full'); hb.querySelector('span').textContent = state === 'full' ? 'Hide details' : 'Show details'; }
 function showBar(){ setTimeout(() => { const r = $('#profile').getBoundingClientRect(); if (!r.height) return;
   /* summary: bring the whole block on screen. expanded: bring its heading on screen and leave the map where it is. */
@@ -1333,10 +1339,13 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
    Species on the page's invasive, priority invasive and forest pest lists get a badge. */
 let INATFLAGS = null;
 const INAT_MAX_SPAN = 1; /* degrees: the API returns only the newest records in the bounding box, so a wide selection would find almost none inside its cells */
-/* The list is folded by default and fetched only when opened; once opened it stays open for the next cell. */
+/* The list is folded by default and fetched only when it can be seen: opened, inside an open iNaturalist section,
+   and not in the phone's short summary. Once opened it stays open for the next cell. inatCheck() runs whenever one of those changes. */
+let inatCheck = () => {};
 function inatLive(rings, id){ const d = $('#inatrec'); if (!d) return; let done = false;
-  const go = () => { if (d.open && !done){ done = true; inatFetch(rings, id); } };
-  d.addEventListener('toggle', () => { S.inatOpen = d.open; go(); }); go(); }
+  inatCheck = () => { if (!done && d.isConnected && d.open && d.getClientRects().length){ done = true; inatFetch(rings, id); } };
+  d.addEventListener('toggle', () => { S.inatOpen = d.open; inatCheck(); });
+  setTimeout(() => inatCheck()); /* after select() has finished laying out the panel (on phones it then shrinks to the summary) */ }
 function inatFetch(rings, id){ const el = $('#inatlive'); if (!el || !window.ATiNat) return;
   const la = rings.flat().map(p => p[0]), lo = rings.flat().map(p => p[1]);
   if (Math.max(...la) - Math.min(...la) > INAT_MAX_SPAN || Math.max(...lo) - Math.min(...lo) > INAT_MAX_SPAN){
@@ -1354,7 +1363,7 @@ function finishProfile(html){ $('#pbody').innerHTML = html;
     while (h.nextSibling) body.appendChild(h.nextSibling);
     sec.appendChild(body);
     h.innerHTML = `<button type="button" class="sectog" aria-expanded="${open}" aria-controls="${body.id}"><span>${esc(h.textContent)}</span><i aria-hidden="true"></i></button>`;
-    h.firstChild.onclick = () => { const now = body.hidden; body.hidden = !now; S.secOpen[key] = now; h.firstChild.setAttribute('aria-expanded', now); }; }); $('#pbody').scrollTop = 0; $('#profile').classList.add('open'); }
+    h.firstChild.onclick = () => { const now = body.hidden; body.hidden = !now; S.secOpen[key] = now; h.firstChild.setAttribute('aria-expanded', now); inatCheck(); }; }); $('#pbody').scrollTop = 0; $('#profile').classList.add('open'); }
 
 /* ---------- export of the selection shown in the popup ---------- */
 const EXPORTBTNS = '<button type="button" class="exp" id="pexcsv" title="Download everything in this panel as a CSV file">Export CSV</button><button type="button" class="exp" id="pexxls" title="Download everything in this panel as an Excel workbook">Export Excel</button><p class="pexmsg" id="pexmsg" role="status"></p>';
