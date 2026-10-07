@@ -7,20 +7,20 @@
 <meta name="description" content="Land, vegetation, wildlife records and review priorities for the Appalachian Trail corridor, summarized on one nested grid.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{
   --hdr:#1C3B5A; --ink:#EEF3F8; --ink2:#2B5478; --ground:#1F3049; --panel:#142235; --line:#33465F; --onlight:#142235;
   --muted:#BCC9D8; --blaze:#8EC2F0; --blaze-soft:#E3EEF8;
-  --body:'Public Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --body:'Geist',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --cond:var(--body); /* headings: the same face at semibold */
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{font-family:var(--body);font-size:15px;line-height:1.5;color:var(--ink);background:var(--panel);
   display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:350px 1fr;grid-template-areas:"head head" "side map" "side strip";
-  font-variant-numeric:tabular-nums}
+}
 button,select{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--blaze);outline-offset:2px}
@@ -76,7 +76,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .qbody{padding:0 14px 6px 15px}
 .blk{border-top:1px solid var(--line)}
 .qbody>.blk:first-child{border-top:0}
-.blk h2{font-size:15px;margin:0;letter-spacing:.02em}
+.blk h2{font-size:15px;margin:0}
 .blktog{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;padding:6px 0 5px;font:inherit;color:#fff;text-align:left}
 /* collapse chevrons on the side panel blocks, the legend and the profile sections */
 .blktog i,#legtog i,.sectog i{flex:none;width:0;height:0;border:5px solid transparent;border-top:6px solid var(--ink);border-bottom:0;transition:transform .15s}
@@ -230,7 +230,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .phead{padding:12px 14px 10px;border-bottom:1px solid var(--line);position:relative}
 .phead h2{font-size:20px;padding-right:30px}
 .phead p{margin:2px 0 0;font-size:14px;color:var(--muted)}
-.phead .id{font-size:13.5px;color:var(--muted);letter-spacing:.02em}
+.phead .id{font-size:13.5px;color:var(--muted)}
 #pclose{position:absolute;top:8px;right:8px;width:30px;height:30px;border:0;background:none;color:#fff;font-size:22px;line-height:1;border-radius:4px}
 #pclose:hover{background:var(--ground)}
 .phandle,.peekval{display:none}
@@ -246,11 +246,11 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 #inatrec .inat-head{display:none}
 .pbody{overflow-y:auto;padding:0 14px 14px}
 /* profile sections: a block tinted with the section's color (the plain values are for browsers without color-mix) */
-.sec{margin:10px 0 0;padding:9px 12px 11px;border-radius:6px;background:var(--ground);border:1px solid var(--line);
-  background:color-mix(in srgb,var(--hue) var(--tint,46%),var(--panel));border-color:color-mix(in srgb,var(--hue) 85%,var(--panel));--muted:#DDE6EF}
-.sec h3{font-size:17px;margin:0}
+.sec{margin:10px 0 0;border-radius:6px;overflow:hidden;background:var(--ground);border:1px solid var(--line);
+  background:color-mix(in srgb,var(--hue) 8%,var(--panel));border-color:color-mix(in srgb,var(--hue) 75%,var(--panel))}
+.sec h3{font-size:17px;margin:0;padding:7px 12px 8px;background:var(--ground);background:color-mix(in srgb,var(--hue) var(--tint,46%),var(--panel))}
 .sectog{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;padding:2px 0;font:inherit;color:inherit;text-align:left}
-.secbody{margin-top:4px}
+.secbody{padding:8px 12px 12px}
 .secbody[hidden]{display:none}
 .sec p{margin:3px 0}
 .sec .none{color:var(--muted)}
@@ -259,6 +259,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .facts b{display:block;font-family:var(--cond);font-size:19px;font-weight:600;color:var(--ink)}
 .stack{display:flex;height:12px;border-radius:2px;overflow:hidden;margin:6px 0 5px;background:var(--ground)}
 .stack span{display:block;height:100%}
+.keys,.rank,.catrow,#legend,.guild{font-variant-numeric:tabular-nums}
 .keys{font-size:13.5px}
 .keys div{display:grid;grid-template-columns:10px 1fr auto;gap:7px;align-items:center;padding:1px 0}
 .keys i{width:10px;height:10px;border-radius:2px}
@@ -271,7 +272,8 @@ details.t10>summary{color:var(--ink);font-size:15px;font-weight:500}
 ol.spp.top10{list-style:decimal;padding-left:22px}
 ol.spp.top10 li::marker{color:var(--muted);font-size:13.5px}
 .spp em{color:var(--muted)}
-.spp a{color:var(--ink);text-decoration:underline;text-decoration-color:#6F8798;text-underline-offset:2px}
+.spp a{color:var(--ink);text-decoration:none;text-underline-offset:2px}
+.spp a:hover,.spp a:focus-visible{text-decoration:underline}
 .spp a:hover{color:var(--blaze);text-decoration-color:var(--blaze)}
 .spp a:hover em{color:var(--blaze)}
 .spp .tag{font-size:13px;border:1px solid var(--line);border-radius:3px;padding:0 4px;margin-left:4px;color:var(--muted);white-space:nowrap}
