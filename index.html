@@ -7,19 +7,19 @@
 <meta name="description" content="Land, vegetation, wildlife records and review priorities for the Appalachian Trail corridor, summarized on one nested grid.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{
-  --hdr:#1C3B5A; --ink:#EEF3F8; --ink2:#2B5478; --ground:#1F3049; --panel:#142235; --line:#33465F; --onlight:#142235;
-  --muted:#BCC9D8; --blaze:#8EC2F0; --blaze-soft:#E3EEF8;
-  --body:'Public Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-  --cond:var(--body); /* headings: the same face at semibold */
+  --hdr:#0F3A40; --ink:#F1F3F4; --ink2:#1D5158; --ground:#2A2E32; --panel:#1D2023; --line:#3B4146; --onlight:#1D2023;
+  --muted:#B4BCBF; --blaze:#8EC2F0; --blaze-soft:#E3EEF8;
+  --body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --cond:'Barlow Condensed','Arial Narrow',var(--body);
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
-body{font-family:var(--body);font-size:15px;line-height:1.5;color:var(--ink);background:var(--panel);
-  display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:350px 1fr;grid-template-areas:"head head" "side map" "side strip";
+body{font-family:var(--body);font-size:14px;line-height:1.42;color:var(--ink);background:var(--panel);
+  display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:330px 1fr;grid-template-areas:"head head" "side map" "side strip";
   font-variant-numeric:tabular-nums}
 button,select{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -30,92 +30,95 @@ h1,h2,h3{font-family:var(--cond);font-weight:600;margin:0;line-height:1.15}
 header{grid-area:head;background:var(--hdr);color:#fff;display:flex;align-items:center;gap:14px;padding:9px 16px;flex-wrap:wrap}
 .blaze{width:9px;height:26px;background:#fff;border-radius:1.5px;flex:none}
 header h1{font-size:21px;letter-spacing:.01em}
-header p{margin:0;color:#BCCDE0;font-size:14px;flex:1 1 260px;min-width:0}
+header p{margin:0;color:#BFD0C9;font-size:13px;flex:1 1 260px;min-width:0}
 .hctl{display:flex;gap:8px;align-items:center}
 .find{position:relative}
 .findlabel{margin-top:6px}
-#find{width:100%;color-scheme:light;background:#fff;color:#14294A;border:2px solid #fff;border-radius:5px;padding:5px 8px;font:inherit;font-size:15px;font-weight:500}
-#find::placeholder{color:#62758C;font-weight:400;font-size:13px;letter-spacing:-.01em}
+#find{width:100%;color-scheme:light;background:#fff;color:#17302B;border:2px solid #fff;border-radius:5px;padding:5px 8px;font:inherit;font-size:14px;font-weight:500}
+#find::placeholder{color:#6B7A76;font-weight:400;font-size:12px;letter-spacing:-.01em}
 #find:hover{border-color:#9CC3E6}
 #find:focus{outline:3px solid #9CC3E6;outline-offset:1px}
-#findlist{position:absolute;z-index:2000;top:calc(100% + 5px);left:0;right:0;margin:0;padding:4px;list-style:none;background:#142235;border:1px solid #33465F;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.55);max-height:62vh;overflow-y:auto}
+#findlist{position:absolute;z-index:2000;top:calc(100% + 5px);left:0;right:0;margin:0;padding:4px;list-style:none;background:#1D2023;border:1px solid #3B4146;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.55);max-height:62vh;overflow-y:auto}
 #findlist[hidden]{display:none}
-#findlist li{padding:6px 8px;border-radius:4px;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:1px 10px;font-size:14px;color:#EEF3F8;line-height:1.3}
-#findlist li[aria-selected=true],#findlist li[data-i]:hover{background:#283C57}
-#findlist em{color:#A8B8CA}
-#findlist .k{grid-column:1;font-size:13px;color:#A8B8CA}
-#findlist .n{grid-row:1/3;grid-column:2;align-self:center;font-size:13px;color:#A8B8CA;white-space:nowrap}
-#findlist .none{cursor:default;color:#A8B8CA;display:block}
+#findlist li{padding:6px 8px;border-radius:4px;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:1px 10px;font-size:13px;color:#F1F3F4;line-height:1.3}
+#findlist li[aria-selected=true],#findlist li[data-i]:hover{background:#2F3439}
+#findlist em{color:#B4BCBF}
+#findlist .k{grid-column:1;font-size:12px;color:#B4BCBF}
+#findlist .n{grid-row:1/3;grid-column:2;align-self:center;font-size:12px;color:#B4BCBF;white-space:nowrap}
+#findlist .none{cursor:default;color:#B4BCBF;display:block}
 .findbar{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin:8px 0 4px;padding:8px 10px;border:1px solid #6B5A1E;border-left:5px solid #FFC233;border-radius:4px;background:#2A2718}
 .findbar b{font-family:var(--cond);font-size:17px;font-weight:600;display:block;line-height:1.2}
-.findbar em{font-size:13.5px;color:var(--muted)}
-.findbar span{display:block;font-size:13px;color:var(--muted);margin-top:2px}
-.selall{display:block;width:100%;margin:2px 0 6px;border:1px solid #FFC233;background:#2A2718;color:#FFE08A;border-radius:4px;padding:5px 10px;font-size:14px;font-weight:500;text-align:center}
+.findbar em{font-size:12.5px;color:var(--muted)}
+.findbar span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.selall{display:block;width:100%;margin:2px 0 6px;border:1px solid #FFC233;background:#2A2718;color:#FFE08A;border-radius:4px;padding:5px 10px;font-size:13px;font-weight:500;text-align:center}
 .selall:hover{background:#3A3520;color:#fff}
-.findbar button,.lbtn{flex:none;border:1px solid #4A6182;background:none;color:#E3EAF2;border-radius:4px;padding:2px 9px;font-size:13.5px}
+.findbar button,.lbtn{flex:none;border:1px solid #545C62;background:none;color:#E6EAEB;border-radius:4px;padding:2px 9px;font-size:12.5px}
 .findbar button:hover,.lbtn:hover{border-color:#fff}
 .lbtn{margin-top:7px}
-.hctl label{font-size:13.5px;color:#BCCDE0}
-.hctl select{background:var(--ink2);color:#fff;border:1px solid #5578A0;border-radius:4px;padding:5px 8px;max-width:240px}
-.hctl button{background:none;border:1px solid #5578A0;color:#fff;border-radius:4px;padding:5px 10px}
+.hctl label{font-size:12.5px;color:#BFD0C9}
+.hctl select{background:var(--ink2);color:#fff;border:1px solid #4C7B82;border-radius:4px;padding:5px 8px;max-width:240px}
+.hctl button{background:none;border:1px solid #4C7B82;color:#fff;border-radius:4px;padding:5px 10px}
 .hctl button:hover{background:var(--ink2)}
 
 /* side */
-aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;overflow-y:auto;min-height:0;color-scheme:dark}
-.secpick{padding:9px 14px 12px 16px;background:var(--hdr);color:#fff;display:flex;flex-direction:column;gap:4px;border-top:1px solid #345A80;border-bottom:1px solid #0A131F}
-.secpick label{font-family:var(--cond);font-size:15.5px;font-weight:600;letter-spacing:.01em}
-.secpick select{width:100%;color-scheme:light;background:#fff;color:#14294A;border:2px solid #fff;border-radius:5px;padding:5px 10px;font-size:15px;font-weight:500;cursor:pointer}
+aside{grid-area:side;background:var(--panel);border-right:1px solid #0E1011;overflow-y:auto;min-height:0;color-scheme:dark}
+.secpick{padding:9px 14px 12px 16px;background:var(--hdr);color:#fff;display:flex;flex-direction:column;gap:4px;border-top:1px solid #2F5F66;border-bottom:1px solid #0E1011}
+.secpick label{font-family:var(--cond);font-size:15px;font-weight:600;letter-spacing:.01em}
+.secpick select{width:100%;color-scheme:light;background:#fff;color:#17302B;border:2px solid #fff;border-radius:5px;padding:5px 10px;font-size:14px;font-weight:500;cursor:pointer}
 .secpick select:hover{border-color:#9CC3E6}
 .secpick select:focus-visible{outline:3px solid #9CC3E6;outline-offset:1px}
 /* question cards, tinted with each question's color like the profile sections; the selected one is stronger (plain values are for browsers without color-mix) */
 .qs{border-bottom:1px solid var(--line);padding:8px 12px 9px 14px;display:flex;flex-direction:column;gap:5px}
-.qs button{display:block;width:100%;text-align:left;padding:5px 10px 6px;border-radius:6px;font-family:var(--cond);font-size:15.5px;font-weight:500;line-height:1.35;color:#D0DAE5;
-  background:var(--ground);border:1px solid var(--line);background:color-mix(in srgb,var(--hue) 28%,var(--panel));border-color:color-mix(in srgb,var(--hue) 60%,var(--panel))}
-.qs button:hover{color:var(--ink);background:color-mix(in srgb,var(--hue) 40%,var(--panel))}
-.qs button[aria-current=true]{font-weight:600;color:#fff;background:color-mix(in srgb,var(--hue) 55%,var(--panel));border-color:var(--hue);box-shadow:inset 0 0 0 1px var(--hue)}
+.qs button{display:block;width:100%;text-align:left;padding:5px 10px 6px;border-radius:6px;font-family:var(--cond);font-size:16px;font-weight:500;color:#D5DADC;
+  background:var(--ground);border:1px solid var(--line);background:color-mix(in srgb,var(--hue) 32%,var(--panel));border-color:color-mix(in srgb,var(--hue) 62%,var(--panel))}
+.qs button:hover{color:var(--ink);background:color-mix(in srgb,var(--hue) 42%,var(--panel))}
+.qs button[aria-current=true]{font-weight:600;color:#fff;background:color-mix(in srgb,var(--hue) 60%,var(--panel));border-color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.85)}
 .qbody{padding:0 14px 6px 15px}
 .blk{border-top:1px solid var(--line)}
 .qbody>.blk:first-child{border-top:0}
-.blk h2{font-size:15px;margin:0;letter-spacing:.02em}
+.blk h2{font-size:14.5px;margin:0;letter-spacing:.02em}
 .blktog{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;padding:6px 0 5px;font:inherit;color:#fff;text-align:left}
 /* collapse chevrons on the side panel blocks, the legend and the profile sections */
 .blktog i,#legtog i,.sectog i{flex:none;width:0;height:0;border:5px solid transparent;border-top:6px solid var(--ink);border-bottom:0;transition:transform .15s}
-.blktog i{border-top-color:#C2CEDB}
+.blktog i{border-top-color:#C9D0D3}
 .blktog[aria-expanded=false] i,#legtog[aria-expanded=false] i,.sectog[aria-expanded=false] i{transform:rotate(-90deg)}
 .blktog:hover span,.sectog:hover span{text-decoration:underline;text-underline-offset:3px}
 .blkbody{padding-bottom:8px}
 .blkbody[hidden],.blk.res>.blkbody[hidden]{display:none !important}
 .findbar+.blk{border-top:0}
-.use{margin:0;color:#D0DAE5;max-width:40em;font-size:14px;line-height:1.5}
+.use{margin:0;color:#D5DADC;max-width:40em;font-size:12.5px;line-height:1.36}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin:0}
-.chips button{border:1px solid #4A6182;background:none;color:#E3EAF2;border-radius:999px;padding:2px 9px;font-size:13.5px}
+.chips button{border:1px solid #545C62;background:none;color:#E6EAEB;border-radius:999px;padding:2px 9px;font-size:12.5px}
 .chips button:hover{border-color:var(--ink)}
 .chips button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--onlight);font-weight:500}
-.statline{font-size:13.5px;color:var(--muted);margin:0 0 4px}
-.rank h3{font-size:15.5px;margin:6px 0 3px;flex:none}
+.statline{font-size:12.5px;color:var(--muted);margin:0 0 4px}
+.rank h3{font-size:15px;margin:6px 0 3px;flex:none}
 .rank ol{list-style:none;margin:0;padding:0}
 .rank ol.scroll{max-height:264px;overflow-y:auto;border-bottom:1px solid var(--line);padding-right:8px;overscroll-behavior:contain;scrollbar-width:thin}
 .rank ol.scroll li:first-child button{border-top:0}
-.rank .cnt{font-family:var(--body);font-size:13.5px;font-weight:400;color:var(--muted);margin-left:6px}
+.rank .cnt{font-family:var(--body);font-size:12.5px;font-weight:400;color:var(--muted);margin-left:6px}
 .rank li button{display:grid;grid-template-columns:1fr auto;gap:2px 10px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:4px 0}
 .rank li button:hover{background:var(--ground)}
 .rank .where{font-weight:500}
-.rank .club{grid-column:1;font-size:13.5px;color:var(--muted)}
+.rank .club{grid-column:1;font-size:12.5px;color:var(--muted)}
 .rank .val{grid-row:1/3;grid-column:2;align-self:center;font-family:var(--cond);font-size:19px;font-weight:600}
-.catrow{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;padding:3px 0;font-size:14px}
+.rank .val.two{grid-row:1;align-self:end;text-align:right;line-height:1.05}
+.rank .eff{grid-row:2;grid-column:2;font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap}
+.rank .eff.thin{color:#F4B08E}
+.catrow{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;padding:3px 0;font-size:13px}
 .catrow i{width:12px;height:12px;border-radius:2px}
 .catrow b{font-weight:500;color:var(--muted)}
 
 /* map */
 #mapwrap{grid-area:map;position:relative;min-height:0;min-width:0}
 #map{position:absolute;inset:0;background:#DDE3DC}
-.leaflet-container{font-family:var(--body);font-size:14px}
+.leaflet-container{font-family:var(--body);font-size:13px}
 .muted-tiles{filter:grayscale(.75) contrast(.92) brightness(1.06)}
 .mapctl{position:absolute;z-index:500;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 .leaflet-bar{border:1px solid var(--line) !important;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 .leaflet-bar a,.leaflet-bar a:hover{background:var(--panel);color:#fff;border-bottom-color:var(--line)}
 .leaflet-bar a:hover{background:var(--ground)}
-.leaflet-bar a.leaflet-disabled{background:var(--panel);color:#60738B}
+.leaflet-bar a.leaflet-disabled{background:var(--panel);color:#6A7378}
 .leaflet-bar a,.leaflet-touch .leaflet-bar a{width:30px;height:30px;line-height:30px;box-sizing:border-box}
 .leaflet-bar a:first-child{height:31px}
 /* zoom control spans 10px to 73px; the two control rows beside it share that height */
@@ -124,100 +127,94 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 #ctlrow1,#ctlrow2{display:flex;gap:6px;min-height:29px}
 #ctls .mapctl{position:static}
 #ctlrow1>.mapctl,#ctlrow2>.mapctl{height:29px}
-@media (min-width:861px){
-  #mapwrap:has(#profile.open) #ctls{right:375px}
-  #mapwrap:has(#profile.open) #ctlrow1,#mapwrap:has(#profile.open) #ctlrow2{flex-wrap:wrap}
-  #mapwrap:has(#profile.open) #tools{height:auto;min-height:29px}
-  #mapwrap:has(#profile.open) #toolsbody{flex-wrap:wrap}
-}
 #levels{display:flex;padding:3px;gap:2px}
-#levels button{border:0;background:none;border-radius:4px;padding:0 10px;font-size:13.5px;line-height:21px;color:#D0DAE5}
+#levels button{border:0;background:none;border-radius:4px;padding:0 10px;font-size:13px;line-height:21px;color:#D5DADC}
 #levels button[aria-pressed=true]{background:var(--ink);color:var(--onlight);font-weight:500}
-#base{padding:0 6px 0 10px;display:flex;gap:7px;align-items:center;font-size:13.5px}
+#base{padding:0 6px 0 10px;display:flex;gap:7px;align-items:center;font-size:13px}
 #base span{color:var(--muted)}
-#base select{color:var(--ink);color-scheme:dark;border:0;background:none;padding:2px;font-size:13.5px;font-weight:500;cursor:pointer;max-width:200px}
-#base select option{color:#EEF3F8;background:#142235}
+#base select{color:var(--ink);color-scheme:dark;border:0;background:none;padding:2px;font-size:13px;font-weight:500;cursor:pointer;max-width:190px}
+#base select option{color:#F1F3F4;background:#1D2023}
 /* Map tools: a box beside the cell-size buttons that opens to the right and stays open until its title is clicked */
 #tools{display:flex;align-items:stretch;padding:3px;gap:2px}
-#toolstog{display:flex;align-items:center;gap:7px;border:0;background:none;border-radius:4px;padding:0 8px 0 9px;font-size:13.5px;font-weight:500;color:var(--ink);white-space:nowrap}
-#toolstog i{width:0;height:0;border:4.5px solid transparent;border-left:6px solid #C2CEDB;border-right:0;transition:transform .15s}
+#toolstog{display:flex;align-items:center;gap:7px;border:0;background:none;border-radius:4px;padding:0 8px 0 9px;font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap}
+#toolstog i{width:0;height:0;border:4.5px solid transparent;border-left:6px solid #C9D0D3;border-right:0;transition:transform .15s}
 #toolstog[aria-expanded=true] i{transform:rotate(180deg)}
 #toolstog:hover{background:var(--ground)}
 #toolsbody{display:flex;gap:2px;padding-left:5px;margin-left:3px;border-left:1px solid var(--line)}
 #toolsbody[hidden]{display:none}
-#toolsbody button{display:flex;align-items:center;gap:6px;border:0;background:none;border-radius:4px;padding:0 9px;font-size:13.5px;line-height:21px;color:#D0DAE5;white-space:nowrap}
+#toolsbody button{display:flex;align-items:center;gap:6px;border:0;background:none;border-radius:4px;padding:0 9px;font-size:13px;line-height:21px;color:#D5DADC;white-space:nowrap}
 #toolsbody button:hover{background:var(--ground);color:#fff}
-#cellsbtn i{width:11px;height:11px;border-radius:2px;background:#E3EAF2;border:1.5px solid #E3EAF2;flex:none}
+#cellsbtn i{width:11px;height:11px;border-radius:2px;background:#E6EAEB;border:1.5px solid #E6EAEB;flex:none}
 #cellsbtn[aria-pressed=false]{color:var(--muted)}
-#cellsbtn[aria-pressed=false] i{background:none;border-color:#8194AA}
-#boxbtn i{width:12px;height:10px;border:1.5px dashed #C2CEDB;border-radius:1px;flex:none}
+#cellsbtn[aria-pressed=false] i{background:none;border-color:#8E9A92}
+#boxbtn i{width:12px;height:10px;border:1.5px dashed #C9D0D3;border-radius:1px;flex:none}
 #toolsbody #boxbtn[aria-pressed=true]{background:var(--ink);color:var(--onlight);font-weight:500}
 #boxbtn[aria-pressed=true] i{border-color:var(--onlight)}
 #toolsbody #clearbtn{color:#F4B08E}
 #clearbtn[hidden]{display:none !important}
-#boxdraw{position:absolute;z-index:640;border:2px dashed #fff;background:rgba(255,255,255,.14);box-shadow:0 0 0 1px rgba(20,41,74,.7);pointer-events:none}
+#boxdraw{position:absolute;z-index:640;border:2px dashed #fff;background:rgba(255,255,255,.14);box-shadow:0 0 0 1px rgba(23,48,43,.7);pointer-events:none}
 #boxdraw[hidden]{display:none}
 #mapwrap.drawing #map,#mapwrap.drawing #map .leaflet-interactive{cursor:crosshair !important}
 #mapwrap.drawing #map{touch-action:none !important}
 .leaflet-tooltip.pin{z-index:1;pointer-events:auto;cursor:default;padding-right:26px}
-.pinx{position:absolute;top:2px;right:2px;width:20px;height:20px;border:0;border-radius:3px;background:none;color:#C2CEDB;font-size:15.5px;line-height:18px;padding:0;cursor:pointer}
-.pinx:hover{background:#283C57;color:#fff}
-#note{padding:5px 10px;font-size:13.5px;max-width:300px;display:none}
-#legend{left:10px;bottom:8px;padding:9px 11px;max-width:250px;font-size:13.5px}
-#legend h3{font-size:15px;margin:0}
+.pinx{position:absolute;top:2px;right:2px;width:20px;height:20px;border:0;border-radius:3px;background:none;color:#C9D0D3;font-size:15px;line-height:18px;padding:0;cursor:pointer}
+.pinx:hover{background:#2F3439;color:#fff}
+#note{padding:5px 10px;font-size:12.5px;max-width:300px;display:none}
+#legend{left:10px;bottom:8px;padding:9px 11px;max-width:250px;font-size:12.5px}
+#legend h3{font-size:14px;margin:0}
 #legtog{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;padding:0;font:inherit;text-align:left}
 #legbody{margin-top:5px}
 #legbody[hidden]{display:none}
 #legend .row{display:grid;grid-template-columns:16px 1fr;gap:7px;align-items:center;padding:1.5px 0}
 #legend i{width:16px;height:12px;border-radius:2px;display:block}
 #legend .row i,.keys i,.catrow i{box-shadow:0 0 0 1px rgba(255,255,255,.22)}
-#legend .hollow{border:1px solid #8FA2B7;background:none}
+#legend .hollow{border:1px solid #98A2A6;background:none}
 #legend label{display:flex;gap:6px;align-items:center;margin-top:6px;color:var(--muted)}
 #legend .sub{color:var(--muted);margin:4px 0 0}
-.leaflet-container .leaflet-control-attribution{font-size:10.5px;line-height:1.3;padding:1px 5px;max-width:calc(100vw - 350px - 285px);text-align:right;white-space:normal;background:rgba(20,34,53,.86);color:#C2CEDB}
-.leaflet-container .leaflet-control-attribution a{color:#E3EAF2}
-#maphint{position:absolute;z-index:650;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(10,19,33,.88);color:#fff;font-size:15px;font-weight:500;padding:9px 14px;border-radius:6px;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap}
+.leaflet-container .leaflet-control-attribution{font-size:10px;line-height:1.3;padding:1px 5px;max-width:calc(100vw - 330px - 285px);text-align:right;white-space:normal;background:rgba(29,32,35,.86);color:#C9D0D3}
+.leaflet-container .leaflet-control-attribution a{color:#E6EAEB}
+#maphint{position:absolute;z-index:650;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(15,17,19,.88);color:#fff;font-size:14px;font-weight:500;padding:9px 14px;border-radius:6px;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap}
 #maphint.on{opacity:1}
 .mblogo{display:block;width:88px;height:23px;margin:0 6px 2px 0 !important;background-repeat:no-repeat;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20fill-rule%3D%22evenodd%22%20viewBox%3D%220%200%2088%2023%22%3E%3Cdefs%3E%3Cpath%20id%3D%22logo%22%20d%3D%22M11.5%202.25c5.105%200%209.25%204.145%209.25%209.25s-4.145%209.25-9.25%209.25-9.25-4.145-9.25-9.25%204.145-9.25%209.25-9.25zM6.997%2015.983c-.051-.338-.828-5.802%202.233-8.873a4.395%204.395%200%20013.13-1.28c1.27%200%202.49.51%203.39%201.42.91.9%201.42%202.12%201.42%203.39%200%201.18-.449%202.301-1.28%203.13C12.72%2016.93%207%2016%207%2016l-.003-.017zM15.3%2010.5l-2%20.8-.8%202-.8-2-2-.8%202-.8.8-2%20.8%202%202%20.8z%22%2F%3E%3Cpath%20id%3D%22text%22%20d%3D%22M50.63%208c.13%200%20.23.1.23.23V9c.7-.76%201.7-1.18%202.73-1.18%202.17%200%203.95%201.85%203.95%204.17s-1.77%204.19-3.94%204.19c-1.04%200-2.03-.43-2.74-1.18v3.77c0%20.13-.1.23-.23.23h-1.4c-.13%200-.23-.1-.23-.23V8.23c0-.12.1-.23.23-.23h1.4zm-3.86.01c.01%200%20.01%200%20.01-.01.13%200%20.22.1.22.22v7.55c0%20.12-.1.23-.23.23h-1.4c-.13%200-.23-.1-.23-.23V15c-.7.76-1.69%201.19-2.73%201.19-2.17%200-3.94-1.87-3.94-4.19%200-2.32%201.77-4.19%203.94-4.19%201.03%200%202.02.43%202.73%201.18v-.75c0-.12.1-.23.23-.23h1.4zm26.375-.19a4.24%204.24%200%2000-4.16%203.29c-.13.59-.13%201.19%200%201.77a4.233%204.233%200%20004.17%203.3c2.35%200%204.26-1.87%204.26-4.19%200-2.32-1.9-4.17-4.27-4.17zM60.63%205c.13%200%20.23.1.23.23v3.76c.7-.76%201.7-1.18%202.73-1.18%201.88%200%203.45%201.4%203.84%203.28.13.59.13%201.2%200%201.8-.39%201.88-1.96%203.29-3.84%203.29-1.03%200-2.02-.43-2.73-1.18v.77c0%20.12-.1.23-.23.23h-1.4c-.13%200-.23-.1-.23-.23V5.23c0-.12.1-.23.23-.23h1.4zm-34%2011h-1.4c-.13%200-.23-.11-.23-.23V8.22c.01-.13.1-.22.23-.22h1.4c.13%200%20.22.11.23.22v.68c.5-.68%201.3-1.09%202.16-1.1h.03c1.09%200%202.09.6%202.6%201.55.45-.95%201.4-1.55%202.44-1.56%201.62%200%202.93%201.25%202.9%202.78l.03%205.2c0%20.13-.1.23-.23.23h-1.41c-.13%200-.23-.11-.23-.23v-4.59c0-.98-.74-1.71-1.62-1.71-.8%200-1.46.7-1.59%201.62l.01%204.68c0%20.13-.11.23-.23.23h-1.41c-.13%200-.23-.11-.23-.23v-4.59c0-.98-.74-1.71-1.62-1.71-.85%200-1.54.79-1.6%201.8v4.5c0%20.13-.1.23-.23.23zm53.615%200h-1.61c-.04%200-.08-.01-.12-.03-.09-.06-.13-.19-.06-.28l2.43-3.71-2.39-3.65a.213.213%200%2001-.03-.12c0-.12.09-.21.21-.21h1.61c.13%200%20.24.06.3.17l1.41%202.37%201.4-2.37a.34.34%200%2001.3-.17h1.6c.04%200%20.08.01.12.03.09.06.13.19.06.28l-2.37%203.65%202.43%203.7c0%20.05.01.09.01.13%200%20.12-.09.21-.21.21h-1.61c-.13%200-.24-.06-.3-.17l-1.44-2.42-1.44%202.42a.34.34%200%2001-.3.17zm-7.12-1.49c-1.33%200-2.42-1.12-2.42-2.51%200-1.39%201.08-2.52%202.42-2.52%201.33%200%202.42%201.12%202.42%202.51%200%201.39-1.08%202.51-2.42%202.52zm-19.865%200c-1.32%200-2.39-1.11-2.42-2.48v-.07c.02-1.38%201.09-2.49%202.4-2.49%201.32%200%202.41%201.12%202.41%202.51%200%201.39-1.07%202.52-2.39%202.53zm-8.11-2.48c-.01%201.37-1.09%202.47-2.41%202.47s-2.42-1.12-2.42-2.51c0-1.39%201.08-2.52%202.4-2.52%201.33%200%202.39%201.11%202.41%202.48l.02.08zm18.12%202.47c-1.32%200-2.39-1.11-2.41-2.48v-.06c.02-1.38%201.09-2.48%202.41-2.48s2.42%201.12%202.42%202.51c0%201.39-1.09%202.51-2.42%202.51z%22%2F%3E%3C%2Fdefs%3E%3Cmask%20id%3D%22clip%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22white%22%2F%3E%3Cuse%20xlink%3Ahref%3D%22%23logo%22%2F%3E%3Cuse%20xlink%3Ahref%3D%22%23text%22%2F%3E%3C%2Fmask%3E%3Cg%20id%3D%22outline%22%20opacity%3D%220.3%22%20stroke%3D%22%23000%22%20stroke-width%3D%223%22%3E%3Ccircle%20mask%3D%22url(%23clip)%22%20cx%3D%2211.5%22%20cy%3D%2211.5%22%20r%3D%229.25%22%2F%3E%3Cuse%20xlink%3Ahref%3D%22%23text%22%20mask%3D%22url(%23clip)%22%2F%3E%3C%2Fg%3E%3Cg%20id%3D%22fill%22%20opacity%3D%220.9%22%20fill%3D%22%23fff%22%3E%3Cuse%20xlink%3Ahref%3D%22%23logo%22%2F%3E%3Cuse%20xlink%3Ahref%3D%22%23text%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E")}
 #layers{position:relative !important;display:flex;align-items:stretch;padding:3px}
-#layerstog{display:flex;align-items:center;gap:7px;border:0;background:none;border-radius:4px;padding:0 8px 0 9px;font-size:13.5px;font-weight:500;color:var(--ink);white-space:nowrap}
-#layerstog i{width:0;height:0;border:4.5px solid transparent;border-top:6px solid #C2CEDB;border-bottom:0;transition:transform .15s}
+#layerstog{display:flex;align-items:center;gap:7px;border:0;background:none;border-radius:4px;padding:0 8px 0 9px;font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap}
+#layerstog i{width:0;height:0;border:4.5px solid transparent;border-top:6px solid #C9D0D3;border-bottom:0;transition:transform .15s}
 #layerstog[aria-expanded=true] i{transform:rotate(180deg)}
 #layerstog:hover{background:var(--ground)}
-#layerstog b{font-weight:600;color:var(--onlight);background:var(--ink);border-radius:9px;padding:0 6px;font-size:12.5px;line-height:17px}
+#layerstog b{font-weight:600;color:var(--onlight);background:var(--ink);border-radius:9px;padding:0 6px;font-size:11.5px;line-height:17px}
 #layerspanel{position:absolute;top:calc(100% + 6px);left:-1px;width:250px;max-height:min(60vh,430px);overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.5);padding:6px 4px;color-scheme:dark}
 #layerspanel[hidden]{display:none}
-#layerspanel label{display:grid;grid-template-columns:auto 18px 1fr;gap:8px;align-items:center;padding:5px 8px;border-radius:4px;font-size:14px;cursor:pointer}
+#layerspanel label{display:grid;grid-template-columns:auto 18px 1fr;gap:8px;align-items:center;padding:5px 8px;border-radius:4px;font-size:13px;cursor:pointer}
 #layerspanel label:hover{background:var(--ground)}
 #layerspanel label i{width:11px;height:11px;border-radius:50%;border:1.5px solid #fff}
 #layerspanel label i.sq{border-radius:2px}
 #layerspanel label i.ln{height:3px;border-radius:2px;border:0}
-#layerspanel .st{grid-column:3;font-size:12.5px;color:var(--muted);margin-top:-3px}
+#layerspanel .st{grid-column:3;font-size:11.5px;color:var(--muted);margin-top:-3px}
 #layerspanel .st:empty{display:none}
-#layerspanel .lk{padding:2px 8px 6px 36px;font-size:12.5px;color:#C2CEDB}
+#layerspanel .lk{padding:2px 8px 6px 36px;font-size:11.5px;color:#C9D0D3}
 #layerspanel .lk div{display:grid;grid-template-columns:11px 1fr;gap:7px;align-items:center;padding:1px 0}
 #layerspanel .lk i{width:11px;height:9px;border-radius:1.5px;display:block}
-#layerspanel p{margin:6px 8px 2px;font-size:12.5px;color:var(--muted);line-height:1.35}
-.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#142235;color:#EEF3F8;box-shadow:0 4px 16px rgba(0,0,0,.55)}
-.leaflet-popup-content-wrapper{border:1px solid #33465F;border-radius:6px}
-.leaflet-popup-content{margin:10px 12px;font-size:14px;line-height:1.4}
+#layerspanel p{margin:6px 8px 2px;font-size:11.5px;color:var(--muted);line-height:1.35}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#1D2023;color:#F1F3F4;box-shadow:0 4px 16px rgba(0,0,0,.55)}
+.leaflet-popup-content-wrapper{border:1px solid #3B4146;border-radius:6px}
+.leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.4}
 .leaflet-popup-content h4{font-family:var(--cond);font-size:16px;font-weight:600;margin:0 0 3px}
 .leaflet-popup-content h4:last-child{margin:0}
-.leaflet-popup-content .k{color:#A8B8CA}
-.pthumb{display:block;width:230px;height:153px;margin:7px 0 0;border-radius:4px;overflow:hidden;background:#1F3049}
+.leaflet-popup-content .k{color:#B4BCBF}
+.pthumb{display:block;width:230px;height:153px;margin:7px 0 0;border-radius:4px;overflow:hidden;background:#2A2E32}
 .pthumb img{display:block;width:100%;height:100%;object-fit:cover}
 .pbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.leaflet-container a.pbtn{display:inline-block;background:#EEF3F8;color:#142235;font-weight:600;font-size:13.5px;border-radius:4px;padding:4px 12px;text-decoration:none}
+.leaflet-container a.pbtn{display:inline-block;background:#F1F3F4;color:#1D2023;font-weight:600;font-size:12.5px;border-radius:4px;padding:4px 12px;text-decoration:none}
 .leaflet-container a.pbtn:hover{background:#fff}
 .fic{display:flex;align-items:center;justify-content:center;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.45)}
 .ficm{background:none !important;border:0 !important}
 #layerspanel label .fic{border-width:1px;box-shadow:none}
-.featlab{max-width:230px;overflow:hidden;text-overflow:ellipsis;background:none;color:#fff;border:0;border-radius:0;padding:1px 3px;font-size:13px;font-weight:600;letter-spacing:.01em;box-shadow:none;white-space:nowrap;-webkit-text-stroke:3px rgba(12,14,16,.92);paint-order:stroke fill;text-shadow:0 0 3px rgba(12,14,16,.9)}
+.featlab{max-width:230px;overflow:hidden;text-overflow:ellipsis;background:none;color:#fff;border:0;border-radius:0;padding:1px 3px;font-size:12px;font-weight:600;letter-spacing:.01em;box-shadow:none;white-space:nowrap;-webkit-text-stroke:3px rgba(12,14,16,.92);paint-order:stroke fill;text-shadow:0 0 3px rgba(12,14,16,.9)}
 .featlab::before{display:none}
 .leaflet-tooltip.featlab{pointer-events:none}
-.leaflet-popup-content .ty{font-size:13px;color:#A8B8CA;margin-bottom:4px}
-.leaflet-container a.leaflet-popup-close-button{color:#C2CEDB}
-.tip{background:#0B1525;color:#fff;border:1px solid #33465F;border-radius:4px;padding:5px 8px;font-size:13.5px;box-shadow:none}
+.leaflet-popup-content .ty{font-size:12px;color:#B4BCBF;margin-bottom:4px}
+.leaflet-container a.leaflet-popup-close-button{color:#C9D0D3}
+.tip{background:#0F1113;color:#fff;border:1px solid #3B4146;border-radius:4px;padding:5px 8px;font-size:12.5px;box-shadow:none}
 .tip::before{display:none}
 
 /* profile */
@@ -226,19 +223,19 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 #profile.open{display:flex}
 .phead{padding:12px 14px 10px;border-bottom:1px solid var(--line);position:relative}
 .phead h2{font-size:20px;padding-right:30px}
-.phead p{margin:2px 0 0;font-size:14px;color:var(--muted)}
-.phead .id{font-size:13.5px;color:var(--muted);letter-spacing:.02em}
+.phead p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.phead .id{font-size:12.5px;color:var(--muted);letter-spacing:.02em}
 #pclose{position:absolute;top:8px;right:8px;width:30px;height:30px;border:0;background:none;color:#fff;font-size:22px;line-height:1;border-radius:4px}
 #pclose:hover{background:var(--ground)}
 .phandle,.peekval{display:none}
-.boxm{margin:10px 0 0;font-size:15px}
+.boxm{margin:10px 0 0;font-size:14px}
 .boxm span{color:var(--muted)}
 .boxm b{font-weight:600}
 .pnav{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-.pnav button{border:1px solid #4A6182;background:none;color:#E3EAF2;border-radius:4px;padding:3px 9px;font-size:13.5px}
+.pnav button{border:1px solid #545C62;background:none;color:#E6EAEB;border-radius:4px;padding:3px 9px;font-size:12.5px}
 .pnav button:hover{border-color:var(--ink)}
 .pnav .exp{border-color:#6F8798;color:#CFE3F5}
-.pexmsg{flex:1 1 100%;font-size:13.5px;color:var(--muted);margin:0 !important}
+.pexmsg{flex:1 1 100%;font-size:12.5px;color:var(--muted);margin:0 !important}
 .pexmsg:empty{display:none}
 #inatrec .inat-head{display:none}
 .pbody{overflow-y:auto;padding:0 14px 14px}
@@ -252,34 +249,33 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .sec p{margin:3px 0}
 .sec .none{color:var(--muted)}
 .facts{display:flex;gap:16px;flex-wrap:wrap;margin:4px 0 6px}
-.facts div{font-size:13.5px;color:var(--muted);line-height:1.2}
-.facts b{display:block;font-family:var(--cond);font-size:19px;font-weight:600;color:var(--ink)}
+.facts div{font-size:12.5px;color:var(--muted);line-height:1.2}
+.facts b{display:block;font-family:var(--cond);font-size:20px;font-weight:600;color:var(--ink)}
 .stack{display:flex;height:12px;border-radius:2px;overflow:hidden;margin:6px 0 5px;background:var(--ground)}
 .stack span{display:block;height:100%}
-.keys{font-size:13.5px}
+.keys{font-size:12.5px}
 .keys div{display:grid;grid-template-columns:10px 1fr auto;gap:7px;align-items:center;padding:1px 0}
 .keys i{width:10px;height:10px;border-radius:2px}
-.keys.nosw div{grid-template-columns:1fr auto;font-size:14px;padding:1.5px 0}
-.badge{display:inline-block;border-radius:3px;padding:1px 7px;font-size:13.5px;font-weight:500;background:var(--ground)}
-.spp{margin:4px 0 0;padding:0;list-style:none;font-size:14px}
+.keys.nosw div{grid-template-columns:1fr auto;font-size:13px;padding:1.5px 0}
+.badge{display:inline-block;border-radius:3px;padding:1px 7px;font-size:12.5px;font-weight:500;background:var(--ground)}
+.spp{margin:4px 0 0;padding:0;list-style:none;font-size:13px}
 .spp li{padding:1.5px 0}
 details.t10{margin-top:8px}
-details.t10>summary{color:var(--ink);font-size:15px;font-weight:500}
+details.t10>summary{color:var(--ink);font-size:14px;font-weight:500}
 ol.spp.top10{list-style:decimal;padding-left:22px}
-ol.spp.top10 li::marker{color:var(--muted);font-size:13.5px}
+ol.spp.top10 li::marker{color:var(--muted);font-size:12.5px}
 .spp em{color:var(--muted)}
 .spp a{color:var(--ink);text-decoration:underline;text-decoration-color:#6F8798;text-underline-offset:2px}
 .spp a:hover{color:var(--blaze);text-decoration-color:var(--blaze)}
 .spp a:hover em{color:var(--blaze)}
-.spp .tag{font-size:13px;border:1px solid var(--line);border-radius:3px;padding:0 4px;margin-left:4px;color:var(--muted);white-space:nowrap}
-.spp .tag{background:rgba(10,19,31,.45)}
-.spp .edrr{border-color:#F08A55;color:#FFC9A8}
+.spp .tag{font-size:12px;border:1px solid var(--line);border-radius:3px;padding:0 4px;margin-left:4px;color:var(--muted);white-space:nowrap}
+.spp .edrr{border-color:#D9703F;color:#F4B08E}
 details{margin-top:6px}
-summary{cursor:pointer;font-size:14px;color:var(--blaze)}
-.guild{display:grid;grid-template-columns:112px 1fr 22px;gap:6px;align-items:center;font-size:13.5px;padding:1px 0 1px 12px}
+summary{cursor:pointer;font-size:13px;color:var(--blaze)}
+.guild{display:grid;grid-template-columns:112px 1fr 22px;gap:6px;align-items:center;font-size:12.5px;padding:1px 0 1px 12px}
 .guild span{height:8px;background:var(--hue);border-radius:1px;display:block}
 details.gd{margin:0}
-details.gd summary{color:inherit;font-size:13.5px;list-style:none;position:relative}
+details.gd summary{color:inherit;font-size:12.5px;list-style:none;position:relative}
 details.gd summary::-webkit-details-marker{display:none}
 details.gd summary::before{content:"";position:absolute;left:0;top:50%;margin-top:-4px;border:4px solid transparent;border-left:6px solid var(--blaze);border-right:0}
 details.gd[open] summary::before{transform:rotate(90deg)}
@@ -287,29 +283,29 @@ details.gd summary:hover{background:var(--ground)}
 details.gd .spp{margin:3px 0 8px;padding-left:12px}
 
 /* strip */
-#strip{grid-area:strip;background:#142235;color:#fff;border-top:1px solid #0A131F;padding:8px 16px 16px}
+#strip{grid-area:strip;background:#1D2023;color:#fff;border-top:1px solid #0E1011;padding:8px 16px 16px}
 .striphead{display:flex;justify-content:space-between;gap:16px;align-items:baseline;flex-wrap:wrap}
 .striphead h2{font-size:16px;color:#fff;letter-spacing:.01em}
-#stripread{font-size:13px;color:#D0DAE5;min-height:1.45em;text-align:right;flex:1 1 300px}
+#stripread{font-size:12px;color:#D5DADC;min-height:1.45em;text-align:right;flex:1 1 300px}
 #stripsvg{display:block;width:100%;height:136px;cursor:crosshair;touch-action:pan-y}
-#stripsvg text{font-family:var(--body);font-size:13px;fill:#A8B8CA}
-#stripsvg .end{font-family:var(--cond);font-size:14px;font-weight:600;fill:#fff;letter-spacing:.01em}
-#stripsvg .reg{fill:#EEF3F8;font-size:13.5px;font-weight:500}
+#stripsvg text{font-family:var(--body);font-size:12px;fill:#B4BCBF}
+#stripsvg .end{font-family:var(--cond);font-size:13.5px;font-weight:600;fill:#fff;letter-spacing:.01em}
+#stripsvg .reg{fill:#F1F3F4;font-size:12.5px;font-weight:500}
 
 /* dialog */
-dialog{background:var(--panel);color-scheme:dark;border:1px solid var(--line);border-radius:8px;padding:0;max-width:640px;width:calc(100% - 32px);color:var(--ink);box-shadow:0 10px 40px rgba(20,41,74,.35)}
+dialog{background:var(--panel);color-scheme:dark;border:1px solid var(--line);border-radius:8px;padding:0;max-width:640px;width:calc(100% - 32px);color:var(--ink);box-shadow:0 10px 40px rgba(23,48,43,.35)}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 .dlg{padding:22px 24px 20px;max-height:82vh;overflow-y:auto}
 .dlg h2{font-size:26px;margin-bottom:8px}
 .dlg h3{font-size:18px;margin:16px 0 4px}
 .dlg p,.dlg li{max-width:62ch;margin:0 0 8px}
 .dlg ul{padding-left:18px;margin:0}
-.dlg table{border-collapse:collapse;font-size:14px;margin:6px 0 4px;width:100%}
+.dlg table{border-collapse:collapse;font-size:13px;margin:6px 0 4px;width:100%}
 .dlg th,.dlg td{text-align:left;padding:4px 10px 4px 0;border-bottom:1px solid var(--line);vertical-align:top}
 .dlg th{font-weight:600}
 .cites{list-style:none;padding:0 !important;margin:0}
-.cites li{font-size:12.5px;line-height:1.4;color:#A8B8CA;margin:0 0 6px;max-width:none}
-.cites b{color:#E3EAF2;font-weight:600}
+.cites li{font-size:11.5px;line-height:1.4;color:#B4BCBF;margin:0 0 6px;max-width:none}
+.cites b{color:#E6EAEB;font-weight:600}
 .cites a{color:#8EC2F0;word-break:break-word}
 .dlg .close{margin-top:14px;background:var(--ink);color:var(--onlight);font-weight:500;border:0;border-radius:4px;padding:7px 16px}
 
@@ -334,12 +330,12 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   #mapwrap{height:62vh;height:62svh;min-height:360px}
   aside{border-right:0;overflow:visible}
   /* phones: the cell details are a block in the page, under the graph, so nothing is covered */
-  #profile{position:static;width:auto;max-width:none;border-radius:0;border:0;border-top:1px solid #0A131F;box-shadow:none}
+  #profile{position:static;width:auto;max-width:none;border-radius:0;border:0;border-top:1px solid #0E1011;box-shadow:none}
   #profile .pbody{overflow:visible}
-  .phandle{display:inline-flex;align-items:center;gap:8px;margin-top:9px;background:none;border:1px solid #4A6182;border-radius:4px;padding:4px 12px;color:#E3EAF2;font-size:14px}
-  .phandle i{width:0;height:0;border:5px solid transparent;border-top:6px solid #C2CEDB;border-bottom:0}
+  .phandle{display:inline-flex;align-items:center;gap:8px;margin-top:9px;background:none;border:1px solid #545C62;border-radius:4px;padding:4px 12px;color:#E6EAEB;font-size:13px}
+  .phandle i{width:0;height:0;border:5px solid transparent;border-top:6px solid #C9D0D3;border-bottom:0}
   .phandle[aria-expanded=true] i{transform:rotate(180deg)}
-  .peekval{display:block;margin:5px 0 0 !important;font-size:15px;color:#EEF3F8 !important}
+  .peekval{display:block;margin:5px 0 0 !important;font-size:14px;color:#F1F3F4 !important}
   .peekval span{color:var(--muted)}
   .peekval b{font-weight:600}
   #profile.peek .pbody,#profile.peek .phead .id,#profile.peek .pnav{display:none}
@@ -348,23 +344,21 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   body{padding-bottom:10px}
   .boxm{display:none}
   .rank ol.scroll,#findlist{overscroll-behavior:auto}
-  #legend{max-width:180px;font-size:13px;bottom:8px}
-  .leaflet-container .leaflet-control-attribution{max-width:calc(100vw - 206px);font-size:10px}
+  #legend{max-width:180px;font-size:12px;bottom:8px}
+  .leaflet-container .leaflet-control-attribution{max-width:calc(100vw - 206px);font-size:9.5px}
   #ctls{left:10px;right:10px}
   .leaflet-control-zoom{display:none}
   #ctlrow1{flex-wrap:wrap}
-  #levels button{padding:0 8px;font-size:13px;white-space:nowrap}
+  #levels button{padding:0 8px;font-size:12.5px;white-space:nowrap}
   #base span{display:none}
   #base{padding:0 4px}
   #base select{max-width:150px}
-  #toolstog,#toolsbody button{font-size:13px;padding:0 7px}
+  #toolstog,#toolsbody button{font-size:12.5px;padding:0 7px}
   #tools{flex-wrap:wrap;height:auto !important;min-height:29px}
   #toolsbody{flex-wrap:wrap}
-  #layerstog{font-size:13px;padding:0 7px}
+  #layerstog{font-size:12.5px;padding:0 7px}
   #layerspanel{width:min(250px,calc(100vw - 30px))}
   #stripread{text-align:left}
-  #find,.secpick select{font-size:16px}
-  .chips button{padding:4px 11px}
 }
 </style>
 </head>
@@ -442,13 +436,14 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     <ul>
       <li>Cell colors fade as you zoom in, so the basemap shows through. At the closest zoom the fill is 75% transparent and the white cell outlines remain.</li>
       <li>Filled cells have data for the measure on screen. Outlined cells have data in another layer but none for this measure.</li>
+      <li>Species counts follow survey effort: more records nearly always means more species. So the species measures fade thinly sampled cells, and each ranked count shows the records or checklists behind it. Counts rank every cell, since thinly sampled cells fall to the bottom on their own. Shares, such as the invasive share of records, leave thinly sampled cells out of the ranking, because a share from a handful of records is not reliable. A cell is thinly sampled when its data status is not Adequate, or when its records sit in too few of its square miles: only one for a 7 sq mi cell, fewer than three for a 49 sq mi cell. Bird species, standardized is an estimate at equal sampling completeness and is the fairest comparison between cells.</li>
       <li>Colors are five equal-count classes of the cells with data at the cell size on screen, so the classes change when you change cell size.</li>
       <li>The strip under the map runs from Springer Mountain to Katahdin. Each bar is a ten-mile stretch, averaged from the 49 sq mi cells.</li>
       <li>The search box finds birds, invasive plants, forest pests and vegetation types in every cell where they were recorded. Other iNaturalist species are only searchable where they rank among a cell's ten most-recorded, so those results are partial. Rare species are not searchable.</li>
       <li>Export CSV and Export Excel, in the details panel, download everything shown for the selected cell or cells. The Excel workbook has separate sheets for cells, species, vegetation types and land administrators; the CSV holds the same rows in one long table.</li>
       <li>Map layers adds administrative areas, shelters, campsites, parking, privies, bridges, vistas and side trails. They load live from the NPS and ATC map services when switched on, so they stay current. Administrative areas and side trails appear once you zoom in. A click on one of these features opens its details; a click anywhere else selects the grid cell.</li>
       <li>Select area draws a box on the map and summarizes every cell whose center falls inside it. Records and acres are added up; species and vegetation types are counted once.</li>
-      <li>Under Recent iNaturalist observations, the details panel lists the newest iNaturalist records inside the selected cell or cells, fetched live from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you open that list. Records with obscured locations are left out, since they cannot be placed in a cell.</li>
+      <li>Each cell has two iNaturalist sections. Invasive species is the quarterly summary: invasive plants and forest pests counted together, with forest pests also counted as priority invasives. It is what the map, rankings and exports use. Live iNaturalist is fetched from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you open it, and lists the most recent observations in the cell, with a badge on invasive species and forest pests. Live records are not counted anywhere else on the page, and records with obscured locations are left out, since they cannot be placed in a cell.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
       <li>Trail miles are measured along the mapped centerline, south to north from Springer Mountain, and are approximate.</li>
     </ul>
@@ -547,7 +542,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     cssDone = true;
     var s = document.createElement('style');
     s.textContent =
-      '.inat-wrap{font-size:14px;line-height:1.35}' +
+      '.inat-wrap{font-size:13px;line-height:1.35}' +
       '.inat-head{font-weight:600;margin:0 0 6px}' +
       '.inat-note{opacity:.7;margin:6px 0}' +
       '.inat-list{list-style:none;margin:0;padding:0}' +
@@ -556,8 +551,8 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       '.inat-thumb{width:44px;height:44px;border-radius:4px;object-fit:cover;flex:none;background:rgba(128,128,128,.25)}' +
       '.inat-name{font-weight:600}' +
       '.inat-sci{font-style:italic;opacity:.8}' +
-      '.inat-meta{opacity:.65;font-size:13px}' +
-      '.inat-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:9px;font-size:12px;font-weight:600;background:#c0562b;color:#fff}' +
+      '.inat-meta{opacity:.65;font-size:12px}' +
+      '.inat-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:9px;font-size:11px;font-weight:600;background:#c0562b;color:#fff}' +
       '.inat-more{display:inline-block;margin-top:8px;color:inherit;text-decoration:underline}';
     document.head.appendChild(s);
   }
@@ -678,12 +673,12 @@ const shortClub = s => s.replace('Appalachian Trail Club','A.T. Club').replace('
 
 /* ---------- colors ---------- */
 const RAMP = {
-  land:['#DDE6EC','#B3C7D4','#819FB4','#4F7590','#24475F'],
-  veg:['#C9DDB0','#93BC6E','#5F9645','#35702B','#143F16'],
-  inv:['#FBE8B4','#F4C068','#E48F3C','#C4562A','#86291C'],
-  eff:['#E5E2EE','#C2BADA','#9689BF','#685A9C','#3C2D68'],
-  bird:['#DBEAF4','#A8CCE4','#6AA3CC','#3874A9','#1A4679'],
-  pri:['#F3DDE4','#E3AFC0','#CB7A96','#A9476C','#74214A']
+  land:['#E0E3EA','#C0C8D4','#9DA9BC','#7C8CA6','#4A5464'],
+  veg:['#D1EAE6','#A3D5CD','#6FBDB0','#3FA796','#26645A'],
+  inv:['#F8DFD9','#F0BFB2','#E89B87','#E07A5F','#864939'],
+  eff:['#D9EDF5','#B2DBEB','#87C6E0','#5FB3D6','#396B80'],
+  bird:['#D4E0F4','#A9C2E8','#799FDC','#4C7FD0','#2E4C7D'],
+  pri:['#E7DBF2','#CFB8E5','#B490D6','#9B6BC8','#5D4078']
 };
 const ZERO = '#E3E7E1';
 const CATCOL = {
@@ -713,8 +708,8 @@ const FINDCOL = '#FFC233'; CATCOL.FIND = [['Recorded here', FINDCOL]]; D.cats.FI
 CATCOL.APPA_YN = [['NPS - APPA land', '#4FA3D9']]; D.cats.APPA_YN = ['NPS - APPA land'];
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 const ADMINCOL = ['#24475F','#819FB4','#C9D6DE','#E6E9E4'];
-/* Blue Ridge tones: slate ridge, spruce-fir, autumn copper, ridge-line blue, rhododendron, twilight haze */
-const HUE = {lands:'#5D7D9E', veg:'#3D7C52', inat:'#C0683C', ebird:'#3D80C2', nrpz:'#B24C7C', eff:'#7470B4'};
+/* Blue Ridge color scheme */
+const HUE = {lands:'#7C8CA6', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#5FB3D6'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -722,6 +717,27 @@ const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest gene
 
 /* ---------- questions and measures ---------- */
 /* iNaturalist and eBird species added together. Birds are counted once: the larger of the two bird counts, plus iNaturalist's non-bird species. */
+/* Invasive species = invasive plants and forest pests together. Priority invasives = the priority plant list plus every forest pest.
+   (The summary's own count fields cover plants only, so these are counted from the species lists.) */
+const blank = x => x == null ? '' : x;
+function invSet(lv, c, pri){ if (!has('inat', lv, c)) return null; const s = new Set(val('inat', pri ? 'EDRR_LIST' : 'INVASIVE_LIST', lv, c) || []); (val('inat','PEST_LIST',lv,c) || []).forEach(i => s.add(i)); return s; }
+const invCount = (lv, c) => { const s = invSet(lv, c, false); return s ? s.size : null; }, priCount = (lv, c) => { const s = invSet(lv, c, true); return s ? s.size : null; };
+function invShare(lv, c){ const n = val('inat','N_OBS',lv,c); if (!n) return null; return Math.min(100, Math.round(1000 * ((val('inat','N_INV_OBS',lv,c) || 0) + (val('inat','N_PEST_OBS',lv,c) || 0)) / n) / 10); }
+/* The quarterly summary's cutoff: the newest record it contains. The live section shows what has come in after it. */
+const INAT_CUTOFF = (() => { let m = ''; Object.values(D.themes.inat || {}).forEach(t => (t.f.LAST_OBS || []).forEach(x => { if (x && x > m) m = x; })); return m; })();
+/* How much of a 7 or 49 sq mi cell actually has records: the number of its 1 sq mi hexes that hold data for the layer.
+   (Not available for the 1 sq mi cells themselves, since nothing finer exists.) */
+const HEXIN = {cog:7, wheel:49}, COVER = {};
+function cover(th, lv, c){ if (lv === 'hex' || !D.themes[th] || !D.themes[th].hex) return null; const key = th + lv; let m = COVER[key];
+  if (!m){ m = COVER[key] = new Map(); const H = D.levels.hex.id, cut = lv === 'cog' ? 1 : 2;
+    D.themes[th].hex.ix.forEach(h => { let p = H[h]; for (let k = 0; k < cut; k++) p = p.slice(0, p.lastIndexOf('-')); m.set(p, (m.get(p) || 0) + 1); }); }
+  return m.get(D.levels[lv].id[c]) || 0; }
+/* Thinly sampled: the layer's own data status is not "Adequate", or the records sit in too few of the cell's square miles
+   (a single one for a 7 sq mi cell, fewer than three for a 49 sq mi cell). The corridor is narrow, so a share of the whole cell would be unfair. */
+const THIN_MIN = {cog:2, wheel:3};
+function thin(th, lv, c){ if (!D.themes[th] || !D.themes[th][lv] || ROW[th][lv][c] < 0) return false; if (cat('DATA_STATUS', val(th, 'DATA_STATUS', lv, c)) !== 'Adequate') return true;
+  const k = cover(th, lv, c); return k != null && k < THIN_MIN[lv]; }
+const sampled = m => !!m.fade && !m.fadeFn && (m.th === 'inat' || m.th === 'ebird');
 function totalSpp(lv, c){ const i = val('inat','N_SPP',lv,c), e = val('ebird','N_SPP',lv,c); if (i == null && e == null) return null;
   const ib = val('inat','BIRD_SPP',lv,c) || 0; return Math.max(0, (i || 0) - ib) + Math.max(ib, e || 0); }
 
@@ -742,21 +758,23 @@ const Q = [
      {id:'acres', label:'Acres mapped', f:'VEG_AREA', int:1, noun:['acre','acres'], fn:(lv,c)=>{ const a = val('veg','VEG_AREA',lv,c); return a == null ? null : Math.round(a); }},
      {id:'mapped', label:'Share of cell mapped', f:'PCT_MAPPED', unit:'%', d:0}]},
  {id:'inv', th:'inat', hue:HUE.inat, ramp:'inv', title:'What invasive species are turning up?',
-  use:'Invasive plants and forest pests reported on iNaturalist. Use it to aim surveys and volunteer workdays at priority invasives. A blank cell means nothing was reported, which is not the same as nothing there.',
-  m:[{id:'spp', label:'Invasive species reported', f:'N_INV_SPP', int:1, zero:1, noun:['species','species']},
-     {id:'edrr', label:'Priority invasives', f:'N_EDRR_SPP', int:1, zero:1, noun:['species','species']},
-     {id:'pct', label:'Invasive share of records', f:'PCT_INV_OBS', unit:'%', d:1, zero:1},
+  use:'Invasive plants and forest pests reported on iNaturalist, from the quarterly summary. Use it to aim surveys and volunteer workdays at priority invasives. A blank cell means nothing was reported, which is not the same as nothing there. The most recent observations appear under Live iNaturalist when you select a cell.',
+  m:[{id:'spp', label:'Invasive species reported', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'None reported', note:'Invasive plants and forest pests, counted together.', fn:(lv,c)=>invCount(lv,c)},
+     {id:'edrr', label:'Priority invasives', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'None reported', note:'Priority invasive plants plus forest pests.', fn:(lv,c)=>priCount(lv,c)},
+     {id:'pct', label:'Invasive share of records', unit:'%', d:1, zero:1, fade:1, zeroText:'None reported', note:'Records of invasive plants and forest pests, as a share of all iNaturalist records.', fn:(lv,c)=>invShare(lv,c)},
      {id:'pest', label:'Forest pest records', f:'N_PEST_OBS', int:1, zero:1, noun:['record','records']}]},
  {id:'eff', th:'inat', hue:HUE.eff, ramp:'eff', title:'How well is it surveyed?',
   use:'Every vegetation and wildlife map here depends on where people have looked. Use this one to find survey gaps worth a bioblitz, and to judge how much weight the other maps can carry in a given cell.',
   m:[{id:'obs', label:'iNaturalist records', f:'N_OBS', int:1, noun:['record','records']},
      {id:'erec', label:'eBird records', th:'ebird', f:'N_RECORDS', int:1, noun:['record','records']},
-     {id:'spp', label:'Total species recorded', int:1, noun:['species','species'], fn:(lv,c)=>totalSpp(lv,c)},
+     {id:'spp', label:'Total species recorded', int:1, fade:1, noun:['species','species'], fn:(lv,c)=>totalSpp(lv,c)},
      {id:'obsr', label:'Total observers', int:1, noun:['observer','observers'], fn:(lv,c)=>{ const a = val('inat','N_OBSERVERS',lv,c), b = val('ebird','N_OBSERVERS',lv,c); return a == null && b == null ? null : (a || 0) + (b || 0); }}]},
  {id:'bird', th:'ebird', hue:HUE.ebird, ramp:'bird', title:'What birds are found here?',
   use:'eBird checklists grouped by the habitat each species depends on. Use it to see where forest-interior, grassland or high-elevation birds concentrate, and where species of conservation concern have been found.',
   m:[{id:'bcc', label:'Birds of Conservation Concern', f:'N_BCC_SPP', int:1, zero:1, fade:1, noun:['species','species']},
-     {id:'spp', label:'All bird species', f:'N_SPP', int:1, fade:1, noun:['species','species']},
+     {id:'spp', label:'Bird species, standardized', f:'COV_RICHNESS', int:1, noun:['species','species'], none:'Too few checklists to estimate',
+      note:'An estimate of bird species at equal sampling completeness (90% coverage), so heavily and lightly birded cells can be compared. Cells with too few checklists have no value.'},
+     {id:'sppraw', label:'Bird species, raw count', f:'N_SPP', int:1, fade:1, noun:['species','species']},
      {id:'fi', label:'Forest-interior species', f:'FOREST_INT_SPP', int:1, zero:1, fade:1, noun:['species','species']},
      {id:'fg', label:'Forest generalist species', f:'FOREST_GEN_SPP', int:1, zero:1, fade:1, noun:['species','species']},
      {id:'co', label:'High-elevation conifer species', f:'CONIFER_SPP', int:1, zero:1, fade:1, noun:['species','species']},
@@ -830,11 +848,12 @@ function colorOf(m, lv, v){ if (v == null) return null;
   const B = breaks(m, lv); let i = 0; while (i < B.b.length && v > B.b[i]) i++; return B.cols[i]; }
 function show(m, v){ if (m.find) return v == null ? 'Not recorded' : 'Recorded here'; if (v == null) return m.none || 'no data';
   if (m.kind === 'cat'){ const lab = D.cats[m.f][v], e = CATCOL[m.f].find(x => x[0] === lab); return (e && e[2]) || lab; }
+  if (v === 0 && m.zeroText) return m.zeroText;
   if (m.unit === '%') return fmt(v, m.d) + '%';
   if (m.noun) return fmt(v, 0) + ' ' + m.noun[v === 1 ? 0 : 1];
   return fmt(v, m.d); }
 const THIN_AC = 10;
-const faded = (m, lv, c) => S.fade && m.fade && (m.fadeFn ? m.fadeFn(lv, c) : m.th === 'veg' ? val('veg', 'VEG_AREA', lv, c) < THIN_AC : cat('DATA_STATUS', val(m.th, 'DATA_STATUS', lv, c)) !== 'Adequate');
+const faded = (m, lv, c) => S.fade && m.fade && (m.fadeFn ? m.fadeFn(lv, c) : m.th === 'veg' ? val('veg', 'VEG_AREA', lv, c) < THIN_AC : thin(m.th, lv, c));
 
 /* ---------- map ---------- */
 const map = L.map('map', {preferCanvas:true, zoomSnap:.5, minZoom:4, maxZoom:15, attributionControl:true});
@@ -865,10 +884,10 @@ map.createPane('sel').style.zIndex = 430; map.getPane('sel').style.pointerEvents
 const cellRenderer = L.canvas({pane:'cells', padding:.4});
 const trailR = L.svg({pane:'trail'}), selR = L.svg({pane:'sel'});
 const trailCase = L.polyline(D.trail, {renderer:trailR, color:'#fff', weight:4, opacity:.9, interactive:false}).addTo(map);
-const trailLine = L.polyline(D.trail, {renderer:trailR, color:'#14294A', weight:1.5, interactive:false}).addTo(map);
-function trailStyle(){ const z = map.getZoom(), far = z < 9, dk = DARKBASE[S.base]; trailCase.setStyle({color: dk ? '#14294A' : '#fff', opacity: far ? 0 : .9}); trailLine.setStyle({color: dk ? '#fff' : '#14294A', weight: far ? 1 : 1.6, opacity: far ? .9 : 1}); }
+const trailLine = L.polyline(D.trail, {renderer:trailR, color:'#17302B', weight:1.5, interactive:false}).addTo(map);
+function trailStyle(){ const z = map.getZoom(), far = z < 9, dk = DARKBASE[S.base]; trailCase.setStyle({color: dk ? '#17302B' : '#fff', opacity: far ? 0 : .9}); trailLine.setStyle({color: dk ? '#fff' : '#17302B', weight: far ? 1 : 1.6, opacity: far ? .9 : 1}); }
 const selOuter = L.polygon([], {renderer:selR, color:'#fff', weight:6, fill:false, interactive:false}).addTo(map);
-const selInner = L.polygon([], {renderer:selR, color:'#14294A', weight:2.5, fill:false, interactive:false}).addTo(map);
+const selInner = L.polygon([], {renderer:selR, color:'#17302B', weight:2.5, fill:false, interactive:false}).addTo(map);
 const boxRect = L.rectangle([[0,0],[0,0]], {renderer:selR, color:'#fff', weight:2, dashArray:'7 5', fill:false, interactive:false});
 
 function ring(lv, c){ const g = D.levels[lv].g[c], out = []; let la = g[0], lo = g[1]; out.push([la/1e5, lo/1e5]);
@@ -925,7 +944,7 @@ $('#levels').addEventListener('click', e => { const b = e.target.closest('button
 const mbLogo = L.control({position:'bottomright'});
 mbLogo.onAdd = () => { const a = L.DomUtil.create('a', 'mblogo'); a.href = 'https://www.mapbox.com/'; a.target = '_blank'; a.rel = 'noopener'; a.setAttribute('aria-label', 'Mapbox homepage'); return a; };
 $('#basesel').innerHTML = BASEDEF.map(b => `<option value="${b[0]}">${b[1]}</option>`).join(''); $('#basesel').value = S.base;
-function baseSync(){ $('#map').style.background = DARKBASE[S.base] ? '#142235' : '#DDE3DC'; trailStyle(); if (S.base.startsWith('mb')) mbLogo.addTo(map); else mbLogo.remove(); }
+function baseSync(){ $('#map').style.background = DARKBASE[S.base] ? '#1D2422' : '#DDE3DC'; trailStyle(); if (S.base.startsWith('mb')) mbLogo.addTo(map); else mbLogo.remove(); }
 function setBase(k){ if (!BASES[k] || k === S.base) return; map.removeLayer(BASES[S.base]); S.base = k; BASES[k].addTo(map); BASES[k].bringToBack();
   baseSync(); if (shown) restyle(); writeHash(); }
 $('#basesel').addEventListener('change', e => setBase(e.target.value));
@@ -1170,10 +1189,20 @@ function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows =
     if (m.many) h = h.replace('Share of cells', 'Most common main types');
     order.forEach(e => { const i = D.cats[m.f].indexOf(e[0]), k = cnt.get(i); if (k) h += `<div class="catrow"><i style="background:${e[1]}"></i><span>${esc(e[2] || e[0])}</span><b>${fmt(100*k/rows.length, k/rows.length < .1 ? 1 : 0)}%</b></div>`; });
     return h + '</div>'; }
+  /* Sampling and the ranking:
+     - counts (species, records): every cell is ranked. Thinly sampled cells have low counts, so they fall to the bottom on their own; if one does rank, its row says so.
+     - shares (percentages): a cell with two records can show 50%, so thinly sampled cells are left out of the ranking. */
+  let left = 0; const smp = sampled(m) || m.f === 'COV_RICHNESS', lim = sampled(m) && m.unit === '%';
+  if (lim){ const keep = rows.filter(r => !thin(m.th, lv, r[0])); left = rows.length - keep.length; rows.length = 0; keep.forEach(r => rows.push(r)); }
+  if (left) h += `<p class="statline">${fmt(left,0)} thinly sampled ${left === 1 ? 'cell is' : 'cells are'} left out of this ranking, because a share based on a handful of records is not reliable.</p>`;
+  else if (sampled(m)){ const nThin = rows.filter(r => thin(m.th, lv, r[0])).length; if (nThin) h += `<p class="statline">All ${fmt(rows.length,0)} are ranked. ${fmt(nThin,0)} are thinly sampled: they are faded on the map and marked in the list.</p>`; }
+  if (!rows.length) return h + '<p class="statline">No adequately sampled cells to rank here. Try a larger cell size or another section.</p>';
+  const eff = c => { if (!smp) return ''; const th = m.th, n = th === 'ebird' ? val('ebird','N_CHECKLISTS',lv,c) : val('inat','N_OBS',lv,c); if (n == null) return '';
+    const unit = th === 'ebird' ? (n === 1 ? 'checklist' : 'checklists') : (n === 1 ? 'record' : 'records'); return sampled(m) && thin(th, lv, c) ? `<span class="eff thin">thin sample, ${fmt(n,0)} ${unit}</span>` : `<span class="eff">from ${fmt(n,0)} ${unit}</span>`; };
   rows.sort((a,b) => b[1] - a[1]);
   const nTop = Math.min(50, rows.length);
   h += `<div class="rank"><h3>Highest cells${where}<span class="cnt">${rows.length > nTop ? 'top ' + nTop : 'all ' + nTop}</span></h3><ol class="scroll" tabindex="0" aria-label="Highest cells, scrollable list">`;
-  rows.slice(0, 50).forEach(r => { h += cellItem(lv, r[0], `<span class="val">${fmt(r[1], m.d)}${m.unit === '%' ? '%' : ''}</span>`); });
+  rows.slice(0, 50).forEach(r => { const e = eff(r[0]); h += cellItem(lv, r[0], `<span class="val${e ? ' two' : ''}">${fmt(r[1], m.d)}${m.unit === '%' ? '%' : ''}</span>${e}`); });
   return h + '</ol></div>'; }
 $('#side').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.blk){ S.side[b.dataset.blk] = !S.side[b.dataset.blk]; side(); return; }
@@ -1298,7 +1327,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
       const n = mg.length, pl = v('lands','PCT_LAND');
       landSec += `<p>${n} ${n === 1 ? 'administrator has' : 'administrators have'} mapped land in this cell. Each share is of the mapped land, not of the whole cell:</p>` + topSix(mg, x => `<div><span>${esc(x[0])}</span><span>${pctLt1(x[1])}</span></div>`, 'keys nosw', 'more');
       if (pl != null) landSec += `<p style="margin-top:8px">Mapped land covers about ${pctLt1(pl)} of this cell.</p>`;
-      landSec += '<p class="none" style="font-size:13.5px;margin-top:8px">Generalized to the cell from tract records. Not a boundary determination, and not a record of who administers any given spot.</p>';
+      landSec += '<p class="none" style="font-size:12.5px;margin-top:8px">Generalized to the cell from tract records. Not a boundary determination, and not a record of who administers any given spot.</p>';
     } else landSec += '<p class="none">No land records summarized for this cell.</p>';
     landSec += '</div>'; }
 
@@ -1313,26 +1342,31 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
   } else b += '<p class="none">The vegetation map does not reach this cell.</p>';
   b += '</div>';
 
-  // iNaturalist
-  b += `<div class="sec" style="--hue:${HUE.inat}"><h3>iNaturalist records</h3>`;
+  // invasive species: the interpreted quarterly summary
+  b += `<div class="sec" style="--hue:${HUE.inat}"><h3>Invasive species</h3>`;
   if (has('inat', lv, c)){ const inv = v('inat','INVASIVE_LIST') || [], ed = new Set(v('inat','EDRR_LIST') || []), pest = v('inat','PEST_LIST') || [], top = v('inat','TOP10_SPECIES') || [];
-    b += `<div class="facts"><div><b>${fmt(v('inat','N_OBS'),0)}</b>records</div><div><b>${fmt(v('inat','N_SPP'),0)}</b>species</div><div><b>${fmt(v('inat','N_OBSERVERS'),0)}</b>observers</div></div>`;
-    b += `<p><span class="badge">${esc(cat('DATA_STATUS', v('inat','DATA_STATUS')) || '')}</span> Latest record ${esc(v('inat','LAST_OBS') || 'unknown')}</p>`;
-    b += inv.length ? `<p style="margin-top:8px">${inv.length} invasive plant species reported:</p><ul class="spp">${inv.map(i => sppItem(i, ed.has(i))).join('')}</ul>` : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
-    if (pest.length) b += `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(i => sppItem(i)).join('')}</ul>`;
+    const nInv = invCount(lv, c), nPri = priCount(lv, c), sh = invShare(lv, c), big = n => n ? fmt(n, 0) : 'None';
+    b += `<div class="facts"><div><b>${big(nInv)}</b>invasive species</div><div><b>${big(nPri)}</b>priority invasives</div><div><b>${sh ? fmt(sh, sh < 10 ? 1 : 0) + '%' : 'None'}</b>of records</div></div>`;
+    b += `<p class="none" style="font-size:12.5px">Invasive plants and forest pests are counted together.</p>`;
+    b += inv.length ? `<p style="margin-top:8px">${inv.length} invasive ${inv.length === 1 ? 'plant' : 'plants'}:</p><ul class="spp">${inv.map(i => sppItem(i, ed.has(i))).join('')}</ul>` : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
+    b += pest.length ? `<p style="margin-top:8px">${pest.length} forest ${pest.length === 1 ? 'pest' : 'pests'}:</p><ul class="spp">${pest.map(i => sppItem(i, true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
+    b += `<p style="margin-top:10px"><span class="badge">${esc(cat('DATA_STATUS', v('inat','DATA_STATUS')) || '')}</span> Quarterly summary (${esc(D.run)}).</p>`;
+    b += `<p class="none" style="font-size:12.5px">Based on ${fmt(v('inat','N_OBS'),0)} iNaturalist ${v('inat','N_OBS') === 1 ? 'record' : 'records'} of ${fmt(v('inat','N_SPP'),0)} species from ${fmt(v('inat','N_OBSERVERS'),0)} ${v('inat','N_OBSERVERS') === 1 ? 'observer' : 'observers'}.`;
+    { const k = cover('inat', lv, c); b += (k != null ? ` Records fall in ${k} of this cell's ${HEXIN[lv]} square miles.` : '') + '</p>'; }
     if (top.length){ const tn = v('inat','TOP10_COUNTS') || []; b += `<details><summary>Most recorded species</summary><ul class="spp">${top.map((i, k) => tn[k] != null ? sppItem(i).replace('</li>', `<span class="tag">${fmt(tn[k], 0)} ${tn[k] === 1 ? 'record' : 'records'}</span></li>`) : sppItem(i)).join('')}</ul></details>`; }
-  } else b += '<p class="none">No iNaturalist records in this cell yet.</p>';
-  b += `<details id="inatrec"${S.inatOpen ? ' open' : ''}><summary>Recent iNaturalist observations</summary><div id="inatlive" style="margin-top:6px"></div></details>`;
+  } else b += '<p class="none">No iNaturalist records in this cell in the quarterly summary.</p>';
   b += '</div>';
+  b += LIVESEC;
 
   // birds
   b += `<div class="sec" style="--hue:${HUE.ebird}"><h3>Birds</h3>`;
   if (has('ebird', lv, c)){ const G = BIRD_GROUPS.map(g => [g.label, v('ebird', g.spp) || 0, v('ebird', g.list) || [], g.spp]); const mx = Math.max(1, ...G.map(g => g[1])); const soc = v('ebird','SOC_LIST') || [];
     b += `<div class="facts"><div><b>${fmt(v('ebird','N_SPP'),0)}</b>species</div><div><b>${fmt(v('ebird','N_CHECKLISTS'),0)}</b>checklists</div><div><b>${fmt(v('ebird','N_BCC_SPP'),0)}</b>of conservation concern</div></div>`;
     b += `<p><span class="badge">${esc(cat('DATA_STATUS', v('ebird','DATA_STATUS')) || '')}</span> Latest checklist ${esc(v('ebird','LAST_OBS') || 'unknown')}</p>`;
+    { const k = cover('ebird', lv, c); if (k != null) b += `<p class="none" style="font-size:12.5px">Checklists fall in ${k} of this cell's ${HEXIN[lv]} square miles.</p>`; }
     b += '<p style="margin-top:8px">Species by habitat group. Open a group marked with an arrow to see its species.</p>' + G.filter(g => g[1] > 0).map(g => { const bar = `<div>${g[0]}</div><div><span style="width:${100*g[1]/mx}%"></span></div><div>${g[1]}</div>`;
       return g[2] && g[2].length ? `<details class="gd"${S.m.f === g[3] ? ' open' : ''}><summary class="guild">${bar}</summary><ul class="spp">${g[2].map(i => sppItem(i)).join('')}</ul></details>` : `<div class="guild">${bar}</div>`; }).join('');
-    if (soc.length) b += `<details><summary>${soc.length} species on watch lists</summary><ul class="spp">${soc.map(i => sppItem(i)).join('')}</ul><p class="none" style="font-size:13.5px">BCC is the USFWS Birds of Conservation Concern list. PIF is Partners in Flight.</p></details>`;
+    if (soc.length) b += `<details><summary>${soc.length} species on watch lists</summary><ul class="spp">${soc.map(i => sppItem(i)).join('')}</ul><p class="none" style="font-size:12.5px">BCC is the USFWS Birds of Conservation Concern list. PIF is Partners in Flight.</p></details>`;
   } else b += '<p class="none">No eBird checklists in this cell yet.</p>';
   b += '</div>';
 
@@ -1341,7 +1375,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
   if (!D.themes.nrpz[lv] && par){ plv = par[0]; pc = par[1]; viaParent = true; }
   b += `<div class="sec" style="--hue:${HUE.nrpz}"><h3>Unique species</h3>`;
   if (D.themes.nrpz[plv] && has('nrpz', plv, pc)){ const t = cat('review_tie', val('nrpz','review_tie',plv,pc)), e = CATCOL.review_tie.find(x => x[0] === t);
-    b += `<p><span class="badge" style="background:${e[1]};color:${t === 'Avoid' ? '#fff' : '#142235'}">${esc(e[2] || t)}</span></p>`;
+    b += `<p><span class="badge" style="background:${e[1]};color:${t === 'Avoid' ? '#fff' : '#1D2023'}">${esc(e[2] || t)}</span></p>`;
     if (viaParent) b += '<p class="none">Shown for the 7 sq mi cell this square mile sits in.</p>';
   } else b += `<p class="none">No rare species priority zone ${viaParent ? 'in the surrounding 7 sq mi cell' : 'in this cell'}.</p>`;
   b += '</div>';
@@ -1353,23 +1387,24 @@ const INAT_MAX_SPAN = 1; /* degrees: the API returns only the newest records in 
 /* The list is folded by default and fetched only when it can be seen: opened, inside an open iNaturalist section,
    and not in the phone's short summary. Once opened it stays open for the next cell. inatCheck() runs whenever one of those changes. */
 let inatCheck = () => {};
+/* The Live iNaturalist section. It is fetched only when it can be seen: its section open, and not in the phone's short summary. */
+const LIVESEC = `<div class="sec" style="--hue:${HUE.live}"><h3>Live iNaturalist</h3><p class="none" style="font-size:12.5px">The most recent iNaturalist observations here, fetched live. They are separate from the summary numbers on this page.</p><div id="inatrec"><div id="inatlive" style="margin-top:6px"></div></div></div>`;
 function inatLive(rings, id){ const d = $('#inatrec'); if (!d) return; let done = false;
-  inatCheck = () => { if (!done && d.isConnected && d.open && d.getClientRects().length){ done = true; inatFetch(rings, id); } };
-  d.addEventListener('toggle', () => { S.inatOpen = d.open; inatCheck(); });
+  inatCheck = () => { if (!done && d.isConnected && d.getClientRects().length){ done = true; inatFetch(rings, id); } };
   setTimeout(() => inatCheck()); /* after select() has finished laying out the panel (on phones it then shrinks to the summary) */ }
 function inatFetch(rings, id){ const el = $('#inatlive'); if (!el || !window.ATiNat) return;
   const la = rings.flat().map(p => p[0]), lo = rings.flat().map(p => p[1]);
   if (Math.max(...la) - Math.min(...la) > INAT_MAX_SPAN || Math.max(...lo) - Math.min(...lo) > INAT_MAX_SPAN){
-    el.innerHTML = '<p class="none" style="font-size:13.5px">Select a smaller area, or a single cell, to see recent iNaturalist observations.</p>'; return; }
+    el.innerHTML = '<p class="none" style="font-size:12.5px">Select a smaller area, or a single cell, to see live iNaturalist observations.</p>'; return; }
   if (!INATFLAGS){ INATFLAGS = {};
     [['INVASIVE_LIST','Invasive'],['PEST_LIST','Forest pest'],['EDRR_LIST','Priority invasive']].forEach(([f, label]) =>
       Object.values(D.themes.inat || {}).forEach(t => (t.f[f] || []).forEach(a => a.forEach(i => { INATFLAGS[sppName(i).sci.toLowerCase()] = label; })))); }
   ATiNat.lookup({type:'MultiPolygon', coordinates:rings.map(r => [r.map(p => [p[1], p[0]])])}, el, {id, flags:INATFLAGS}); }
 function finishProfile(html){ $('#pbody').innerHTML = html;
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
-  const SECKEY = {'Vegetation':'veg', 'iNaturalist records':'inat', 'Birds':'ebird', 'Unique species':'nrpz', 'Land administrators':'lands'};
+  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
-    const open = key in S.secOpen ? S.secOpen[key] : key === S.m.th;
+    const open = key in S.secOpen ? S.secOpen[key] : (key === S.m.th || (key === 'live' && S.q.id === 'inv'));
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
     while (h.nextSibling) body.appendChild(h.nextSibling);
     sec.appendChild(body);
@@ -1389,13 +1424,13 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
     const n = (th, f) => { const x = v(th, f, c); return x == null ? '' : x; }, k = (th, f) => { const x = v(th, f, c); return x == null ? '' : D.cats[f][x]; };
     out.cells.push(Object.assign({}, base, {
       veg_acres_mapped:n('veg','VEG_AREA'), veg_pct_of_cell_mapped:n('veg','PCT_MAPPED'), veg_types:n('veg','N_TYPES'), veg_main_type:k('veg','DOM_TYPE'), nlcd_main_cover:k('veg','L2_DOM'),
-      inat_records:n('inat','N_OBS'), inat_species:n('inat','N_SPP'), inat_observers:n('inat','N_OBSERVERS'), inat_invasive_species:n('inat','N_INV_SPP'), inat_priority_invasives:n('inat','N_EDRR_SPP'), inat_forest_pest_records:n('inat','N_PEST_OBS'), inat_data_status:k('inat','DATA_STATUS'), inat_latest_record:n('inat','LAST_OBS'),
+      inat_records:n('inat','N_OBS'), inat_species:n('inat','N_SPP'), inat_observers:n('inat','N_OBSERVERS'), inat_invasive_species:blank(invCount(lv, c)), inat_invasive_plants:n('inat','N_INV_SPP'), inat_forest_pests:has('inat', lv, c) ? (val('inat','PEST_LIST',lv,c) || []).length : '', inat_priority_invasives:blank(priCount(lv, c)), inat_invasive_pct_of_records:blank(invShare(lv, c)), inat_forest_pest_records:n('inat','N_PEST_OBS'), inat_data_status:k('inat','DATA_STATUS'), inat_summary_newest_record:n('inat','LAST_OBS'),
       ebird_checklists:n('ebird','N_CHECKLISTS'), ebird_records:n('ebird','N_RECORDS'), ebird_species:n('ebird','N_SPP'), ebird_observers:n('ebird','N_OBSERVERS'), ebird_birds_of_conservation_concern:n('ebird','N_BCC_SPP'), ebird_data_status:k('ebird','DATA_STATUS'), ebird_latest_checklist:n('ebird','LAST_OBS'),
       unique_species_rating:te ? (te[2] || te[0]) : '', unique_species_rating_cell_size:te ? LV[plv].name : '',
       land_administrators:n('lands','N_MGR'), land_pct_of_cell_mapped:n('lands','PCT_LAND') }));
     const sp = (group, detail, list, edset) => (list || []).forEach(i => { const p = sppName(i); out.species.push({grid_id:id, trail_mile:L_.mi[c], group, habitat_group_or_list:detail, common_name:p.common, scientific_name:p.sci, lists:[p.tag, edset && edset.has(i) ? 'priority invasive' : ''].filter(Boolean).join('; ')}); });
     const ed = new Set(v('inat','EDRR_LIST',c) || []);
-    sp('Invasive plant', 'iNaturalist', v('inat','INVASIVE_LIST',c), ed); sp('Forest pest', 'iNaturalist', v('inat','PEST_LIST',c)); sp('iNaturalist most recorded', 'Top ten in the cell', v('inat','TOP10_SPECIES',c));
+    sp('Invasive plant', 'iNaturalist', v('inat','INVASIVE_LIST',c), ed); sp('Forest pest', 'iNaturalist', v('inat','PEST_LIST',c), new Set(v('inat','PEST_LIST',c) || [])); /* forest pests count as priority invasives */ sp('iNaturalist most recorded', 'Top ten in the cell', v('inat','TOP10_SPECIES',c));
     BIRD_GROUPS.forEach(g => sp('Bird', g.full, v('ebird', g.list, c))); sp('Bird on a watch list', 'eBird', v('ebird','SOC_LIST',c));
     const cp = v('veg','COMP',c) || [], ac = v('veg','VEG_AREA',c) || 0; for (let k = 0; k < cp.length; k += 2) out.veg.push({grid_id:id, trail_mile:L_.mi[c], vegetation_type:D.cats.DOM_TYPE[cp[k]], pct_of_mapped_acres:cp[k+1], acres:Math.round(ac * cp[k+1]) / 100});
     const mg = v('lands','MGRS',c) || []; for (let k = 0; k < mg.length; k += 2) out.land.push({grid_id:id, trail_mile:L_.mi[c], administrator:D.cats.MGR[mg[k]], pct_of_mapped_land:mg[k+1]}); });
@@ -1449,7 +1484,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
   const ctag = n => `<span class="tag">${nCells(n)}</span>`;
   const item = (i, n, ed) => sppItem(i, ed).replace('</li>', ctag(n) + '</li>');
   const union = (th, f, cs) => { const m = new Map(); cs.forEach(c => (val(th, f, lv, c) || []).forEach(i => m.set(i, (m.get(i) || 0) + 1))); return [...m].sort((a,b) => b[1] - a[1] || D.spp[a[0]].localeCompare(D.spp[b[0]])); };
-  let b = `<p class="boxm"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p><p class="none" style="font-size:13.5px;margin:6px 0 0">Combined from the ${nCells(N)} whose centers fall inside the box. Records and acres are added up. Species and types are counted once, however many cells they occur in.</p>`;
+  let b = `<p class="boxm"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p><p class="none" style="font-size:12.5px;margin:6px 0 0">Combined from the ${nCells(N)} whose centers fall inside the box. Records and acres are added up. Species and types are counted once, however many cells they occur in.</p>`;
 
   // vegetation
   { const cs = withTh('veg'); b += `<div class="sec" style="--hue:${HUE.veg}"><h3>Vegetation</h3>`;
@@ -1464,11 +1499,13 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
     b += '</div>'; }
 
   // iNaturalist
-  { const cs = withTh('inat'); b += `<div class="sec" style="--hue:${HUE.inat}"><h3>iNaturalist records</h3>`;
+  { const cs = withTh('inat'); b += `<div class="sec" style="--hue:${HUE.inat}"><h3>Invasive species</h3>`;
     if (cs.length){ const rec = cs.reduce((s,c) => s + (val('inat','N_OBS',lv,c) || 0), 0), inv = union('inat','INVASIVE_LIST',cs), ed = new Set(union('inat','EDRR_LIST',cs).map(x => x[0])), pest = union('inat','PEST_LIST',cs);
-      b += `<div class="facts"><div><b>${fmt(rec,0)}</b>records</div><div><b>${inv.length}</b>invasive plant species</div><div><b>${cs.length}</b>of ${N} cells with records</div></div>`;
+      const nInvAll = new Set([...inv.map(x => x[0]), ...pest.map(x => x[0])]).size;
+      b += `<div class="facts"><div><b>${nInvAll ? nInvAll : 'None'}</b>invasive species</div><div><b>${fmt(rec,0)}</b>records</div><div><b>${cs.length}</b>of ${N} cells with records</div></div>`;
+      b += `<p class="none" style="font-size:12.5px">Invasive plants and forest pests are counted together. Quarterly summary (${esc(D.run)}).</p>`;
       b += inv.length ? `<p style="margin-top:8px">Invasive plants reported, with the number of selected cells each was found in:</p><ul class="spp">${inv.slice(0, 12).map(x => item(x[0], x[1], ed.has(x[0]))).join('')}</ul>` + (inv.length > 12 ? `<details><summary>${inv.length - 12} more</summary><ul class="spp">${inv.slice(12).map(x => item(x[0], x[1], ed.has(x[0]))).join('')}</ul></details>` : '') : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
-      if (pest.length) b += `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(x => item(x[0], x[1])).join('')}</ul>`;
+      b += pest.length ? `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(x => item(x[0], x[1], true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
       { /* Combined top ten, collapsible. With record counts in the data (TOP10_COUNTS) the counts are added across cells.
            Without them, each cell's ranking is merged: 10 points for a first place down to 1 for a tenth. */
         const hasN = !!(D.themes.inat[lv].f.TOP10_COUNTS), sc = new Map();
@@ -1476,12 +1513,11 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
           ids.forEach((i, r) => { const e = sc.get(i) || [0, 0]; e[0] += hasN ? (ns[r] || 0) : Math.max(1, 10 - r); e[1]++; sc.set(i, e); }); });
         const top = [...sc].sort((a,b) => b[1][0] - a[1][0] || b[1][1] - a[1][1] || D.spp[a[0]].localeCompare(D.spp[b[0]])).slice(0, 10);
         const tag = x => sppItem(x[0]).replace('</li>', `<span class="tag">${hasN ? fmt(x[1][0], 0) + (x[1][0] === 1 ? ' record, ' : ' records, ') : ''}${nCells(x[1][1])}</span></li>`);
-        if (top.length) b += `<details class="t10" ${S.t10 === false ? '' : 'open'}><summary>Top ten species across the selection</summary><ol class="spp top10">${top.map(tag).join('')}</ol><p class="none" style="font-size:13.5px;margin-top:6px">` +
+        if (top.length) b += `<details class="t10" ${S.t10 === false ? '' : 'open'}><summary>Top ten species across the selection</summary><ol class="spp top10">${top.map(tag).join('')}</ol><p class="none" style="font-size:12.5px;margin-top:6px">` +
           (hasN ? 'Record counts are added across the selected cells. A species is counted only in cells where it is among the ten most recorded, so its true total can be higher.'
                 : 'Ranked from each cell\'s own top ten: first place in a cell counts most, tenth least. The number beside each species is how many selected cells list it. The data holds each cell\'s ranking but not record counts, so this is a combined ranking and not a count of records.') + '</p></details>'; }
-    } else b += '<p class="none">No iNaturalist records in the selected cells.</p>';
-    b += `<details id="inatrec"${S.inatOpen ? ' open' : ''}><summary>Recent iNaturalist observations</summary><div id="inatlive" style="margin-top:6px"></div></details>`;
-    b += '</div>'; }
+    } else b += '<p class="none">No iNaturalist records in the selected cells in the quarterly summary.</p>';
+    b += '</div>'; b += LIVESEC; }
 
   // birds
   { const cs = withTh('ebird'); b += `<div class="sec" style="--hue:${HUE.ebird}"><h3>Birds</h3>`;
@@ -1490,7 +1526,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
       const ck = cs.reduce((s,c) => s + (val('ebird','N_CHECKLISTS',lv,c) || 0), 0), mx = Math.max(1, ...G.map(g => g[1].length));
       b += `<div class="facts"><div><b>${all.size}</b>species</div><div><b>${fmt(ck,0)}</b>checklists</div><div><b>${cs.length}</b>of ${N} cells with checklists</div></div>`;
       b += '<p style="margin-top:8px">Species by habitat group. Open a group to see its species and how many selected cells each was found in.</p>' + G.map(g => `<details class="gd"${S.m.f === g[2] ? ' open' : ''}><summary class="guild"><div>${g[0]}</div><div><span style="width:${100*g[1].length/mx}%"></span></div><div>${g[1].length}</div></summary><ul class="spp">${g[1].map(x => item(x[0], x[1])).join('')}</ul></details>`).join('');
-      if (soc.length) b += `<details><summary>${soc.length} species on watch lists</summary><ul class="spp">${soc.map(x => item(x[0], x[1])).join('')}</ul><p class="none" style="font-size:13.5px">BCC is the USFWS Birds of Conservation Concern list. PIF is Partners in Flight.</p></details>`;
+      if (soc.length) b += `<details><summary>${soc.length} species on watch lists</summary><ul class="spp">${soc.map(x => item(x[0], x[1])).join('')}</ul><p class="none" style="font-size:12.5px">BCC is the USFWS Birds of Conservation Concern list. PIF is Partners in Flight.</p></details>`;
     } else b += '<p class="none">No eBird checklists in the selected cells.</p>';
     b += '</div>'; }
 
@@ -1508,9 +1544,9 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
     if (cs.length){ const ac = new Map(), nn = new Map(); let tot = 0;
       cs.forEach(c => { const a = val('lands','LAND_AC',lv,c) || 0, raw = val('lands','MGRS',lv,c) || []; tot += a; for (let k = 0; k < raw.length; k += 2){ ac.set(raw[k], (ac.get(raw[k]) || 0) + a * raw[k+1] / 100); nn.set(raw[k], (nn.get(raw[k]) || 0) + 1); } });
       const mg = [...ac].sort((a,b) => b[1] - a[1]).map(x => [D.cats.MGR[x[0]], tot ? 100 * x[1] / tot : 0, nn.get(x[0])]);
-      const row = x => `<div><span>${esc(x[0])} <em style="color:var(--muted);font-style:normal;font-size:13px">${nCells(x[2])}</em></span><span>${pctLt1(x[1])}</span></div>`;
+      const row = x => `<div><span>${esc(x[0])} <em style="color:var(--muted);font-style:normal;font-size:12px">${nCells(x[2])}</em></span><span>${pctLt1(x[1])}</span></div>`;
       b += `<p>${mg.length} ${mg.length === 1 ? 'administrator has' : 'administrators have'} mapped land in the selected cells. Each share is of the mapped land in the selection, not of the whole area:</p>` + topSix(mg, row, 'keys nosw', 'more');
-      b += '<p class="none" style="font-size:13.5px;margin-top:8px">Generalized to the cells from tract records. Not a boundary determination, and not a record of who administers any given spot.</p>';
+      b += '<p class="none" style="font-size:12.5px;margin-top:8px">Generalized to the cells from tract records. Not a boundary determination, and not a record of who administers any given spot.</p>';
     } else b += '<p class="none">No land records summarized for the selected cells.</p>';
     b += '</div>'; }
   finishProfile(b); inatLive(cells.map(c => ring(lv, c)), lv + ':' + cells.join(',')); }
@@ -1563,21 +1599,20 @@ function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stri
   const x = mi => pl + pw * mi / D.totalMi, rng = secRange();
   let h = '';
   if (rng) h += `<rect x="${x(rng[0])}" y="${top-4}" width="${Math.max(2, x(rng[1]) - x(rng[0]))}" height="${base - top + 6}" fill="#fff" opacity=".09"/>`;
-  h += `<line x1="${pl}" x2="${W-pr}" y1="${base+.5}" y2="${base+.5}" stroke="#4D6079"/>`;
+  h += `<line x1="${pl}" x2="${W-pr}" y1="${base+.5}" y2="${base+.5}" stroke="#596267"/>`;
   bins.forEach((b,i) => { if (b.val == null) return; const bx = pl + i*bw;
     const inR = !rng || ((i+1)*BIN > rng[0] && i*BIN < rng[1]);
-    const hh = m.kind === 'cat' ? base - top - 18 : Math.max(1.5, (base - top) * (mx ? b.val / mx : 0)), col = m.kind !== 'cat' && m.zero && b.val === 0 ? '#60738B' : colorOf(m, lv, b.val);
+    const hh = m.kind === 'cat' ? base - top - 18 : Math.max(1.5, (base - top) * (mx ? b.val / mx : 0)), col = m.kind !== 'cat' && m.zero && b.val === 0 ? '#6A7378' : colorOf(m, lv, b.val);
     h += `<rect x="${bx}" y="${base-hh}" width="${Math.max(1,bw-.6)}" height="${hh}" fill="${col}" opacity="${inR ? 1 : .3}" stroke="#fff" stroke-opacity=".22" stroke-width=".5"/>`; });
   h += `<rect id="vwin" x="0" y="${top-4}" width="0" height="${base-top+6}" fill="none" stroke="#fff" stroke-width="1.5" rx="2"/>`;
   h += `<rect id="shover" x="0" y="${top-4}" width="${bw}" height="${base-top+6}" fill="#fff" opacity="0"/>`;
   D.regions.forEach((r,i) => { const x0 = x(r[1]), x1 = x(r[2]);
-    h += `<line x1="${x0+.5}" x2="${x0+.5}" y1="${base}" y2="${base+22}" stroke="#4D6079"/>`;
+    h += `<line x1="${x0+.5}" x2="${x0+.5}" y1="${base}" y2="${base+22}" stroke="#596267"/>`;
     if (x1 - x0 > 70) h += `<text class="reg" x="${x0+6}" y="${base+16}">${esc(r[0])}</text>`; });
-  h += `<line x1="${W-pr-.5}" x2="${W-pr-.5}" y1="${base}" y2="${base+22}" stroke="#4D6079"/>`;
+  h += `<line x1="${W-pr-.5}" x2="${W-pr-.5}" y1="${base}" y2="${base+22}" stroke="#596267"/>`;
   const wide = W > 520;
   h += `<text class="end" x="${pl}" y="${H-4}">${wide ? 'Springer Mountain, Georgia' : 'Georgia'}</text><text class="end" x="${W-pr}" y="${H-4}" text-anchor="end">${wide ? 'Katahdin, Maine' : 'Maine'}</text>`;
-  const endL = wide ? 215 : 70, endR = wide ? 135 : 55; /* room taken by the end labels */
-  if (W > 620) [500,1000,1500].filter(mi => x(mi) - 32 > pl + endL && x(mi) + 32 < W - pr - endR).forEach(mi => { h += `<text x="${x(mi)}" y="${H-4}" text-anchor="middle">mile ${fmt(mi,0)}</text><line x1="${x(mi)}" x2="${x(mi)}" y1="${base}" y2="${base+4}" stroke="#71849B"/>`; });
+  if (W > 620) [500,1000,1500].forEach(mi => { h += `<text x="${x(mi)}" y="${H-4}" text-anchor="middle">mile ${fmt(mi,0)}</text><line x1="${x(mi)}" x2="${x(mi)}" y1="${base}" y2="${base+4}" stroke="#7C868B"/>`; });
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = h;
   svg._geo = {pl, pw, bw};
   $('#striptitle').textContent = m.label + ', south to north';
