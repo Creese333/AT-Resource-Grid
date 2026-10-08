@@ -452,7 +452,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Vegetation</td><td>NPS vegetation map for the A.T., by mapped vegetation type</td><td>The map stops at the edge of the surveyed lands, so most cells are only partly covered.</td></tr>
       <tr><td>iNaturalist</td><td>Research-grade records, <span class="run"></span></td><td>Records follow people. Few records means few visits, not few species.</td></tr>
       <tr><td>eBird</td><td>Checklists, <span class="run"></span></td><td>Same caution. Thinly sampled cells are faded on the bird maps.</td></tr>
-      <tr><td>Unique species</td><td>Rare species priority zones</td><td>Rates how fragile the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
+      <tr><td>Unique species</td><td>Rare species priority zones</td><td>Rates how vulnerable the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
     </table>
     <h3>Reading the maps</h3>
     <ul>
@@ -711,7 +711,7 @@ const CATCOL = {
   L2_DOM:[['Open Water','#466B9F'],['Developed, Open Space','#DEC5C5'],['Developed, Low Intensity','#D99282'],['Developed, Medium Intensity','#EB0000'],['Developed, High Intensity','#AB0000'],
     ['Barren Land','#B3AC9F'],['Deciduous Forest','#68AB5F'],['Evergreen Forest','#1C5F2C'],['Mixed Forest','#B5C58F'],['Shrub/Scrub','#CCB879'],['Grassland/Herbaceous','#DFDFC2'],
     ['Pasture/Hay','#DCD939'],['Cultivated Crops','#AB6C28'],['Woody Wetlands','#B8D9EB'],['Emergent Herbaceous Wetlands','#6C9FB8'],['Unassigned','#ECEFEA']],
-  review_tie:[['Avoid','#9E2B4E','Very highly fragile populations'],['Minimize','#E5892B','Highly fragile populations'],['Standard Review','#F2D94A','Moderately fragile populations']]
+  review_tie:[['Avoid','#9E2B4E','Very highly vulnerable populations'],['Minimize','#E5892B','Highly vulnerable populations'],['Standard Review','#F2D94A','Moderately vulnerable populations']]
 };
 const L1 = [['L1_FOREST','Forest','#5E9C56'],['L1_SHRUB','Shrubland','#C9A85C'],['L1_HERB','Grass and herbaceous','#E3D58C'],['L1_AGRIC','Planted or cultivated','#D4CE3A'],
   ['L1_WETLAND','Wetland','#7FB2CE'],['L1_WATER','Water','#41639A'],['L1_DEVELOPED','Developed','#D58E7F'],['L1_BARREN','Barren','#A9A295']];
@@ -809,7 +809,7 @@ const Q = [
      {id:'sb', label:'Shorebird species', f:'SHORE_SPP', int:1, zero:1, fade:1, noun:['species','species']},
      {id:'se', label:'Seabird species', f:'SEABIRD_SPP', int:1, zero:1, fade:1, noun:['species','species']}]},
  {id:'pri', th:'nrpz', hue:HUE.nrpz, ramp:'pri', title:'Where do projects need to take a closer look?',
-  use:'Shows where unique species have fragile populations, based on plant and animal records. Use it to screen a proposed project site early, and bring in resource staff before plans firm up where populations are highly or very highly fragile.',
+  use:'Shows where unique species have vulnerable populations, based on plant and animal records. Use it to screen a proposed project site early, and bring in resource staff before plans firm up where populations are highly or very highly vulnerable.',
   m:[{id:'tier', label:'Unique Species', kind:'cat', f:'review_tie'}]}
 ];
 for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
