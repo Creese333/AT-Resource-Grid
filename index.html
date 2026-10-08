@@ -240,6 +240,13 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .boxm span{color:var(--muted)}
 .boxm b{font-weight:600}
 .pnav{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.scales{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:9px}
+.scales span{font-size:13px;color:var(--muted);margin-right:4px}
+.scales button{border:1px solid #4A6182;background:none;color:#E3EAF2;border-radius:4px;padding:3px 10px;font-size:13.5px}
+.scales button em{font-style:normal;color:var(--muted)}
+.scales button:hover:not(:disabled):not([aria-pressed]){border-color:var(--ink)}
+.scales button[aria-pressed=true]{cursor:default;color:#fff;font-weight:600;border-color:#9FE0D3;background:var(--accent);background:color-mix(in srgb,var(--accent) 72%,var(--panel))}
+.scales button:disabled{opacity:.4;cursor:default}
 .pnav button{border:1px solid #4A6182;background:none;color:#E3EAF2;border-radius:4px;padding:3px 9px;font-size:13.5px}
 .pnav button:hover{border-color:var(--ink)}
 .pnav .exp{color:#fff;font-weight:600;border-color:var(--accent);background:var(--accent);background:color-mix(in srgb,var(--accent) 72%,var(--panel))}
@@ -350,7 +357,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   .peekval{display:block;margin:5px 0 0 !important;font-size:15px;color:#EEF3F8 !important}
   .peekval span{color:var(--muted)}
   .peekval b{font-weight:600}
-  #profile.peek .pbody,#profile.peek .phead .id,#profile.peek .pnav{display:none}
+  #profile.peek .pbody,#profile.peek .phead .id,#profile.peek .pnav,#profile.peek .scales{display:none}
   #profile.peek .phead{border-bottom:0;padding-bottom:14px}
   #profile.peek .phead h2{font-size:18px}
   body{padding-bottom:10px}
@@ -1290,6 +1297,20 @@ function sppItem(i, edrr){ const {common, sci, tag} = sppName(i), tx = common ? 
   if (tag) h += `<span class="tag">${esc(tag)}</span>`;
   if (edrr) h += '<span class="tag edrr">priority invasive</span>';
   return `<li>${h}</li>`; }
+/* The other cell sizes for a cell: the larger cells it sits in, and the smaller cells inside it (selected together).
+   from: the cell the row is built around; on: the size now shown. */
+const SIZES = ['hex','cog','wheel'];
+function childrenOf(lv, c, down){ const pre = D.levels[lv].id[c] + '-', ids = D.levels[down].id, out = [];
+  for (let k = 0; k < ids.length; k++) if (ids[k].startsWith(pre)) out.push(k); return out; }
+function scaleRow(from, on){ const [lv, c] = from, i0 = SIZES.indexOf(lv);
+  const opts = SIZES.map((L, i) => { if (L === on) return {L, cur:true};
+    if (i === i0) return {L, go:() => select(lv, c, true)};
+    if (i > i0){ let p = [lv, c]; while (p && p[0] !== L) p = parentOf(p[0], p[1]); return p ? {L, go:() => select(p[0], p[1], true)} : {L}; }
+    const kids = childrenOf(lv, c, L); return kids.length ? {L, n:kids.length, go:() => { selectMany(L, kids, null, null, from); map.fitBounds(L_bounds(lv, c), {maxZoom:12}); }} : {L}; });
+  const html = `<div class="scales" role="group" aria-label="Cell size"><span>Cell size</span>` + opts.map((o, k) =>
+    `<button type="button" data-k="${k}"${o.cur ? ' aria-pressed="true"' : ''}${!o.cur && !o.go ? ' disabled' : ''}>${LV[o.L].name}${o.n ? ` <em>(${o.n})</em>` : ''}</button>`).join('') + '</div>';
+  return [html, el => el.querySelectorAll('.scales button').forEach(b => { const o = opts[+b.dataset.k]; if (o.go && !o.cur) b.onclick = o.go; })]; }
+const L_bounds = (lv, c) => L.latLngBounds(ring(lv, c)).pad(lv === 'hex' ? 1.5 : .6);
 function parentOf(lv, c){ const id = D.levels[lv].id[c], up = lv === 'hex' ? 'cog' : lv === 'cog' ? 'wheel' : null; if (!up) return null;
   const pid = id.slice(0, id.lastIndexOf('-')); return IDX[up].has(pid) ? [up, IDX[up].get(pid)] : null; }
 function select(lv, c, fly){ S.box = null; boxRect.remove(); S.pinOff = false; S.cell = c; S.cellLv = lv; const r = ring(lv, c); selOuter.setLatLngs(r); selInner.setLatLngs(r);
@@ -1330,8 +1351,9 @@ function coverHTML(shares){ const l = shares.filter(x => x[1] >= 1).sort((a,b) =
 function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c);
   let h = `<h2>${LV[lv].name} cell near mile ${fmt(L_.mi[c],0)}</h2><p>${esc(cat('club', L_.club[c]) || '')}, ${esc(regionOf(L_.mi[c]))} region</p><p class="id">Grid ID ${esc(L_.id[c])}</p>`;
   h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(show(S.m, cellValue(lv, c)))}</b></p>`;
-  h += `<div class="pnav">${par ? `<button type="button" id="pup">Step out to the ${LV[par[0]].name} cell</button>` : ''}${EXPORTBTNS}</div>`;
-  $('#phead').innerHTML = h; if (par) $('#pup').onclick = () => select(par[0], par[1], true); exportWire();
+  const [scales, wireScales] = scaleRow([lv, c], lv);
+  h += scales + `<div class="pnav">${EXPORTBTNS}</div>`;
+  $('#phead').innerHTML = h; wireScales($('#phead')); exportWire();
   const v = (th, f) => val(th, f, lv, c); let b = '';
 
   // land
@@ -1451,7 +1473,8 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
   const ab = (k, x) => out.about.push({item:k, value:x});
   ab('Source', 'A.T. Resource Grid dashboard'); ab('Exported', new Date().toISOString().slice(0, 10)); ab('iNaturalist and eBird data run', D.run);
   ab('Cells exported', cells.length); ab('Cell size', LV[lv].name); ab('Section of trail', secName()); ab('Measure on screen', S.m.label);
-  ab('Selection', S.box ? (S.box.label ? 'Every cell with ' + S.box.label : 'Cells inside a box drawn on the map') : 'One cell clicked on the map');
+  ab('Selection', S.box ? (S.box.within ? `Every ${LV[S.box.lv].name} cell inside the ${LV[S.box.within[0]].name} cell ${D.levels[S.box.within[0]].id[S.box.within[1]]}`
+    : S.box.label ? 'Every cell with ' + S.box.label : 'Cells inside a box drawn on the map') : 'One cell clicked on the map');
   ab('Note', 'Each row is a grid cell summary, not a field record. A blank value means no data for that layer in the cell.');
   ab('Note', 'Species lists: birds, invasive plants and forest pests are complete for each cell. Other iNaturalist species are only the ten most recorded.');
   ab('Note', 'Land administrator shares are of the mapped land in the cell. Generalized to the grid; not a boundary determination.');
@@ -1490,15 +1513,17 @@ function boxMeasure(m, lv, cells){ const vals = []; cells.forEach(c => { const v
   return `${fmt(sum / vals.length, 1)} ${noun} per cell on average, up to ${fmt(mx, 0)}`.replace('  ', ' '); }
 function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[lv], N = cells.length;
   const mis = cells.map(c => L_.mi[c]), lo = Math.min(...mis), hi = Math.max(...mis);
-  let h = `<h2>${nCells(N)} selected</h2><p>${S.box.label ? 'Every cell with ' + esc(S.box.label) + '. ' : ''}${LV[lv].name} cells, trail miles ${fmt(lo,0)} to ${fmt(hi,0)}</p>`;
+  const w = S.box.within, wName = w && `${LV[w[0]].name} cell near mile ${fmt(D.levels[w[0]].mi[w[1]], 0)}`;
+  let h = `<h2>${nCells(N)} selected</h2><p>${w ? `Every ${LV[lv].name} cell inside the ${wName}` : `${S.box.label ? 'Every cell with ' + esc(S.box.label) + '. ' : ''}${LV[lv].name} cells, trail miles ${fmt(lo,0)} to ${fmt(hi,0)}`}</p>`;
   h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p>`;
-  h += `<div class="pnav"><button type="button" id="pclearbox">Clear selection</button>${EXPORTBTNS}</div>`;
-  $('#phead').innerHTML = h; $('#pclearbox').onclick = clearSel; exportWire();
+  const sr = w ? scaleRow(w, lv) : null;
+  h += (sr ? sr[0] : '') + `<div class="pnav"><button type="button" id="pclearbox">Clear selection</button>${EXPORTBTNS}</div>`;
+  $('#phead').innerHTML = h; if (sr) sr[1]($('#phead')); $('#pclearbox').onclick = clearSel; exportWire();
   const withTh = th => D.themes[th] && D.themes[th][lv] ? cells.filter(c => has(th, lv, c)) : [];
   const ctag = n => `<span class="tag">${nCells(n)}</span>`;
   const item = (i, n, ed) => sppItem(i, ed).replace('</li>', ctag(n) + '</li>');
   const union = (th, f, cs) => { const m = new Map(); cs.forEach(c => (val(th, f, lv, c) || []).forEach(i => m.set(i, (m.get(i) || 0) + 1))); return [...m].sort((a,b) => b[1] - a[1] || D.spp[a[0]].localeCompare(D.spp[b[0]])); };
-  let b = `<p class="boxm"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p><p class="none" style="font-size:13.5px;margin:6px 0 0">Combined from the ${nCells(N)} whose centers fall inside the box. Records and acres are added up. Species and types are counted once, however many cells they occur in.</p>`;
+  let b = `<p class="boxm"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p><p class="none" style="font-size:13.5px;margin:6px 0 0">Combined from the ${nCells(N)}${S.box.label || w ? '' : ' whose centers fall inside the box'}. Records and acres are added up. Species and types are counted once, however many cells they occur in.</p>`;
 
   // vegetation
   { const cs = withTh('veg'); b += `<div class="sec" style="--hue:${HUE.veg}"><h3>Vegetation</h3>`;
@@ -1590,7 +1615,7 @@ function finishBox(bounds){ const lv = shown, L_ = D.levels[lv], cells = [];
   const hint = $('#maphint');
   if (!cells.length){ hint.textContent = 'No cells in that box. Try again.'; hint.classList.add('on'); return; }
   drawMode(false); selectMany(lv, cells, bounds, null); }
-function selectMany(lv, cells, bounds, label){ S.cell = null; pin.remove(); S.box = {lv, cells, label}; $('#clearbtn').hidden = false;
+function selectMany(lv, cells, bounds, label, within){ S.cell = null; pin.remove(); S.box = {lv, cells, label, within}; $('#clearbtn').hidden = false;
   const rings = cells.map(c => [ring(lv, c)]); selOuter.setLatLngs(rings); selInner.setLatLngs(rings);
   if (bounds) boxRect.setBounds(bounds).addTo(map); else boxRect.remove();
   profile(); writeHash();
