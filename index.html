@@ -694,7 +694,7 @@ const shortClub = s => s.replace('Appalachian Trail Club','A.T. Club').replace('
 
 /* ---------- colors ---------- */
 const RAMP = {
-  land:['#E0E3EA','#C0C8D4','#9DA9BC','#7C8CA6','#4A5464'],
+  land:['#F7DCE8','#EEB2CC','#E287B0','#D65A92','#8C3A61'],
   veg:['#D1EAE6','#A3D5CD','#6FBDB0','#3FA796','#26645A'],
   inv:['#F8DFD9','#F0BFB2','#E89B87','#E07A5F','#864939'],
   eff:['#D9EDF5','#B2DBEB','#87C6E0','#5FB3D6','#396B80'],
@@ -730,7 +730,7 @@ CATCOL.APPA_YN = [['NPS - APPA land', '#4FA3D9']]; D.cats.APPA_YN = ['NPS - APPA
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 const ADMINCOL = ['#24475F','#819FB4','#C9D6DE','#E6E9E4'];
 /* Blue Ridge color scheme */
-const HUE = {lands:'#7C8CA6', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#5FB3D6'};
+const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#5FB3D6'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
