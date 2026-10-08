@@ -82,6 +82,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 /* collapse chevrons on the side panel blocks, the legend and the profile sections */
 .blktog i,#legtog i,.sectog i{flex:none;width:0;height:0;border:5px solid transparent;border-top:6px solid var(--ink);border-bottom:0;transition:transform .15s}
 .blktog i{border-top-color:#C2CEDB}
+#legtog i{border-width:4px 4px 0;border-top-width:5px}
 .blktog[aria-expanded=false] i,#legtog[aria-expanded=false] i,.sectog[aria-expanded=false] i{transform:rotate(-90deg)}
 .blktog:hover span,.sectog:hover span{text-decoration:underline;text-underline-offset:3px}
 .blkbody{padding-bottom:8px}
@@ -174,7 +175,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 #legbody{margin-top:5px}
 #legbody[hidden]{display:none}
 #legend .row{display:grid;grid-template-columns:16px 1fr;gap:7px;align-items:center;padding:1.5px 0}
-#legend i{width:16px;height:12px;border-radius:2px;display:block}
+#legend .row i{width:16px;height:12px;border-radius:2px;display:block}
 #legend .row i,.keys i,.catrow i{box-shadow:0 0 0 1px rgba(255,255,255,.22)}
 #legend .hollow{border:1px solid #8FA2B7;background:none}
 #legend label{display:flex;gap:6px;align-items:center;margin-top:6px;color:var(--muted)}
@@ -819,7 +820,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 /* ---------- state ---------- */
 /* The basemap the page opens on. Falls back to USGS topo if no Mapbox token is set. */
 const DEFBASE = 'mbsat';
-const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: innerWidth > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, side: {about:true, measures:true, results:true}};
+const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: innerWidth > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, side: {about:false, measures:true, results:true}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
