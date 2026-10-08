@@ -13,6 +13,7 @@
 :root{
   --hdr:#1C3B5A; --ink:#EEF3F8; --ink2:#2B5478; --ground:#1F3049; --panel:#142235; --line:#33465F; --onlight:#142235;
   --muted:#BCC9D8; --blaze:#8EC2F0; --blaze-soft:#E3EEF8;
+  --accent:#3FA796; /* sea green, the Vegetation color: measure buttons and export buttons */
   --body:'Geist',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --cond:var(--body); /* headings: the same face at semibold */
 }
@@ -88,9 +89,10 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .findbar+.blk{border-top:0}
 .use{margin:0;color:#D0DAE5;max-width:40em;font-size:14px;line-height:1.5}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin:0}
-.chips button{border:1px solid #4A6182;background:none;color:#E3EAF2;border-radius:999px;padding:2px 9px;font-size:13.5px}
-.chips button:hover{border-color:var(--ink)}
-.chips button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--onlight);font-weight:500}
+.chips button{border:1px solid var(--accent);background:var(--ground);color:#E3EAF2;border-radius:999px;padding:3px 11px;font-size:13.5px;
+  border-color:color-mix(in srgb,var(--accent) 70%,var(--panel));background:color-mix(in srgb,var(--accent) 18%,var(--panel))}
+.chips button:hover{color:#fff;border-color:var(--accent);background:color-mix(in srgb,var(--accent) 34%,var(--panel))}
+.chips button[aria-pressed=true]{color:#fff;font-weight:600;border-color:#9FE0D3;background:var(--accent);background:color-mix(in srgb,var(--accent) 72%,var(--panel))}
 .statline{font-size:13.5px;color:var(--muted);margin:0 0 4px}
 .rank h3{font-size:15.5px;margin:6px 0 3px;flex:none}
 .rank ol{list-style:none;margin:0;padding:0}
@@ -240,7 +242,8 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .pnav{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .pnav button{border:1px solid #4A6182;background:none;color:#E3EAF2;border-radius:4px;padding:3px 9px;font-size:13.5px}
 .pnav button:hover{border-color:var(--ink)}
-.pnav .exp{border-color:#6F8798;color:#CFE3F5}
+.pnav .exp{color:#fff;font-weight:600;border-color:var(--accent);background:var(--accent);background:color-mix(in srgb,var(--accent) 72%,var(--panel))}
+.pnav .exp:hover{border-color:#9FE0D3;background:color-mix(in srgb,var(--accent) 60%,var(--panel))}
 .pexmsg{flex:1 1 100%;font-size:13.5px;color:var(--muted);margin:0 !important}
 .pexmsg:empty{display:none}
 #inatrec .inat-head{display:none}
