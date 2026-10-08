@@ -455,7 +455,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     </table>
     <h3>Reading the maps</h3>
     <ul>
-      <li>Cell colors fade as you zoom in, so the basemap shows through. At the closest zoom the fill is 75% transparent and the white cell outlines remain.</li>
+      <li>Cell colors fade as you zoom in, so the basemap shows through. From zoom 15 inward the fill is 75% transparent and the white cell outlines remain. The map zooms in to street level; beyond each basemap's own detail its tiles are enlarged, so USGS maps look softer at the closest zooms.</li>
       <li>Filled cells have data for the measure on screen. Outlined cells have data in another layer but none for this measure.</li>
       <li>Species counts follow survey effort: more records nearly always means more species. So the species measures fade thinly sampled cells, and each ranked count shows the records or checklists behind it. Counts rank every cell, since thinly sampled cells fall to the bottom on their own. Shares, such as the invasive share of records, leave thinly sampled cells out of the ranking, because a share from a handful of records is not reliable. A cell is thinly sampled when its data status is not Adequate, or when its records sit in too few of its square miles: only one for a 7 sq mi cell, fewer than three for a 49 sq mi cell. Bird species, standardized is an estimate at equal sampling completeness and is the fairest comparison between cells.</li>
       <li>Colors are five equal-count classes of the cells with data at the cell size on screen, so the classes change when you change cell size.</li>
@@ -877,7 +877,7 @@ const THIN_AC = 10;
 const faded = (m, lv, c) => S.fade && m.fade && (m.fadeFn ? m.fadeFn(lv, c) : m.th === 'veg' ? val('veg', 'VEG_AREA', lv, c) < THIN_AC : thin(m.th, lv, c));
 
 /* ---------- map ---------- */
-const map = L.map('map', {preferCanvas:true, zoomSnap:.5, minZoom:4, maxZoom:15, attributionControl:true});
+const map = L.map('map', {preferCanvas:true, zoomSnap:.5, minZoom:4, maxZoom:18, attributionControl:true}); /* 18 is the tile layers' own limit */
 map.attributionControl.setPrefix(false);
 const ATTR = 'Basemap: USGS The National Map';
 const TNM = 'https://basemap.nationalmap.gov/arcgis/rest/services/', OSMA = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
