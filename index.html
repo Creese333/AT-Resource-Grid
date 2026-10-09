@@ -289,6 +289,9 @@ ol.spp.top10 li::marker{color:var(--muted);font-size:13.5px}
 .spp a:hover em{color:var(--blaze)}
 .spp .tag{font-size:13px;border:1px solid var(--line);border-radius:3px;padding:0 4px;margin-left:4px;color:var(--muted);white-space:nowrap}
 .spp .tag{background:rgba(10,19,31,.45)}
+.prioget{margin-left:6px;border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 22%,var(--panel));color:#fff;border-radius:4px;padding:1px 9px;font-size:13px}
+.prioget:hover{background:color-mix(in srgb,var(--accent) 40%,var(--panel))}
+#priobody > .prioget{margin:6px 0 0}
 .spp .edrr{border-color:#F08A55;color:#FFC9A8}
 details{margin-top:6px}
 summary{cursor:pointer;font-size:14px;color:var(--blaze)}
@@ -466,7 +469,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>Map layers adds administrative areas, shelters, campsites, parking, privies, bridges, vistas and side trails. They load live from the NPS and ATC map services when switched on, so they stay current. Administrative areas and side trails appear once you zoom in. A click on one of these features opens its details; a click anywhere else selects the grid cell.</li>
       <li>Select area draws a box on the map and summarizes every cell whose center falls inside it. Records and acres are added up; species and vegetation types are counted once.</li>
       <li>Each cell has two iNaturalist sections. Invasive species is the quarterly summary: invasive plants and forest pests counted together, with forest pests also counted as priority invasives. It is what the map, rankings and exports use. Live iNaturalist is fetched from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you open it, and lists the most recent observations in the cell, with a badge on invasive species and forest pests. Live records are not counted anywhere else on the page, and records with obscured locations are left out, since they cannot be placed in a cell.</li>
-      <li>Priority species, such as American black bear, are searchable everywhere they have been recorded. The quarterly summary lists them only where they rank among a cell's ten most-recorded iNaturalist species, so their full research-grade records are fetched live from the iNaturalist project when you search for one or open the Priority species section of a cell.</li>
+      <li>Priority species, such as American black bear, are searchable everywhere they have been recorded. The quarterly summary lists them only where they rank among a cell's ten most-recorded iNaturalist species, so their research-grade records are fetched live from the iNaturalist project. In a cell's Priority species section, Look up checks just the selected cells; searching for a species loads all its records along the trail and keeps them in your browser, so a later visit only fetches what is new.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
       <li>Trail miles are measured along the mapped centerline, south to north from Springer Mountain, and are approximate.</li>
     </ul>
@@ -1460,67 +1463,100 @@ async function prioTaxon(p){ if (p.taxon) return p.taxon;
   const r = await fetch('https://api.inaturalist.org/v1/taxa?per_page=30&q=' + encodeURIComponent(p.sci)); if (!r.ok) throw new Error('HTTP ' + r.status);
   const t = ((await r.json()).results || []).find(x => (x.name || '').toLowerCase() === p.sci.toLowerCase());
   if (!t) throw new Error('No iNaturalist taxon named ' + p.sci); return p.taxon = t.id; }
-const PRIO = {};   // scientific name, lower case -> {st:'loading'|'done'|'error', n, total, obscured, counts:{hex,cog,wheel: Map cell -> records}}
+const PRIO = {};   // full loads, by scientific name in lower case: {st:'loading'|'done'|'error', n, total, obscured, placed, counts:{hex,cog,wheel: Map cell -> records}, pts}
 const prioState = p => PRIO[p.sci.toLowerCase()];
 function prioStatus(p){ const st = prioState(p), where = 'iNaturalist project';
-  if (!st || st.st === 'loading') return `Priority species. Loading research-grade records from the ${where}…` + (st && st.total ? ` ${fmt(st.n,0)} of ${fmt(st.total,0)}` : '');
+  if (!st || st.st === 'loading') return `Priority species. ${st && st.cached ? 'Checking for new research-grade records since your last visit' : 'Loading research-grade records from the ' + where}…` + (st && st.total ? ` ${fmt(st.n,0)} of ${fmt(st.total,0)}` : '') + (st && st.placed ? `, ${fmt(st.placed,0)} on the map so far` : '');
   if (st.st === 'error'){ const e = FIDX && FIDX.get(p.sci.toLowerCase()), rest = e && e.sumComplete ? ' Showing the quarterly summary.' : ' These are partial results.';
     return (st.notFound ? `Priority species. No iNaturalist taxon is named ${p.sci}, so no live records were loaded.` : 'Priority species. The live records could not be loaded just now.') + rest; }
   return `Priority species, live from the ${where}: ${fmt(st.placed,0)} research-grade ${st.placed === 1 ? 'record' : 'records'} placed in the grid` + (st.obscured ? `, ${fmt(st.obscured,0)} with obscured locations left out` : '') + '.'; }
+/* One page of research-grade records. The newer API returns only the fields asked for, which keeps each page small;
+   the older one is the fallback. iNaturalist asks for about one request a second, which paging one after another keeps to. */
 const PRIOFIELDS = '(id:!t,quality_grade:!t,obscured:!t,geoprivacy:!t,taxon_geoprivacy:!t,geojson:all)';
+let PRIO_V2 = true;
+async function prioPage(params){ const q = (ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : '') + 'quality_grade=research&order_by=id&order=asc&per_page=200&' + params;
+  if (PRIO_V2){ try { const r = await fetch('https://api.inaturalist.org/v2/observations?' + q + '&fields=' + encodeURIComponent(PRIOFIELDS)); if (!r.ok) throw 0;
+      const j = await r.json(); if ((j.results || []).some(o => !o.geojson && !o.obscured)) throw 0; return j; } catch (e){ PRIO_V2 = false; } }
+  const r = await fetch('https://api.inaturalist.org/v1/observations?' + q); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }
+/* a record's [lat, lon], or null when it is not research grade or its location is obscured (counted in tally.obscured) */
+function prioKeep(o, tally){ if (o.quality_grade && o.quality_grade !== 'research') return null;
+  if (o.obscured || ['obscured','private'].includes(o.geoprivacy) || ['obscured','private'].includes(o.taxon_geoprivacy)){ tally.obscured++; return null; }
+  const c = o.geojson && o.geojson.coordinates; return c ? [Math.round(+c[1] * 1e5) / 1e5, Math.round(+c[0] * 1e5) / 1e5] : null; }
+/* A full load is saved in this browser. A later visit fetches only records newer than the saved ones; after 30 days the
+   saved copy is dropped and loaded again, so deleted or regraded records do not linger. */
+const PRIO_KEEP = 30 * 864e5, prioKey = p => 'atgrid-prio-v1:' + (ATiNat.config.project || '') + ':' + p.sci.toLowerCase();
+function prioSaved(p){ try { const x = JSON.parse(localStorage.getItem(prioKey(p))); if (x && Array.isArray(x.pts) && Date.now() - x.at < PRIO_KEEP) return x; } catch (e) {} return null; }
+function prioSave(p, x){ try { localStorage.setItem(prioKey(p), JSON.stringify(x)); } catch (e) {} }
+/* Every research-grade record of a species along the trail, for a search. Records are placed and shown as pages arrive. */
 function prioFetch(p, retry){ const k = p.sci.toLowerCase(); let st = PRIO[k]; if (st && st.promise) return st.promise;
   if (st && st.st === 'error' && !retry) return Promise.reject(new Error('not loaded'));
-  st = PRIO[k] = {st:'loading', n:0, total:null, obscured:0, placed:0, counts:{hex:new Map(), cog:new Map(), wheel:new Map()}};
-  prioRefresh(p);
-  st.promise = (async () => { const pts = [], taxon = await prioTaxon(p); let above = 0, v2 = true;
-    for (let page = 0; page < 150; page++){
-      const q = (ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : '') + `taxon_id=${taxon}&quality_grade=research&order_by=id&order=asc&per_page=200&id_above=${above}`;
-      let j = null;
-      if (v2){ /* the newer API returns only the fields asked for, which keeps each page small */
-        try { const r = await fetch('https://api.inaturalist.org/v2/observations?' + q + '&fields=' + encodeURIComponent(PRIOFIELDS)); if (!r.ok) throw 0;
-          j = await r.json(); if ((j.results || []).some(o => !o.geojson && !o.obscured)) throw 0; } catch (e){ v2 = false; j = null; } }
-      if (!j){ const r = await fetch('https://api.inaturalist.org/v1/observations?' + q); if (!r.ok) throw new Error('HTTP ' + r.status); j = await r.json(); }
-      const res = j.results || []; if (st.total == null) st.total = j.total_results;
-      res.forEach(o => { if (o.quality_grade && o.quality_grade !== 'research') return;
-        if (o.obscured || ['obscured','private'].includes(o.geoprivacy) || ['obscured','private'].includes(o.taxon_geoprivacy)){ st.obscured++; return; }
-        const c = o.geojson && o.geojson.coordinates; if (c) pts.push([+c[1], +c[0]]); });
-      st.n += res.length; prioRefresh(p, true);
-      if (res.length < 200) break; above = res[res.length - 1].id; }
-    prioPlace(pts, st); st.st = 'done'; prioRefresh(p); return st; })()
+  st = PRIO[k] = {st:'loading', n:0, total:null, obscured:0, placed:0, counts:{hex:new Map(), cog:new Map(), wheel:new Map()}, pts:[]};
+  st.promise = (async () => { const taxon = await prioTaxon(p), saved = prioSaved(p); let above = 0;
+    if (saved){ st.cached = true; st.n = saved.n; st.obscured = saved.obscured; st.pts = saved.pts; above = saved.maxId; prioPlace(saved.pts, st); }
+    prioRefresh(p);
+    for (let page = 0; page < 200; page++){
+      const j = await prioPage(`taxon_id=${taxon}&id_above=${above}`), res = j.results || [];
+      if (page === 0) st.total = st.n + (j.total_results || 0);
+      const pts = res.map(o => prioKeep(o, st)).filter(Boolean); prioPlace(pts, st); pts.forEach(x => st.pts.push(x));
+      st.n += res.length; if (res.length) above = res[res.length - 1].id;
+      if (res.length < 200) break;
+      prioRefresh(p, page % 3 !== 2); }   /* the status every page; the map and lists every third page */
+    st.st = 'done'; prioSave(p, {at: saved ? saved.at : Date.now(), maxId: above, n: st.n, obscured: st.obscured, pts: st.pts}); prioRefresh(p); return st; })()
     .catch(e => { st.st = 'error'; st.notFound = /No iNaturalist taxon/.test(e.message); st.promise = null; prioRefresh(p); throw e; });
   return st.promise; }
 /* Each record goes to the cell of each size that contains it: the nearest few cell centers are tested against the cell outline. */
 const RINGS = {};
+const inRingLL = (la, lo, r) => { let inside = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) if ((r[i][0] > la) !== (r[j][0] > la) && lo < (r[j][1] - r[i][1]) * (la - r[i][0]) / (r[j][0] - r[i][0]) + r[i][1]) inside = !inside; return inside; };
+const ringOf = (lv, c) => { const R = RINGS[lv] = RINGS[lv] || []; return R[c] = R[c] || ring(lv, c); };
 function prioPlace(pts, st){
-  for (const lv of SIZES){ const L_ = D.levels[lv], n = L_.id.length, R = RINGS[lv] = RINGS[lv] || [];
+  for (const lv of SIZES){ const L_ = D.levels[lv], n = L_.id.length;
     for (const [la, lo] of pts){ const k = Math.cos(la * Math.PI / 180), near = [];
       for (let c = 0; c < n; c++){ const dy = L_.c[c][0] - la, dx = (L_.c[c][1] - lo) * k, d = dx*dx + dy*dy;
         if (near.length < 3 || d < near[2][0]){ near.push([d, c]); near.sort((a, b) => a[0] - b[0]); if (near.length > 3) near.pop(); } }
-      for (const [, c] of near){ const r = R[c] = R[c] || ring(lv, c); let inside = false;
-        for (let i = 0, j = r.length - 1; i < r.length; j = i++) if ((r[i][0] > la) !== (r[j][0] > la) && lo < (r[j][1] - r[i][1]) * (la - r[i][0]) / (r[j][0] - r[i][0]) + r[i][1]) inside = !inside;
-        if (inside){ st.counts[lv].set(c, (st.counts[lv].get(c) || 0) + 1); if (lv === 'wheel') st.placed++; break; } } } } }
-/* Bring a search entry up to date with what has loaded: live cells are added to those the summary already knew. */
-function prioApply(e){ const st = prioState(e.prio); if (!st || st.st !== 'done') return;
-  SIZES.forEach(lv => st.counts[lv].forEach((n, c) => e.cells[lv].add(c))); e.complete = true; }
+      for (const [, c] of near) if (inRingLL(la, lo, ringOf(lv, c))){ st.counts[lv].set(c, (st.counts[lv].get(c) || 0) + 1); if (lv === 'wheel') st.placed++; break; } } } }
+/* Bring a search entry up to date: loaded cells are added to those the summary already knew (also while still loading). */
+function prioApply(e){ const st = prioState(e.prio); if (!st) return;
+  SIZES.forEach(lv => st.counts[lv].forEach((n, c) => e.cells[lv].add(c))); if (st.st === 'done') e.complete = true; }
 function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerCase());
   if (progressOnly){ const s = document.querySelector('.findbar span'); if (S.m.find === e && s) s.textContent = prioStatus(p); prioRender(); return; }
   if (e) prioApply(e);
   if (S.m.find === e) redraw(); else prioRender(); }
-/* The Priority species section of the details panel: records of each priority species in the selected cell or cells.
-   Like Live iNaturalist, it loads only once the section can be seen. */
+/* Look up one species in the selected cells only: a query of the selection's bounding box, usually a single small request. */
+const PRIOLOCAL = new Map();   // species|size|cells -> {st:'loading'|'done'|'error'|'wide', counts: Map cell -> records}
+const prioLocalKey = (p, lv, cells) => p.sci.toLowerCase() + '|' + lv + '|' + cells.join(',');
+async function prioLookup(p, lv, cells){ const key = prioLocalKey(p, lv, cells), rec = {st:'loading', counts:new Map(), obscured:0}; PRIOLOCAL.set(key, rec); prioRender();
+  const rings = cells.map(c => ringOf(lv, c)), la = rings.flat().map(x => x[0]), lo = rings.flat().map(x => x[1]);
+  const b = {s:Math.min(...la), n:Math.max(...la), w:Math.min(...lo), e:Math.max(...lo)};
+  if (b.n - b.s > INAT_MAX_SPAN || b.e - b.w > INAT_MAX_SPAN){ rec.st = 'wide'; prioRender(); return; }
+  try { const taxon = await prioTaxon(p), box = `swlat=${b.s.toFixed(5)}&swlng=${b.w.toFixed(5)}&nelat=${b.n.toFixed(5)}&nelng=${b.e.toFixed(5)}`; let above = 0;
+    for (let page = 0; page < 25; page++){ const res = (await prioPage(`taxon_id=${taxon}&${box}&id_above=${above}`)).results || [];
+      res.forEach(o => { const x = prioKeep(o, rec); if (!x) return; const i = rings.findIndex(r => inRingLL(x[0], x[1], r)); if (i >= 0) rec.counts.set(cells[i], (rec.counts.get(cells[i]) || 0) + 1); });
+      if (res.length < 200) break; above = res[res.length - 1].id; }
+    rec.st = 'done'; } catch (e){ rec.st = 'error'; rec.notFound = /No iNaturalist taxon/.test(e.message); }
+  prioRender(); }
+/* records of a species in one cell, from a full load or a look-up that covered the cell; null when not known */
+function prioCount(p, lv, c){ const st = prioState(p); if (st && st.st === 'done') return st.counts[lv].get(c) || 0;
+  for (const [k, r] of PRIOLOCAL) if (r.st === 'done' && k.startsWith(p.sci.toLowerCase() + '|' + lv + '|') && k.split('|')[2].split(',').includes(String(c))) return r.counts.get(c) || 0;
+  return null; }
+/* The Priority species section of the details panel. Nothing is fetched until asked: each species has its own Look up. */
 let PRIOCTX = null;
 const PRIOSEC = () => `<div class="sec" style="--hue:${HUE.prio};--tint:40%"><h3>Priority species</h3><div id="priobody"></div></div>`;
-function prioLive(lv, cells){ PRIOCTX = {lv, cells}; const el = $('#priobody'); if (!el) return; prioRender();
-  prioCheck = () => { if (el.isConnected && el.getClientRects().length) PRIORITY.forEach(p => { if (!prioState(p)) prioFetch(p).catch(() => {}); }); };
-  setTimeout(() => prioCheck()); }
-function prioRender(){ const el = $('#priobody'); if (!el || !PRIOCTX) return; const {lv, cells} = PRIOCTX;
-  el.innerHTML = '<ul class="spp">' + PRIORITY.map(p => { const st = prioState(p); let t;
-    if (!st || st.st === 'loading') t = st && st.total ? `loading ${fmt(st.n,0)} of ${fmt(st.total,0)} records…` : 'loading…';
-    else if (st.st === 'error') t = st.notFound ? 'not found on iNaturalist' : 'could not load just now';
-    else { const n = cells.reduce((s, c) => s + (st.counts[lv].get(c) || 0), 0), k = cells.filter(c => st.counts[lv].has(c)).length;
-      t = n ? `${fmt(n,0)} ${n === 1 ? 'record' : 'records'}${cells.length > 1 ? ' in ' + nCells(k) : ''}` : 'no records here'; }
-    return `<li><a href="${wiki(p.sci)}" target="_blank" rel="noopener">${esc(p.common)} <em>${esc(p.sci)}</em></a><span class="tag">${t}</span></li>`; }).join('') + '</ul>' +
-    `<p class="none" style="font-size:13.5px;margin-top:6px">Every research-grade record in the iNaturalist project, fetched live, so these are complete where the quarterly summary is not. Records with obscured locations are left out.</p>`; }
+function prioLive(lv, cells){ PRIOCTX = {lv, cells}; prioRender(); }
+function prioRender(){ const el = $('#priobody'); if (!el || !PRIOCTX) return; const {lv, cells} = PRIOCTX; let todo = 0;
+  const counted = (n, k) => n ? `${fmt(n,0)} ${n === 1 ? 'record' : 'records'}${cells.length > 1 ? ' in ' + nCells(k) : ''}` : 'no records here';
+  el.innerHTML = '<ul class="spp prio">' + PRIORITY.map((p, i) => { const st = prioState(p), loc = PRIOLOCAL.get(prioLocalKey(p, lv, cells)); let t;
+    if (st && st.st === 'done') t = `<span class="tag">${counted(cells.reduce((s, c) => s + (st.counts[lv].get(c) || 0), 0), cells.filter(c => st.counts[lv].has(c)).length)}</span>`;
+    else if (loc && loc.st === 'done') t = `<span class="tag">${counted([...loc.counts.values()].reduce((a, b) => a + b, 0), loc.counts.size)}</span>`;
+    else if (loc && loc.st === 'loading') t = '<span class="tag">looking up…</span>';
+    else if (loc && loc.st === 'wide') t = '<span class="tag">area too large to look up; search for the species to load all its records</span>';
+    else if (st && st.st === 'loading') t = `<span class="tag">loading all records${st.total ? ` ${fmt(st.n,0)} of ${fmt(st.total,0)}` : ''}…</span>`;
+    else { todo++; t = (loc && loc.st === 'error' ? `<span class="tag">${loc.notFound ? 'not found on iNaturalist' : 'could not look up just now'}</span>` : '') + `<button type="button" class="prioget" data-p="${i}">Look up</button>`; }
+    return `<li><a href="${wiki(p.sci)}" target="_blank" rel="noopener">${esc(p.common)} <em>${esc(p.sci)}</em></a>${t}</li>`; }).join('') + '</ul>' +
+    (todo > 1 ? '<button type="button" class="prioget" data-p="all">Look up all</button>' : '') +
+    `<p class="none" style="font-size:13.5px;margin-top:6px">Research-grade records in the iNaturalist project, so these are complete where the quarterly summary is not. Look up checks only the selected ${cells.length === 1 ? 'cell' : 'cells'}. Searching for a species loads all its records along the trail and keeps them in this browser for later visits. Records with obscured locations are left out.</p>`;
+  el.onclick = ev => { const b = ev.target.closest('.prioget'); if (!b) return;
+    (b.dataset.p === 'all' ? PRIORITY.filter(p => { const st = prioState(p), loc = PRIOLOCAL.get(prioLocalKey(p, lv, cells)); return !(st && st.st === 'done') && !(loc && loc.st !== 'error'); }) : [PRIORITY[+b.dataset.p]])
+      .reduce((ch, p) => ch.then(() => prioLookup(p, lv, cells)), Promise.resolve()); }; }   /* one after another, to keep to iNaturalist's pace */
 function finishProfile(html){ $('#pbody').innerHTML = html;
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
   const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Priority species':'prio', 'Birds':'ebird', 'Unique species':'nrpz', 'Land administrators':'lands'};
@@ -1553,7 +1589,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
     const ed = new Set(v('inat','EDRR_LIST',c) || []);
     sp('Invasive plant', 'iNaturalist', v('inat','INVASIVE_LIST',c), ed); sp('Forest pest', 'iNaturalist', v('inat','PEST_LIST',c), new Set(v('inat','PEST_LIST',c) || [])); /* forest pests count as priority invasives */ sp('iNaturalist most recorded', 'Top ten in the cell', v('inat','TOP10_SPECIES',c));
     BIRD_GROUPS.forEach(g => sp('Bird', g.full, v('ebird', g.list, c))); sp('Bird on a watch list', 'eBird', v('ebird','SOC_LIST',c));
-    PRIORITY.forEach(p => { const st = prioState(p), n = st && st.st === 'done' ? st.counts[lv].get(c) : 0;
+    PRIORITY.forEach(p => { const n = prioCount(p, lv, c);
       if (n) out.species.push({grid_id:id, trail_mile:L_.mi[c], group:'Priority species', habitat_group_or_list:`Live from the iNaturalist project, ${n} research-grade ${n === 1 ? 'record' : 'records'}`, common_name:p.common, scientific_name:p.sci, lists:''}); });
     const cp = v('veg','COMP',c) || [], ac = v('veg','VEG_AREA',c) || 0; for (let k = 0; k < cp.length; k += 2) out.veg.push({grid_id:id, trail_mile:L_.mi[c], vegetation_type:D.cats.DOM_TYPE[cp[k]], pct_of_mapped_acres:cp[k+1], acres:Math.round(ac * cp[k+1]) / 100});
     const mg = v('lands','MGRS',c) || []; for (let k = 0; k < mg.length; k += 2) out.land.push({grid_id:id, trail_mile:L_.mi[c], administrator:D.cats.MGR[mg[k]], pct_of_mapped_land:mg[k+1]}); });
