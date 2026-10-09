@@ -1254,11 +1254,11 @@ function findIndex(){ if (FIDX) return FIDX; const M = new Map();
     const vg = D.themes.veg && D.themes.veg[lv]; if (vg && vg.f.COMP) for (let r = 0; r < vg.f.COMP.length; r++){ const a = vg.f.COMP[r]; for (let k = 0; k < a.length; k += 2){ const nm = D.cats.DOM_TYPE[a[k]]; add('veg:' + nm.toLowerCase(), nm, '', 'Vegetation type', 'veg', true, lv, vg.ix[r]); } } }
   PRIORITY.forEach(p => { const k = p.sci.toLowerCase(); let e = M.get(k);
     if (!e){ e = {key:k, th:'inat', complete:false, cells:{hex:new Set(), cog:new Set(), wheel:new Set()}}; M.set(k, e); }
-    Object.assign(e, {common:p.common, sci:p.sci, kind:'Priority species', lc:p.common.toLowerCase(), ls:p.sci.toLowerCase(), prio:p}); prioApply(e); });
+    Object.assign(e, {common:p.common, sci:p.sci, kind:'Priority species', lc:p.common.toLowerCase(), ls:p.sci.toLowerCase(), prio:p, sumComplete:e.complete}); prioApply(e); });
   return FIDX = M; }
 function findMetric(e){ return {id:'find', find:e, q:S.q, th:e.th, kind:'cat', f:'FIND', label:e.common || e.sci, get:(lv, c) => e.cells[lv].has(c) ? 0 : null}; }
 function setFind(e, fly){ S.m = findMetric(e); S.secOpen = {}; $('#find').value = S.m.label; closeFind(); redraw();
-  if (e.prio) prioFetch(e.prio).catch(() => {});
+  if (e.prio) prioFetch(e.prio, true).catch(() => {});
   if (fly){ const L_ = D.levels.wheel, pts = []; e.cells.wheel.forEach(c => { if (inSec('wheel', c)) pts.push(L_.c[c]); }); if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(.12), {maxZoom:9}); } }
 function clearFind(){ if (!S.m.find) return; S.m = S.q.m[0]; $('#find').value = ''; redraw(); }
 function findSummary(lv){ const e = S.m.find, L_ = D.levels[lv], rows = []; let total = 0;
@@ -1447,23 +1447,34 @@ function inatFetch(rings, id){ const el = $('#inatlive'); if (!el || !window.ATi
 /* ---------- priority species ----------
    Species where every record matters. The quarterly summary only lists them in cells where they rank among the ten
    most-recorded iNaturalist species, so their records are fetched live from the iNaturalist project (once per visit)
-   and placed in the grid's cells here. To add a species, add a line: its iNaturalist taxon number is in its taxon page URL. */
+   and placed in the grid's cells here. To add a species, add a line with its common and scientific names. The iNaturalist
+   taxon is looked up by scientific name (exact match only); a taxon number from the species' iNaturalist page skips that step. */
 const PRIORITY = [
-  {common:'American black bear', sci:'Ursus americanus', taxon:41638}
+  {common:'American black bear', sci:'Ursus americanus', taxon:41638},
+  {common:'Northern bobwhite', sci:'Colinus virginianus'},
+  {common:'Wavyleaf basketgrass', sci:'Oplismenus undulatifolius'},
+  {common:'Beech leaf disease nematode', sci:'Litylenchus crenatae'}
 ];
+/* the iNaturalist taxon for a scientific name; an exact name match only, so a near miss never loads the wrong species */
+async function prioTaxon(p){ if (p.taxon) return p.taxon;
+  const r = await fetch('https://api.inaturalist.org/v1/taxa?per_page=30&q=' + encodeURIComponent(p.sci)); if (!r.ok) throw new Error('HTTP ' + r.status);
+  const t = ((await r.json()).results || []).find(x => (x.name || '').toLowerCase() === p.sci.toLowerCase());
+  if (!t) throw new Error('No iNaturalist taxon named ' + p.sci); return p.taxon = t.id; }
 const PRIO = {};   // scientific name, lower case -> {st:'loading'|'done'|'error', n, total, obscured, counts:{hex,cog,wheel: Map cell -> records}}
 const prioState = p => PRIO[p.sci.toLowerCase()];
 function prioStatus(p){ const st = prioState(p), where = 'iNaturalist project';
   if (!st || st.st === 'loading') return `Priority species. Loading live records from the ${where}…` + (st && st.total ? ` ${fmt(st.n,0)} of ${fmt(st.total,0)}` : '');
-  if (st.st === 'error') return 'Priority species. The live records could not be loaded just now, so these are partial results.';
+  if (st.st === 'error'){ const e = FIDX && FIDX.get(p.sci.toLowerCase()), rest = e && e.sumComplete ? ' Showing the quarterly summary.' : ' These are partial results.';
+    return (st.notFound ? `Priority species. No iNaturalist taxon is named ${p.sci}, so no live records were loaded.` : 'Priority species. The live records could not be loaded just now.') + rest; }
   return `Priority species, live from the ${where}: ${fmt(st.placed,0)} ${st.placed === 1 ? 'record' : 'records'} placed in the grid` + (st.obscured ? `, ${fmt(st.obscured,0)} with obscured locations left out` : '') + '.'; }
 const PRIOFIELDS = '(id:!t,obscured:!t,geoprivacy:!t,taxon_geoprivacy:!t,geojson:all)';
-function prioFetch(p){ const k = p.sci.toLowerCase(); let st = PRIO[k]; if (st && st.promise) return st.promise;
+function prioFetch(p, retry){ const k = p.sci.toLowerCase(); let st = PRIO[k]; if (st && st.promise) return st.promise;
+  if (st && st.st === 'error' && !retry) return Promise.reject(new Error('not loaded'));
   st = PRIO[k] = {st:'loading', n:0, total:null, obscured:0, placed:0, counts:{hex:new Map(), cog:new Map(), wheel:new Map()}};
   prioRefresh(p);
-  st.promise = (async () => { const pts = []; let above = 0, v2 = true;
+  st.promise = (async () => { const pts = [], taxon = await prioTaxon(p); let above = 0, v2 = true;
     for (let page = 0; page < 150; page++){
-      const q = (ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : '') + `taxon_id=${p.taxon}&order_by=id&order=asc&per_page=200&id_above=${above}`;
+      const q = (ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : '') + `taxon_id=${taxon}&order_by=id&order=asc&per_page=200&id_above=${above}`;
       let j = null;
       if (v2){ /* the newer API returns only the fields asked for, which keeps each page small */
         try { const r = await fetch('https://api.inaturalist.org/v2/observations?' + q + '&fields=' + encodeURIComponent(PRIOFIELDS)); if (!r.ok) throw 0;
@@ -1475,7 +1486,7 @@ function prioFetch(p){ const k = p.sci.toLowerCase(); let st = PRIO[k]; if (st &
       st.n += res.length; prioRefresh(p, true);
       if (res.length < 200) break; above = res[res.length - 1].id; }
     prioPlace(pts, st); st.st = 'done'; prioRefresh(p); return st; })()
-    .catch(e => { st.st = 'error'; st.promise = null; prioRefresh(p); throw e; });
+    .catch(e => { st.st = 'error'; st.notFound = /No iNaturalist taxon/.test(e.message); st.promise = null; prioRefresh(p); throw e; });
   return st.promise; }
 /* Each record goes to the cell of each size that contains it: the nearest few cell centers are tested against the cell outline. */
 const RINGS = {};
@@ -1499,12 +1510,12 @@ function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerC
 let PRIOCTX = null;
 const PRIOSEC = () => `<div class="sec" style="--hue:${HUE.prio};--tint:40%"><h3>Priority species</h3><div id="priobody"></div></div>`;
 function prioLive(lv, cells){ PRIOCTX = {lv, cells}; const el = $('#priobody'); if (!el) return; prioRender();
-  prioCheck = () => { if (el.isConnected && el.getClientRects().length) PRIORITY.forEach(p => { const st = prioState(p); if (!st || st.st === 'error') prioFetch(p).catch(() => {}); }); };
+  prioCheck = () => { if (el.isConnected && el.getClientRects().length) PRIORITY.forEach(p => { if (!prioState(p)) prioFetch(p).catch(() => {}); }); };
   setTimeout(() => prioCheck()); }
 function prioRender(){ const el = $('#priobody'); if (!el || !PRIOCTX) return; const {lv, cells} = PRIOCTX;
   el.innerHTML = '<ul class="spp">' + PRIORITY.map(p => { const st = prioState(p); let t;
     if (!st || st.st === 'loading') t = st && st.total ? `loading ${fmt(st.n,0)} of ${fmt(st.total,0)} records…` : 'loading…';
-    else if (st.st === 'error') t = 'could not load just now';
+    else if (st.st === 'error') t = st.notFound ? 'not found on iNaturalist' : 'could not load just now';
     else { const n = cells.reduce((s, c) => s + (st.counts[lv].get(c) || 0), 0), k = cells.filter(c => st.counts[lv].has(c)).length;
       t = n ? `${fmt(n,0)} ${n === 1 ? 'record' : 'records'}${cells.length > 1 ? ' in ' + nCells(k) : ''}` : 'no records here'; }
     return `<li><a href="${wiki(p.sci)}" target="_blank" rel="noopener">${esc(p.common)} <em>${esc(p.sci)}</em></a><span class="tag">${t}</span></li>`; }).join('') + '</ul>' +
