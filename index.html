@@ -466,6 +466,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>Map layers adds administrative areas, shelters, campsites, parking, privies, bridges, vistas and side trails. They load live from the NPS and ATC map services when switched on, so they stay current. Administrative areas and side trails appear once you zoom in. A click on one of these features opens its details; a click anywhere else selects the grid cell.</li>
       <li>Select area draws a box on the map and summarizes every cell whose center falls inside it. Records and acres are added up; species and vegetation types are counted once.</li>
       <li>Each cell has two iNaturalist sections. Invasive species is the quarterly summary: invasive plants and forest pests counted together, with forest pests also counted as priority invasives. It is what the map, rankings and exports use. Live iNaturalist is fetched from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you open it, and lists the most recent observations in the cell, with a badge on invasive species and forest pests. Live records are not counted anywhere else on the page, and records with obscured locations are left out, since they cannot be placed in a cell.</li>
+      <li>Priority species, such as American black bear, are searchable everywhere they have been recorded. The quarterly summary lists them only where they rank among a cell's ten most-recorded iNaturalist species, so their full records are fetched live from the iNaturalist project when you search for one or open the Priority species section of a cell.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
       <li>Trail miles are measured along the mapped centerline, south to north from Springer Mountain, and are approximate.</li>
     </ul>
@@ -731,7 +732,7 @@ CATCOL.APPA_YN = [['NPS - APPA land', '#4FA3D9']]; D.cats.APPA_YN = ['NPS - APPA
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 const ADMINCOL = ['#24475F','#819FB4','#C9D6DE','#E6E9E4'];
 /* Blue Ridge color scheme */
-const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#5FB3D6'};
+const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', prio:'#D4A03A', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#5FB3D6'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -1251,20 +1252,25 @@ function findIndex(){ if (FIDX) return FIDX; const M = new Map();
     lists('inat', lv, ['PEST_LIST'], 'Forest pest', true);
     lists('inat', lv, ['TOP10_SPECIES'], 'iNaturalist species', false);
     const vg = D.themes.veg && D.themes.veg[lv]; if (vg && vg.f.COMP) for (let r = 0; r < vg.f.COMP.length; r++){ const a = vg.f.COMP[r]; for (let k = 0; k < a.length; k += 2){ const nm = D.cats.DOM_TYPE[a[k]]; add('veg:' + nm.toLowerCase(), nm, '', 'Vegetation type', 'veg', true, lv, vg.ix[r]); } } }
+  PRIORITY.forEach(p => { const k = p.sci.toLowerCase(); let e = M.get(k);
+    if (!e){ e = {key:k, th:'inat', complete:false, cells:{hex:new Set(), cog:new Set(), wheel:new Set()}}; M.set(k, e); }
+    Object.assign(e, {common:p.common, sci:p.sci, kind:'Priority species', lc:p.common.toLowerCase(), ls:p.sci.toLowerCase(), prio:p}); prioApply(e); });
   return FIDX = M; }
 function findMetric(e){ return {id:'find', find:e, q:S.q, th:e.th, kind:'cat', f:'FIND', label:e.common || e.sci, get:(lv, c) => e.cells[lv].has(c) ? 0 : null}; }
 function setFind(e, fly){ S.m = findMetric(e); S.secOpen = {}; $('#find').value = S.m.label; closeFind(); redraw();
+  if (e.prio) prioFetch(e.prio).catch(() => {});
   if (fly){ const L_ = D.levels.wheel, pts = []; e.cells.wheel.forEach(c => { if (inSec('wheel', c)) pts.push(L_.c[c]); }); if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(.12), {maxZoom:9}); } }
 function clearFind(){ if (!S.m.find) return; S.m = S.q.m[0]; $('#find').value = ''; redraw(); }
 function findSummary(lv){ const e = S.m.find, L_ = D.levels[lv], rows = []; let total = 0;
   for (let c = 0; c < L_.id.length; c++){ if (!inSec(lv, c)) continue; total++; if (e.cells[lv].has(c)) rows.push(c); }
   rows.sort((a,b) => L_.mi[a] - L_.mi[b]); const where = S.sec === 'all' ? '' : ' in ' + esc(secName());
-  const bar = `<div class="findbar"><div><b>${esc(e.common || e.sci)}</b>${e.common && e.sci ? `<em>${esc(e.sci)}</em>` : ''}<span>${e.kind}${e.complete ? '' : ', partial results'}</span></div><button type="button" data-clearfind="1">Clear</button></div>`;
-  let h = `<p class="statline">Recorded in ${fmt(rows.length,0)} of ${fmt(total,0)} ${LV[lv].name} cells${where}.${e.complete ? '' : ' Only cells where it is among the ten most-recorded iNaturalist species are shown.'}</p>`;
+  const bar = `<div class="findbar"><div><b>${esc(e.common || e.sci)}</b>${e.common && e.sci ? `<em>${esc(e.sci)}</em>` : ''}<span>${e.prio ? prioStatus(e.prio) : e.kind + (e.complete ? '' : ', partial results')}</span></div><button type="button" data-clearfind="1">Clear</button></div>`;
+  let h = `<p class="statline">Recorded in ${fmt(rows.length,0)} of ${fmt(total,0)} ${LV[lv].name} cells${where}.${e.complete ? '' : e.prio ? ' Until the live records load, only cells where it is among the ten most-recorded iNaturalist species are shown.' : ' Only cells where it is among the ten most-recorded iNaturalist species are shown.'}</p>`;
   if (!rows.length) return [bar, h + '<p class="statline">None here at this cell size. Try another section or a larger cell size.</p>'];
   h += `<button type="button" class="selall" data-selall="1">Select all ${nCells(rows.length)}</button>`;
   h += `<div class="rank"><h3>Cells where recorded<span class="cnt">south to north</span></h3><ol class="scroll" tabindex="0" aria-label="Cells where recorded, scrollable list">`;
-  rows.slice(0, 400).forEach(c => { h += cellItem(lv, c); });
+  const st = e.prio && PRIO[e.key], cnt = c => { const n = st && st.st === 'done' ? st.counts[lv].get(c) : 0; return n ? `<span class="val">${fmt(n,0)}</span>` : ''; };
+  rows.slice(0, 400).forEach(c => { h += cellItem(lv, c, cnt(c)); });
   return [bar, h + '</ol></div>']; }
 const fin = $('#find'), fl = $('#findlist'); let fsel = -1, fres = [];
 function closeFind(){ fl.hidden = true; fin.setAttribute('aria-expanded', 'false'); fin.removeAttribute('aria-activedescendant'); fsel = -1; }
@@ -1273,7 +1279,7 @@ function listFind(){ const q = fin.value.trim().toLowerCase(); if (q.length < 2)
     if (c.startsWith(q)) sc = 0; else if (c.includes(' ' + q) || c.includes('-' + q)) sc = 1; else if (c.includes(q)) sc = 2; else if (s.startsWith(q)) sc = 3; else if (s.includes(q)) sc = 4;
     if (sc >= 0) out.push([sc, -e.cells.wheel.size, e]); });
   out.sort((a,b) => a[0] - b[0] || a[1] - b[1]); fres = out.slice(0, 12).map(x => x[2]);
-  fl.innerHTML = fres.length ? fres.map((e,i) => `<li role="option" id="fo${i}" data-i="${i}" aria-selected="${i === fsel}"><span>${esc(e.common || e.sci)}${e.common && e.sci ? ` <em>${esc(e.sci)}</em>` : ''}</span><span class="n">${nCells(e.cells.wheel.size)}</span><span class="k">${e.kind}${e.complete ? '' : ', partial'}</span></li>`).join('')
+  fl.innerHTML = fres.length ? fres.map((e,i) => `<li role="option" id="fo${i}" data-i="${i}" aria-selected="${i === fsel}"><span>${esc(e.common || e.sci)}${e.common && e.sci ? ` <em>${esc(e.sci)}</em>` : ''}</span><span class="n">${nCells(e.cells.wheel.size)}</span><span class="k">${e.kind}${e.prio && !e.complete ? ', full records load live' : e.complete ? '' : ', partial'}</span></li>`).join('')
     : '<li class="none">No match. Rare species are not searchable, and most iNaturalist species only where they are among a cell\'s ten most recorded.</li>';
   fl.hidden = false; fin.setAttribute('aria-expanded', 'true'); if (fsel >= 0) fin.setAttribute('aria-activedescendant', 'fo' + fsel); }
 fin.addEventListener('input', () => { fsel = -1; if (!fin.value && S.m.find) clearFind(); listFind(); });
@@ -1326,7 +1332,7 @@ const isPhone = () => window.innerWidth <= 860;
 function placeProfile(){ const p = $('#profile'), phone = isPhone();
   if (phone && p.parentNode !== document.body) $('#strip').after(p);
   else if (!phone && p.parentNode !== $('#mapwrap')) $('#mapwrap').appendChild(p); }
-function sheet(state){ const p = $('#profile'), hb = $('#phandle'); p.classList.toggle('peek', state === 'peek'); p.classList.toggle('full', state === 'full'); inatCheck();
+function sheet(state){ const p = $('#profile'), hb = $('#phandle'); p.classList.toggle('peek', state === 'peek'); p.classList.toggle('full', state === 'full'); visCheck();
   hb.setAttribute('aria-expanded', state === 'full'); hb.querySelector('span').textContent = state === 'full' ? 'Hide details' : 'Show details'; }
 function showBar(){ setTimeout(() => { const r = $('#profile').getBoundingClientRect(); if (!r.height) return;
   /* summary: bring the whole block on screen. expanded: bring its heading on screen and leave the map where it is. */
@@ -1393,7 +1399,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
     if (top.length){ const tn = v('inat','TOP10_COUNTS') || []; b += `<details><summary>Most recorded species</summary><ul class="spp">${top.map((i, k) => tn[k] != null ? sppItem(i).replace('</li>', `<span class="tag">${fmt(tn[k], 0)} ${tn[k] === 1 ? 'record' : 'records'}</span></li>`) : sppItem(i)).join('')}</ul></details>`; }
   } else b += '<p class="none">No iNaturalist records in this cell in the quarterly summary.</p>';
   b += '</div>';
-  b += LIVESEC;
+  b += LIVESEC + PRIOSEC();
 
   // birds
   b += `<div class="sec" style="--hue:${HUE.ebird}"><h3>Birds</h3>`;
@@ -1416,14 +1422,15 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
     if (viaParent) b += '<p class="none">Shown for the 7 sq mi cell this square mile sits in.</p>';
   } else b += `<p class="none">No rare species priority zone ${viaParent ? 'in the surrounding 7 sq mi cell' : 'in this cell'}.</p>`;
   b += '</div>';
-  finishProfile(b + landSec); inatLive([ring(lv, c)], L_.id[c]); }
+  finishProfile(b + landSec); inatLive([ring(lv, c)], L_.id[c]); prioLive(lv, [c]); }
 /* Recent iNaturalist observations, fetched live for the selected cell or cells (inat-lookup.js above).
    Species on the page's invasive, priority invasive and forest pest lists get a badge. */
 let INATFLAGS = null;
 const INAT_MAX_SPAN = 1; /* degrees: the API returns only the newest records in the bounding box, so a wide selection would find almost none inside its cells */
 /* The list is folded by default and fetched only when it can be seen: opened, inside an open iNaturalist section,
    and not in the phone's short summary. Once opened it stays open for the next cell. inatCheck() runs whenever one of those changes. */
-let inatCheck = () => {};
+let inatCheck = () => {}, prioCheck = () => {};
+const visCheck = () => { inatCheck(); prioCheck(); };
 /* The Live iNaturalist section. It is fetched only when it can be seen: its section open, and not in the phone's short summary. */
 const LIVESEC = `<div class="sec" style="--hue:${HUE.live};--tint:36%"><h3>Live iNaturalist</h3><p class="none" style="font-size:13.5px">The most recent iNaturalist observations here, fetched live. They are separate from the summary numbers on this page.</p><div id="inatrec"><div id="inatlive" style="margin-top:6px"></div></div></div>`;
 function inatLive(rings, id){ const d = $('#inatrec'); if (!d) return; let done = false;
@@ -1437,16 +1444,81 @@ function inatFetch(rings, id){ const el = $('#inatlive'); if (!el || !window.ATi
     [['INVASIVE_LIST','Invasive'],['PEST_LIST','Forest pest'],['EDRR_LIST','Priority invasive']].forEach(([f, label]) =>
       Object.values(D.themes.inat || {}).forEach(t => (t.f[f] || []).forEach(a => a.forEach(i => { INATFLAGS[sppName(i).sci.toLowerCase()] = label; })))); }
   ATiNat.lookup({type:'MultiPolygon', coordinates:rings.map(r => [r.map(p => [p[1], p[0]])])}, el, {id, flags:INATFLAGS}); }
+/* ---------- priority species ----------
+   Species where every record matters. The quarterly summary only lists them in cells where they rank among the ten
+   most-recorded iNaturalist species, so their records are fetched live from the iNaturalist project (once per visit)
+   and placed in the grid's cells here. To add a species, add a line: its iNaturalist taxon number is in its taxon page URL. */
+const PRIORITY = [
+  {common:'American black bear', sci:'Ursus americanus', taxon:41638}
+];
+const PRIO = {};   // scientific name, lower case -> {st:'loading'|'done'|'error', n, total, obscured, counts:{hex,cog,wheel: Map cell -> records}}
+const prioState = p => PRIO[p.sci.toLowerCase()];
+function prioStatus(p){ const st = prioState(p), where = 'iNaturalist project';
+  if (!st || st.st === 'loading') return `Priority species. Loading live records from the ${where}…` + (st && st.total ? ` ${fmt(st.n,0)} of ${fmt(st.total,0)}` : '');
+  if (st.st === 'error') return 'Priority species. The live records could not be loaded just now, so these are partial results.';
+  return `Priority species, live from the ${where}: ${fmt(st.placed,0)} ${st.placed === 1 ? 'record' : 'records'} placed in the grid` + (st.obscured ? `, ${fmt(st.obscured,0)} with obscured locations left out` : '') + '.'; }
+const PRIOFIELDS = '(id:!t,obscured:!t,geoprivacy:!t,taxon_geoprivacy:!t,geojson:all)';
+function prioFetch(p){ const k = p.sci.toLowerCase(); let st = PRIO[k]; if (st && st.promise) return st.promise;
+  st = PRIO[k] = {st:'loading', n:0, total:null, obscured:0, placed:0, counts:{hex:new Map(), cog:new Map(), wheel:new Map()}};
+  prioRefresh(p);
+  st.promise = (async () => { const pts = []; let above = 0, v2 = true;
+    for (let page = 0; page < 150; page++){
+      const q = (ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : '') + `taxon_id=${p.taxon}&order_by=id&order=asc&per_page=200&id_above=${above}`;
+      let j = null;
+      if (v2){ /* the newer API returns only the fields asked for, which keeps each page small */
+        try { const r = await fetch('https://api.inaturalist.org/v2/observations?' + q + '&fields=' + encodeURIComponent(PRIOFIELDS)); if (!r.ok) throw 0;
+          j = await r.json(); if ((j.results || []).some(o => !o.geojson && !o.obscured)) throw 0; } catch (e){ v2 = false; j = null; } }
+      if (!j){ const r = await fetch('https://api.inaturalist.org/v1/observations?' + q); if (!r.ok) throw new Error('HTTP ' + r.status); j = await r.json(); }
+      const res = j.results || []; if (st.total == null) st.total = j.total_results;
+      res.forEach(o => { if (o.obscured || ['obscured','private'].includes(o.geoprivacy) || ['obscured','private'].includes(o.taxon_geoprivacy)){ st.obscured++; return; }
+        const c = o.geojson && o.geojson.coordinates; if (c) pts.push([+c[1], +c[0]]); });
+      st.n += res.length; prioRefresh(p, true);
+      if (res.length < 200) break; above = res[res.length - 1].id; }
+    prioPlace(pts, st); st.st = 'done'; prioRefresh(p); return st; })()
+    .catch(e => { st.st = 'error'; st.promise = null; prioRefresh(p); throw e; });
+  return st.promise; }
+/* Each record goes to the cell of each size that contains it: the nearest few cell centers are tested against the cell outline. */
+const RINGS = {};
+function prioPlace(pts, st){
+  for (const lv of SIZES){ const L_ = D.levels[lv], n = L_.id.length, R = RINGS[lv] = RINGS[lv] || [];
+    for (const [la, lo] of pts){ const k = Math.cos(la * Math.PI / 180), near = [];
+      for (let c = 0; c < n; c++){ const dy = L_.c[c][0] - la, dx = (L_.c[c][1] - lo) * k, d = dx*dx + dy*dy;
+        if (near.length < 3 || d < near[2][0]){ near.push([d, c]); near.sort((a, b) => a[0] - b[0]); if (near.length > 3) near.pop(); } }
+      for (const [, c] of near){ const r = R[c] = R[c] || ring(lv, c); let inside = false;
+        for (let i = 0, j = r.length - 1; i < r.length; j = i++) if ((r[i][0] > la) !== (r[j][0] > la) && lo < (r[j][1] - r[i][1]) * (la - r[i][0]) / (r[j][0] - r[i][0]) + r[i][1]) inside = !inside;
+        if (inside){ st.counts[lv].set(c, (st.counts[lv].get(c) || 0) + 1); if (lv === 'wheel') st.placed++; break; } } } } }
+/* Bring a search entry up to date with what has loaded: live cells are added to those the summary already knew. */
+function prioApply(e){ const st = prioState(e.prio); if (!st || st.st !== 'done') return;
+  SIZES.forEach(lv => st.counts[lv].forEach((n, c) => e.cells[lv].add(c))); e.complete = true; }
+function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerCase());
+  if (progressOnly){ const s = document.querySelector('.findbar span'); if (S.m.find === e && s) s.textContent = prioStatus(p); prioRender(); return; }
+  if (e) prioApply(e);
+  if (S.m.find === e) redraw(); else prioRender(); }
+/* The Priority species section of the details panel: records of each priority species in the selected cell or cells.
+   Like Live iNaturalist, it loads only once the section can be seen. */
+let PRIOCTX = null;
+const PRIOSEC = () => `<div class="sec" style="--hue:${HUE.prio};--tint:40%"><h3>Priority species</h3><div id="priobody"></div></div>`;
+function prioLive(lv, cells){ PRIOCTX = {lv, cells}; const el = $('#priobody'); if (!el) return; prioRender();
+  prioCheck = () => { if (el.isConnected && el.getClientRects().length) PRIORITY.forEach(p => { const st = prioState(p); if (!st || st.st === 'error') prioFetch(p).catch(() => {}); }); };
+  setTimeout(() => prioCheck()); }
+function prioRender(){ const el = $('#priobody'); if (!el || !PRIOCTX) return; const {lv, cells} = PRIOCTX;
+  el.innerHTML = '<ul class="spp">' + PRIORITY.map(p => { const st = prioState(p); let t;
+    if (!st || st.st === 'loading') t = st && st.total ? `loading ${fmt(st.n,0)} of ${fmt(st.total,0)} records…` : 'loading…';
+    else if (st.st === 'error') t = 'could not load just now';
+    else { const n = cells.reduce((s, c) => s + (st.counts[lv].get(c) || 0), 0), k = cells.filter(c => st.counts[lv].has(c)).length;
+      t = n ? `${fmt(n,0)} ${n === 1 ? 'record' : 'records'}${cells.length > 1 ? ' in ' + nCells(k) : ''}` : 'no records here'; }
+    return `<li><a href="${wiki(p.sci)}" target="_blank" rel="noopener">${esc(p.common)} <em>${esc(p.sci)}</em></a><span class="tag">${t}</span></li>`; }).join('') + '</ul>' +
+    `<p class="none" style="font-size:13.5px;margin-top:6px">Every record in the iNaturalist project, fetched live, so these are complete where the quarterly summary is not. Records with obscured locations are left out.</p>`; }
 function finishProfile(html){ $('#pbody').innerHTML = html;
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
-  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Land administrators':'lands'};
+  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Priority species':'prio', 'Birds':'ebird', 'Unique species':'nrpz', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
-    const open = key in S.secOpen ? S.secOpen[key] : (key === S.m.th || (key === 'live' && S.q.id === 'inv'));
+    const open = key in S.secOpen ? S.secOpen[key] : (key === S.m.th || (key === 'live' && S.q.id === 'inv') || (key === 'prio' && !!(S.m.find && S.m.find.prio)));
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
     while (h.nextSibling) body.appendChild(h.nextSibling);
     sec.appendChild(body);
     h.innerHTML = `<button type="button" class="sectog" aria-expanded="${open}" aria-controls="${body.id}"><span>${esc(h.textContent)}</span><i aria-hidden="true"></i></button>`;
-    h.firstChild.onclick = () => { const now = body.hidden; body.hidden = !now; S.secOpen[key] = now; h.firstChild.setAttribute('aria-expanded', now); inatCheck(); }; }); $('#pbody').scrollTop = 0; $('#profile').classList.add('open'); }
+    h.firstChild.onclick = () => { const now = body.hidden; body.hidden = !now; S.secOpen[key] = now; h.firstChild.setAttribute('aria-expanded', now); visCheck(); }; }); $('#pbody').scrollTop = 0; $('#profile').classList.add('open'); }
 
 /* ---------- export of the selection shown in the popup ---------- */
 const EXPORTBTNS = '<button type="button" class="exp" id="pexcsv" title="Download everything in this panel as a CSV file">Export CSV</button><button type="button" class="exp" id="pexxls" title="Download everything in this panel as an Excel workbook">Export Excel</button><p class="pexmsg" id="pexmsg" role="status"></p>';
@@ -1469,6 +1541,8 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
     const ed = new Set(v('inat','EDRR_LIST',c) || []);
     sp('Invasive plant', 'iNaturalist', v('inat','INVASIVE_LIST',c), ed); sp('Forest pest', 'iNaturalist', v('inat','PEST_LIST',c), new Set(v('inat','PEST_LIST',c) || [])); /* forest pests count as priority invasives */ sp('iNaturalist most recorded', 'Top ten in the cell', v('inat','TOP10_SPECIES',c));
     BIRD_GROUPS.forEach(g => sp('Bird', g.full, v('ebird', g.list, c))); sp('Bird on a watch list', 'eBird', v('ebird','SOC_LIST',c));
+    PRIORITY.forEach(p => { const st = prioState(p), n = st && st.st === 'done' ? st.counts[lv].get(c) : 0;
+      if (n) out.species.push({grid_id:id, trail_mile:L_.mi[c], group:'Priority species', habitat_group_or_list:`Live from the iNaturalist project, ${n} ${n === 1 ? 'record' : 'records'}`, common_name:p.common, scientific_name:p.sci, lists:''}); });
     const cp = v('veg','COMP',c) || [], ac = v('veg','VEG_AREA',c) || 0; for (let k = 0; k < cp.length; k += 2) out.veg.push({grid_id:id, trail_mile:L_.mi[c], vegetation_type:D.cats.DOM_TYPE[cp[k]], pct_of_mapped_acres:cp[k+1], acres:Math.round(ac * cp[k+1]) / 100});
     const mg = v('lands','MGRS',c) || []; for (let k = 0; k < mg.length; k += 2) out.land.push({grid_id:id, trail_mile:L_.mi[c], administrator:D.cats.MGR[mg[k]], pct_of_mapped_land:mg[k+1]}); });
   const ab = (k, x) => out.about.push({item:k, value:x});
@@ -1557,7 +1631,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
           (hasN ? 'Record counts are added across the selected cells. A species is counted only in cells where it is among the ten most recorded, so its true total can be higher.'
                 : 'Ranked from each cell\'s own top ten: first place in a cell counts most, tenth least. The number beside each species is how many selected cells list it. The data holds each cell\'s ranking but not record counts, so this is a combined ranking and not a count of records.') + '</p></details>'; }
     } else b += '<p class="none">No iNaturalist records in the selected cells in the quarterly summary.</p>';
-    b += '</div>'; b += LIVESEC; }
+    b += '</div>'; b += LIVESEC + PRIOSEC(); }
 
   // birds
   { const cs = withTh('ebird'); b += `<div class="sec" style="--hue:${HUE.ebird}"><h3>Birds</h3>`;
@@ -1589,7 +1663,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
       b += '<p class="none" style="font-size:13.5px;margin-top:8px">Generalized to the cells from tract records. Not a boundary determination, and not a record of who administers any given spot.</p>';
     } else b += '<p class="none">No land records summarized for the selected cells.</p>';
     b += '</div>'; }
-  finishProfile(b); inatLive(cells.map(c => ring(lv, c)), lv + ':' + cells.join(',')); }
+  finishProfile(b); inatLive(cells.map(c => ring(lv, c)), lv + ':' + cells.join(',')); prioLive(lv, cells); }
 
 /* drawing the box */
 function drawMode(on){ S.drawing = on; $('#mapwrap').classList.toggle('drawing', on); $('#boxbtn').setAttribute('aria-pressed', on); $('#boxdraw').hidden = true;
