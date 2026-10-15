@@ -834,8 +834,6 @@ const Q = [
   m:[{id:'vuln', label:'Trail vulnerability index', f:'VULN', d:2, showFn:vulnShow, none:'Soils not rated',
       note:'0 to 1, higher is more vulnerable. Low is under 0.33, Moderate 0.33 to 0.67, High over 0.67.'},
      {id:'high', label:'Soils rated high vulnerability', f:'VULN_HIGH', unit:'%', d:0, zero:1, zeroText:'None', none:'Soils not rated'},
-     {id:'worst2', label:'Two or more ratings at their worst', f:'WORST2', unit:'%', d:0, zero:1, zeroText:'None', none:'Soils not rated',
-      note:'Share of the soils where at least two of the three trail ratings are in their worst class.'},
      {id:'paths', label:'Very limited for paths and trails', f:'PATHS_VLIM', unit:'%', d:0, zero:1, zeroText:'None', none:'Soils not rated'},
      {id:'rut', label:'Severe rutting hazard', f:'RUT_SEV', unit:'%', d:0, zero:1, zeroText:'None', none:'Soils not rated'},
      {id:'steep', label:'Slopes over 25%', f:'STEEP', unit:'%', d:0, zero:1, zeroText:'None'},
@@ -853,8 +851,8 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c)); }));
 
 /* ---------- state ---------- */
-/* The basemap the page opens on. Falls back to USGS topo if no Mapbox token is set. */
-const DEFBASE = 'mbsat';
+/* The basemap the page opens on: USGS topo. */
+const DEFBASE = 'topo';
 const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: innerWidth > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {about:false, measures:true, results:true}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
