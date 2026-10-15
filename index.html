@@ -28,6 +28,12 @@ button{cursor:pointer}
 h1,h2,h3{font-family:var(--cond);font-weight:600;margin:0;line-height:1.15}
 
 /* header */
+#musicbtn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0 !important;margin-right:6px;border-radius:50% !important;opacity:.8}
+#musicbtn:hover,#musicbtn[aria-expanded=true]{opacity:1;background:rgba(255,255,255,.12)}
+#musicbox{position:fixed;top:54px;right:16px;z-index:3000;width:min(320px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);overflow:hidden}
+#musicbox .mhead{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 4px 10px;font-size:13px;color:var(--muted)}
+#musicbox .mhead button{border:0;background:none;color:var(--ink);font-size:18px;line-height:1;padding:0 6px;cursor:pointer}
+#musicframe iframe{display:block;width:100%;height:152px;border:0}
 header{grid-area:head;background:var(--hdr);color:#fff;display:flex;align-items:center;gap:14px;padding:9px 16px;flex-wrap:wrap}
 .blaze{width:9px;height:26px;background:#fff;border-radius:1.5px;flex:none}
 header h1{font-size:21px;letter-spacing:.01em}
@@ -398,9 +404,11 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   <h1>A.T. Resource Grid</h1>
   <p>What we know about the Appalachian Trail corridor, one square mile at a time.</p>
   <div class="hctl">
+    <button id="musicbtn" type="button" aria-label="Trail soundtrack (Spotify)" title="Trail soundtrack" aria-expanded="false" aria-controls="musicbox"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M6 2.2 14 .8v9.7a2.3 2.3 0 1 1-1.4-2.1V4L7.4 4.9v7.6A2.3 2.3 0 1 1 6 10.4z"/></svg></button>
     <button id="aboutbtn" type="button">About the data</button>
   </div>
 </header>
+<div id="musicbox" hidden><div class="mhead"><span>Trail soundtrack</span><button type="button" id="musicclose" aria-label="Hide the player (music keeps playing)" title="Hide (music keeps playing)">&times;</button></div><div id="musicframe"></div></div>
 
 <aside aria-label="Questions this data answers">
   <div class="secpick"><label for="section">Section of trail</label><select id="section"></select>
@@ -1922,6 +1930,14 @@ let rz, rzW = window.innerWidth; window.addEventListener('resize', () => { lockM
 
 /* ---------- about ---------- */
 $('#aboutbtn').onclick = () => $('#about').showModal();
+/* Trail soundtrack: a Spotify playlist. The player loads on the first click only, so Spotify sees nothing from visitors
+   who never open it. Hiding the box keeps the player, and the music, running. Signed-in Spotify listeners hear full
+   tracks; others hear 30-second previews. To change the playlist, replace the ID below. */
+const PLAYLIST = '71Fhx7RCyWY5zWfqnwlSKN';
+$('#musicbtn').onclick = () => { const box = $('#musicbox'), open = box.hidden;
+  if (open && !$('#musicframe').firstChild) $('#musicframe').innerHTML = `<iframe title="Trail soundtrack, Spotify playlist" src="https://open.spotify.com/embed/playlist/${PLAYLIST}?utm_source=generator&theme=0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+  box.hidden = !open; $('#musicbtn').setAttribute('aria-expanded', open); };
+$('#musicclose').onclick = () => { $('#musicbox').hidden = true; $('#musicbtn').setAttribute('aria-expanded', false); };
 $('#aboutclose').onclick = () => $('#about').close();
 $('#about').addEventListener('click', e => { if (e.target === $('#about')) $('#about').close(); });
 
