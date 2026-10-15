@@ -95,6 +95,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .flist li button{border:0;background:none;color:inherit;text-align:left;padding:0;font:inherit;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.3);text-underline-offset:3px}
 .flist li button:hover{text-decoration-color:currentColor}
 .flist li em{color:var(--muted);font-style:normal;font-size:13px;white-space:nowrap}
+.cite{background:var(--ground);border-left:3px solid var(--blaze);padding:8px 12px;border-radius:4px;margin:4px 0 8px;line-height:1.5}
 .extsw{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:2px 0 10px}
 .extsw span{font-size:13.5px;color:var(--muted);margin-right:2px}
 .extsw button{border:1px solid color-mix(in srgb,var(--hue) 70%,var(--panel));background:color-mix(in srgb,var(--hue) 16%,var(--panel));color:#E3EAF2;border-radius:5px;padding:4px 11px;font-size:13.5px}
@@ -488,6 +489,9 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     </ul>
     <h3>Updates</h3>
     <p>iNaturalist and eBird summaries are refreshed quarterly. This page shows the <span class="run"></span> run.</p>
+    <h3>How to cite</h3>
+    <p class="cite" id="citetext">Reese, C. 2026. A.T. Resource Grid: resource data for the Appalachian Trail corridor summarized on a nested hexagon grid. Interactive dashboard, version 2026.10. https://grid.trailassessment.org/. Accessed <span id="citedate"></span>.</p>
+    <button type="button" class="lbtn" id="citecopy">Copy citation</button> <span id="citemsg" role="status" style="font-size:13px;color:var(--muted)"></span>
     <h3>Sources</h3>
     <ul class="cites">
       <li><b>Hexagon grid.</b> Developed by the University of Kansas, with extensions by NatureServe. <a href="https://github.com/NatureServe/nested-hexagon-framework" target="_blank" rel="noopener">github.com/NatureServe/nested-hexagon-framework</a></li>
@@ -2008,6 +2012,11 @@ let rz, rzW = window.innerWidth; window.addEventListener('resize', () => { lockM
 
 /* ---------- about ---------- */
 $('#aboutbtn').onclick = () => $('#about').showModal();
+/* citation: the accessed date is the reader's own date */
+$('#citedate').textContent = new Date().toLocaleDateString('en-US', {day:'numeric', month:'long', year:'numeric'});
+$('#citecopy').onclick = () => { const t = $('#citetext').textContent.replace(/\s+/g, ' ').trim(), say = x => { $('#citemsg').textContent = x; setTimeout(() => $('#citemsg').textContent = '', 2500); };
+  if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => say('Copied'), () => say('Select the text to copy it'));
+  else say('Select the text to copy it'); };
 $('#aboutclose').onclick = () => $('#about').close();
 $('#about').addEventListener('click', e => { if (e.target === $('#about')) $('#about').close(); });
 
