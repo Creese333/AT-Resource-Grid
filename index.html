@@ -720,7 +720,7 @@ const RAMP = {
   bird:['#D4E0F4','#A9C2E8','#799FDC','#4C7FD0','#2E4C7D'],
   pri:['#E7DBF2','#CFB8E5','#B490D6','#9B6BC8','#5D4078'],
   soil:['#F2E6D6','#E3C9A6','#CDA373','#A8743F','#6A4423'],
-  feat:['#D9EBD6','#A9D0A3','#6FAE69','#2F7A3B','#1A4A22']
+  feat:['#2E9A3E','#227E33','#196629','#114F20','#0A3816']
 };
 const ZERO = '#E3E7E1';
 const CATCOL = {
@@ -850,21 +850,21 @@ const Q = [
      {id:'prime', label:'Prime farmland', f:'PRIME', unit:'%', d:0, zero:1, zeroText:'None'}]},
  {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s on the trail here?',
   use:'Trail facilities and features from the A.T. facilities inventory: shelters, campsites, privies, parking, bridges, vistas, side trails and maintained landscapes, with miles of A.T. in each cell. Trail structures such as waterbars and steps are recorded by maintainer section, so they are estimated for each cell from its share of the section\u2019s trail miles.',
-  m:[{id:'fac', label:'Trail facilities', f:'N_FAC', int:1, zero:1, zeroText:'None', noun:['facility','facilities'], note:'Shelters, campsites, privies, parking areas, bridges, buildings, dams and tunnels.'},
-     {id:'atmi', label:'A.T. miles', f:'AT_MI', d:1, zero:1, zeroText:'None', showFn:v => fmt(v, 1) + ' mi'},
-     {id:'shel', label:'Shelters', f:'N_SHELTER', int:1, zero:1, zeroText:'None', noun:['shelter','shelters']},
-     {id:'camp', label:'Campsites', f:'N_CAMPSITE', int:1, zero:1, zeroText:'None', noun:['campsite','campsites']},
-     {id:'priv', label:'Privies', f:'N_PRIVY', int:1, zero:1, zeroText:'None', noun:['privy','privies']},
-     {id:'park', label:'Parking areas', f:'N_PARKING', int:1, zero:1, zeroText:'None', noun:['parking area','parking areas']},
-     {id:'brid', label:'Bridges', f:'N_BRIDGE', int:1, zero:1, zeroText:'None', noun:['bridge','bridges']},
-     {id:'vist', label:'Vistas', f:'N_VISTA', int:1, zero:1, zeroText:'None', noun:['vista','vistas']},
-     {id:'side', label:'Side trail miles', f:'SIDE_MI', d:1, zero:1, zeroText:'None', showFn:v => fmt(v, 1) + ' mi'},
-     {id:'mlac', label:'Maintained landscapes', f:'ML_AC', int:1, zero:1, zeroText:'None', noun:['acre','acres']},
-     {id:'drain', label:'Drainage structures (estimated)', f:'S_DRAIN', int:1, zero:1, zeroText:'None', noun:['structure','structures'],
+  m:[{id:'fac', label:'Trail facilities', f:'N_FAC', int:1, hollow0:1, none:'None in this cell', noun:['facility','facilities'], note:'Shelters, campsites, privies, parking areas, bridges, buildings, dams and tunnels.'},
+     {id:'atmi', label:'A.T. miles', f:'AT_MI', d:1, hollow0:1, none:'None in this cell', showFn:v => fmt(v, 1) + ' mi'},
+     {id:'shel', label:'Shelters', f:'N_SHELTER', int:1, hollow0:1, none:'None in this cell', noun:['shelter','shelters']},
+     {id:'camp', label:'Campsites', f:'N_CAMPSITE', int:1, hollow0:1, none:'None in this cell', noun:['campsite','campsites']},
+     {id:'priv', label:'Privies', f:'N_PRIVY', int:1, hollow0:1, none:'None in this cell', noun:['privy','privies']},
+     {id:'park', label:'Parking areas', f:'N_PARKING', int:1, hollow0:1, none:'None in this cell', noun:['parking area','parking areas']},
+     {id:'brid', label:'Bridges', f:'N_BRIDGE', int:1, hollow0:1, none:'None in this cell', noun:['bridge','bridges']},
+     {id:'vist', label:'Vistas', f:'N_VISTA', int:1, hollow0:1, none:'None in this cell', noun:['vista','vistas']},
+     {id:'side', label:'Side trail miles', f:'SIDE_MI', d:1, hollow0:1, none:'None in this cell', showFn:v => fmt(v, 1) + ' mi'},
+     {id:'mlac', label:'Maintained landscapes', f:'ML_AC', int:1, hollow0:1, none:'None in this cell', noun:['acre','acres']},
+     {id:'drain', label:'Drainage structures (estimated)', f:'S_DRAIN', int:1, hollow0:1, none:'None in this cell', noun:['structure','structures'],
       note:'Waterbars, check dams, drainage dips, culverts and French drains. Estimated from maintainer section counts.'},
      {id:'drainmi', label:'Drainage structures per A.T. mile (estimated)', d:0, note:'Cells with under a quarter mile of A.T. are left blank.',
       fn:(lv,c) => { const m = val('feat','AT_MI',lv,c), n = val('feat','S_DRAIN',lv,c); return m == null || m < .25 ? null : Math.round(n / m); }},
-     {id:'steps', label:'Steps and climbs (estimated)', f:'S_STEPS', int:1, zero:1, zeroText:'None', noun:['item','items'],
+     {id:'steps', label:'Steps and climbs (estimated)', f:'S_STEPS', int:1, hollow0:1, none:'None in this cell', noun:['item','items'],
       note:'Stair steps, step stones, metal rungs and ladders. Estimated from maintainer section counts.'}]},
  {id:'pri', th:'nrpz', hue:HUE.nrpz, ramp:'pri', title:'Where do projects need to take a closer look?',
   use:'Shows where unique species have vulnerable populations, based on plant and animal records. Use it to screen a proposed project site early, and bring in resource staff before plans firm up where populations are highly or very highly vulnerable.',
@@ -873,7 +873,9 @@ const Q = [
 for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
 { const ord = ['veg','inv','bird','pri','soil','feat','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
-  m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c)); }));
+  m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
+  /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
+  if (m.hollow0){ const g = m.get; m.get = (lv, c) => { const v = g(lv, c); return v === 0 ? null : v; }; } }));
 
 /* ---------- state ---------- */
 /* The basemap the page opens on: USGS topo. */
@@ -1005,9 +1007,10 @@ function dispLevel(){ let lv = S.level === 'auto' ? autoLevel() : S.level;
 /* Cell fill thins out as you zoom in: full strength up to zoom 9, down to 25% opacity (75% transparent) at the closest zoom. */
 const FADE_FROM = 9, FADE_TO = 15, FILL_FAR = .86, FILL_NEAR = .25;
 function zoomFade(){ const k = Math.max(0, Math.min(1, (map.getZoom() - FADE_FROM) / (FADE_TO - FADE_FROM))); return (FILL_FAR - k * (FILL_FAR - FILL_NEAR)) / FILL_FAR; }
-function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, w = lv === 'hex' ? .4 : .7;
+function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, w = lv === 'hex' ? .4 : .7, strong = m.th === 'feat'; /* trail features: solid fill and a dark outline at every zoom, so any cell with a feature stands out */
   for (let c = 0; c < ps.length; c++){ const v = m.get(lv, c), ins = inSec(lv, c);
     if (v == null) ps[c].setStyle({fill:true, fillOpacity:0, stroke:true, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
+    else if (strong) ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : .9) * Math.max(zf, .85), stroke:true, color:'#0B2410', weight:lv === 'hex' ? 1.6 : 2, opacity:ins ? 1 : .2});
     else ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf, stroke:true, color:'#fff', weight:w, opacity:ins ? .9 : .2}); } }
 function draw(){ if (S.ext === 'huc' && (S.q.id !== 'soil' || S.m.find)) setExt('corr', true);
   const lv = dispLevel();
