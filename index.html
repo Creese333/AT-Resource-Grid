@@ -987,8 +987,8 @@ const Q = [
       note:'Only the part of each wetland that lies on A.T. lands. Cells without A.T. lands show none.'}]},
  {id:'rest', th:'veg', hue:HUE.rest, ramp:'rest', title:'Where do we target restoration?',
   use:'Two restoration scores, from 0 to 100, for restoration on A.T. corridor lands, built from the other layers here. Grasslands and early successional habitat favors open habitat near rare species, with priority invasive plants, soils suited to grassland and shrubland birds, and vistas. Forests favors forest near rare species, with forest pests, priority invasive plants and places where hikers gather. Grassland birds carry the most weight, since they are declining and their habitat is scarce. Wetlands lower both scores equally, since nearby wetlands can limit herbicide use. The points are then weighted by who administers the land: APPA first, then other NPS and federal, state, and other; private land is left out. Use it to shortlist cells for a closer look; check the parts in the cell panel.',
-  m:[{id:'grass', label:'Grasslands and early successional', int:1, none:'No open habitat mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('grass'), fn:(lv,c) => restScore('grass', lv, c)},
-     {id:'forest', label:'Forests', int:1, none:'No forest mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
+  m:[{id:'grass', label:'Grasslands and early successional', int:1, brkP:[.4,.7,.85,.95], none:'No open habitat mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('grass'), fn:(lv,c) => restScore('grass', lv, c)},
+     {id:'forest', label:'Forests', int:1, brkP:[.4,.7,.85,.95], none:'No forest mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
  {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s on the trail here?',
   use:'Trail facilities and features from the A.T. facilities inventory: shelters, campsites, privies, parking, bridges, vistas, side trails and maintained landscapes, with miles of A.T. in each cell. Trail structures such as waterbars and steps are recorded by maintainer section, so they are estimated for each cell from its share of the section\u2019s trail miles.',
   m:[{id:'fac', label:'Trail facilities', f:'N_FAC', int:1, hollow0:1, none:'None in this cell', noun:['facility','facilities'], note:'Shelters, campsites, privies, parking areas, bridges, buildings, dams and tunnels.'},
@@ -1062,7 +1062,7 @@ function breaks(m, lv){ const key = m.q.id + m.id + lv; if (BRK.has(key)) return
   a.sort((x,y) => x - y); let b = [];
   if (a.length){ const dec = m.int ? 0 : (m.d == null ? 1 : m.d);
     const r = v => +v.toFixed(dec);
-    [.2,.4,.6,.8].forEach(p => { const v = r(a[Math.min(a.length-1, Math.floor(p*a.length))]); if (!b.length || v > b[b.length-1]) b.push(v); });
+    (m.brkP || [.2,.4,.6,.8]).forEach(p => { const v = r(a[Math.min(a.length-1, Math.floor(p*a.length))]); if (!b.length || v > b[b.length-1]) b.push(v); });
     const mx = r(a[a.length-1]); b = b.filter(v => v < mx); }
   const k = b.length + 1, ramp = RAMP[m.q.ramp];
   const cols = k === 1 ? [ramp[3]] : Array.from({length:k}, (_,i) => ramp[Math.round(i*4/(k-1))]);
