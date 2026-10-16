@@ -474,27 +474,36 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Unique species</td><td>Rare species priority zones</td><td>Rates how vulnerable the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
     </table>
     <h3>Restoration targets</h3>
-    <p>Where do we target restoration? gives each corridor cell two scores out of 100, one for grasslands and early successional habitat and one for forests. A higher score means more of the things that make a cell worth restoring. Results lists the highest-scoring cells first. The scores are a shortlist for site visits, not a site assessment.</p>
+    <p>Where do we target restoration? gives each corridor cell two scores out of 100 for restoration on A.T. corridor lands, one for grasslands and early successional habitat and one for forests. A higher score means more of the things that make a cell worth restoring. Results lists the highest-scoring cells first. The scores are a shortlist for site visits, not a site assessment.</p>
     <table>
       <tr><th>Grasslands and early successional</th><th>Points</th><th>Based on</th><th>Why it counts</th></tr>
-      <tr><td>Open habitat</td><td>20</td><td>Acres of grass, shrub and agricultural cover in the vegetation map</td><td>Restoration builds on open ground that is already there</td></tr>
+      <tr><td>Open habitat</td><td>20</td><td>Acres of grass, shrub and agricultural cover on A.T. corridor lands (vegetation map)</td><td>Restoration builds on open ground that is already there</td></tr>
       <tr><td>Rare species nearby</td><td>15</td><td>Unique species rating: very highly vulnerable 15, highly 10, moderately 5</td><td>Work can help or protect vulnerable populations</td></tr>
       <tr><td>Priority invasive plants</td><td>10</td><td>Priority invasive plant species reported on iNaturalist</td><td>Treating them is part of the restoration</td></tr>
       <tr><td>Soils suited to grassland</td><td>15</td><td>Share of soils in land capability classes 1 to 4</td><td>Ground that can be worked and mowed stays open</td></tr>
       <tr><td>Grassland and shrubland birds</td><td>25</td><td>Grassland and shrubland bird species on eBird checklists</td><td>Weighted most: these birds are declining and their habitat is scarce, while forest is abundant</td></tr>
       <tr><td>Vistas</td><td>15</td><td>Full points for any vista in the cell</td><td>Keeping views open is a trail value too</td></tr>
-      <tr><td>Wetlands</td><td style="white-space:nowrap">up to −10</td><td>Share of the cell in mapped wetland (NWI)</td><td>Nearby wetlands can limit herbicide use</td></tr>
+      <tr><td>Wetlands</td><td style="white-space:nowrap">up to −10</td><td>Share of the A.T. lands in the cell that is mapped wetland (NWI)</td><td>Nearby wetlands can limit herbicide use</td></tr>
     </table>
     <table style="margin-top:10px">
       <tr><th>Forests</th><th>Points</th><th>Based on</th><th>Why it counts</th></tr>
-      <tr><td>Forest</td><td>20</td><td>Acres of forest in the vegetation map</td><td>Restoration builds on existing forest</td></tr>
+      <tr><td>Forest</td><td>20</td><td>Acres of forest on A.T. corridor lands (vegetation map)</td><td>Restoration builds on existing forest</td></tr>
       <tr><td>Rare species nearby</td><td>20</td><td>Unique species rating: very highly vulnerable 20, highly 13, moderately 7</td><td>Work can help or protect vulnerable populations</td></tr>
       <tr><td>Forest pests</td><td>20</td><td>Forest pest species reported on iNaturalist</td><td>A sign of declining forest health</td></tr>
       <tr><td>Priority invasive plants</td><td>20</td><td>Priority invasive plant species reported on iNaturalist</td><td>Treating them is part of the restoration</td></tr>
       <tr><td>Hiker gathering spots</td><td>20</td><td>Shelters, privies, bridges, campsites and parking areas in the cell</td><td>Where hikers gather sees the most wear and the most visitors</td></tr>
-      <tr><td>Wetlands</td><td style="white-space:nowrap">up to −10</td><td>Share of the cell in mapped wetland (NWI)</td><td>Nearby wetlands can limit herbicide use</td></tr>
+      <tr><td>Wetlands</td><td style="white-space:nowrap">up to −10</td><td>Share of the A.T. lands in the cell that is mapped wetland (NWI)</td><td>Nearby wetlands can limit herbicide use</td></tr>
     </table>
-    <p style="margin-top:10px"><b>How points are given.</b> The cells with the most of a factor get its full points, cells with less get fewer, and cells with none get 0. “Most” is judged against cells of the same size along the trail. Rare species, soils and vistas score as shown in the tables; for soils, 80% in classes 1 to 4 earns 12 of 15 points. A cell with no mapped open habitat, or no mapped forest, gets no score of that kind.</p>
+    <p style="margin-top:10px"><b>Land priority.</b> The habitat points are then multiplied by a land priority taken from the administrative areas: each administrator's share of the corridor land in the cell times its multiplier. A cell that is all APPA land keeps its full points; one that is half APPA and half private keeps half.</p>
+    <table>
+      <tr><th>Land administered by</th><th>Multiplier</th></tr>
+      <tr><td>NPS – APPA</td><td>×1.00</td></tr>
+      <tr><td>Other NPS units and federal agencies (US Forest Service, USFWS and others)</td><td>×0.85</td></tr>
+      <tr><td>State agencies</td><td>×0.70</td></tr>
+      <tr><td>Other: local governments, land trusts, ATC and trail clubs</td><td>×0.55</td></tr>
+      <tr><td>Private or unknown</td><td>×0 (left out)</td></tr>
+    </table>
+    <p style="margin-top:10px"><b>How points are given.</b> The cells with the most of a factor get its full points, cells with less get fewer, and cells with none get 0. “Most” is judged against cells of the same size along the trail. Rare species, soils and vistas score as shown in the tables; for soils, 80% in classes 1 to 4 earns 12 of 15 points. Only A.T. corridor lands count: a cell needs at least one acre of open habitat, or of forest, on corridor lands to get that score. Rare species, invasives, pests and birds count anywhere in the cell, since they are nearby either way.</p>
     <p>The cell panel shows the points behind each score. A rarely surveyed cell can score low on invasives or birds simply because no one has looked, so check How well is it surveyed? alongside.</p>
     <h3>Reading the maps</h3>
     <ul>
@@ -831,7 +840,9 @@ const vulnShow = v => `${fmt(v, 2)} (${vulnClass(v)})`;
    Two scores from 0 to 100, worked out here from the other layers. Each factor is scaled 0 to 1 and given points; wetlands take
    points away, since nearby wetlands can limit herbicide use. Counts and acres are scaled by where a cell ranks among the cells of
    its size that have any (a cell with none scores 0); rare species, vistas and soils use their own 0 to 1 values.
-   A cell needs mapped open habitat (grasslands) or forest (forests) to get a score. Edit the points here. */
+   Only A.T. corridor lands count: habitat acres come from the vegetation map of the corridor lands and are capped at the corridor
+   land in the cell, wetlands are those on A.T. lands, and a cell needs at least one acre of open habitat (grasslands) or forest
+   (forests) on corridor lands to get a score. Edit the points here. */
 const RESTDEF = {
   grass: {label:'Grasslands and early successional', gate:'open', none:'No open habitat mapped', wet:10, parts:[
     ['open', 'Open habitat', 20], ['rare', 'Rare species nearby', 15], ['inv', 'Priority invasive plants', 10],
@@ -841,12 +852,23 @@ const RESTDEF = {
     ['inv', 'Priority invasive plants', 20], ['hiker', 'Hiker gathering spots', 20]]}};
 const RESTRANK = ['open', 'forest', 'inv', 'birds', 'pest', 'hiker', 'wet'];     /* scaled by rank */
 const TIERVAL = {'Avoid':1, 'Minimize':2/3, 'Standard Review':1/3};
+/* Land priority, from the land administrators layer (the administrative areas): each class's share of the mapped land in the cell,
+   times its multiplier. NPS - APPA first, then other NPS and federal, then state, then other public and conservation owners; private none. */
+const LANDCLASS = [['appa', 'NPS - APPA', 1], ['fed', 'Other NPS and federal', .85], ['state', 'State', .7], ['other', 'Other (local, land trusts, ATC, clubs)', .55], ['priv', 'Private or unknown', 0]];
+function landClass(name){ if (name === 'NPS - APPA') return 'appa'; if (/^Private/.test(name)) return 'priv';
+  if (/^NPS|US Forest Service|United States Fish|Department of Defense|Tennessee Valley|Natural Resources Conservation|Smithsonian/.test(name)) return 'fed';
+  if (/^State of|Maine Bureau|Inland Fisheries|Vermont Department/.test(name)) return 'state'; return 'other'; }
+function restLand(lv, c){ const r = val('lands','MGRS',lv,c) || [], sh = {appa:0, fed:0, state:0, other:0, priv:0}; let tot = 0;
+  for (let i = 0; i < r.length; i += 2){ sh[landClass(D.cats.MGR[r[i]])] += r[i+1]; tot += r[i+1]; }
+  if (!tot) return [0, sh]; for (const k in sh) sh[k] = 100 * sh[k] / tot;
+  return [LANDCLASS.reduce((t, [k, , m]) => t + m * sh[k] / 100, 0), sh]; }
+const landText = sh => LANDCLASS.filter(([k]) => sh[k] >= .5).map(([k, lab]) => `${k === 'appa' ? 'APPA' : k === 'fed' ? 'NPS/federal' : k === 'priv' ? 'private' : lab.split(' (')[0].toLowerCase()} ${fmt(sh[k], 0)}%`).join(', ');
 function restTier(lv, c){ let plv = lv, pc = c; if (!D.themes.nrpz[lv]){ const p = parentOf(lv, c); if (!p) return null; plv = p[0]; pc = p[1]; }
   if (!D.themes.nrpz[plv]) return null; const t = val('nrpz','review_tie',plv,pc); return t == null ? null : D.cats.review_tie[t]; }
 function restRaw(k, lv, c){ const v = (th, f) => val(th, f, lv, c) || 0, va = val('veg','VEG_AREA',lv,c);
   switch (k){
-    case 'open': return va == null ? null : va * (v('veg','L1_HERB') + v('veg','L1_SHRUB') + v('veg','L1_AGRIC')) / 100;
-    case 'forest': return va == null ? null : va * v('veg','L1_FOREST') / 100;
+    case 'open': return va == null ? null : Math.min(va * (v('veg','L1_HERB') + v('veg','L1_SHRUB') + v('veg','L1_AGRIC')) / 100, v('lands','LAND_AC'));
+    case 'forest': return va == null ? null : Math.min(va * v('veg','L1_FOREST') / 100, v('lands','LAND_AC'));
     case 'rare': { const t = restTier(lv, c); return t ? TIERVAL[t] || 0 : 0; }
     case 'inv': return (val('inat','EDRR_LIST',lv,c) || []).length;
     case 'pest': return (val('inat','PEST_LIST',lv,c) || []).length;
@@ -854,7 +876,7 @@ function restRaw(k, lv, c){ const v = (th, f) => val(th, f, lv, c) || 0, va = va
     case 'birds': return v('ebird','GRASS_SPP') + v('ebird','SHRUB_SPP');
     case 'vista': return v('feat','N_VISTA');
     case 'hiker': return v('feat','N_SHELTER') + v('feat','N_PRIVY') + v('feat','N_BRIDGE') + v('feat','N_CAMPSITE') + v('feat','N_PARKING');
-    case 'wet': return v('wet','WET_PCT'); } }
+    case 'wet': { const la = v('wet','LANDS_AC'); return la > 0 ? Math.min(100, 100 * v('wet','L_WET_AC') / la) : 0; } } }
 const RESTC = {};
 function restScale(k, lv, c){ const x = restRaw(k, lv, c);
   if (k === 'rare' || k === 'soil') return x || 0;
@@ -864,15 +886,15 @@ function restScale(k, lv, c){ const x = restRaw(k, lv, c);
   if (!R[k]){ const a = []; for (let i = 0; i < D.levels[lv].id.length; i++){ const y = restRaw(k, lv, i); if (y > 0) a.push(y); } R[k] = a.sort((p, q) => p - q); }
   const a = R[k]; let lo = 0, hi = a.length; while (lo < hi){ const mid = (lo + hi) >> 1; if (a[mid] <= x) lo = mid + 1; else hi = mid; }
   return a.length ? lo / a.length : 0; }
-/* one score with its parts: [score or null, [[key, label, points, max, raw]], wetland points taken] */
+/* one score with its parts: [score or null, [[key, label, points, max, raw]], wetland points taken, land multiplier, land shares, points before the multiplier] */
 function restParts(kind, lv, c){ const d = RESTDEF[kind], g = restRaw(d.gate, lv, c);
-  if (g == null || g < 1) return [null, [], 0];
+  if (g == null || g < 1) return [null, [], 0, 0, {}, 0];
   const parts = d.parts.map(([k, lab, w]) => [k, lab, w * restScale(k, lv, c), w, restRaw(k, lv, c)]);
-  const wet = d.wet * restScale('wet', lv, c), s = parts.reduce((t, p) => t + p[2], 0) - wet;
-  return [Math.max(0, Math.min(100, Math.round(s))), parts, wet]; }
+  const wet = d.wet * restScale('wet', lv, c), pts = Math.max(0, parts.reduce((t, p) => t + p[2], 0) - wet), [mult, sh] = restLand(lv, c);
+  return [Math.max(0, Math.min(100, Math.round(pts * mult))), parts, wet, mult, sh, pts]; }
 const restScore = (kind, lv, c) => has('veg', lv, c) ? restParts(kind, lv, c)[0] : null;
 function restRawText(k, x, lv, c){ switch (k){
-  case 'open': case 'forest': return fmt(x, 0) + ' acres mapped';
+  case 'open': case 'forest': return fmt(x, 0) + ' acres on corridor lands';
   case 'rare': { const t = restTier(lv, c); return t ? (CATCOL.review_tie.find(e => e[0] === t) || [0,0,t])[2] : 'none rated'; }
   case 'inv': return x ? `${x} ${x === 1 ? 'species' : 'species'}` : 'none reported';
   case 'pest': return x ? `${x} ${x === 1 ? 'species' : 'species'}` : 'none reported';
@@ -883,11 +905,12 @@ function restRawText(k, x, lv, c){ switch (k){
 const restNote = kind => RESTDEF[kind].parts.map(p => `${p[1]} ${p[2]}`).join(', ') + `; wetlands up to −${RESTDEF[kind].wet}.`;
 function restSection(lv, c){ if (!has('veg', lv, c)) return '';
   let b = `<div class="sec" style="--hue:${HUE.rest}"><h3>Restoration targets</h3>`;
-  for (const kind of S.m.id === 'forest' && S.q.id === 'rest' ? ['forest', 'grass'] : ['grass', 'forest']){ const d = RESTDEF[kind], [s, parts, wet] = restParts(kind, lv, c);
+  for (const kind of S.m.id === 'forest' && S.q.id === 'rest' ? ['forest', 'grass'] : ['grass', 'forest']){ const d = RESTDEF[kind], [s, parts, wet, mult, sh, pts] = restParts(kind, lv, c);
     b += `<p style="margin-top:8px"><b>${d.label}:</b> ${s == null ? d.none.toLowerCase() : `<b>${s}</b> of 100`}</p>`;
     if (s == null) continue;
     b += '<div class="keys nosw">' + parts.map(([k, lab, pts, w, x]) => soilRow(`${lab} <span style="color:var(--muted)">(${restRawText(k, x, lv, c)})</span>`, `${Math.round(pts)} / ${w}`)).join('') +
-      soilRow(`Wetlands <span style="color:var(--muted)">(${fmt(restRaw('wet', lv, c), 1)}% of cell)</span>`, wet >= .5 ? '−' + Math.round(wet) : '0') + '</div>'; }
+      soilRow(`Wetlands <span style="color:var(--muted)">(${fmt(restRaw('wet', lv, c), 1)}% of A.T. lands)</span>`, wet >= .5 ? '−' + Math.round(wet) : '0') +
+      soilRow('<b>Habitat points</b>', `<b>${Math.round(pts)}</b>`) + soilRow(`Land priority <span style="color:var(--muted)">(${landText(sh) || 'no mapped land'})</span>`, '×' + fmt(mult, 2)) + '</div>'; }
   return b + '<p class="none" style="font-size:13.5px;margin-top:8px">Scores rank cells for a closer look; they are worked out from the other layers on this page and are not a site assessment. Counts and acres are scored by how a cell ranks among cells of its size.</p></div>'; }
 function restBox(lv, cells){ if (!D.themes.veg || !D.themes.veg[lv]) return ''; let b = `<div class="sec" style="--hue:${HUE.rest}"><h3>Restoration targets</h3><div class="keys nosw">`;
   for (const kind of ['grass', 'forest']){ const a = cells.map(c => [c, restScore(kind, lv, c)]).filter(x => x[1] != null).sort((p, q) => q[1] - p[1]);
@@ -963,7 +986,7 @@ const Q = [
      {id:'lands', label:'Wetland acres on A.T. lands', f:'L_WET_AC', zero:1, zeroText:'None mapped', noun:['acre','acres'], showFn:wetAc,
       note:'Only the part of each wetland that lies on A.T. lands. Cells without A.T. lands show none.'}]},
  {id:'rest', th:'veg', hue:HUE.rest, ramp:'rest', title:'Where do we target restoration?',
-  use:'Two restoration scores, from 0 to 100, built from the other layers here. Grasslands and early successional habitat favors open habitat near rare species, with priority invasive plants, soils suited to grassland, grassland and shrubland birds, and vistas. Forests favors forest near rare species, with forest pests, priority invasive plants and places where hikers gather. Grassland birds carry the most weight, since they are declining and their habitat is scarce. Wetlands lower both scores equally, since nearby wetlands can limit herbicide use. Use it to shortlist cells for a closer look; check the parts in the cell panel.',
+  use:'Two restoration scores, from 0 to 100, for restoration on A.T. corridor lands, built from the other layers here. Grasslands and early successional habitat favors open habitat near rare species, with priority invasive plants, soils suited to grassland, grassland and shrubland birds, and vistas. Forests favors forest near rare species, with forest pests, priority invasive plants and places where hikers gather. Grassland birds carry the most weight, since they are declining and their habitat is scarce. Wetlands lower both scores equally, since nearby wetlands can limit herbicide use. The points are then weighted by who administers the land: APPA first, then other NPS and federal, state, and other; private land is left out. Use it to shortlist cells for a closer look; check the parts in the cell panel.',
   m:[{id:'grass', label:'Grasslands and early successional', int:1, none:'No open habitat mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('grass'), fn:(lv,c) => restScore('grass', lv, c)},
      {id:'forest', label:'Forests', int:1, none:'No forest mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
  {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s on the trail here?',
@@ -1899,7 +1922,10 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
       pct_land_capability_1_to_2:n('soil','LCC12'), pct_land_capability_1_to_4:n('soil','LCC14'), crop_productivity_nccpi:n('soil','NCCPI'), pct_of_cell_with_soil_data:n('soil','SOIL_COV') });
     if (has('veg', lv, c)){ const r = {grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c]};
       for (const kind of ['grass', 'forest']){ const [s, parts, wet] = restParts(kind, lv, c), pre = kind === 'grass' ? 'grassland_' : 'forest_';
-        r[pre + 'score'] = blank(s); parts.forEach(([k, lab, pts]) => { r[pre + k + '_points'] = Math.round(pts * 10) / 10; }); r[pre + 'wetland_points'] = s == null ? '' : -Math.round(wet * 10) / 10; }
+        const [, , , mult, , hp] = restParts(kind, lv, c);
+        r[pre + 'score'] = blank(s); parts.forEach(([k, lab, pts]) => { r[pre + k + '_points'] = Math.round(pts * 10) / 10; }); r[pre + 'wetland_points'] = s == null ? '' : -Math.round(wet * 10) / 10;
+        r[pre + 'habitat_points'] = s == null ? '' : Math.round(hp * 10) / 10; r[pre + 'land_multiplier'] = s == null ? '' : Math.round(mult * 100) / 100; }
+      { const sh = restLand(lv, c)[1]; LANDCLASS.forEach(([k]) => { r['land_pct_' + (k === 'priv' ? 'private' : k)] = Math.round(sh[k] || 0); }); }
       out.restoration.push(r); }
     if (has('wet', lv, c)) out.wetlands.push({grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c],
       wetland_acres:n('wet','WET_AC'), pct_of_cell_wetland:n('wet','WET_PCT'), wetlands_in_cell:n('wet','N_WET'), main_type:k('wet','WET_DOM'), main_type_pct_of_wetland:n('wet','DOM_PCT'),
@@ -1939,7 +1965,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
   ab('Note', 'Trail features: A.T. facilities inventory, official and additional features. Structure counts (drainage, steps, signs, barriers) are estimates, spread from maintainer sections by trail miles.');
   if (out.liveState) ab('Live iNaturalist', out.liveState === 'loaded' ? `${out.live.length} most recent observations with open locations, fetched ${localDay()} from the iNaturalist project. A snapshot, not a complete count; not part of any other number in this export.`
     : 'Not included: iNaturalist could not be reached, or the selection is too wide for a live lookup.');
-  ab('Note', 'Restoration scores (0 to 100) are worked out from the other layers. Grasslands: ' + restNote('grass') + ' Forests: ' + restNote('forest') + ' Counts and acres are scored by rank among cells of the same size; a cell needs mapped open habitat or forest to be scored.');
+  ab('Note', 'Restoration scores (0 to 100) are worked out from the other layers. Grasslands: ' + restNote('grass') + ' Forests: ' + restNote('forest') + ' Habitat points are multiplied by land priority: NPS - APPA 1.00, other NPS and federal 0.85, state 0.70, other 0.55, private 0, blended by share of the corridor land in the cell. Counts and acres are scored by rank among cells of the same size; only A.T. corridor lands count: habitat acres and wetlands are those on corridor lands, and a cell needs at least one acre of open habitat or forest there to be scored.');
   ab('Note', 'Wetlands: USFWS National Wetlands Inventory, acres in the whole cell. Possibly sensitive = NWI codes suggesting bogs or fens, seeps, aquatic beds, beaver-influenced areas or possible vernal pools; a flag for field checks. NWI misses many small, forested and seasonal wetlands; not a delineation.');
   ab('Note', 'Soils: NRCS gSSURGO, area-weighted over each cell. Trail vulnerability index 0 to 1: three NRCS trail ratings, each scored in even steps from best class (0) to worst (1), averaged. Low under 0.33, High over 0.67. Blank where the soils are not rated.');
   return out; }
