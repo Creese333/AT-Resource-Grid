@@ -479,10 +479,10 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>Colors are five equal-count classes of the cells with data at the cell size on screen, so the classes change when you change cell size.</li>
       <li>The strip under the map runs from Springer Mountain to Katahdin. Each bar is a ten-mile stretch, averaged from the 49 sq mi cells.</li>
       <li>The search box finds birds, invasive plants, forest pests and vegetation types in every cell where they were recorded. Other iNaturalist species are only searchable where they rank among a cell's ten most-recorded, so those results are partial. Rare species are not searchable.</li>
-      <li>Export CSV and Export Excel, in the details panel, download everything shown for the selected cell or cells. The Excel workbook has separate sheets for cells, species, vegetation types and land administrators; the CSV holds the same rows in one long table.</li>
+      <li>Export CSV and Export Excel, in the details panel, download everything shown for the selected cell or cells. The Excel workbook has separate sheets for cells, soils, species, vegetation types, land administrators, trail features and live iNaturalist observations; the CSV holds the same rows in one long table.</li>
       <li>Map layers adds administrative areas, shelters, campsites, parking, privies, bridges, vistas and side trails. They load live from the NPS and ATC map services when switched on, so they stay current. Administrative areas and side trails appear once you zoom in. A click on one of these features opens its details; a click anywhere else selects the grid cell.</li>
       <li>Select area draws a box on the map and summarizes every cell whose center falls inside it. Records and acres are added up; species and vegetation types are counted once.</li>
-      <li>Each cell has two iNaturalist sections. Invasive species is the quarterly summary: invasive plants and forest pests counted together, with forest pests also counted as priority invasives. It is what the map, rankings and exports use. Live iNaturalist is fetched from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you open it, and lists the most recent observations in the cell, with a badge on invasive species and forest pests. Live records are not counted anywhere else on the page, and records with obscured locations are left out, since they cannot be placed in a cell.</li>
+      <li>Each cell has two iNaturalist sections. Invasive species is the quarterly summary: invasive plants and forest pests counted together, with forest pests also counted as priority invasives. It is what the map, rankings and exports use. Live iNaturalist is fetched from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you open it, and lists the most recent observations in the cell, with a badge on invasive species and forest pests. It lists the 20 newest; an export adds them on their own sheet, fetched at export time if the section was not opened. Live records are not counted anywhere else on the page, and records with obscured locations are left out, since they cannot be placed in a cell.</li>
       <li>Priority species, such as American black bear, are searchable everywhere they have been recorded. The quarterly summary lists them only where they rank among a cell's ten most-recorded iNaturalist species, so their research-grade records are fetched live from the iNaturalist project. Searching for one loads all its records along the trail and keeps them in your browser, so a later visit only fetches what is new.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
       <li>Soils can be shown for two extents. A.T. corridor shows the grid cells along the trail that every layer uses. HUC10 watershed shows every grid cell in the HUC10 watersheds around the trail, for soils only, with the corridor cells outlined in yellow. Both use the same whole-cell soil values, so a corridor cell reads the same in either. The watershed cells load from a second file the first time they are shown. Colors and rankings are worked out within the extent on screen.</li>
@@ -526,7 +526,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   var CONFIG = {
     project: 'appalachian-national-scenic-trail-huc10', // the part after /projects/ in the iNaturalist project URL; '' = all iNaturalist observations
     perPage: 50,                  // records fetched per click (API maximum is 200)
-    show: 12,                     // records listed in the panel
+    show: 20,                     // records listed in the panel (and exported)
     qualityGrade: '',             // '' = all, or 'research' to match what GBIF carries
     api: 'https://api.inaturalist.org/v1/observations',
     site: 'https://www.inaturalist.org/observations'
@@ -690,7 +690,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       });
   }
 
-  global.ATiNat = { lookup: lookup, config: CONFIG, _test: { rings: rings, bbox: bbox, inRing: inRing } };
+  global.ATiNat = { lookup: lookup, config: CONFIG, cached: function (k) { return cache.get(String(k)) || null; }, _test: { rings: rings, bbox: bbox, inRing: inRing } };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>
@@ -1612,7 +1612,7 @@ function soilSection(lv, c){ if (!D.themes.soil) return '';
   b += vi != null
     ? `<div class="facts"><div><b>${fmt(vi, 2)}</b>trail vulnerability, ${vulnClass(vi).toLowerCase()}</div><div><b>${soilPct(v('VULN_HIGH'))}</b>of soils rated high</div><div><b>${soilPct(v('PATHS_VLIM'))}</b>very limited for paths</div></div>`
     : '<p class="none">The trail ratings are not available for these soils. This is common where the survey is incomplete or rock outcrop dominates.</p>';
-  b += '<div class="keys nosw" style="margin-top:8px">' + soilRow('At least one rating at its worst', soilPct(v('WORST1'))) + soilRow('Two or more ratings at their worst', soilPct(v('WORST2'))) + '</div>';
+  b += '<div class="keys nosw" style="margin-top:8px">' + soilRow('At least one rating at its worst', soilPct(v('WORST1'))) + '</div>';
   b += `<p style="margin-top:8px">NRCS rating scores, 0 to 1, higher is more limiting (average ${soilScore(v('NRCS_IDX'))}):</p><div class="keys nosw">` +
     soilRow('Erosion hazard, unsurfaced trails', soilScore(v('EROS_HR'))) + soilRow('Paths and trails', soilScore(v('PATHS_HR'))) + soilRow('Rutting hazard', soilScore(v('RUT_HR'))) + '</div>';
   b += '<div class="keys nosw" style="margin-top:6px">' + soilRow('Severe rutting hazard', soilPct(v('RUT_SEV'))) + soilRow('Slopes over 25%', soilPct(v('STEEP'))) +
@@ -1649,10 +1649,12 @@ function inatFetch(rings, id){ const el = $('#inatlive'); if (!el || !window.ATi
   const la = rings.flat().map(p => p[0]), lo = rings.flat().map(p => p[1]);
   if (Math.max(...la) - Math.min(...la) > INAT_MAX_SPAN || Math.max(...lo) - Math.min(...lo) > INAT_MAX_SPAN){
     el.innerHTML = '<p class="none" style="font-size:13.5px">Select a smaller area, or a single cell, to see live iNaturalist observations.</p>'; return; }
-  if (!INATFLAGS){ INATFLAGS = {};
+  ATiNat.lookup({type:'MultiPolygon', coordinates:rings.map(r => [r.map(p => [p[1], p[0]])])}, el, {id, flags:inatFlags()}); }
+/* lowercase scientific name -> badge, from the page's invasive, forest pest and priority invasive lists */
+function inatFlags(){ if (!INATFLAGS){ INATFLAGS = {};
     [['INVASIVE_LIST','Invasive'],['PEST_LIST','Forest pest'],['EDRR_LIST','Priority invasive']].forEach(([f, label]) =>
       Object.values(D.themes.inat || {}).forEach(t => (t.f[f] || []).forEach(a => a.forEach(i => { INATFLAGS[sppName(i).sci.toLowerCase()] = label; })))); }
-  ATiNat.lookup({type:'MultiPolygon', coordinates:rings.map(r => [r.map(p => [p[1], p[0]])])}, el, {id, flags:INATFLAGS}); }
+  return INATFLAGS; }
 /* ---------- priority species ----------
    Species where every record matters. The quarterly summary only lists them in cells where they rank among the ten
    most-recorded iNaturalist species, so their records are fetched live from the iNaturalist project (once per visit)
@@ -1743,27 +1745,44 @@ function finishProfile(html){ $('#pbody').innerHTML = html;
 /* ---------- export of the selection shown in the popup ---------- */
 const EXPORTBTNS = '<button type="button" class="exp" id="pexcsv" title="Download everything in this panel as a CSV file">Export CSV</button><button type="button" class="exp" id="pexxls" title="Download everything in this panel as an Excel workbook">Export Excel</button><p class="pexmsg" id="pexmsg" role="status"></p>';
 function exportWire(){ const a = $('#pexcsv'), b = $('#pexxls'); if (a) a.onclick = () => exportRun('csv'); if (b) b.onclick = () => exportRun('xlsx'); }
+const localDay = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const liveKey = () => S.box ? S.box.lv + ':' + S.box.cells.join(',') : D.levels[S.cellLv].id[S.cell];
+function liveEnsure(){ if (S.ext === 'huc' || !window.ATiNat || ATiNat.cached(liveKey())) return Promise.resolve();
+  const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S.box.cells : [S.cell], rings = cells.map(c => ring(lv, c)), pts = rings.flat();
+  const la = pts.map(p => p[0]), lo = pts.map(p => p[1]);
+  if (Math.max(...la) - Math.min(...la) > INAT_MAX_SPAN || Math.max(...lo) - Math.min(...lo) > INAT_MAX_SPAN) return Promise.resolve();
+  const el = $('#inatlive') || document.createElement('div');
+  return Promise.race([ATiNat.lookup({type:'MultiPolygon', coordinates:rings.map(r => [r.map(p => [p[1], p[0]])])}, el, {id:liveKey(), flags:inatFlags()}), new Promise(r => setTimeout(r, 15000))]); }
 function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S.box.cells : [S.cell], L_ = D.levels[lv];
   const v = (th, f, c) => val(th, f, lv, c);
-  const out = {cells:[], species:[], veg:[], land:[], features:[], about:[]};
+  const out = {cells:[], soils:[], species:[], veg:[], land:[], features:[], live:[], about:[]};
   cells.slice().sort((a,b) => L_.mi[a] - L_.mi[b]).forEach(c => { const id = L_.id[c], base = {grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c], trail_club:cat('club', L_.club[c]) || '', region:regionOf(L_.mi[c])};
     let plv = lv, pc = c; if (!D.themes.nrpz[lv]){ const p = parentOf(lv, c); if (p){ plv = p[0]; pc = p[1]; } }
     const tier = D.themes.nrpz[plv] ? val('nrpz','review_tie',plv,pc) : null, te = tier == null ? null : CATCOL.review_tie.find(x => x[0] === D.cats.review_tie[tier]);
     /* n: a value, blank when missing. k: a category field, written as its name */
-    const n = (th, f) => { const x = v(th, f, c); return x == null ? '' : x; }, k = (th, f) => { const x = v(th, f, c); return x == null ? '' : D.cats[f][x]; };
+    const n = (th, f) => { const x = v(th, f, c); return x == null ? '' : x; }, k = (th, f) => { const x = v(th, f, c); return x == null || !D.cats[f] ? '' : D.cats[f][x]; };
     out.cells.push(Object.assign({}, base, {
       veg_acres_mapped:n('veg','VEG_AREA'), veg_pct_of_cell_mapped:n('veg','PCT_MAPPED'), veg_types:n('veg','N_TYPES'), veg_main_type:k('veg','DOM_TYPE'), nlcd_main_cover:k('veg','L2_DOM'),
       inat_records:n('inat','N_OBS'), inat_species:n('inat','N_SPP'), inat_observers:n('inat','N_OBSERVERS'), inat_invasive_species:blank(invCount(lv, c)), inat_invasive_plants:n('inat','N_INV_SPP'), inat_forest_pests:has('inat', lv, c) ? (val('inat','PEST_LIST',lv,c) || []).length : '', inat_priority_invasives:blank(priCount(lv, c)), inat_invasive_pct_of_records:blank(invShare(lv, c)), inat_forest_pest_records:n('inat','N_PEST_OBS'), inat_data_status:k('inat','DATA_STATUS'), inat_summary_newest_record:n('inat','LAST_OBS'),
       ebird_checklists:n('ebird','N_CHECKLISTS'), ebird_records:n('ebird','N_RECORDS'), ebird_species:n('ebird','N_SPP'), ebird_observers:n('ebird','N_OBSERVERS'), ebird_birds_of_conservation_concern:n('ebird','N_BCC_SPP'), ebird_data_status:k('ebird','DATA_STATUS'), ebird_latest_checklist:n('ebird','LAST_OBS'),
       unique_species_rating:te ? (te[2] || te[0]) : '', unique_species_rating_cell_size:te ? LV[plv].name : '',
-      soil_trail_vulnerability_index:n('soil','VULN'), soil_trail_vulnerability_class:blank(vulnClass(v('soil','VULN',c))), soil_pct_rated_high_vulnerability:n('soil','VULN_HIGH'),
-      soil_nrcs_trail_score_average:n('soil','NRCS_IDX'), soil_pct_two_or_more_ratings_worst:n('soil','WORST2'),
-      soil_pct_very_limited_paths_trails:n('soil','PATHS_VLIM'), soil_pct_severe_rutting:n('soil','RUT_SEV'), soil_pct_slopes_over_25:n('soil','STEEP'), soil_pct_highly_erodible:n('soil','K_HIGH'),
-      soil_pct_shallow_bedrock:n('soil','SHALLOW_ROCK'), soil_pct_hydric:n('soil','HYDRIC'), soil_pct_prime_farmland:n('soil','PRIME'), soil_main_series:k('soil','SOIL_SERIES'), soil_main_texture:k('soil','SOIL_TEXTURE'), soil_drainage:k('soil','SOIL_DRAIN'),
       feat_at_miles:n('feat','AT_MI'), feat_facilities:n('feat','N_FAC'), feat_shelters:n('feat','N_SHELTER'), feat_campsites:n('feat','N_CAMPSITE'), feat_privies:n('feat','N_PRIVY'),
       feat_parking_areas:n('feat','N_PARKING'), feat_bridges:n('feat','N_BRIDGE'), feat_vistas:n('feat','N_VISTA'), feat_side_trail_miles:n('feat','SIDE_MI'), feat_maintained_landscape_acres:n('feat','ML_AC'),
       feat_drainage_structures_est:n('feat','S_DRAIN'), feat_steps_and_climbs_est:n('feat','S_STEPS'), feat_signs_est:n('feat','S_SIGNS'), feat_barriers_est:n('feat','S_BARR'),
       land_administrators:n('lands','N_MGR'), land_pct_of_cell_mapped:n('lands','PCT_LAND') }));
+    if (has('soil', lv, c)) out.soils.push({grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c],
+      trail_vulnerability_index:n('soil','VULN'), trail_vulnerability_class:blank(vulnClass(v('soil','VULN',c))), pct_rated_high_vulnerability:n('soil','VULN_HIGH'),
+      pct_at_least_one_rating_worst:n('soil','WORST1'), nrcs_score_average:n('soil','NRCS_IDX'), nrcs_erosion_hazard_unsurfaced_trails:n('soil','EROS_HR'),
+      nrcs_paths_and_trails:n('soil','PATHS_HR'), nrcs_rutting_hazard:n('soil','RUT_HR'), pct_very_limited_paths_trails:n('soil','PATHS_VLIM'), pct_severe_rutting:n('soil','RUT_SEV'),
+      pct_slopes_over_25:n('soil','STEEP'), avg_slope_pct:n('soil','SLOPE'), pct_highly_erodible_k_over_0_32:n('soil','K_HIGH'), pct_already_eroded:n('soil','ERODED'),
+      pct_shallow_bedrock_under_50cm:n('soil','SHALLOW_ROCK'), pct_high_frost_action:n('soil','FROST_HIGH'), pct_subject_to_flooding:n('soil','FLOOD'),
+      main_series:k('soil','SOIL_SERIES'), main_series_pct:n('soil','DOM_SERIES_PCT'), largest_series:n('soil','TOP_SERIES'), series_in_cell:n('soil','N_SERIES'),
+      surface_texture:k('soil','SOIL_TEXTURE'), soil_order:k('soil','SOIL_ORDER'), drainage:k('soil','SOIL_DRAIN'), hydrologic_group:k('soil','SOIL_HSG'), ecological_site:k('soil','SOIL_ECOSITE'),
+      main_map_unit:n('soil','DOM_MAPUNIT') || k('soil','SOIL_MAPUNIT'), main_map_unit_pct:n('soil','DOM_MAPUNIT_PCT'),
+      pct_hydric:n('soil','HYDRIC'), pct_poorly_drained:n('soil','POOR_DRAIN'), pct_droughty:n('soil','DROUGHTY'), depth_to_water_table_cm:n('soil','WTDEP'), depth_to_bedrock_cm:n('soil','ROCKDEP'),
+      surface_ph:n('soil','PH'), organic_matter_pct:n('soil','OM'),
+      pct_prime_farmland:n('soil','PRIME'), pct_prime_if_drained_or_irrigated:n('soil','PRIME_COND'), pct_farmland_statewide_importance:n('soil','STATEWIDE'), main_farmland_class:k('soil','SOIL_FARM'),
+      pct_land_capability_1_to_2:n('soil','LCC12'), pct_land_capability_1_to_4:n('soil','LCC14'), crop_productivity_nccpi:n('soil','NCCPI'), pct_of_cell_with_soil_data:n('soil','SOIL_COV') });
     (v('feat','LIST',c) || []).forEach(fi => { const f = D.feat[fi]; out.features.push({grid_id:id, trail_mile:L_.mi[c], feature_type:f[0], name:f[1], detail:f[2], latitude:f[3], longitude:f[4]}); });
     (v('feat','SIDE',c) || []).forEach(x => out.features.push({grid_id:id, trail_mile:L_.mi[c], feature_type:'Side trail', name:x[0], detail:fmt(x[1], 2) + ' mi in this cell', latitude:'', longitude:''}));
     (v('feat','ML',c) || []).forEach(x => out.features.push({grid_id:id, trail_mile:L_.mi[c], feature_type:'Maintained landscape', name:x[0], detail:[x[1], fmt(x[2], 1) + ' acres in this cell'].filter(Boolean).join(', '), latitude:'', longitude:''}));
@@ -1775,9 +1794,15 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
       if (n) out.species.push({grid_id:id, trail_mile:L_.mi[c], group:'Priority species', habitat_group_or_list:`Live from the iNaturalist project, ${n} research-grade ${n === 1 ? 'record' : 'records'}`, common_name:p.common, scientific_name:p.sci, lists:''}); });
     const cp = v('veg','COMP',c) || [], ac = v('veg','VEG_AREA',c) || 0; for (let k = 0; k < cp.length; k += 2) out.veg.push({grid_id:id, trail_mile:L_.mi[c], vegetation_type:D.cats.DOM_TYPE[cp[k]], pct_of_mapped_acres:cp[k+1], acres:Math.round(ac * cp[k+1]) / 100});
     const mg = v('lands','MGRS',c) || []; for (let k = 0; k < mg.length; k += 2) out.land.push({grid_id:id, trail_mile:L_.mi[c], administrator:D.cats.MGR[mg[k]], pct_of_mapped_land:mg[k+1]}); });
-  if (S.ext === 'huc'){ out.cells = out.cells.map(r => Object.fromEntries(Object.entries(r).filter(([k]) => !/^(veg|nlcd|inat|ebird|unique|land|feat)_/.test(k)))); out.species = []; out.veg = []; out.land = []; out.features = []; }
+  { const lr = S.ext === 'huc' ? null : ATiNat.cached(liveKey());
+    (lr ? lr.items.slice(0, ATiNat.config.show) : []).forEach(o => { const t = o.taxon || {}, sci = t.name || 'Unidentified', xy = o.geojson.coordinates, la = +xy[1], lo = +xy[0];
+      const c = cells.find(c => inRingLL(la, lo, ring(lv, c))), fl = INATFLAGS && INATFLAGS[sci.toLowerCase()];
+      out.live.push({grid_id:c == null ? '' : L_.id[c], trail_mile:c == null ? '' : L_.mi[c], observed_on:o.observed_on || '', common_name:t.preferred_common_name || '', scientific_name:sci,
+        list:fl || '', quality_grade:o.quality_grade || '', observer:(o.user && o.user.login) || '', latitude:+la.toFixed(5), longitude:+lo.toFixed(5), inaturalist_url:o.uri || ''}); });
+    out.liveState = S.ext === 'huc' ? '' : lr ? 'loaded' : 'missing'; }
+  if (S.ext === 'huc'){ out.cells = out.cells.map(r => Object.fromEntries(Object.entries(r).filter(([k]) => !/^(veg|nlcd|inat|ebird|unique|land|feat)_/.test(k)))); out.species = []; out.veg = []; out.land = []; out.features = []; out.live = []; }
   const ab = (k, x) => out.about.push({item:k, value:x});
-  ab('Source', 'A.T. Resource Grid dashboard'); ab('Exported', new Date().toISOString().slice(0, 10)); ab('iNaturalist and eBird data run', D.run);
+  ab('Source', 'A.T. Resource Grid dashboard'); ab('Exported', localDay()); ab('iNaturalist and eBird data run', D.run);
   ab('Extent', S.ext === 'huc' ? 'HUC10 watershed: every grid cell in the HUC10 shell, soils only' : 'A.T. corridor grid cells');
   ab('Cells exported', cells.length); ab('Cell size', LV[lv].name); ab('Section of trail', secName()); ab('Measure on screen', S.m.label);
   ab('Selection', S.box ? (S.box.within ? `Every ${LV[S.box.lv].name} cell inside the ${LV[S.box.within[0]].name} cell ${D.levels[S.box.within[0]].id[S.box.within[1]]}`
@@ -1787,11 +1812,15 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
   ab('Note', 'Land administrator shares are of the mapped land in the cell. Generalized to the grid; not a boundary determination.');
   ab('Note', 'Unique species ratings are held at 7 and 49 sq mi; 1 sq mi cells carry the rating of the 7 sq mi cell they sit in.');
   ab('Note', 'Trail features: A.T. facilities inventory, official and additional features. Structure counts (drainage, steps, signs, barriers) are estimates, spread from maintainer sections by trail miles.');
+  if (out.liveState) ab('Live iNaturalist', out.liveState === 'loaded' ? `${out.live.length} most recent observations with open locations, fetched ${localDay()} from the iNaturalist project. A snapshot, not a complete count; not part of any other number in this export.`
+    : 'Not included: iNaturalist could not be reached, or the selection is too wide for a live lookup.');
   ab('Note', 'Soils: NRCS gSSURGO, area-weighted over each cell. Trail vulnerability index 0 to 1: three NRCS trail ratings, each scored in even steps from best class (0) to worst (1), averaged. Low under 0.33, High over 0.67. Blank where the soils are not rated.');
   return out; }
 function download(name, blob){ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
 function loadXLSX(){ return window.XLSX ? Promise.resolve() : new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = () => res(); s.onerror = () => rej(new Error('load')); document.head.appendChild(s); }); }
-function exportRun(kind){ const msg = $('#pexmsg'), d = exportData(), n = d.cells.length, stamp = new Date().toISOString().slice(0, 10), name = `AT_resource_grid_${n}_${n === 1 ? 'cell' : 'cells'}_${stamp}`;
+async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !== 'huc' && !ATiNat.cached(liveKey())) msg0.textContent = 'Fetching the latest iNaturalist observations...';
+  await liveEnsure().catch(() => {});
+  const msg = $('#pexmsg'), d = exportData(), n = d.cells.length, stamp = localDay(), name = `AT_resource_grid_${n}_${n === 1 ? 'cell' : 'cells'}_${stamp}`;
   const say = x => { if (msg) msg.textContent = x; };
   if (kind === 'csv'){ /* one long table so a single file holds everything */
     const q = x => { x = x == null ? '' : String(x); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
@@ -1799,15 +1828,17 @@ function exportRun(kind){ const msg = $('#pexmsg'), d = exportData(), n = d.cell
     const info = new Map(d.cells.map(c => [c.grid_id, c]));
     d.about.forEach(a => rows.push(['', '', 'About this export', a.item, '', '', a.value, '']));
     d.cells.forEach(c => Object.keys(c).forEach(k => { if (k !== 'grid_id' && k !== 'trail_mile' && c[k] !== '') rows.push([c.grid_id, c.trail_mile, 'Cell summary', k, '', '', c[k], '']); }));
+    d.soils.forEach(s => Object.keys(s).forEach(k => { if (!['grid_id','trail_mile','cell_size'].includes(k) && s[k] !== '') rows.push([s.grid_id, s.trail_mile, 'Soils', k, '', '', s[k], '']); }));
     d.veg.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Vegetation type', r.vegetation_type, '', r.acres + ' acres', r.pct_of_mapped_acres, '% of mapped acres']));
     d.species.forEach(r => rows.push([r.grid_id, r.trail_mile, r.group, r.common_name, r.scientific_name, [r.habitat_group_or_list, r.lists].filter(Boolean).join('; '), '', '']));
     d.land.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Land administrator', r.administrator, '', '', r.pct_of_mapped_land, '% of mapped land']));
     d.features.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Trail feature: ' + r.feature_type, r.name, '', r.detail, r.latitude === '' ? '' : r.latitude + ', ' + r.longitude, r.latitude === '' ? '' : 'lat, lon']));
+    d.live.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Live iNaturalist', r.common_name || r.scientific_name, r.scientific_name, [r.observed_on, r.observer, r.quality_grade, r.list, r.inaturalist_url].filter(Boolean).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
     download(name + '.csv', new Blob(['\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n')], {type:'text/csv;charset=utf-8'}));
     say(`CSV downloaded: ${fmt(rows.length - 1, 0)} rows for ${nCells(n)}.`); return; }
   say('Preparing the Excel file...');
   loadXLSX().then(() => { const wb = XLSX.utils.book_new(); const add = (nm, arr) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(arr.length ? arr : [{note:'No rows for this selection'}]), nm);
-    add('Cells', d.cells); add('Species', d.species); add('Vegetation types', d.veg); add('Land administrators', d.land); add('Trail features', d.features); add('About', d.about);
+    add('Cells', d.cells); add('Soils', d.soils); add('Species', d.species); add('Vegetation types', d.veg); add('Land administrators', d.land); add('Trail features', d.features); add('Live iNaturalist', d.live); add('About', d.about);
     const buf = XLSX.write(wb, {bookType:'xlsx', type:'array'}); download(name + '.xlsx', new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
     say(`Excel workbook downloaded: ${nCells(n)}, ${fmt(d.species.length, 0)} species rows.`);
   }).catch(() => say('The Excel export could not load its helper file. Check the internet connection, or use Export CSV, which needs no download.')); }
@@ -1912,7 +1943,7 @@ function soilBox(lv, cells){ const N = cells.length, withTh = th => D.themes[th]
       b += vi != null ? `<div class="facts"><div><b>${fmt(vi, 2)}</b>average trail vulnerability</div><div><b>${soilPct(avg('VULN_HIGH', rated))}</b>of soils rated high</div><div><b>${rated.length}</b>of ${N} cells rated</div></div>`
         : '<p class="none">The trail ratings are not available for the soils in the selected cells.</p>';
       if (rated.length) b += '<p style="margin-top:8px">Cells by trail vulnerability:</p><div class="keys">' + CATCOL.VULN_DOM.slice().reverse().map(e => cnt[e[0]] ? `<div><i style="background:${e[1]}"></i><span>${e[0]}</span><span>${nCells(cnt[e[0]])}</span></div>` : '').join('') + '</div>';
-      b += '<p style="margin-top:8px">Averaged across the cells:</p><div class="keys nosw">' + soilRow('Very limited for paths and trails', soilPct(avg('PATHS_VLIM', rated))) + soilRow('Severe rutting hazard', soilPct(avg('RUT_SEV', rated))) + soilRow('Two or more ratings at their worst', soilPct(avg('WORST2', rated))) +
+      b += '<p style="margin-top:8px">Averaged across the cells:</p><div class="keys nosw">' + soilRow('Very limited for paths and trails', soilPct(avg('PATHS_VLIM', rated))) + soilRow('Severe rutting hazard', soilPct(avg('RUT_SEV', rated))) +
         soilRow('Slopes over 25%', soilPct(avg('STEEP'))) + soilRow('Highly erodible (K over 0.32)', soilPct(avg('K_HIGH'))) + soilRow('Shallow to bedrock', soilPct(avg('SHALLOW_ROCK'))) +
         soilRow('Hydric (wet) soils', soilPct(avg('HYDRIC'))) + soilRow('Prime farmland', soilPct(avg('PRIME'))) + '</div>';
       b += '<p class="none" style="font-size:13.5px;margin-top:8px">Each cell counts equally. Cells with unrated soils are left out of the trail figures.</p>';
