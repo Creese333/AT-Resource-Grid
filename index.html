@@ -477,11 +477,11 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     <p>Where do we target restoration? gives each corridor cell two scores out of 100, one for grasslands and early successional habitat and one for forests. A higher score means more of the things that make a cell worth restoring. Results lists the highest-scoring cells first. The scores are a shortlist for site visits, not a site assessment.</p>
     <table>
       <tr><th>Grasslands and early successional</th><th>Points</th><th>Based on</th><th>Why it counts</th></tr>
-      <tr><td>Open habitat</td><td>25</td><td>Acres of grass, shrub and agricultural cover in the vegetation map</td><td>Restoration builds on open ground that is already there</td></tr>
+      <tr><td>Open habitat</td><td>20</td><td>Acres of grass, shrub and agricultural cover in the vegetation map</td><td>Restoration builds on open ground that is already there</td></tr>
       <tr><td>Rare species nearby</td><td>15</td><td>Unique species rating: very highly vulnerable 15, highly 10, moderately 5</td><td>Work can help or protect vulnerable populations</td></tr>
-      <tr><td>Priority invasive plants</td><td>15</td><td>Priority invasive plant species reported on iNaturalist</td><td>Treating them is part of the restoration</td></tr>
+      <tr><td>Priority invasive plants</td><td>10</td><td>Priority invasive plant species reported on iNaturalist</td><td>Treating them is part of the restoration</td></tr>
       <tr><td>Soils suited to grassland</td><td>15</td><td>Share of soils in land capability classes 1 to 4</td><td>Ground that can be worked and mowed stays open</td></tr>
-      <tr><td>Grassland and shrubland birds</td><td>15</td><td>Grassland and shrubland bird species on eBird checklists</td><td>The birds show the habitat is already in use</td></tr>
+      <tr><td>Grassland and shrubland birds</td><td>25</td><td>Grassland and shrubland bird species on eBird checklists</td><td>Weighted most: these birds are declining and their habitat is scarce, while forest is abundant</td></tr>
       <tr><td>Vistas</td><td>15</td><td>Full points for any vista in the cell</td><td>Keeping views open is a trail value too</td></tr>
       <tr><td>Wetlands</td><td style="white-space:nowrap">up to −10</td><td>Share of the cell in mapped wetland (NWI)</td><td>Nearby wetlands can limit herbicide use</td></tr>
     </table>
@@ -492,7 +492,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Forest pests</td><td>20</td><td>Forest pest species reported on iNaturalist</td><td>A sign of declining forest health</td></tr>
       <tr><td>Priority invasive plants</td><td>20</td><td>Priority invasive plant species reported on iNaturalist</td><td>Treating them is part of the restoration</td></tr>
       <tr><td>Hiker gathering spots</td><td>20</td><td>Shelters, privies, bridges, campsites and parking areas in the cell</td><td>Where hikers gather sees the most wear and the most visitors</td></tr>
-      <tr><td>Wetlands</td><td style="white-space:nowrap">up to −5</td><td>Share of the cell in mapped wetland (NWI)</td><td>Can limit herbicide use, but counts less than for grasslands</td></tr>
+      <tr><td>Wetlands</td><td style="white-space:nowrap">up to −10</td><td>Share of the cell in mapped wetland (NWI)</td><td>Nearby wetlands can limit herbicide use</td></tr>
     </table>
     <p style="margin-top:10px"><b>How points are given.</b> The cells with the most of a factor get its full points, cells with less get fewer, and cells with none get 0. “Most” is judged against cells of the same size along the trail. Rare species, soils and vistas score as shown in the tables; for soils, 80% in classes 1 to 4 earns 12 of 15 points. A cell with no mapped open habitat, or no mapped forest, gets no score of that kind.</p>
     <p>The cell panel shows the points behind each score. A rarely surveyed cell can score low on invasives or birds simply because no one has looked, so check How well is it surveyed? alongside.</p>
@@ -834,9 +834,9 @@ const vulnShow = v => `${fmt(v, 2)} (${vulnClass(v)})`;
    A cell needs mapped open habitat (grasslands) or forest (forests) to get a score. Edit the points here. */
 const RESTDEF = {
   grass: {label:'Grasslands and early successional', gate:'open', none:'No open habitat mapped', wet:10, parts:[
-    ['open', 'Open habitat', 25], ['rare', 'Rare species nearby', 15], ['inv', 'Priority invasive plants', 15],
-    ['soil', 'Soils suited to grassland', 15], ['birds', 'Grassland and shrubland birds', 15], ['vista', 'Vistas', 15]]},
-  forest: {label:'Forests', gate:'forest', none:'No forest mapped', wet:5, parts:[
+    ['open', 'Open habitat', 20], ['rare', 'Rare species nearby', 15], ['inv', 'Priority invasive plants', 10],
+    ['soil', 'Soils suited to grassland', 15], ['birds', 'Grassland and shrubland birds', 25], ['vista', 'Vistas', 15]]},
+  forest: {label:'Forests', gate:'forest', none:'No forest mapped', wet:10, parts:[
     ['forest', 'Forest', 20], ['rare', 'Rare species nearby', 20], ['pest', 'Forest pests', 20],
     ['inv', 'Priority invasive plants', 20], ['hiker', 'Hiker gathering spots', 20]]}};
 const RESTRANK = ['open', 'forest', 'inv', 'birds', 'pest', 'hiker', 'wet'];     /* scaled by rank */
@@ -963,7 +963,7 @@ const Q = [
      {id:'lands', label:'Wetland acres on A.T. lands', f:'L_WET_AC', zero:1, zeroText:'None mapped', noun:['acre','acres'], showFn:wetAc,
       note:'Only the part of each wetland that lies on A.T. lands. Cells without A.T. lands show none.'}]},
  {id:'rest', th:'veg', hue:HUE.rest, ramp:'rest', title:'Where do we target restoration?',
-  use:'Two restoration scores, from 0 to 100, built from the other layers here. Grasslands and early successional habitat favors open habitat near rare species, with priority invasive plants, soils suited to grassland, grassland and shrubland birds, and vistas. Forests favors forest near rare species, with forest pests, priority invasive plants and places where hikers gather. Wetlands lower both scores, more for grasslands, since nearby wetlands can limit herbicide use. Use it to shortlist cells for a closer look; check the parts in the cell panel.',
+  use:'Two restoration scores, from 0 to 100, built from the other layers here. Grasslands and early successional habitat favors open habitat near rare species, with priority invasive plants, soils suited to grassland, grassland and shrubland birds, and vistas. Forests favors forest near rare species, with forest pests, priority invasive plants and places where hikers gather. Grassland birds carry the most weight, since they are declining and their habitat is scarce. Wetlands lower both scores equally, since nearby wetlands can limit herbicide use. Use it to shortlist cells for a closer look; check the parts in the cell panel.',
   m:[{id:'grass', label:'Grasslands and early successional', int:1, none:'No open habitat mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('grass'), fn:(lv,c) => restScore('grass', lv, c)},
      {id:'forest', label:'Forests', int:1, none:'No forest mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
  {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s on the trail here?',
