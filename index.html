@@ -1012,7 +1012,7 @@ const Q = [
   m:[{id:'tier', label:'Unique Species', kind:'cat', f:'review_tie'}]}
 ];
 for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
-{ const ord = ['veg','inv','bird','pri','soil','wet','feat','rest','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','veg','inv','bird','pri','soil','wet','feat','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
@@ -1021,7 +1021,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 /* ---------- state ---------- */
 /* The basemap the page opens on: USGS topo. */
 const DEFBASE = 'topo';
-const S = {q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: innerWidth > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {about:false, measures:true, results:true}};
+const S = {q:Q.find(x => x.id === 'veg') || Q[0], m:(Q.find(x => x.id === 'veg') || Q[0]).m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: innerWidth > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {about:false, measures:true, results:true}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
