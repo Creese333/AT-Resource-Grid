@@ -470,8 +470,32 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Trail features</td><td>A.T. facilities inventory (NPS and ATC)</td><td>Shelters, campsites, privies, parking, bridges, vistas, side trails and maintained landscapes placed in each cell, with miles of A.T. Removed, closed and grown-in features are left out. Trail structures such as waterbars and steps are recorded by maintainer section and estimated for each cell from its share of the trail miles.</td></tr>
       <tr><td>Soils</td><td>NRCS soil survey (gSSURGO), all 14 trail states</td><td>Area-weighted soil ratings for each cell. The trail vulnerability index averages three NRCS trail ratings (erosion hazard, paths and trails, rutting), each scored from 0 for its best class to 1 for its worst. It rates the soil, not the trail, and is a screening aid at survey scale. Blank where the soils are not rated.</td></tr>
       <tr><td>Wetlands</td><td>USFWS National Wetlands Inventory, all 14 trail states</td><td>Acres of wetland and deepwater habitat in each whole cell, by NWI type and Cowardin class, and the part on A.T. lands. Mapped from aerial imagery, so many small, forested and seasonally wet wetlands are missed. “Possibly sensitive” flags NWI codes that suggest bogs or fens, seeps, aquatic beds, beaver-influenced areas or vernal pools, for a field check. A planning screen, not a delineation.</td></tr>
+      <tr><td>Restoration targets</td><td>Built in this page from the layers above</td><td>Two 0 to 100 scores for grasslands and forests. How they are scored is set out under Restoration targets below.</td></tr>
       <tr><td>Unique species</td><td>Rare species priority zones</td><td>Rates how vulnerable the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
     </table>
+    <h3>Restoration targets</h3>
+    <p>Where do we target restoration? gives each corridor cell two scores out of 100, one for grasslands and early successional habitat and one for forests. A higher score means more of the things that make a cell worth restoring. Results lists the highest-scoring cells first. The scores are a shortlist for site visits, not a site assessment.</p>
+    <table>
+      <tr><th>Grasslands and early successional</th><th>Points</th><th>Based on</th><th>Why it counts</th></tr>
+      <tr><td>Open habitat</td><td>25</td><td>Acres of grass, shrub and agricultural cover in the vegetation map</td><td>Restoration builds on open ground that is already there</td></tr>
+      <tr><td>Rare species nearby</td><td>15</td><td>Unique species rating: very highly vulnerable 15, highly 10, moderately 5</td><td>Work can help or protect vulnerable populations</td></tr>
+      <tr><td>Priority invasive plants</td><td>15</td><td>Priority invasive plant species reported on iNaturalist</td><td>Treating them is part of the restoration</td></tr>
+      <tr><td>Soils suited to grassland</td><td>15</td><td>Share of soils in land capability classes 1 to 4</td><td>Ground that can be worked and mowed stays open</td></tr>
+      <tr><td>Grassland and shrubland birds</td><td>15</td><td>Grassland and shrubland bird species on eBird checklists</td><td>The birds show the habitat is already in use</td></tr>
+      <tr><td>Vistas</td><td>15</td><td>Full points for any vista in the cell</td><td>Keeping views open is a trail value too</td></tr>
+      <tr><td>Wetlands</td><td style="white-space:nowrap">up to −10</td><td>Share of the cell in mapped wetland (NWI)</td><td>Nearby wetlands can limit herbicide use</td></tr>
+    </table>
+    <table style="margin-top:10px">
+      <tr><th>Forests</th><th>Points</th><th>Based on</th><th>Why it counts</th></tr>
+      <tr><td>Forest</td><td>20</td><td>Acres of forest in the vegetation map</td><td>Restoration builds on existing forest</td></tr>
+      <tr><td>Rare species nearby</td><td>20</td><td>Unique species rating: very highly vulnerable 20, highly 13, moderately 7</td><td>Work can help or protect vulnerable populations</td></tr>
+      <tr><td>Forest pests</td><td>20</td><td>Forest pest species reported on iNaturalist</td><td>A sign of declining forest health</td></tr>
+      <tr><td>Priority invasive plants</td><td>20</td><td>Priority invasive plant species reported on iNaturalist</td><td>Treating them is part of the restoration</td></tr>
+      <tr><td>Hiker gathering spots</td><td>20</td><td>Shelters, privies, bridges, campsites and parking areas in the cell</td><td>Where hikers gather sees the most wear and the most visitors</td></tr>
+      <tr><td>Wetlands</td><td style="white-space:nowrap">up to −5</td><td>Share of the cell in mapped wetland (NWI)</td><td>Can limit herbicide use, but counts less than for grasslands</td></tr>
+    </table>
+    <p style="margin-top:10px"><b>How points are given.</b> The cells with the most of a factor get its full points, cells with less get fewer, and cells with none get 0. “Most” is judged against cells of the same size along the trail. Rare species, soils and vistas score as shown in the tables; for soils, 80% in classes 1 to 4 earns 12 of 15 points. A cell with no mapped open habitat, or no mapped forest, gets no score of that kind.</p>
+    <p>The cell panel shows the points behind each score. A rarely surveyed cell can score low on invasives or birds simply because no one has looked, so check How well is it surveyed? alongside.</p>
     <h3>Reading the maps</h3>
     <ul>
       <li>Cell colors fade as you zoom in, so the basemap shows through. From zoom 15 inward the fill is 75% transparent and the white cell outlines remain. The map zooms in to street level; beyond each basemap's own detail its tiles are enlarged, so USGS maps look softer at the closest zooms.</li>
@@ -480,7 +504,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>Colors are five equal-count classes of the cells with data at the cell size on screen, so the classes change when you change cell size.</li>
       <li>The strip under the map runs from Springer Mountain to Katahdin. Each bar is a ten-mile stretch, averaged from the 49 sq mi cells.</li>
       <li>The search box finds birds, invasive plants, forest pests and vegetation types in every cell where they were recorded. Other iNaturalist species are only searchable where they rank among a cell's ten most-recorded, so those results are partial. Rare species are not searchable.</li>
-      <li>Export CSV and Export Excel, in the details panel, download everything shown for the selected cell or cells. The Excel workbook has separate sheets for cells, soils, wetlands, species, vegetation types, land administrators, trail features and live iNaturalist observations; the CSV holds the same rows in one long table.</li>
+      <li>Export CSV and Export Excel, in the details panel, download everything shown for the selected cell or cells. The Excel workbook has separate sheets for cells, restoration scores, soils, wetlands, species, vegetation types, land administrators, trail features and live iNaturalist observations; the CSV holds the same rows in one long table.</li>
       <li>Map layers adds administrative areas, shelters, campsites, parking, privies, bridges, vistas and side trails. They load live from the NPS and ATC map services when switched on, so they stay current. Administrative areas and side trails appear once you zoom in. A click on one of these features opens its details; a click anywhere else selects the grid cell.</li>
       <li>Select area draws a box on the map and summarizes every cell whose center falls inside it. Records and acres are added up; species and vegetation types are counted once.</li>
       <li>Each cell has two iNaturalist sections. Invasive species is the quarterly summary: invasive plants and forest pests counted together, with forest pests also counted as priority invasives. It is what the map, rankings and exports use. Live iNaturalist is fetched from the iNaturalist project Appalachian National Scenic Trail - HUC10 when you open it, and lists the most recent observations in the cell, with a badge on invasive species and forest pests. It lists the 20 newest; an export adds them on their own sheet, fetched at export time if the section was not opened. Live records are not counted anywhere else on the page, and records with obscured locations are left out, since they cannot be placed in a cell.</li>
@@ -728,7 +752,8 @@ const RAMP = {
   pri:['#E7DBF2','#CFB8E5','#B490D6','#9B6BC8','#5D4078'],
   soil:['#F2E6D6','#E3C9A6','#CDA373','#A8743F','#6A4423'],
   feat:['#2E9A3E','#227E33','#196629','#114F20','#0A3816'],
-  wet:['#D2F1F7','#9EE0EE','#5CC8DF','#1FA9C9','#0E6680']
+  wet:['#D2F1F7','#9EE0EE','#5CC8DF','#1FA9C9','#0E6680'],
+  rest:['#EEF4D6','#D7E6A3','#B9D46B','#94B83B','#5A7322']
 };
 const ZERO = '#E3E7E1';
 const CATCOL = {
@@ -764,7 +789,7 @@ CATCOL.APPA_YN = [['NPS - APPA land', '#1C58A8']]; D.cats.APPA_YN = ['NPS - APPA
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 const ADMINCOL = ['#24475F','#819FB4','#C9D6DE','#E6E9E4'];
 /* Blue Ridge color scheme */
-const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#D9A23A', soil:'#A8743F', feat:'#2F7A3B', wet:'#1FA9C9'};
+const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#D9A23A', soil:'#A8743F', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#94B83B'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -802,6 +827,72 @@ function totalSpp(lv, c){ const i = val('inat','N_SPP',lv,c), e = val('ebird','N
    Unrated soils are blank, never zero. */
 const vulnClass = v => v == null ? null : v > 0.67 ? 'High' : v >= 0.33 ? 'Moderate' : 'Low';
 const vulnShow = v => `${fmt(v, 2)} (${vulnClass(v)})`;
+/* ---------- restoration targets ----------
+   Two scores from 0 to 100, worked out here from the other layers. Each factor is scaled 0 to 1 and given points; wetlands take
+   points away, since nearby wetlands can limit herbicide use. Counts and acres are scaled by where a cell ranks among the cells of
+   its size that have any (a cell with none scores 0); rare species, vistas and soils use their own 0 to 1 values.
+   A cell needs mapped open habitat (grasslands) or forest (forests) to get a score. Edit the points here. */
+const RESTDEF = {
+  grass: {label:'Grasslands and early successional', gate:'open', none:'No open habitat mapped', wet:10, parts:[
+    ['open', 'Open habitat', 25], ['rare', 'Rare species nearby', 15], ['inv', 'Priority invasive plants', 15],
+    ['soil', 'Soils suited to grassland', 15], ['birds', 'Grassland and shrubland birds', 15], ['vista', 'Vistas', 15]]},
+  forest: {label:'Forests', gate:'forest', none:'No forest mapped', wet:5, parts:[
+    ['forest', 'Forest', 20], ['rare', 'Rare species nearby', 20], ['pest', 'Forest pests', 20],
+    ['inv', 'Priority invasive plants', 20], ['hiker', 'Hiker gathering spots', 20]]}};
+const RESTRANK = ['open', 'forest', 'inv', 'birds', 'pest', 'hiker', 'wet'];     /* scaled by rank */
+const TIERVAL = {'Avoid':1, 'Minimize':2/3, 'Standard Review':1/3};
+function restTier(lv, c){ let plv = lv, pc = c; if (!D.themes.nrpz[lv]){ const p = parentOf(lv, c); if (!p) return null; plv = p[0]; pc = p[1]; }
+  if (!D.themes.nrpz[plv]) return null; const t = val('nrpz','review_tie',plv,pc); return t == null ? null : D.cats.review_tie[t]; }
+function restRaw(k, lv, c){ const v = (th, f) => val(th, f, lv, c) || 0, va = val('veg','VEG_AREA',lv,c);
+  switch (k){
+    case 'open': return va == null ? null : va * (v('veg','L1_HERB') + v('veg','L1_SHRUB') + v('veg','L1_AGRIC')) / 100;
+    case 'forest': return va == null ? null : va * v('veg','L1_FOREST') / 100;
+    case 'rare': { const t = restTier(lv, c); return t ? TIERVAL[t] || 0 : 0; }
+    case 'inv': return (val('inat','EDRR_LIST',lv,c) || []).length;
+    case 'pest': return (val('inat','PEST_LIST',lv,c) || []).length;
+    case 'soil': { const x = val('soil','LCC14',lv,c); return x == null ? 0 : x / 100; }
+    case 'birds': return v('ebird','GRASS_SPP') + v('ebird','SHRUB_SPP');
+    case 'vista': return v('feat','N_VISTA');
+    case 'hiker': return v('feat','N_SHELTER') + v('feat','N_PRIVY') + v('feat','N_BRIDGE') + v('feat','N_CAMPSITE') + v('feat','N_PARKING');
+    case 'wet': return v('wet','WET_PCT'); } }
+const RESTC = {};
+function restScale(k, lv, c){ const x = restRaw(k, lv, c);
+  if (k === 'rare' || k === 'soil') return x || 0;
+  if (k === 'vista') return x > 0 ? 1 : 0;
+  if (!(x > 0)) return 0;
+  let R = RESTC[lv]; if (!R || R.lev !== D.levels[lv]) R = RESTC[lv] = {lev:D.levels[lv]};
+  if (!R[k]){ const a = []; for (let i = 0; i < D.levels[lv].id.length; i++){ const y = restRaw(k, lv, i); if (y > 0) a.push(y); } R[k] = a.sort((p, q) => p - q); }
+  const a = R[k]; let lo = 0, hi = a.length; while (lo < hi){ const mid = (lo + hi) >> 1; if (a[mid] <= x) lo = mid + 1; else hi = mid; }
+  return a.length ? lo / a.length : 0; }
+/* one score with its parts: [score or null, [[key, label, points, max, raw]], wetland points taken] */
+function restParts(kind, lv, c){ const d = RESTDEF[kind], g = restRaw(d.gate, lv, c);
+  if (g == null || g < 1) return [null, [], 0];
+  const parts = d.parts.map(([k, lab, w]) => [k, lab, w * restScale(k, lv, c), w, restRaw(k, lv, c)]);
+  const wet = d.wet * restScale('wet', lv, c), s = parts.reduce((t, p) => t + p[2], 0) - wet;
+  return [Math.max(0, Math.min(100, Math.round(s))), parts, wet]; }
+const restScore = (kind, lv, c) => has('veg', lv, c) ? restParts(kind, lv, c)[0] : null;
+function restRawText(k, x, lv, c){ switch (k){
+  case 'open': case 'forest': return fmt(x, 0) + ' acres mapped';
+  case 'rare': { const t = restTier(lv, c); return t ? (CATCOL.review_tie.find(e => e[0] === t) || [0,0,t])[2] : 'none rated'; }
+  case 'inv': return x ? `${x} ${x === 1 ? 'species' : 'species'}` : 'none reported';
+  case 'pest': return x ? `${x} ${x === 1 ? 'species' : 'species'}` : 'none reported';
+  case 'soil': return x ? fmt(x * 100, 0) + '% class 1 to 4' : 'no rated soils';
+  case 'birds': return x ? `${x} species` : 'none recorded';
+  case 'vista': return x ? `${x} ${x === 1 ? 'vista' : 'vistas'}` : 'none';
+  case 'hiker': return x ? `${x} ${x === 1 ? 'site' : 'sites'}` : 'none'; } }
+const restNote = kind => RESTDEF[kind].parts.map(p => `${p[1]} ${p[2]}`).join(', ') + `; wetlands up to −${RESTDEF[kind].wet}.`;
+function restSection(lv, c){ if (!has('veg', lv, c)) return '';
+  let b = `<div class="sec" style="--hue:${HUE.rest}"><h3>Restoration targets</h3>`;
+  for (const kind of S.m.id === 'forest' && S.q.id === 'rest' ? ['forest', 'grass'] : ['grass', 'forest']){ const d = RESTDEF[kind], [s, parts, wet] = restParts(kind, lv, c);
+    b += `<p style="margin-top:8px"><b>${d.label}:</b> ${s == null ? d.none.toLowerCase() : `<b>${s}</b> of 100`}</p>`;
+    if (s == null) continue;
+    b += '<div class="keys nosw">' + parts.map(([k, lab, pts, w, x]) => soilRow(`${lab} <span style="color:var(--muted)">(${restRawText(k, x, lv, c)})</span>`, `${Math.round(pts)} / ${w}`)).join('') +
+      soilRow(`Wetlands <span style="color:var(--muted)">(${fmt(restRaw('wet', lv, c), 1)}% of cell)</span>`, wet >= .5 ? '−' + Math.round(wet) : '0') + '</div>'; }
+  return b + '<p class="none" style="font-size:13.5px;margin-top:8px">Scores rank cells for a closer look; they are worked out from the other layers on this page and are not a site assessment. Counts and acres are scored by how a cell ranks among cells of its size.</p></div>'; }
+function restBox(lv, cells){ if (!D.themes.veg || !D.themes.veg[lv]) return ''; let b = `<div class="sec" style="--hue:${HUE.rest}"><h3>Restoration targets</h3><div class="keys nosw">`;
+  for (const kind of ['grass', 'forest']){ const a = cells.map(c => [c, restScore(kind, lv, c)]).filter(x => x[1] != null).sort((p, q) => q[1] - p[1]);
+    b += soilRow(RESTDEF[kind].label, a.length ? `average ${Math.round(a.reduce((t, x) => t + x[1], 0) / a.length)}, best ${a[0][1]} near mile ${fmt(D.levels[lv].mi[a[0][0]], 0)}` : RESTDEF[kind].none.toLowerCase()); }
+  return b + '</div></div>'; }
 const wetAc = v => v == null ? '–' : v === 0 ? 'none' : v < 0.1 ? 'under 0.1 acre' : fmt(v, v < 10 ? 1 : 0) + (v === 1 ? ' acre' : ' acres');
 const soilPct = x => x == null ? 'not rated' : x === 0 ? '0%' : pctLt1(x);
 const Q = [
@@ -871,6 +962,10 @@ const Q = [
      {id:'n', label:'Number of wetlands', f:'N_WET', int:1, zero:1, zeroText:'None mapped', noun:['wetland','wetlands'], note:'NWI wetlands touching the cell. One that crosses several cells counts in each.'},
      {id:'lands', label:'Wetland acres on A.T. lands', f:'L_WET_AC', zero:1, zeroText:'None mapped', noun:['acre','acres'], showFn:wetAc,
       note:'Only the part of each wetland that lies on A.T. lands. Cells without A.T. lands show none.'}]},
+ {id:'rest', th:'veg', hue:HUE.rest, ramp:'rest', title:'Where do we target restoration?',
+  use:'Two restoration scores, from 0 to 100, built from the other layers here. Grasslands and early successional habitat favors open habitat near rare species, with priority invasive plants, soils suited to grassland, grassland and shrubland birds, and vistas. Forests favors forest near rare species, with forest pests, priority invasive plants and places where hikers gather. Wetlands lower both scores, more for grasslands, since nearby wetlands can limit herbicide use. Use it to shortlist cells for a closer look; check the parts in the cell panel.',
+  m:[{id:'grass', label:'Grasslands and early successional', int:1, none:'No open habitat mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('grass'), fn:(lv,c) => restScore('grass', lv, c)},
+     {id:'forest', label:'Forests', int:1, none:'No forest mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
  {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s on the trail here?',
   use:'Trail facilities and features from the A.T. facilities inventory: shelters, campsites, privies, parking, bridges, vistas, side trails and maintained landscapes, with miles of A.T. in each cell. Trail structures such as waterbars and steps are recorded by maintainer section, so they are estimated for each cell from its share of the section\u2019s trail miles.',
   m:[{id:'fac', label:'Trail facilities', f:'N_FAC', int:1, hollow0:1, none:'None in this cell', noun:['facility','facilities'], note:'Shelters, campsites, privies, parking areas, bridges, buildings, dams and tunnels.'},
@@ -894,7 +989,7 @@ const Q = [
   m:[{id:'tier', label:'Unique Species', kind:'cat', f:'review_tie'}]}
 ];
 for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
-{ const ord = ['veg','inv','bird','pri','soil','wet','feat','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['veg','inv','bird','pri','soil','wet','feat','rest','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
@@ -1570,6 +1665,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
   b += '</div>';
   b += S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c);
   b += featSection(lv, c);
+  b = S.q.id === 'rest' ? restSection(lv, c) + b : b + restSection(lv, c);
   finishProfile(b + landSec); inatLive([ring(lv, c)], L_.id[c]); }
 /* Trail features section: facility lists by type, side trails, maintained landscapes, and estimated trail structures */
 const FTYPES = [['Shelter','Shelters'],['Campsite','Campsites'],['Privy','Privies'],['Parking','Parking areas'],['Bridge','Bridges'],['Vista','Vistas'],['Building','Buildings'],['Dam','Dams'],['Tunnel','Tunnels']];
@@ -1751,9 +1847,9 @@ function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerC
 function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'done' ? st.counts[lv].get(c) || 0 : null; }
 function finishProfile(html){ $('#pbody').innerHTML = html;
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
-  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Trail features':'feat', 'Land administrators':'lands'};
+  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Trail features':'feat', 'Restoration targets':'rest', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
-    const open = key in S.secOpen ? S.secOpen[key] : (key === S.m.th || (key === 'live' && S.q.id === 'inv'));
+    const open = key in S.secOpen ? S.secOpen[key] : S.q.id === 'rest' ? key === 'rest' : (key === S.m.th || (key === 'live' && S.q.id === 'inv'));
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
     while (h.nextSibling) body.appendChild(h.nextSibling);
     sec.appendChild(body);
@@ -1773,7 +1869,7 @@ function liveEnsure(){ if (S.ext === 'huc' || !window.ATiNat || ATiNat.cached(li
   return Promise.race([ATiNat.lookup({type:'MultiPolygon', coordinates:rings.map(r => [r.map(p => [p[1], p[0]])])}, el, {id:liveKey(), flags:inatFlags()}), new Promise(r => setTimeout(r, 15000))]); }
 function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S.box.cells : [S.cell], L_ = D.levels[lv];
   const v = (th, f, c) => val(th, f, lv, c);
-  const out = {cells:[], soils:[], wetlands:[], species:[], veg:[], land:[], features:[], live:[], about:[]};
+  const out = {cells:[], restoration:[], soils:[], wetlands:[], species:[], veg:[], land:[], features:[], live:[], about:[]};
   cells.slice().sort((a,b) => L_.mi[a] - L_.mi[b]).forEach(c => { const id = L_.id[c], base = {grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c], trail_club:cat('club', L_.club[c]) || '', region:regionOf(L_.mi[c])};
     let plv = lv, pc = c; if (!D.themes.nrpz[lv]){ const p = parentOf(lv, c); if (p){ plv = p[0]; pc = p[1]; } }
     const tier = D.themes.nrpz[plv] ? val('nrpz','review_tie',plv,pc) : null, te = tier == null ? null : CATCOL.review_tie.find(x => x[0] === D.cats.review_tie[tier]);
@@ -1801,6 +1897,10 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
       surface_ph:n('soil','PH'), organic_matter_pct:n('soil','OM'),
       pct_prime_farmland:n('soil','PRIME'), pct_prime_if_drained_or_irrigated:n('soil','PRIME_COND'), pct_farmland_statewide_importance:n('soil','STATEWIDE'), main_farmland_class:k('soil','SOIL_FARM'),
       pct_land_capability_1_to_2:n('soil','LCC12'), pct_land_capability_1_to_4:n('soil','LCC14'), crop_productivity_nccpi:n('soil','NCCPI'), pct_of_cell_with_soil_data:n('soil','SOIL_COV') });
+    if (has('veg', lv, c)){ const r = {grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c]};
+      for (const kind of ['grass', 'forest']){ const [s, parts, wet] = restParts(kind, lv, c), pre = kind === 'grass' ? 'grassland_' : 'forest_';
+        r[pre + 'score'] = blank(s); parts.forEach(([k, lab, pts]) => { r[pre + k + '_points'] = Math.round(pts * 10) / 10; }); r[pre + 'wetland_points'] = s == null ? '' : -Math.round(wet * 10) / 10; }
+      out.restoration.push(r); }
     if (has('wet', lv, c)) out.wetlands.push({grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c],
       wetland_acres:n('wet','WET_AC'), pct_of_cell_wetland:n('wet','WET_PCT'), wetlands_in_cell:n('wet','N_WET'), main_type:k('wet','WET_DOM'), main_type_pct_of_wetland:n('wet','DOM_PCT'),
       forested_shrub_wetland_ac:n('wet','T_FFS'), emergent_wetland_ac:n('wet','T_FEM'), pond_ac:n('wet','T_POND'), lake_ac:n('wet','T_LAKE'), riverine_ac:n('wet','T_RIV'),
@@ -1825,7 +1925,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
       out.live.push({grid_id:c == null ? '' : L_.id[c], trail_mile:c == null ? '' : L_.mi[c], observed_on:o.observed_on || '', common_name:t.preferred_common_name || '', scientific_name:sci,
         list:fl || '', quality_grade:o.quality_grade || '', observer:(o.user && o.user.login) || '', latitude:+la.toFixed(5), longitude:+lo.toFixed(5), inaturalist_url:o.uri || ''}); });
     out.liveState = S.ext === 'huc' ? '' : lr ? 'loaded' : 'missing'; }
-  if (S.ext === 'huc'){ out.cells = out.cells.map(r => Object.fromEntries(Object.entries(r).filter(([k]) => !/^(veg|nlcd|inat|ebird|unique|land|feat)_/.test(k)))); out.species = []; out.veg = []; out.land = []; out.features = []; out.live = []; }
+  if (S.ext === 'huc'){ out.cells = out.cells.map(r => Object.fromEntries(Object.entries(r).filter(([k]) => !/^(veg|nlcd|inat|ebird|unique|land|feat)_/.test(k)))); out.species = []; out.veg = []; out.land = []; out.features = []; out.live = []; out.restoration = []; }
   const ab = (k, x) => out.about.push({item:k, value:x});
   ab('Source', 'A.T. Resource Grid dashboard'); ab('Exported', localDay()); ab('iNaturalist and eBird data run', D.run);
   ab('Extent', S.ext === 'huc' ? 'HUC10 watershed: every grid cell in the HUC10 shell, soils and wetlands only' : 'A.T. corridor grid cells');
@@ -1839,6 +1939,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
   ab('Note', 'Trail features: A.T. facilities inventory, official and additional features. Structure counts (drainage, steps, signs, barriers) are estimates, spread from maintainer sections by trail miles.');
   if (out.liveState) ab('Live iNaturalist', out.liveState === 'loaded' ? `${out.live.length} most recent observations with open locations, fetched ${localDay()} from the iNaturalist project. A snapshot, not a complete count; not part of any other number in this export.`
     : 'Not included: iNaturalist could not be reached, or the selection is too wide for a live lookup.');
+  ab('Note', 'Restoration scores (0 to 100) are worked out from the other layers. Grasslands: ' + restNote('grass') + ' Forests: ' + restNote('forest') + ' Counts and acres are scored by rank among cells of the same size; a cell needs mapped open habitat or forest to be scored.');
   ab('Note', 'Wetlands: USFWS National Wetlands Inventory, acres in the whole cell. Possibly sensitive = NWI codes suggesting bogs or fens, seeps, aquatic beds, beaver-influenced areas or possible vernal pools; a flag for field checks. NWI misses many small, forested and seasonal wetlands; not a delineation.');
   ab('Note', 'Soils: NRCS gSSURGO, area-weighted over each cell. Trail vulnerability index 0 to 1: three NRCS trail ratings, each scored in even steps from best class (0) to worst (1), averaged. Low under 0.33, High over 0.67. Blank where the soils are not rated.');
   return out; }
@@ -1854,6 +1955,7 @@ async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !==
     const info = new Map(d.cells.map(c => [c.grid_id, c]));
     d.about.forEach(a => rows.push(['', '', 'About this export', a.item, '', '', a.value, '']));
     d.cells.forEach(c => Object.keys(c).forEach(k => { if (k !== 'grid_id' && k !== 'trail_mile' && c[k] !== '') rows.push([c.grid_id, c.trail_mile, 'Cell summary', k, '', '', c[k], '']); }));
+    d.restoration.forEach(s => Object.keys(s).forEach(k => { if (!['grid_id','trail_mile','cell_size'].includes(k) && s[k] !== '') rows.push([s.grid_id, s.trail_mile, 'Restoration', k, '', '', s[k], k.endsWith('score') ? 'of 100' : 'points']); }));
     d.soils.forEach(s => Object.keys(s).forEach(k => { if (!['grid_id','trail_mile','cell_size'].includes(k) && s[k] !== '') rows.push([s.grid_id, s.trail_mile, 'Soils', k, '', '', s[k], '']); }));
     d.wetlands.forEach(s => Object.keys(s).forEach(k => { if (!['grid_id','trail_mile','cell_size'].includes(k) && s[k] !== '') rows.push([s.grid_id, s.trail_mile, 'Wetlands', k, '', '', s[k], k.endsWith('_ac') || k.endsWith('_acres') ? 'acres' : '']); }));
     d.veg.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Vegetation type', r.vegetation_type, '', r.acres + ' acres', r.pct_of_mapped_acres, '% of mapped acres']));
@@ -1865,7 +1967,7 @@ async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !==
     say(`CSV downloaded: ${fmt(rows.length - 1, 0)} rows for ${nCells(n)}.`); return; }
   say('Preparing the Excel file...');
   loadXLSX().then(() => { const wb = XLSX.utils.book_new(); const add = (nm, arr) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(arr.length ? arr : [{note:'No rows for this selection'}]), nm);
-    add('Cells', d.cells); add('Soils', d.soils); add('Wetlands', d.wetlands); add('Species', d.species); add('Vegetation types', d.veg); add('Land administrators', d.land); add('Trail features', d.features); add('Live iNaturalist', d.live); add('About', d.about);
+    add('Cells', d.cells); add('Restoration', d.restoration); add('Soils', d.soils); add('Wetlands', d.wetlands); add('Species', d.species); add('Vegetation types', d.veg); add('Land administrators', d.land); add('Trail features', d.features); add('Live iNaturalist', d.live); add('About', d.about);
     const buf = XLSX.write(wb, {bookType:'xlsx', type:'array'}); download(name + '.xlsx', new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
     say(`Excel workbook downloaded: ${nCells(n)}, ${fmt(d.species.length, 0)} species rows.`);
   }).catch(() => say('The Excel export could not load its helper file. Check the internet connection, or use Export CSV, which needs no download.')); }
@@ -1950,6 +2052,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
 
   b += S.q.id === 'wet' ? wetBox(lv, cells) + soilBox(lv, cells) : soilBox(lv, cells) + wetBox(lv, cells);
   b += featBox(lv, cells);
+  b = S.q.id === 'rest' ? restBox(lv, cells) + b : b + restBox(lv, cells);
 
   // land administrators
   if (D.themes.lands){ const cs = withTh('lands'); b += `<div class="sec" style="--hue:${HUE.lands}"><h3>Land administrators</h3>`;
