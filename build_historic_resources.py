@@ -11,7 +11,7 @@ and writes historic_resources.json next to this script. The dashboard reads that
 Standard library only. Runs in GitHub Actions (see .github/workflows/historic_resources.yml) or anywhere with Python 3.
 """
 import json, math, os, re, sys, time, urllib.parse, urllib.request
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -26,6 +26,8 @@ SRC = {
            'fields': 'OBJECTID,RESNAME,ResType,NRIS_Refnum,CertDate,Is_NHL,NARA_URL,Address,City,County,State,MultiName,IS_EXTANT'},
 }
 LANDS = 'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/AT_Lands/FeatureServer/1'
+OSM_TIMEOUT = 45          # seconds per Overpass request
+OSM_BUDGET = 20 * 60      # all OpenStreetMap work stops after this many seconds; stretches left keep the previous file's cemeteries
 # public Overpass servers; each stretch tries them in turn
 OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter',
             'https://maps.mail.ru/osm/tools/overpass/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
@@ -152,16 +154,18 @@ def arc_query(src, ch):
     raise RuntimeError('all URLs failed')
 
 
-def osm_query(ch, rounds=1, pause=5):
+def osm_query(ch, rounds=1, pause=5, deadline=None):
     box = f"{ch['s']},{ch['w']},{ch['n']},{ch['e']}"
-    q = f'[out:json][timeout:120];(nwr["landuse"="cemetery"]({box});nwr["amenity"="grave_yard"]({box}););out center tags;'
+    q = f'[out:json][timeout:40];(nwr["landuse"="cemetery"]({box});nwr["amenity"="grave_yard"]({box}););out center tags;'
     data = urllib.parse.urlencode({'data': q}).encode()
     last = None
     for r in range(rounds):
         for ep in OVERPASS:
+            if deadline and time.time() > deadline:
+                raise RuntimeError('time budget used up')
             try:
                 req = urllib.request.Request(ep, data=data, headers=dict(UA, **{'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded'}))
-                with urllib.request.urlopen(req, timeout=150) as resp:
+                with urllib.request.urlopen(req, timeout=OSM_TIMEOUT) as resp:
                     j = json.load(resp)
                 res = []
                 for e in j.get('elements', []):
@@ -247,33 +251,49 @@ def main():
             return ch, osm_query(ch), None
         except Exception as e:
             return ch, [], str(e)
-    t0 = time.time()
-    with ThreadPoolExecutor(4) as arc_pool, ThreadPoolExecutor(2) as osm_pool:
-        arc_f = arc_pool.map(arc_job, [(k, n, ch) for n, ch in enumerate(chunks, 1) for k in SRC])
-        osm_f = osm_pool.map(osm_job, list(enumerate(chunks, 1)))
+    t0 = time.time(); deadline = t0 + OSM_BUDGET
+    # OpenStreetMap runs alongside the National Register; progress is printed as each stretch finishes
+    osm_pool = ThreadPoolExecutor(2)
+    osm_futs = {osm_pool.submit(osm_query, ch, 1, 3, deadline): ch for ch in chunks}
+    with ThreadPoolExecutor(4) as arc_pool:
         done = 0
-        for k, ch, pts, e in arc_f:
+        for k, ch, pts, e in arc_pool.map(arc_job, [(k, n, ch) for n, ch in enumerate(chunks, 1) for k in SRC]):
             if e: err[k] = e
             for p in pts:
                 if inside(ch, p):
                     found[k][p['a'].get('OBJECTID', (p['la'], p['lo']))] = p
             done += 1
-            if done % len(SRC) == 0:
+            if done % 10 == 0 or done == len(chunks) * len(SRC):
                 print(f'National Register: stretch {done // len(SRC)} of {len(chunks)} ({time.time() - t0:.0f} s)', flush=True)
-        done = 0; failed = []
-        for ch, pts, e in osm_f:
-            if e: failed.append(ch)
-            for p in pts:
-                if inside(ch, p):
-                    osm[p['id']] = p
-            done += 1
-            print(f'OpenStreetMap: stretch {done} of {len(chunks)}{" (will retry)" if e else ""} ({time.time() - t0:.0f} s)', flush=True)
-    # second pass: stretches Overpass refused, one at a time, more patiently
+    done = 0; failed = []; ok = 0; good = set()
+    try:
+        for f in as_completed(osm_futs, timeout=max(1, deadline - time.time() + OSM_TIMEOUT)):
+            ch = osm_futs[f]; done += 1
+            try:
+                for p in f.result():
+                    if inside(ch, p):
+                        osm[p['id']] = p
+                ok += 1; good.add(f)
+            except Exception:
+                failed.append(ch)
+            if done % 5 == 0 or done == len(chunks):
+                print(f'OpenStreetMap: {done} of {len(chunks)} stretches, {len(failed)} not reached ({time.time() - t0:.0f} s)', flush=True)
+            # Overpass not answering at all from here: stop early instead of waiting on every stretch
+            if done >= 8 and ok == 0:
+                print('OpenStreetMap: no Overpass server is answering; skipping the rest', flush=True)
+                break
+    except Exception:
+        print('OpenStreetMap: time budget used up', flush=True)
+    osm_pool.shutdown(wait=False, cancel_futures=True)
+    failed = [ch for f, ch in osm_futs.items() if f not in good]
+    # second pass: stretches Overpass refused, one at a time, while time remains
     still = []
     for n, ch in enumerate(failed, 1):
-        print(f'OpenStreetMap retry {n} of {len(failed)}', flush=True); time.sleep(15)
+        if ok == 0 or time.time() > deadline:
+            still.append(ch); continue
+        print(f'OpenStreetMap retry {n} of {len(failed)}', flush=True); time.sleep(5)
         try:
-            for p in osm_query(ch, rounds=3, pause=10):
+            for p in osm_query(ch, rounds=2, pause=5, deadline=deadline):
                 if inside(ch, p):
                     osm[p['id']] = p
         except Exception as e:
