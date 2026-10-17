@@ -1166,7 +1166,9 @@ function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) retu
       `<p class="phnote">${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} cells. Records follow hikers and observers, so a first record marks when it was noticed here, not when it arrived. Click a year to map it.</p>`; }
   return h; }
 /* the cell panel: records by week by stage, and the cell's season */
-function phSection(lv, c){ if (S.q.id !== 'phen') return ''; const sp = phSp(), A = phAgg(lv), k = sp.kind;
+function phSection(lv, c){ const sp = phSp(), A = phAgg(lv), k = sp.kind;
+  /* outside the flowering question the records are not fetched just for the panel; the section says how to see them */
+  if (!A && S.q.id !== 'phen') return `<div class="sec" style="--hue:${HUE.phen}"><h3>Flowering and fruiting</h3><p class="none">Open “When does it flower here?” and pick a species to load its flowering records; this section then shows them for any cell.</p></div>`;
   let b = `<div class="sec" style="--hue:${HUE.phen}"><h3>Flowering and fruiting</h3><p style="margin:0 0 6px"><b>${esc(sp.common)}</b> <i style="color:var(--muted)">${esc(sp.sci)}</i></p>`;
   if (!A) return b + `<p class="none">${phStatus()}</p></div>`;
   if (!A.any[c]) return b + '<p class="none">No records of this species in this cell.</p></div>';
@@ -2101,7 +2103,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
   b += '</div>';
   b += S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c);
   b += featSection(lv, c);
-  if (S.q.id === 'phen') b = phSection(lv, c) + b;
+  b += phSection(lv, c);
   b = S.q.id === 'rest' ? restSection(lv, c) + b : b + restSection(lv, c);
   finishProfile(b + landSec); inatLive([ring(lv, c)], L_.id[c]); }
 /* Trail features section: facility lists by type, side trails, maintained landscapes, and estimated trail structures */
@@ -2282,16 +2284,25 @@ function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerC
   if (S.m.find === e) redraw(); }
 /* records of a species in one cell once its full load is done; null before that */
 function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'done' ? st.counts[lv].get(c) || 0 : null; }
+/* panel sections follow the order of the questions; each question opens its own sections (survey effort has none of its own) */
+const SECORDER = ['rest','veg','inat','live','ebird','nrpz','soil','wet','feat','lands','phen'];
+const QSEC = {rest:['rest'], veg:['veg'], inv:['inat','live'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], eff:[], land:['lands'], phen:['phen']};
 function finishProfile(html){ $('#pbody').innerHTML = html;
+  { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Trail features':'feat', 'Restoration targets':'rest', 'Flowering and fruiting':'phen', 'Land administrators':'lands'};
+    const secs = [...document.querySelectorAll('#pbody .sec')]; if (secs.length > 1){ const par = secs[0].parentNode, anchor = document.createComment('secs'); par.insertBefore(anchor, secs[0]);
+      const rank = el => { const i = SECORDER.indexOf(KEY[(el.querySelector('h3') || {}).textContent]); return i < 0 ? 99 : i; };
+      secs.map((el, i) => [rank(el), i, el]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([, , el]) => par.insertBefore(el, anchor)); anchor.remove(); } }
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
   const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Trail features':'feat', 'Restoration targets':'rest', 'Flowering and fruiting':'phen', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
-    const open = key in S.secOpen ? S.secOpen[key] : S.q.id === 'rest' || S.q.id === 'phen' ? key === S.q.id : (key === S.m.th || (key === 'live' && S.q.id === 'inv'));
+    const open = key in S.secOpen ? S.secOpen[key] : S.m.find ? key === S.m.th : (QSEC[S.q.id] || []).includes(key);
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
     while (h.nextSibling) body.appendChild(h.nextSibling);
     sec.appendChild(body);
     h.innerHTML = `<button type="button" class="sectog" aria-expanded="${open}" aria-controls="${body.id}"><span>${esc(h.textContent)}</span><i aria-hidden="true"></i></button>`;
-    h.firstChild.onclick = () => { const now = body.hidden; body.hidden = !now; S.secOpen[key] = now; h.firstChild.setAttribute('aria-expanded', now); visCheck(); }; }); $('#pbody').scrollTop = 0; $('#profile').classList.add('open'); }
+    h.firstChild.onclick = () => { const now = body.hidden; body.hidden = !now; S.secOpen[key] = now; h.firstChild.setAttribute('aria-expanded', now); visCheck(); }; }); $('#pbody').scrollTop = 0; $('#profile').classList.add('open');
+  /* bring the open section into view (the flowering section sits last) */
+  { const pb = $('#pbody'), o = pb.querySelector('.sectog[aria-expanded=true]'); if (o){ const d = o.getBoundingClientRect().top - pb.getBoundingClientRect().top; if (d > pb.clientHeight * .5) pb.scrollTop = d - 8; } } }
 
 /* ---------- export of the selection shown in the popup ---------- */
 const EXPORTBTNS = '<button type="button" class="exp" id="pexcsv" title="Download everything in this panel as a CSV file">Export CSV</button><button type="button" class="exp" id="pexxls" title="Download everything in this panel as an Excel workbook">Export Excel</button><p class="pexmsg" id="pexmsg" role="status"></p>';
