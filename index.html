@@ -1423,10 +1423,43 @@ function restSection(lv, c){ if (!has('veg', lv, c)) return '';
       soilRow(`Wetlands <span style="color:var(--muted)">(${fmt(restRaw('wet', lv, c), 1)}% of A.T. lands${S.herb ? '' : '; herbicide use off'})</span>`, !S.herb ? '–' : wet >= .5 ? '−' + Math.round(wet) : '0') +
       soilRow('<b>Habitat points</b>', `<b>${Math.round(pts)}</b>`) + soilRow(`${S.appa ? 'Share APPA land' : 'Share not private'} <span style="color:var(--muted)">(${landText(sh) || 'no mapped land'})</span>`, '×' + fmt(mult, 2)) + '</div>'; }
   return b + '<p class="none" style="font-size:13.5px;margin-top:8px">Scores rank cells for a closer look; they are worked out from the other layers on this page and are not a site assessment. Counts and acres are scored by how a cell ranks among cells of its size.</p></div>'; }
-function restBox(lv, cells){ if (!D.themes.veg || !D.themes.veg[lv]) return ''; let b = `<div class="sec" style="--hue:${HUE.rest}"><h3>Restoration targets</h3><div class="keys nosw">`;
-  for (const kind of ['grass', 'forest']){ const a = cells.map(c => [c, restScore(kind, lv, c)]).filter(x => x[1] != null).sort((p, q) => q[1] - p[1]);
-    b += soilRow(RESTDEF[kind].label, a.length ? `average ${Math.round(a.reduce((t, x) => t + x[1], 0) / a.length)}, best ${a[0][1]} near mile ${fmt(D.levels[lv].mi[a[0][0]], 0)}` : RESTDEF[kind].none.toLowerCase()); }
-  return b + '</div></div>'; }
+function restBox(lv, cells){ if (!D.themes.veg || !D.themes.veg[lv]) return ''; const L_ = D.levels[lv], N = cells.length;
+  let b = `<div class="sec" style="--hue:${HUE.rest}"><h3>Restoration targets</h3>`;
+  const avg = a => a.length ? a.reduce((t, x) => t + x, 0) / a.length : 0, sum = a => a.reduce((t, x) => t + x, 0);
+  const union = f => { const u = new Set(); cells.forEach(c => (val('inat', f, lv, c) || []).forEach(x => u.add(x))); return u.size; };
+  const kinds = S.m.id === 'forest' && S.q.id === 'rest' ? ['forest', 'grass'] : ['grass', 'forest'];
+  for (const kind of kinds){ const d = RESTDEF[kind], R = cells.map(c => [c, has('veg', lv, c) ? restParts(kind, lv, c) : null]).filter(x => x[1] && x[1][0] != null);
+    if (!R.length){ b += `<p style="margin-top:8px"><b>${d.label}:</b> ${d.none.toLowerCase()} in the selected cells</p>`; continue; }
+    const sc = R.map(x => x[1][0]), best = R.reduce((p, q) => q[1][0] > p[1][0] ? q : p), cs = R.map(x => x[0]);
+    b += `<p style="margin-top:8px"><b>${d.label}:</b> <b>${Math.round(avg(sc))}</b> of 100 on average <span style="color:var(--muted)">(${Math.min(...sc)} to ${Math.max(...sc)}; ${R.length} of ${N} cells scored; best near mile ${fmt(L_.mi[best[0]], 0)})</span></p>`;
+    const raw = k => cs.map(c => restRaw(k, lv, c) || 0);
+    const rawText = k => { const x = raw(k);
+      switch (k){
+        case 'open': case 'forest': return fmt(sum(x), 0) + ' acres on corridor lands';
+        case 'rare': { const tiers = cs.map(c => restTier(lv, c)).filter(Boolean), top = ['Avoid', 'Minimize', 'Standard Review'].find(t => tiers.includes(t));
+          return top ? `${(CATCOL.review_tie.find(e => e[0] === top) || [0, 0, top])[2].toLowerCase()} in ${tiers.filter(t => t === top).length} of ${cs.length} cells` : 'none rated'; }
+        case 'inv': { const n = union('EDRR_LIST'); return n ? `${n} species across the cells` : 'none reported'; }
+        case 'pest': { const n = union('PEST_LIST'); return n ? `${n} species across the cells` : 'none reported'; }
+        case 'soil': return `${fmt(avg(x) * 100, 0)}% class 1 to 4 on average`;
+        case 'birds': return Math.max(...x) ? `up to ${Math.max(...x)} species in a cell` : 'none recorded';
+        case 'vista': return sum(x) ? `${sum(x)} ${sum(x) === 1 ? 'vista' : 'vistas'}` : 'none';
+        case 'hiker': return sum(x) ? `${sum(x)} ${sum(x) === 1 ? 'site' : 'sites'}` : 'none';
+        default: return ''; } };
+    const parts = R[0][1][1].map(([k, lab, , w], pi) => [k, lab, avg(R.map(r => r[1][1][pi][2])), w]);
+    const wet = avg(R.map(r => r[1][2])), pts = avg(R.map(r => r[1][5])), mult = avg(R.map(r => r[1][3]));
+    const lac = cs.map(c => val('lands', 'LAND_AC', lv, c) || 0), tot = sum(lac), sh = {};
+    LANDCLASS.forEach(([k]) => { sh[k] = tot ? sum(R.map((r, i) => (r[1][4][k] || 0) * lac[i])) / tot : 0; });
+    const wetPct = avg(cs.map(c => restRaw('wet', lv, c) || 0));
+    b += '<div class="keys nosw">' + parts.map(([k, lab, p, w]) => soilRow(`${lab} <span style="color:var(--muted)">(${rawText(k)})</span>`, `${Math.round(p)} / ${w}`)).join('') +
+      soilRow(`Wetlands <span style="color:var(--muted)">(${fmt(wetPct, 1)}% of A.T. lands on average${S.herb ? '' : '; herbicide use off'})</span>`, !S.herb ? '–' : wet >= .5 ? '−' + Math.round(wet) : '0') +
+      soilRow('<b>Habitat points</b>', `<b>${Math.round(pts)}</b>`) +
+      soilRow(`${S.appa ? 'Share APPA land' : 'Share not private'} <span style="color:var(--muted)">(${landText(sh) || 'no mapped land'})</span>`, '×' + fmt(mult, 2)) + '</div>'; }
+  /* each cell's two scores */
+  const rows = cells.map(c => [c, restScore(kinds[0], lv, c), restScore(kinds[1], lv, c)]).filter(r => r[1] != null || r[2] != null).sort((p, q) => (q[1] ?? -1) - (p[1] ?? -1) || L_.mi[p[0]] - L_.mi[q[0]]);
+  if (rows.length) b += `<details style="margin-top:8px"><summary>Scores by cell (${rows.length})</summary><div class="keys nosw">` +
+    `<div><span style="color:var(--muted)">Cell</span><span style="color:var(--muted)">${RESTDEF[kinds[0]].label.split(' ')[0]} · ${RESTDEF[kinds[1]].label.split(' ')[0]}</span></div>` +
+    rows.map(([c, a, f]) => `<div><span>Mile ${fmt(L_.mi[c], 0)} <em style="color:var(--muted);font-style:normal;font-size:13px">${esc(L_.id[c])}</em></span><span>${a ?? '–'} · ${f ?? '–'}</span></div>`).join('') + '</div></details>';
+  return b + '<p class="none" style="font-size:13.5px;margin-top:8px">Combined from the selected cells: points, habitat points and the land multiplier are averaged over the scored cells; acres, vistas and sites are added; species are counted once. Scores rank cells for a closer look and are not a site assessment.</p></div>'; }
 const wetAc = v => v == null ? '–' : v === 0 ? 'none' : v < 0.1 ? 'under 0.1 acre' : fmt(v, v < 10 ? 1 : 0) + (v === 1 ? ' acre' : ' acres');
 const soilPct = x => x == null ? 'not rated' : x === 0 ? '0%' : pctLt1(x);
 const Q = [
