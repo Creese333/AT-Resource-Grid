@@ -404,9 +404,10 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .phctl .wk button{border:1px solid color-mix(in srgb,var(--hue) 70%,var(--panel));background:color-mix(in srgb,var(--hue) 30%,var(--panel));color:#fff;border-radius:5px;padding:3px 10px;font-size:13.5px;min-width:64px}
 .phctl .wkl{font-size:14px;color:#fff;font-weight:600}
 .phctl .yr .yrl{min-width:64px;font-size:13.5px;color:#E3EAF2;text-align:center}
-#phtick{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:800;pointer-events:none;background:rgba(20,34,53,.86);border:1px solid #F0C419;border-radius:8px;padding:4px 14px 5px;text-align:center;color:#fff;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none}
-#phtick b{display:block;font-size:26px;line-height:1.05;color:#FFE014;font-variant-numeric:tabular-nums;letter-spacing:.5px}
-#phtick span{font-size:12.5px;color:#E3EAF2}
+#phtick{position:absolute;top:120px;left:10px;z-index:800;pointer-events:none;background:rgba(20,34,53,.88);border:1px solid #F0C419;border-radius:7px;padding:3px 10px 4px;text-align:left;color:#fff;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none}
+#phtick b{display:block;font-size:22px;line-height:1.05;color:#FFE014;font-variant-numeric:tabular-nums;letter-spacing:.3px}
+#phtick span{font-size:12px;color:#E3EAF2}
+@media (max-width:700px){#phtick{padding:2px 8px 3px;border-radius:6px}#phtick b{font-size:16px}#phtick span{font-size:10.5px}}
 .phh{font-size:13.5px;color:#fff;margin:10px 0 2px;font-weight:600}
 .phch{display:block;margin:2px 0}
 .phkey{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:#E3EAF2}
@@ -1000,7 +1001,12 @@ function phTick(){ let t = document.getElementById('phtick'); const on = S.q.id 
   if (S.m.id === 'onset'){ big = y; small = `first ${PHWORD[phMain()]} against usual`; }
   else if (S.m.id === 'spread'){ big = y ? 'by ' + y : span; small = y ? 'cells with records so far' : 'year first recorded'; }
   else { big = y || span; small = (y ? '' : 'All years · ') + esc(wkLabel(S.ph.wk)) + ' · ' + PHWORD[S.m.st()]; }
-  t.innerHTML = `<b>${big}</b><span>${small}</span>`; t.style.display = 'block'; }
+  t.innerHTML = `<b>${big}</b><span>${small}</span>`; t.style.display = 'block'; phTickPos(); }
+/* top left of the map, just below the map controls (which wrap to more rows on a phone or when Map tools opens) */
+function phTickPos(){ const t = document.getElementById('phtick'), c = document.getElementById('ctls'), m = document.getElementById('map'); if (!t || !m) return;
+  const top = c ? c.getBoundingClientRect().bottom - m.getBoundingClientRect().top + 8 : 10; t.style.top = Math.max(10, Math.round(top)) + 'px'; }
+addEventListener('resize', () => { if (S.q.id === 'phen') phTickPos(); });
+if (window.ResizeObserver && document.getElementById('ctls')) new ResizeObserver(() => { if (S.q.id === 'phen') phTickPos(); }).observe(document.getElementById('ctls'));
 function phStatus(){ const sp = phSp(), st = PHD[sp.key];
   if (!st || st.st === 'loading') return `Loading research-grade records of ${esc(sp.common.toLowerCase())} from iNaturalist…` + (st && st.n ? ` ${fmt(st.n, 0)} so far` : '');
   if (st.st === 'error') return `Could not load from iNaturalist (${esc(st.msg || 'error')}). <button type="button" data-phref="1">Try again</button>`;
