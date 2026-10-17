@@ -11,6 +11,7 @@ and writes historic_resources.json next to this script. The dashboard reads that
 Standard library only. Runs in GitHub Actions (see .github/workflows/historic_resources.yml) or anywhere with Python 3.
 """
 import json, math, os, re, sys, time, urllib.parse, urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -28,15 +29,15 @@ SRC = {
 OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
 
 
-def get_json(url, data=None, tries=5):
+def get_json(url, data=None, tries=3, timeout=90):
     for k in range(tries):
         try:
             req = urllib.request.Request(url, data=data, headers=UA)
-            with urllib.request.urlopen(req, timeout=180) as r:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
                 return json.load(r)
         except Exception as e:
             print(f'   retry {k + 1}: {e}', flush=True)
-            time.sleep(5 * (k + 1))
+            time.sleep(3 * (k + 1))
     raise RuntimeError('no answer from ' + url.split('?')[0])
 
 
@@ -79,17 +80,18 @@ def osm_query(ch):
     box = f"{ch['s']},{ch['w']},{ch['n']},{ch['e']}"
     q = f'[out:json][timeout:120];(nwr["landuse"="cemetery"]({box});nwr["amenity"="grave_yard"]({box}););out center tags;'
     data = urllib.parse.urlencode({'data': q}).encode()
-    for k in range(6):
+    for k in range(4):
         try:
-            j = get_json(OVERPASS[k % 2], data=data, tries=1)
+            j = get_json(OVERPASS[k % 2], data=data, tries=1, timeout=120)
             res = []
             for e in j.get('elements', []):
                 la = e.get('lat', (e.get('center') or {}).get('lat')); lo = e.get('lon', (e.get('center') or {}).get('lon'))
                 if la is not None:
                     res.append({'id': f"{e['type']}/{e['id']}", 'la': la, 'lo': lo, 'tags': e.get('tags') or {}})
             return res
-        except Exception:
-            time.sleep(10 * (k + 1))
+        except Exception as e:
+            print(f'   Overpass retry {k + 1}: {e}', flush=True)
+            time.sleep(5 * (k + 1))
     raise RuntimeError('Overpass did not answer')
 
 
@@ -130,23 +132,41 @@ def main():
         chunks.append({'rings': rings, 's': min(p[0] for p in pts) - .01, 'n': max(p[0] for p in pts) + .01,
                        'w': min(p[1] for p in pts) - .01, 'e': max(p[1] for p in pts) + .01})
     found = {'nr': {}, 'hs': {}, 'cem': {}}; osm = {}; err = {}
-    for n, ch in enumerate(chunks, 1):
-        print(f'stretch {n} of {len(chunks)}', flush=True)
-        inside = lambda p: any(in_ring(p['la'], p['lo'], r) for r in ch['rings'])
-        for k, src in SRC.items():
-            try:
-                for p in arc_query(src, ch):
-                    if inside(p):
-                        found[k][p['a'].get('OBJECTID', (p['la'], p['lo']))] = p
-            except Exception as e:
-                err[k] = str(e)
+    def inside(ch, p):
+        return any(in_ring(p['la'], p['lo'], r) for r in ch['rings'])
+    def arc_job(args):
+        k, n, ch = args
         try:
-            for p in osm_query(ch):
-                if inside(p):
-                    osm[p['id']] = p
+            return k, ch, arc_query(SRC[k], ch), None
         except Exception as e:
-            err['osm'] = str(e)
-        time.sleep(1)
+            return k, ch, [], str(e)
+    def osm_job(args):
+        n, ch = args
+        try:
+            return ch, osm_query(ch), None
+        except Exception as e:
+            return ch, [], str(e)
+    t0 = time.time()
+    with ThreadPoolExecutor(4) as arc_pool, ThreadPoolExecutor(2) as osm_pool:
+        arc_f = arc_pool.map(arc_job, [(k, n, ch) for n, ch in enumerate(chunks, 1) for k in SRC])
+        osm_f = osm_pool.map(osm_job, list(enumerate(chunks, 1)))
+        done = 0
+        for k, ch, pts, e in arc_f:
+            if e: err[k] = e
+            for p in pts:
+                if inside(ch, p):
+                    found[k][p['a'].get('OBJECTID', (p['la'], p['lo']))] = p
+            done += 1
+            if done % len(SRC) == 0:
+                print(f'NPS and USGS: stretch {done // len(SRC)} of {len(chunks)} ({time.time() - t0:.0f} s)', flush=True)
+        done = 0
+        for ch, pts, e in osm_f:
+            if e: err['osm'] = e
+            for p in pts:
+                if inside(ch, p):
+                    osm[p['id']] = p
+            done += 1
+            print(f'OpenStreetMap: stretch {done} of {len(chunks)} ({time.time() - t0:.0f} s)', flush=True)
     items = []
     for p in found['nr'].values():
         a = p['a']; cd = a.get('CertDate')
