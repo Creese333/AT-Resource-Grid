@@ -4,7 +4,6 @@ Builds historic_resources.json for the A.T. Resource Grid.
 Fetches, out to the HUC10 shell (the 49 sq mi watershed grid cells in soils_wetlands_huc10.json; the corridor cells in
 at_wheel_cells.json when that file is missing):
   - National Register of Historic Places points (National Park Service)
-  - Historic sites / points of interest (USGS National Structures Dataset)
   - Cemeteries from OpenStreetMap (Overpass API), with Find a Grave cemetery IDs where OpenStreetMap or Wikidata has one
   - the A.T. administrative area (AT_Lands tract) each record falls in, for the dashboard's scale filter
 and writes historic_resources.json next to this script. The dashboard reads that file.
@@ -25,7 +24,6 @@ SRC = {
     'nr': {'urls': ['https://mapservices.nps.gov/arcgis/rest/services/cultural_resources/nrhp_locations/MapServer/0',
                     'https://mapservices.nps.gov/arcgis/rest/services/cultural_resources/nrhpTest/MapServer/0'],
            'fields': 'OBJECTID,RESNAME,ResType,NRIS_Refnum,CertDate,Is_NHL,NARA_URL,Address,City,County,State,MultiName,IS_EXTANT'},
-    'hs': {'urls': ['https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer/46'], 'fields': 'OBJECTID,NAME,GNIS_ID,ADDRESS,CITY,STATE'},
 }
 LANDS = 'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/AT_Lands/FeatureServer/1'
 # public Overpass servers; each stretch tries them in turn
@@ -234,7 +232,7 @@ def main():
         rings = [c['ring'] for c in cells[i:i + 10]]; pts = [p for r in rings for p in r]
         chunks.append({'rings': rings, 's': min(p[0] for p in pts) - .01, 'n': max(p[0] for p in pts) + .01,
                        'w': min(p[1] for p in pts) - .01, 'e': max(p[1] for p in pts) + .01})
-    found = {'nr': {}, 'hs': {}}; osm = {}; err = {}
+    found = {'nr': {}}; osm = {}; err = {}
     def inside(ch, p):
         return any(in_ring(p['la'], p['lo'], r) for r in ch['rings'])
     def arc_job(args):
@@ -261,7 +259,7 @@ def main():
                     found[k][p['a'].get('OBJECTID', (p['la'], p['lo']))] = p
             done += 1
             if done % len(SRC) == 0:
-                print(f'NPS and USGS: stretch {done // len(SRC)} of {len(chunks)} ({time.time() - t0:.0f} s)', flush=True)
+                print(f'National Register: stretch {done // len(SRC)} of {len(chunks)} ({time.time() - t0:.0f} s)', flush=True)
         done = 0; failed = []
         for ch, pts, e in osm_f:
             if e: failed.append(ch)
@@ -301,21 +299,17 @@ def main():
                             'listed': datetime.fromtimestamp(cd / 1000, timezone.utc).strftime('%Y-%m-%d') if isinstance(cd, (int, float)) else '',
                             'nhl': str(a.get('Is_NHL') or '').lower().startswith('y'), 'nara': a.get('NARA_URL') or '', 'address': a.get('Address') or '',
                             'city': a.get('City') or '', 'county': a.get('County') or '', 'state': a.get('State') or '', 'multiple': a.get('MultiName') or '', 'extant': a.get('IS_EXTANT') or ''}})
-    for p in found['hs'].values():
-        a = p['a']
-        items.append({'t': 'hs', 'nm': a.get('NAME') or '', 'la': p['la'], 'lo': p['lo'],
-                      'a': {'gnis_id': a.get('GNIS_ID') or '', 'address': a.get('ADDRESS') or '', 'city': a.get('CITY') or '', 'state': a.get('STATE') or ''}})
     items += osm_cem(list(osm.values()))
     wikidata_fag(items)
     for x in items:
         x['la'] = round(x['la'], 5); x['lo'] = round(x['lo'], 5)
-    if all(k in err for k in ('nr', 'hs', 'osm')):
+    if all(k in err for k in ('nr', 'osm')):
         sys.exit('Every source failed; keeping the existing file. ' + json.dumps(err))
     le = tag_lands(items, chunks)
     if le:
         err['lands'] = le
     json.dump({'at': int(time.time() * 1000), 'items': items, 'err': err, 'lands': not le, 'scope': scope}, open(OUT, 'w'), separators=(',', ':'))
-    counts = {t: sum(1 for x in items if x['t'] == t) for t in ('nr', 'hs', 'cem')}
+    counts = {t: sum(1 for x in items if x['t'] == t) for t in ('nr', 'cem')}
     print('wrote', OUT, counts, 'errors:', err or 'none')
 
 
