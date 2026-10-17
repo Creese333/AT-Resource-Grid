@@ -1,12 +1,12 @@
 """
 Builds historic_resources.json for the A.T. Resource Grid.
 
-Fetches, for the A.T. corridor (the 49 sq mi grid cells in at_wheel_cells.json):
+Fetches, out to the HUC10 shell (the 49 sq mi watershed grid cells in soils_wetlands_huc10.json; the corridor cells in
+at_wheel_cells.json when that file is missing):
   - National Register of Historic Places points (National Park Service)
-  - Historic sites / points of interest and cemeteries (USGS National Structures Dataset)
-  - Cemeteries from OpenStreetMap (Overpass API)
-  - the A.T. administrative area (AT_Lands tract) each record falls in, for the dashboard's Administrative filter
-merges USGS and OpenStreetMap cemeteries (same place within 300 m, or same name within 1.5 km),
+  - Historic sites / points of interest (USGS National Structures Dataset)
+  - Cemeteries from OpenStreetMap (Overpass API), with Find a Grave cemetery IDs where OpenStreetMap or Wikidata has one
+  - the A.T. administrative area (AT_Lands tract) each record falls in, for the dashboard's scale filter
 and writes historic_resources.json next to this script. The dashboard reads that file.
 
 Standard library only. Runs in GitHub Actions (see .github/workflows/historic_resources.yml) or anywhere with Python 3.
@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CELLS = os.path.join(HERE, 'at_wheel_cells.json')
+HUC = os.path.join(HERE, 'soils_wetlands_huc10.json')
 OUT = os.path.join(HERE, 'historic_resources.json')
 UA = {'User-Agent': 'AT-Resource-Grid historic resources build (NPS Appalachian National Scenic Trail)'}
 
@@ -25,7 +26,6 @@ SRC = {
                     'https://mapservices.nps.gov/arcgis/rest/services/cultural_resources/nrhpTest/MapServer/0'],
            'fields': 'OBJECTID,RESNAME,ResType,NRIS_Refnum,CertDate,Is_NHL,NARA_URL,Address,City,County,State,MultiName,IS_EXTANT'},
     'hs': {'urls': ['https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer/46'], 'fields': 'OBJECTID,NAME,GNIS_ID,ADDRESS,CITY,STATE'},
-    'cem': {'urls': ['https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer/37'], 'fields': 'OBJECTID,NAME,GNIS_ID,ADDRESS,CITY,STATE'},
 }
 LANDS = 'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/AT_Lands/FeatureServer/1'
 # public Overpass servers; each stretch tries them in turn
@@ -179,43 +179,62 @@ def osm_query(ch, rounds=1, pause=5):
     raise RuntimeError(last or 'Overpass did not answer')
 
 
-STOP = re.compile(r'\b(cemetery|cemeteries|cem|graveyard|grave yard|burying ground|burial ground|burial site|family|the|of|memorial gardens?)\b')
-norm = lambda s: re.sub(r'[^a-z0-9]+', '', STOP.sub('', (s or '').lower()))
-def dist(a, b):
-    k = math.cos(math.radians(a['la']))
-    return math.hypot((a['lo'] - b['lo']) * k * 111320, (a['la'] - b['la']) * 110540)
-
-
-def merge_cem(us, osm):
-    out = [{'t': 'cem', 'nm': u['a'].get('NAME') or '', 'la': u['la'], 'lo': u['lo'],
-            'a': {'source': 'USGS', 'gnis_id': u['a'].get('GNIS_ID') or '', 'city': u['a'].get('CITY') or '', 'state': u['a'].get('STATE') or ''}} for u in us]
-    used = set()
+def osm_cem(osm):
+    out = []
     for o in osm:
-        nm = o['tags'].get('name', ''); nn = norm(nm); best, bd = -1, 1e18
-        for i, u in enumerate(out):
-            if i in used or u['a']['source'] == 'OpenStreetMap':
-                continue
-            d = dist(u, o)
-            if (d <= 300 or (nn and norm(u['nm']) == nn and d <= 1500)) and d < bd:
-                best, bd = i, d
-        if best >= 0:
-            used.add(best); u = out[best]; u['a']['source'] = 'USGS and OpenStreetMap'; u['a']['osm'] = o['id']
-            if not u['nm'] and nm: u['nm'] = nm
-            if o['tags'].get('denomination'): u['a']['denomination'] = o['tags']['denomination']
-        else:
-            out.append({'t': 'cem', 'nm': nm, 'la': o['la'], 'lo': o['lo'],
-                        'a': {'source': 'OpenStreetMap', 'osm': o['id'], 'denomination': o['tags'].get('denomination', ''), 'operator': o['tags'].get('operator', '')}})
+        t = o['tags']
+        out.append({'t': 'cem', 'nm': t.get('name', ''), 'la': o['la'], 'lo': o['lo'],
+                    'a': {'source': 'OpenStreetMap', 'osm': o['id'], 'denomination': t.get('denomination', ''), 'operator': t.get('operator', ''),
+                          'fag': re.sub(r'\D', '', t.get('ref:find_a_grave', '') or t.get('ref:findagrave', '')), 'wikidata': t.get('wikidata', '')}})
     return out
 
 
+def wikidata_fag(items):
+    # Find a Grave cemetery ID (Wikidata property P2025) for cemeteries whose OpenStreetMap record links a Wikidata item
+    need = [x for x in items if x['t'] == 'cem' and not x['a'].get('fag') and re.fullmatch(r'Q\d+', x['a'].get('wikidata') or '')]
+    ids = sorted({x['a']['wikidata'] for x in need}); got = {}
+    for i in range(0, len(ids), 50):
+        try:
+            j = get_json('https://www.wikidata.org/w/api.php?' + urllib.parse.urlencode({'action': 'wbgetentities', 'ids': '|'.join(ids[i:i + 50]), 'props': 'claims', 'format': 'json'}))
+            for q, ent in (j.get('entities') or {}).items():
+                for c in (ent.get('claims') or {}).get('P2025', []):
+                    v = ((c.get('mainsnak') or {}).get('datavalue') or {}).get('value')
+                    if v:
+                        got[q] = str(v); break
+        except Exception as e:
+            print(f'   Wikidata: {e}', flush=True)
+    for x in need:
+        if x['a']['wikidata'] in got:
+            x['a']['fag'] = got[x['a']['wikidata']]
+    n = sum(1 for x in items if x['t'] == 'cem' and x['a'].get('fag'))
+    print(f'Find a Grave IDs: {n} cemeteries ({len(got)} from Wikidata)', flush=True)
+
+
+def load_cells():
+    # the HUC10 shell's 49 sq mi cells (delta-encoded rings, as the dashboard stores them); otherwise the corridor cells
+    try:
+        w = json.load(open(HUC))['levels']['wheel']
+        cells = []
+        for g, mi in zip(w['g'], w['mi']):
+            la, lo = g[0], g[1]; ring = [[la / 1e5, lo / 1e5]]
+            for k in range(2, len(g), 2):
+                la += g[k]; lo += g[k + 1]; ring.append([la / 1e5, lo / 1e5])
+            cells.append({'mi': mi, 'ring': ring})
+        print(f'{len(cells)} HUC10 shell cells', flush=True)
+        return sorted(cells, key=lambda c: c['mi']), 'huc'
+    except Exception as e:
+        print(f'HUC10 cells not read ({e}); using the corridor cells', flush=True)
+        return json.load(open(CELLS)), 'corridor'
+
+
 def main():
-    cells = json.load(open(CELLS))           # [{mi, ring:[[lat, lon], ...]}], sorted by trail mile
+    cells, scope = load_cells()           # [{mi, ring:[[lat, lon], ...]}], sorted by trail mile
     chunks = []
-    for i in range(0, len(cells), 8):
-        rings = [c['ring'] for c in cells[i:i + 8]]; pts = [p for r in rings for p in r]
+    for i in range(0, len(cells), 10):
+        rings = [c['ring'] for c in cells[i:i + 10]]; pts = [p for r in rings for p in r]
         chunks.append({'rings': rings, 's': min(p[0] for p in pts) - .01, 'n': max(p[0] for p in pts) + .01,
                        'w': min(p[1] for p in pts) - .01, 'e': max(p[1] for p in pts) + .01})
-    found = {'nr': {}, 'hs': {}, 'cem': {}}; osm = {}; err = {}
+    found = {'nr': {}, 'hs': {}}; osm = {}; err = {}
     def inside(ch, p):
         return any(in_ring(p['la'], p['lo'], r) for r in ch['rings'])
     def arc_job(args):
@@ -269,7 +288,8 @@ def main():
             for x in prev.get('items', []):
                 o = x.get('a', {}).get('osm')
                 if x.get('t') == 'cem' and o and any(inside(ch, x) for ch in still):
-                    osm[o] = {'id': o, 'la': x['la'], 'lo': x['lo'], 'tags': {'name': x.get('nm', ''), 'denomination': x['a'].get('denomination', ''), 'operator': x['a'].get('operator', '')}}; kept += 1
+                    osm[o] = {'id': o, 'la': x['la'], 'lo': x['lo'], 'tags': {'name': x.get('nm', ''), 'denomination': x['a'].get('denomination', ''), 'operator': x['a'].get('operator', ''),
+                                                                    'ref:find_a_grave': x['a'].get('fag', ''), 'wikidata': x['a'].get('wikidata', '')}}; kept += 1
         except Exception:
             pass
         err['osm'] = f'{len(still)} of {len(chunks)} stretches not reached' + (f'; {kept} OpenStreetMap cemeteries kept from the previous build there' if kept else '')
@@ -285,15 +305,16 @@ def main():
         a = p['a']
         items.append({'t': 'hs', 'nm': a.get('NAME') or '', 'la': p['la'], 'lo': p['lo'],
                       'a': {'gnis_id': a.get('GNIS_ID') or '', 'address': a.get('ADDRESS') or '', 'city': a.get('CITY') or '', 'state': a.get('STATE') or ''}})
-    items += merge_cem(list(found['cem'].values()), list(osm.values()))
+    items += osm_cem(list(osm.values()))
+    wikidata_fag(items)
     for x in items:
         x['la'] = round(x['la'], 5); x['lo'] = round(x['lo'], 5)
-    if all(k in err for k in ('nr', 'hs', 'cem', 'osm')):
+    if all(k in err for k in ('nr', 'hs', 'osm')):
         sys.exit('Every source failed; keeping the existing file. ' + json.dumps(err))
     le = tag_lands(items, chunks)
     if le:
         err['lands'] = le
-    json.dump({'at': int(time.time() * 1000), 'items': items, 'err': err, 'lands': not le}, open(OUT, 'w'), separators=(',', ':'))
+    json.dump({'at': int(time.time() * 1000), 'items': items, 'err': err, 'lands': not le, 'scope': scope}, open(OUT, 'w'), separators=(',', ':'))
     counts = {t: sum(1 for x in items if x['t'] == t) for t in ('nr', 'hs', 'cem')}
     print('wrote', OUT, counts, 'errors:', err or 'none')
 

@@ -505,7 +505,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Wetlands</td><td>USFWS National Wetlands Inventory, all 14 trail states</td><td>Acres of wetland and deepwater habitat in each whole cell, by NWI type and Cowardin class, and the part on A.T. lands. Mapped from aerial imagery, so many small, forested and seasonally wet wetlands are missed. “Possibly sensitive” flags NWI codes that suggest bogs or fens, seeps, aquatic beds, beaver-influenced areas or vernal pools, for a field check. A planning screen, not a delineation.</td></tr>
       <tr><td>Restoration targets</td><td>Built in this page from the layers above</td><td>Two 0 to 100 scores for grasslands and forests. How they are scored is set out under Restoration targets below.</td></tr>
       <tr><td>Flowering and beech leaf disease</td><td>iNaturalist, research-grade records in the project, loaded live: plants with a flower buds or flowers annotation; beech leaf disease, all records</td><td>Twenty plants with the most annotated records in the project: five trail-wide plants (the most flowering records in the weakest third of the trail: south of 38°N, 38–42°N and north of 42°N), five A.T. Seasons focal plants (the National Phenology Network’s Appalachian Trail program), five northern and five southern indicators (each with most of its flowering records north of 42°N or south of 38°N). Measures follow the National Phenology Network’s phenometrics, adapted to records that only show a plant in flower: first (onset), peak and last dates and season length per cell, all years pooled (earliest 10%, median and latest 10% of records; 5 or more records, 8 for length); flowering records by week in 200-mile stretches, against each stretch’s busiest week; and earlier or later than usual by year, measuring each record against its 49 sq mi cell’s usual date (10 or more records a year; 2021–25 against 2016–20 needs 20 or more in each). Records follow hikers and are concentrated in season and on weekends; obscured locations are left out. A lead for timing work and field checks, not a measured trend.</td></tr>
-      <tr><td>Historic resources</td><td>National Register of Historic Places (NPS); USGS National Structures Dataset (historic sites, cemeteries); OpenStreetMap cemeteries; all live</td><td>Points placed in each cell. USGS and OpenStreetMap cemeteries are merged: records within 300 m, or within 1.5 km with the same name, count once. National Register districts and large sites are counted at their mapped point, so one that spreads over several cells counts in one. Recorded resources only: small family cemeteries and unlisted sites are often missing, and some locations are generalized to protect them. Find a Grave has no public data service, so it is not included.</td></tr>
+      <tr><td>Historic resources</td><td>National Register of Historic Places (NPS); USGS National Structures Dataset (historic sites); OpenStreetMap cemeteries; A.T. administrative areas (tract of each record); Find a Grave IDs from OpenStreetMap and Wikidata. Built monthly into historic_resources.json out to the HUC10 shell</td><td>Points placed in each cell. Cemeteries are OpenStreetMap only, each record as mapped. Three scales: HUC10 shell (every record, on the watershed cells), A.T. corridor (inside a tract of the administrative areas layer) and APPA lands (NPS – APPA tracts). National Register districts and large sites are counted at their mapped point. Recorded resources only: small family cemeteries and unlisted sites are often missing, and some locations are generalized to protect them. Find a Grave has no public data service: cemeteries link to their Find a Grave page when the ID is recorded in OpenStreetMap or Wikidata, otherwise to a Find a Grave search by name.</td></tr>
       <tr><td>Unique species</td><td>Rare species priority zones</td><td>Rates how vulnerable the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
     </table>
     <h3>Restoration targets</h3>
@@ -1213,18 +1213,18 @@ function phSum(lv, rows, where){ const m = S.m, n0 = rows.length; if (m.yr === '
   const n = Math.min(50, rows.length), t = typeof m.sumTitle === 'function' ? m.sumTitle() : m.sumTitle;
   return `<div class="rank"><h3>${esc(t)}${where}<span class="cnt">${rows.length > n ? 'top ' + n : 'all ' + n}</span></h3><ol class="scroll" tabindex="0" aria-label="${esc(t)}, scrollable list">` +
     rows.slice(0, n).map(r => cellItem(lv, r[0], `<span class="val">${esc(m.showFn(r[1]))}</span>`)).join('') + '</ol></div>'; }
-/* ---------- historic resources: National Register (NPS), historic sites and cemeteries (USGS), cemeteries (OpenStreetMap) ----------
-   Live from public services, fetched along the trail in stretches of eight 49 sq mi cells, kept in this browser for 30 days and
-   placed in the grid cells. USGS and OpenStreetMap cemeteries are merged: two records are one cemetery when they are within 300 m,
-   or within 1.5 km with the same name (ignoring words like "cemetery" and "family"). */
+/* ---------- historic resources: National Register (NPS), historic sites (USGS), cemeteries (OpenStreetMap) ----------
+   Normally read from historic_resources.json (built monthly on GitHub, out to the HUC10 shell, with each record's A.T. land tract).
+   Three scales: HUC10 shell (every record, on the watershed cells), A.T. corridor (records inside an A.T. administrative area)
+   and APPA lands (records on NPS – APPA tracts). Cemeteries are OpenStreetMap only, each one as mapped. */
 const HISTSRC = {
   nr:{label:'National Register', url:'https://mapservices.nps.gov/arcgis/rest/services/cultural_resources/nrhp_locations/MapServer/0',
       alt:'https://mapservices.nps.gov/arcgis/rest/services/cultural_resources/nrhpTest/MapServer/0',
       fields:'OBJECTID,RESNAME,ResType,NRIS_Refnum,CertDate,Is_NHL,NARA_URL,Address,City,County,State,MultiName,IS_EXTANT', name:'RESNAME'},
-  hs:{label:'Historic sites (USGS)', url:'https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer/46', fields:'OBJECTID,NAME,GNIS_ID,ADDRESS,CITY,STATE', name:'NAME'},
-  cem:{label:'Cemeteries (USGS)', url:'https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer/37', fields:'OBJECTID,NAME,GNIS_ID,ADDRESS,CITY,STATE', name:'NAME'}};
+  hs:{label:'Historic sites (USGS)', url:'https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer/46', fields:'OBJECTID,NAME,GNIS_ID,ADDRESS,CITY,STATE', name:'NAME'}
+};
 const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-const HISTKEEP = 30 * 864e5, HISTKEY = 'atgrid-hist-v1';
+const HISTKEEP = 30 * 864e5, HISTKEY = 'atgrid-hist-v2';
 let HIST = null;   /* {st:'loading'|'done'|'error', items:[{t:'nr'|'hs'|'cem', nm, la, lo, a}], at, done, total, err:{}} */
 const HAGG = {};
 const hsleep = ms => new Promise(r => setTimeout(r, ms));
@@ -1248,47 +1248,44 @@ async function histOsm(ch){ const box = `${ch.s},${ch.w},${ch.n},${ch.e}`;
       const j = await r.json(); return (j.elements || []).map(e => ({id:e.type + '/' + e.id, la:e.lat != null ? e.lat : e.center && e.center.lat, lo:e.lon != null ? e.lon : e.center && e.center.lon, tags:e.tags || {}})).filter(e => e.la != null); }
     catch (e){ await hsleep(3000 * (k + 1)); } }
   throw new Error('OpenStreetMap (Overpass) did not answer'); }
-const histNorm = s => String(s || '').toLowerCase().replace(/\b(cemetery|cemeteries|cem|graveyard|grave yard|burying ground|burial ground|burial site|family|the|of|memorial gardens?)\b/g, '').replace(/[^a-z0-9]+/g, '');
-const histDist = (a, b) => { const k = Math.cos(a.la * Math.PI / 180), dx = (a.lo - b.lo) * k * 111320, dy = (a.la - b.la) * 110540; return Math.sqrt(dx*dx + dy*dy); };
-/* USGS and OpenStreetMap cemeteries into one list */
-function histMergeCem(us, os){ const out = us.map(u => ({t:'cem', nm:u.a.NAME || '', la:u.la, lo:u.lo, a:{source:'USGS', gnis_id:u.a.GNIS_ID || '', city:u.a.CITY || '', state:u.a.STATE || ''}})), used = new Set();
-  os.forEach(o => { const nm = o.tags.name || '', nn = histNorm(nm); let best = -1, bd = Infinity;
-    out.forEach((u, i) => { if (used.has(i)) return; const d = histDist(u, o), same = nn && histNorm(u.nm) === nn; if ((d <= 300 || (same && d <= 1500)) && d < bd){ bd = d; best = i; } });
-    if (best >= 0){ used.add(best); const u = out[best]; u.a.source = 'USGS and OpenStreetMap'; u.a.osm = o.id; if (!u.nm && nm) u.nm = nm; if (o.tags.denomination) u.a.denomination = o.tags.denomination; }
-    else out.push({t:'cem', nm, la:o.la, lo:o.lo, a:{source:'OpenStreetMap', osm:o.id, denomination:o.tags.denomination || '', operator:o.tags.operator || ''}}); });
-  return out; }
+/* OpenStreetMap cemeteries, each as mapped */
+const histOsmCem = os => os.map(o => ({t:'cem', nm:o.tags.name || '', la:o.la, lo:o.lo, a:{source:'OpenStreetMap', osm:o.id, denomination:o.tags.denomination || '', operator:o.tags.operator || '',
+  fag:String(o.tags['ref:find_a_grave'] || '').replace(/\D/g, ''), wikidata:o.tags.wikidata || ''}}));
 /* First choice: historic_resources.json beside this page (built monthly on GitHub); then this browser's saved copy; last, live from the services */
 const HISTFILE = 'historic_resources.json';
 function histLoad(force){ if (HIST && (HIST.st === 'loading' || (HIST.st === 'done' && !force))) return;
   HIST = {st:'loading', items:[], done:0, total:0, err:{}};
   (async () => {
-    if (!force){ try { const r = await fetch(HISTFILE, {cache:'no-cache'}); if (r.ok){ const x = await r.json(); if (x && Array.isArray(x.items) && x.items.length){ HIST = {st:'done', items:x.items, at:x.at, err:x.err || {}, from:'file', lands:!!x.lands}; histDone(); return; } } } catch (e) {}
+    if (!force){ try { const r = await fetch(HISTFILE, {cache:'no-cache'}); if (r.ok){ const x = await r.json(); if (x && Array.isArray(x.items) && x.items.length){ HIST = {st:'done', items:x.items, at:x.at, err:x.err || {}, from:'file', lands:!!x.lands, scope:x.scope || 'corridor'}; histDone(); return; } } } catch (e) {}
       try { const x = JSON.parse(localStorage.getItem(HISTKEY)); if (x && Array.isArray(x.items) && Date.now() - x.at < HISTKEEP){ HIST = {st:'done', items:x.items, at:x.at, err:x.err || {}, from:'saved'}; histDone(); return; } } catch (e) {} }
     histLive(); })(); }
 function histDone(){ for (const k in HAGG) delete HAGG[k]; if (S.q.id === 'hist'){ BRK.clear(); redraw(); } else histStatusOnly();
   LIVE.forEach(l => { if (l.local && l.on) liveLoad(l); }); }
-/* Administrative filter: every record, only those inside an A.T. administrative area (AT_Lands tracts), or only those on NPS – APPA land.
-   Each record's tract is looked up when historic_resources.json is built (ld: the tract's LEGEND3 class, '' when outside every tract). */
-const HADM = [['all', 'All'], ['adm', 'Administrative areas'], ['appa', 'APPA lands']];
+/* Administrative filter, three scales: the HUC10 shell (every record, shown on the watershed cells), the A.T. corridor (records inside a tract
+   of the A.T. administrative areas layer) and APPA lands (records on NPS – APPA tracts). Each record's tract is looked up when
+   historic_resources.json is built (ld: the tract's LEGEND3 class, '' outside every tract). */
+const HADM = [['huc', 'HUC10 shell'], ['adm', 'A.T. corridor'], ['appa', 'APPA lands']];
 const isAppa = ld => /^FEDERAL LAND - NPS - APPA/.test(ld || '');
-const histKeep = x => !S.hadm || S.hadm === 'all' || (S.hadm === 'appa' ? isAppa(x.ld) : !!x.ld);
-const histAdmOn = () => !!(HIST && HIST.lands && S.hadm && S.hadm !== 'all');
+const histScale = () => S.hadm === 'adm' || S.hadm === 'appa' ? S.hadm : 'huc';
+const histAdmOn = () => !!(HIST && HIST.lands && histScale() !== 'huc');
+const histKeep = x => !histAdmOn() || (histScale() === 'appa' ? isAppa(x.ld) : !!x.ld);
 function histAdmBlock(){ const ok = HIST && HIST.st === 'done' && HIST.lands;
-  return `<div class="extsw" role="group" aria-label="Administrative filter"><span>Show</span>` + HADM.map(([k, t]) => `<button type="button" data-hadm="${k}" aria-pressed="${(S.hadm || 'all') === k}"${ok || k === 'all' ? '' : ' disabled'}>${t}</button>`).join('') + '</div>' +
+  return `<div class="extsw" role="group" aria-label="Administrative filter"><span>Scale</span>` + HADM.map(([k, t]) => `<button type="button" data-hadm="${k}" aria-pressed="${histScale() === k}"${ok || k === 'huc' ? '' : ' disabled'}>${t}</button>`).join('') + '</div>' +
+    (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : '') +
     (!HIST || HIST.st !== 'done' ? '<p class="extnote">Available once the historic resources have loaded.</p>'
-      : !ok ? `<p class="extnote">This needs each record's land tract, which is added when ${HISTFILE} is built. Run the Historic resources workflow on GitHub again to turn it on.</p>`
-      : `<p class="extnote">Administrative areas: inside any tract of the A.T. administrative areas layer. APPA lands: NPS – APPA fee, easement, right-of-way easement and administratively transferred tracts. ${fmt(HIST.items.filter(x => x.ld).length, 0)} of ${fmt(HIST.items.length, 0)} records fall in an administrative area, ${fmt(HIST.items.filter(x => isAppa(x.ld)).length, 0)} on APPA lands.</p>`); }
-const histAdmText = () => (HADM.find(h => h[0] === (S.hadm || 'all')) || HADM[0])[1];
+      : !ok ? `<p class="extnote">The A.T. corridor and APPA lands scales need each record's land tract, which is added when ${HISTFILE} is built. Run the Historic resources workflow on GitHub again to turn them on.</p>`
+      : `<p class="extnote">HUC10 shell: every record, shown on the HUC10 watershed cells (corridor cells outlined). A.T. corridor: records inside a tract of the A.T. administrative areas layer. APPA lands: NPS – APPA fee, easement, right-of-way easement and administratively transferred tracts. ${fmt(HIST.items.length, 0)} records in all, ${fmt(HIST.items.filter(x => x.ld).length, 0)} in the A.T. corridor, ${fmt(HIST.items.filter(x => isAppa(x.ld)).length, 0)} on APPA lands.</p>`); }
+const histAdmText = () => (HADM.find(h => h[0] === histScale()) || HADM[0])[1];
 /* the OpenStreetMap cemeteries as a map layer, from the loaded file (no separate request) */
 async function histLayer(l, my){
   if (!HIST || HIST.st !== 'done'){ liveStatus(l, 'Loading…'); histLoad(); return; }   // histDone redraws the layer when ready
-  const f = HIST.items.filter(x => x.t === 'cem' && /OpenStreetMap/.test(x.a.source || '')).map(x => ({type:'Feature', geometry:{type:'Point', coordinates:[x.lo, x.la]},
-    properties:{NAME:x.nm || '', Source:x.a.source, Denomination:x.a.denomination || '', osm:x.a.osm || '', ld:x.ld || ''}}));
-  if (my !== l.req) return; liveDraw(l, f); l.loaded = true; liveStatus(l, f.length ? fmt(f.length, 0) + ' along the trail' : 'None in the loaded file'); }
+  const f = HIST.items.filter(x => x.t === 'cem' && histKeep(x)).map(x => ({type:'Feature', geometry:{type:'Point', coordinates:[x.lo, x.la]},
+    properties:{NAME:x.nm || '', Source:x.a.source, Denomination:x.a.denomination || '', osm:x.a.osm || '', ld:x.ld || '', fag:x.a.fag || '', state:x.a.state || ''}}));
+  if (my !== l.req) return; liveDraw(l, f); l.loaded = true; liveStatus(l, f.length ? fmt(f.length, 0) + (histAdmOn() ? ' (' + histAdmText() + ')' : ' out to the HUC10 shell') : 'None in the loaded file'); }
 function histLive(){ const chunks = histChunks(); HIST = {st:'loading', items:[], done:0, total:chunks.length, err:{}}; histStatusOnly();
-  (async () => { const nr = new Map(), hs = new Map(), us = new Map(), os = new Map(), inCorr = (ch, p) => ch.rings.some(r => inRingLL(p.la, p.lo, r));
+  (async () => { const nr = new Map(), hs = new Map(), os = new Map(), inCorr = (ch, p) => ch.rings.some(r => inRingLL(p.la, p.lo, r));
     for (const ch of chunks){
-      const jobs = [['nr', HISTSRC.nr, nr], ['hs', HISTSRC.hs, hs], ['cem', HISTSRC.cem, us]].map(async ([k, src, M]) => {
+      const jobs = [['nr', HISTSRC.nr, nr], ['hs', HISTSRC.hs, hs]].map(async ([k, src, M]) => {
         try { (await histArc(src, ch)).forEach(p => { if (inCorr(ch, p)) M.set(k + ':' + (p.a.OBJECTID != null ? p.a.OBJECTID : p.la + ',' + p.lo), p); }); } catch (e){ HIST.err[k] = e.message; } });
       jobs.push((async () => { try { (await histOsm(ch)).forEach(p => { if (inCorr(ch, p)) os.set(p.id, p); }); await hsleep(1000); } catch (e){ HIST.err.osm = e.message; } })());
       await Promise.all(jobs); HIST.done++; histStatusOnly(); }
@@ -1296,10 +1293,10 @@ function histLive(){ const chunks = histChunks(); HIST = {st:'loading', items:[]
     nr.forEach(p => items.push({t:'nr', nm:p.a.RESNAME || '', la:p.la, lo:p.lo, a:{type:p.a.ResType || '', refnum:p.a.NRIS_Refnum || '', listed:p.a.CertDate ? new Date(p.a.CertDate).toISOString().slice(0, 10) : '',
       nhl:/^y/i.test(String(p.a.Is_NHL || '')), nara:p.a.NARA_URL || '', address:p.a.Address || '', city:p.a.City || '', county:p.a.County || '', state:p.a.State || '', multiple:p.a.MultiName || '', extant:p.a.IS_EXTANT || ''}}));
     hs.forEach(p => items.push({t:'hs', nm:p.a.NAME || '', la:p.la, lo:p.lo, a:{gnis_id:p.a.GNIS_ID || '', address:p.a.ADDRESS || '', city:p.a.CITY || '', state:p.a.STATE || ''}}));
-    histMergeCem([...us.values()], [...os.values()]).forEach(x => items.push(x));
+    histOsmCem([...os.values()]).forEach(x => items.push(x));
     items.forEach(x => { x.la = Math.round(x.la * 1e5) / 1e5; x.lo = Math.round(x.lo * 1e5) / 1e5; });
     HIST = {st:'done', items, at:Date.now(), err:HIST.err, from:'live'};
-    if (Object.keys(HIST.err).length < 4) try { localStorage.setItem(HISTKEY, JSON.stringify({at:HIST.at, items, err:HIST.err})); } catch (e) {}
+    if (Object.keys(HIST.err).length < 3) try { localStorage.setItem(HISTKEY, JSON.stringify({at:HIST.at, items, err:HIST.err})); } catch (e) {}
     for (const k in HAGG) delete HAGG[k]; if (S.q.id === 'hist'){ BRK.clear(); redraw(); } })()
   .catch(e => { HIST = {st:'error', msg:e.message, items:[], err:{}}; if (S.q.id === 'hist') side(); }); }
 function histRefresh(){ try { localStorage.removeItem(HISTKEY); } catch (e) {} for (const k in HAGG) delete HAGG[k]; HIST = null; histLoad(); side(); }
@@ -1311,19 +1308,22 @@ document.addEventListener('click', e => { if (e.target.closest && e.target.close
 /* items by cell at a size: counts by kind and the list of items in each cell */
 function hAgg(lv){ if (!HIST || HIST.st !== 'done') return null; if (HAGG[lv] && HAGG[lv].lev === D.levels[lv]) return HAGG[lv];
   const n = D.levels[lv].id.length, A = HAGG[lv] = {lev:D.levels[lv], nr:new Uint16Array(n), hs:new Uint16Array(n), cem:new Uint16Array(n), any:new Uint16Array(n), list:new Map()};
-  HIST.items.forEach((x, i) => { if (HIST.lands && !histKeep(x)) return; const c = phCell(lv, x.la, x.lo); if (c < 0) return; A[x.t][c]++; A.any[c]++; if (!A.list.has(c)) A.list.set(c, []); A.list.get(c).push(i); });
+  HIST.items.forEach((x, i) => { if (!histKeep(x)) return; const c = phCell(lv, x.la, x.lo); if (c < 0) return; A[x.t][c]++; A.any[c]++; if (!A.list.has(c)) A.list.set(c, []); A.list.get(c).push(i); });
   return A; }
 const hCount = (lv, c, k) => { const A = hAgg(lv); return A ? A[k][c] : null; };
 function histStatus(){ if (!HIST || HIST.st === 'loading') return HIST && HIST.total ? `${HISTFILE} was not found, so loading live from the National Park Service, USGS and OpenStreetMap… stretch ${HIST.done} of ${HIST.total}. This takes a minute or two; it is then kept in this browser for 30 days.` : 'Loading historic resources…';
   if (HIST.st === 'error') return `Could not load (${esc(HIST.msg || 'error')}). <button type="button" data-histref="1">Try again</button>`;
-  const n = t => HIST.items.filter(x => x.t === t).length, both = HIST.items.filter(x => x.t === 'cem' && /and/.test(x.a.source)).length;
-  const errs = Object.keys(HIST.err || {}).map(k => ({nr:'National Register', hs:'USGS historic sites', cem:'USGS cemeteries', osm:'OpenStreetMap', lands:'A.T. administrative areas (Administrative filter off)'})[k] || k);
+  const n = t => HIST.items.filter(x => x.t === t).length;
+  const errs = Object.keys(HIST.err || {}).map(k => ({nr:'National Register', hs:'USGS historic sites', osm:'OpenStreetMap', lands:'A.T. administrative areas (Administrative filter off)'})[k] || k);
   const when = new Date(HIST.at).toLocaleDateString('en-US');
-  return `${fmt(n('nr'), 0)} National Register properties, ${fmt(n('hs'), 0)} USGS historic sites and ${fmt(n('cem'), 0)} cemeteries (${fmt(both, 0)} in both USGS and OpenStreetMap, counted once) in corridor cells. ` +
+  return `${fmt(n('nr'), 0)} National Register properties, ${fmt(n('hs'), 0)} USGS historic sites and ${fmt(n('cem'), 0)} OpenStreetMap cemeteries${HIST.scope === 'huc' ? ' out to the HUC10 shell' : ' in corridor cells'}. ` +
     (HIST.from === 'file' ? `From ${HISTFILE}, built ${when}.` : `Loaded live ${when}. <button type="button" data-histsave="1">Save as ${HISTFILE}</button> to put beside index.html on GitHub for fast loading.`) +
     (errs.length ? ` <b>Not reached: ${esc(errs.join(', '))}</b>; those counts are incomplete.` : '') + (HIST.from === 'file' ? '' : ` <button type="button" data-histref="1">Refresh</button>`); }
 function histStatusOnly(){ const e = document.getElementById('histstat'); if (e) e.innerHTML = histStatus(); }
 const histBlock = () => `<p class="phstat" id="histstat" role="status" style="margin:2px 0 10px">${histStatus()}</p>`;
+/* Find a Grave: the cemetery page when its ID is known (OpenStreetMap ref:find_a_grave, or Wikidata P2025), otherwise a cemetery search by name */
+const histFag = x => x.a.fag ? `<a href="https://www.findagrave.com/cemetery/${encodeURIComponent(x.a.fag)}" target="_blank" rel="noopener">Find a Grave</a>`
+  : x.nm ? `<a href="https://www.findagrave.com/cemetery-search?cemeteryName=${encodeURIComponent(x.nm)}" target="_blank" rel="noopener">search Find a Grave</a>` : '';
 /* the cell panel section */
 function histSection(lv, c){ const A = hAgg(lv);
   let b = `<div class="sec" style="--hue:${HUE.hist}"><h3>Historic resources</h3>`;
@@ -1339,9 +1339,9 @@ function histSection(lv, c){ const A = hAgg(lv);
   if (NR.length) b += `<p style="margin:8px 0 0">National Register of Historic Places</p><ul class="flist hlist">` + NR.map(x => li(x, [x.a.type, x.a.listed ? 'listed ' + x.a.listed.slice(0, 4) : '', x.a.nhl ? '<b>National Historic Landmark</b>' : '',
     x.a.refnum ? `<a href="https://npgallery.nps.gov/AssetDetail/NRIS/${encodeURIComponent(x.a.refnum)}" target="_blank" rel="noopener">NPGallery</a>` : '', x.a.nara ? `<a href="${esc(x.a.nara)}" target="_blank" rel="noopener">nomination</a>` : ''].filter(Boolean).join(' · '))).join('') + '</ul>';
   if (HS.length) b += `<p style="margin:8px 0 0">Historic sites and points of interest (USGS)</p><ul class="flist hlist">` + HS.map(x => li(x, [x.a.city, x.a.state].filter(Boolean).map(esc).join(', '))).join('') + '</ul>';
-  if (CM.length) b += `<p style="margin:8px 0 0">Cemeteries</p><ul class="flist hlist">` + CM.map(x => li(x, [esc(x.a.source), x.a.denomination ? esc(x.a.denomination) : '',
-    x.a.osm ? `<a href="https://www.openstreetmap.org/${esc(x.a.osm)}" target="_blank" rel="noopener">map</a>` : ''].filter(Boolean).join(' · '))).join('') + '</ul>';
-  return b + `<p class="none" style="font-size:13.5px;margin-top:8px">National Register: NPS. Historic sites and cemeteries: USGS National Structures Dataset, with OpenStreetMap cemeteries merged in (records within 300 m, or 1.5 km with the same name, count once). Small family cemeteries are often missing from both. Locations of some National Register sites are generalized or restricted.</p></div>`; }
+  if (CM.length) b += `<p style="margin:8px 0 0">Cemeteries</p><ul class="flist hlist">` + CM.map(x => li(x, [x.a.denomination ? esc(x.a.denomination) : '',
+    x.a.osm ? `<a href="https://www.openstreetmap.org/${esc(x.a.osm)}" target="_blank" rel="noopener">map</a>` : '', histFag(x)].filter(Boolean).join(' · '))).join('') + '</ul>';
+  return b + `<p class="none" style="font-size:13.5px;margin-top:8px">National Register: NPS. Historic sites: USGS National Structures Dataset. Cemeteries: OpenStreetMap, each as mapped (two nearby records can be parts of one cemetery). Find a Grave: the cemetery's page where OpenStreetMap or Wikidata records its Find a Grave ID, otherwise a Find a Grave search by name. Small family cemeteries are often missing. Locations of some National Register sites are generalized or restricted.</p></div>`; }
 /* ---------- restoration targets ----------
    Two scores from 0 to 100, worked out here from the other layers. Each factor is scaled 0 to 1 and given points; wetlands take
    points away, since nearby wetlands can limit herbicide use. Counts and acres are scaled by where a cell ranks among the cells of
@@ -1513,11 +1513,11 @@ const Q = [
       stripH:v => { const A = phAgg('wheel'); return A && A.years.length ? Math.max(.3, A.years[A.years.length - 1] + 1 - v) : 1; }, stripTop:() => { const A = phAgg('wheel'); return A && A.years.length ? A.years.length + 1 : 1; },
       legendFn:lv => PHFIRST.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${phYear(lv) ? 'Cells with a record by ' + phYear(lv) + ', by the year of the first one.' : 'The year of the first record in each cell.'} Bars under the map are taller where it has been known longer.</p>`}]},
  {id:'hist', th:'feat', hue:HUE.hist, ramp:'hist', title:'Where are the historic resources?',
-  use:'Historic resources in each cell, live from public sources: properties on the National Register of Historic Places (National Park Service), historic sites and points of interest and cemeteries from the USGS National Structures Dataset, and cemeteries from OpenStreetMap, merged with the USGS cemeteries so one cemetery counts once. Counts show what has been recorded, not everything there: small family cemeteries and unlisted sites are often missing, and some National Register locations are generalized to protect them.',
+  use:'Historic resources in each cell: properties on the National Register of Historic Places (National Park Service), historic sites and points of interest from the USGS National Structures Dataset, and cemeteries from OpenStreetMap, each as mapped, with a link to Find a Grave. Read from historic_resources.json, rebuilt monthly on GitHub out to the HUC10 shell. The Administrative filter picks the scale: the HUC10 shell, the A.T. corridor (administrative areas) or APPA lands. Counts show what has been recorded, not everything there: small family cemeteries and unlisted sites are often missing, and some National Register locations are generalized to protect them.',
   m:[{id:'hany', label:'All historic resources', fn:(lv, c) => hCount(lv, c, 'any'), int:1, hollow0:1, none:'None recorded', noun:['resource','resources'], hasTxt:() => 'have a recorded historic resource'},
      {id:'hnr', label:'National Register properties', fn:(lv, c) => hCount(lv, c, 'nr'), int:1, hollow0:1, none:'None recorded', noun:['property','properties'], hasTxt:() => 'have a National Register property'},
      {id:'hhs', label:'Historic sites (USGS)', fn:(lv, c) => hCount(lv, c, 'hs'), int:1, hollow0:1, none:'None recorded', noun:['site','sites'], hasTxt:() => 'have a USGS historic site'},
-     {id:'hcem', label:'Cemeteries', fn:(lv, c) => hCount(lv, c, 'cem'), int:1, hollow0:1, none:'None recorded', noun:['cemetery','cemeteries'], hasTxt:() => 'have a recorded cemetery'}]},
+     {id:'hcem', label:'Cemeteries (OpenStreetMap)', fn:(lv, c) => hCount(lv, c, 'cem'), int:1, hollow0:1, none:'None recorded', noun:['cemetery','cemeteries'], hasTxt:() => 'have a recorded cemetery'}]},
  {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s built and maintained along the trail here?',
   use:'Trail facilities and features from the A.T. facilities inventory: shelters, campsites, privies, parking, bridges, vistas, side trails and maintained landscapes, with miles of A.T. in each cell. Trail structures such as waterbars and steps are recorded by maintainer section, so they are estimated for each cell from its share of the section\u2019s trail miles.',
   m:[{id:'fac', label:'Trail facilities', f:'N_FAC', int:1, hollow0:1, none:'None in this cell', noun:['facility','facilities'], note:'Shelters, campsites, privies, parking areas, bridges, buildings, dams and tunnels.'},
@@ -1707,7 +1707,10 @@ function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv]
     if (v == null) ps[c].setStyle({fill:true, fillOpacity:0, stroke:true, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
     else if (strong) ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : .9) * Math.max(zf, .85), stroke:true, color:'#0B2410', weight:lv === 'hex' ? 1.6 : 2, opacity:ins ? 1 : .2});
     else ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf, stroke:true, color:'#fff', weight:w, opacity:ins ? .9 : .2}); } }
-function draw(){ if (S.ext === 'huc' && (!EXTQ.includes(S.q.id) || S.m.find)) setExt('corr', true);
+function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
+    if (sc === 'huc' && S.ext !== 'huc' && !S.histHucFail) setExt('huc', true).then(() => { if (S.ext !== 'huc'){ S.histHucFail = true; S.extMsg = ''; redraw(); } });
+    else if (sc !== 'huc' && S.ext === 'huc') setExt('corr', true); }
+  else if (S.ext === 'huc' && (!EXTQ.includes(S.q.id) || S.m.find)) setExt('corr', true);
   if (S.q.id === 'phen'){ phFixM(); phLoad(phSp()); } else if (phTimer) phPlay(false);
   if (S.q.id === 'hist') histLoad();
   phTick();
@@ -1817,7 +1820,6 @@ const LIVE = [
   {id:'lands', name:'Administrative areas', url:SVC + 'AT_Lands/FeatureServer/1', type:'poly', bbox:1, minZoom:11, fields:'NAME,ADMIN,ACRES,TRACT1,LEGEND3', color:'rgb(0,77,168)'},
   {id:'nrhp', name:'National Register (NPS)', url:HISTSRC.nr.url, type:'pt', bbox:1, minZoom:9, fields:'RESNAME,ResType,NRIS_Refnum,CertDate,Is_NHL,City,State', color:'#8C5A2B'},
   {id:'usgshist', name:'Historic sites (USGS)', url:HISTSRC.hs.url, type:'pt', bbox:1, minZoom:9, fields:'NAME,CITY,STATE', color:'#B08A3E'},
-  {id:'usgscem', name:'Cemeteries (USGS)', url:HISTSRC.cem.url, type:'pt', bbox:1, minZoom:10, fields:'NAME,CITY,STATE', color:'#6E6A60'},
   {id:'osmcem', name:'Cemeteries (OpenStreetMap)', local:1, type:'pt', color:'#4F6B5A'}
 ];
 const GLYPH = {
@@ -1827,6 +1829,10 @@ const GLYPH = {
   privies:'<path d="M4.3 13.3V6.4L8 2.8l3.7 3.6v6.9z" fill="#fff"/><path d="M8.9 7.2a1.9 1.9 0 1 0 0 3.4 2.3 2.3 0 0 1 0-3.4z" fill="currentColor"/>',
   bridges:'<path d="M1.6 6h12.8M2.8 6v6.4M13.2 6v6.4M2.8 12.2Q8 3.6 13.2 12.2" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>',
   vistas:'<path d="M1.6 13 6 5.8l2.6 3.4 1.7-2.1L14.4 13z" fill="#fff"/><circle cx="11.6" cy="4" r="1.5" fill="#fff"/>'};
+Object.assign(GLYPH, {
+  osmcem:'<path d="M6.6 2.4h2.8v3h3v2.8h-3V14H6.6V8.2h-3V5.4h3z" fill="#fff"/>',
+  nrhp:'<path d="M2 6 8 2.6 14 6z" fill="#fff"/><path d="M3.6 7.2v4.6M6.5 7.2v4.6M9.5 7.2v4.6M12.4 7.2v4.6" stroke="#fff" stroke-width="1.5"/><path d="M2.2 13h11.6" stroke="#fff" stroke-width="1.6"/>',
+  usgshist:'<path d="M4.4 14V2.4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><path d="M5 2.8h7.6l-1.8 2.6 1.8 2.6H5z" fill="#fff"/>'});
 const glyphHTML = (l, size) => `<span class="fic" style="background:${l.color};color:${l.color};width:${size}px;height:${size}px"><svg viewBox="0 0 16 16" width="${Math.round(size * .68)}" height="${Math.round(size * .68)}" aria-hidden="true">${GLYPH[l.id] || ''}</svg></span>`;
 LIVE.forEach(l => { l.on = false; l.group = L.layerGroup(); l.status = ''; l.loaded = false; l.req = 0; });
 async function arcQuery(url, params, maxPages){ let out = [], off = 0; const seen = new Set();
@@ -1848,7 +1854,8 @@ function featPopup(l, p){ const kind = ({lands:'Administrative area', shelters:'
     if (tr) h += `<div><span class="k">Tract</span> ${esc(tr)}</div>`; }
   if (l.id === 'osmcem'){ if (p.Source) h += `<div><span class="k">Source</span> ${esc(p.Source)}</div>`; if (p.Denomination) h += `<div><span class="k">Denomination</span> ${esc(p.Denomination)}</div>`;
     if (p.ld) h += `<div><span class="k">Land</span> ${esc((LANDMAP.get(p.ld) || [0, tcase(p.ld)])[1])}</div>`;
-    if (p.osm) h += `<div><a href="https://www.openstreetmap.org/${esc(p.osm)}" target="_blank" rel="noopener">Open in OpenStreetMap</a></div>`; }
+    if (p.osm) h += `<div><a href="https://www.openstreetmap.org/${esc(p.osm)}" target="_blank" rel="noopener">Open in OpenStreetMap</a></div>`;
+    { const fg = histFag({nm:p.NAME, a:{fag:p.fag}}); if (fg) h += `<div>${fg}</div>`; } }
   if (l.id === 'vistas'){ const ph = []; for (let k = 1; k <= 10; k++){ const u = String(p['Photo' + k] || '').trim(); if (/^https?:\/\//i.test(u)) ph.push(u); }
     /* Google Drive links: show a small preview straight from Drive, loaded only when the popup opens. If Drive will not serve it, the preview removes itself and the button remains. */
     const did = u => { const m = u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=|thumbnail\?(?:[^#]*&)?id=)([\w-]{20,})/) || u.match(/docs\.google\.com\/[^?#]*\/d\/([\w-]{20,})/); return m ? m[1] : null; };
@@ -1860,10 +1867,10 @@ const featOpen = (l, p, latlng, offset) => L.popup(Object.assign({autoPan:false,
 function liveStatus(l, s){ l.status = s; const e = document.querySelector('#layerspanel [data-st="' + l.id + '"]'); if (e) e.textContent = s; }
 const ICONZ = 9;
 function liveDraw(l, feats){ l.group.clearLayers();
-  if (l.type === 'pt'){ if (feats) l.feats = feats.filter(f => f.geometry && f.geometry.type === 'Point'); const z = map.getZoom(), b = map.getBounds().pad(.15); let n = 0;
+  if (l.type === 'pt'){ if (feats) l.feats = feats.filter(f => f.geometry && f.geometry.type === 'Point'); const z = map.getZoom(), b = map.getBounds().pad(.15), isz = Math.round(Math.min(34, Math.max(16, 16 + (z - ICONZ) * 3.5))); let n = 0;
     (l.feats || []).forEach(f => { const c = f.geometry.coordinates, ll = [c[1], c[0]]; let mk;
-      if (z >= ICONZ){ if (!b.contains(ll) || n >= 700) return; n++; mk = L.marker(ll, {pane:'feat', keyboard:false, title:featName(l, f.properties || {}), icon:L.divIcon({className:'ficm', html:glyphHTML(l, 24), iconSize:[24, 24], iconAnchor:[12, 12]})}); }
-      else mk = L.circleMarker(ll, {renderer:featR, pane:'feat', radius:3.5, color:'#fff', weight:1, fillColor:l.color, fillOpacity:1, bubblingMouseEvents:false});
+      if (z >= ICONZ){ if (!b.contains(ll) || n >= 700) return; n++; mk = L.marker(ll, {pane:'feat', keyboard:false, title:featName(l, f.properties || {}), icon:L.divIcon({className:'ficm', html:glyphHTML(l, isz), iconSize:[isz, isz], iconAnchor:[isz / 2, isz / 2]})}); }
+      else mk = L.circleMarker(ll, {renderer:featR, pane:'feat', radius:Math.max(2.5, Math.min(5, z * .55 - .5)), color:'#fff', weight:1, fillColor:l.color, fillOpacity:1, bubblingMouseEvents:false});
       mk.on('click', () => featOpen(l, f.properties, mk.getLatLng(), [0, -6])).addTo(l.group); mk._p = f.properties || {}; mk._nm = featName(l, mk._p); }); }
   else L.geoJSON({type:'FeatureCollection', features:feats.filter(f => f.geometry)}, {renderer:l.type === 'poly' ? landsR : featR, pane:l.type === 'poly' ? 'lands' : 'feat', bubblingMouseEvents:false,
     style:f => l.type === 'poly' ? {color:'#4A4A4A', weight:.6, fillColor:(LANDMAP.get((f.properties || {}).LEGEND3) || [0, 0, '#BBBBBB'])[2], fillOpacity:.5} : {color:l.color, weight:2.2, dashArray:'6 4', opacity:.95},
@@ -2061,7 +2068,8 @@ $('#side').addEventListener('click', e => { const b = e.target.closest('button')
   if (b.dataset.ext){ setExt(b.dataset.ext); return; }
   if (b.dataset.herb){ S.herb = b.dataset.herb === 'on'; BRK.clear(); redraw(); return; }
   if (b.dataset.lands){ S.appa = b.dataset.lands === 'appa'; BRK.clear(); redraw(); return; }
-  if (b.dataset.hadm){ S.hadm = b.dataset.hadm; for (const k in HAGG) delete HAGG[k]; BRK.clear(); redraw(); return; }
+  if (b.dataset.hadm){ S.hadm = b.dataset.hadm; S.histHucFail = false; for (const k in HAGG) delete HAGG[k]; BRK.clear(); const want = histScale() === 'huc' ? 'huc' : 'corr';
+    if (S.ext !== want) setExt(want); else redraw(); LIVE.forEach(l => { if (l.local && l.on) liveLoad(l); }); return; }
   if (b.dataset.blk){ S.side[b.dataset.blk] = !S.side[b.dataset.blk]; side(); return; }
   if (b.dataset.selall && S.m.find){ const lv = dispLevel(), e = S.m.find, L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c) && e.cells[lv].has(c)) cells.push(c);
     if (cells.length) selectMany(lv, cells, null, e.common || e.sci); return; }
@@ -2197,6 +2205,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
   $('#phead').innerHTML = h; wireScales($('#phead')); exportWire();
   const v = (th, f) => val(th, f, lv, c); let b = '';
   if (S.ext === 'huc'){ const note = inCorr(lv, c) ? 'This cell is in the A.T. corridor grid. Switch the extent to A.T. corridor to see its other layers.' : 'Outside the A.T. corridor grid, so only soils and wetlands are summarized here.';
+    if (S.q.id === 'hist'){ finishProfile(`<p class="none" style="font-size:13.5px;margin:0 0 10px">${inCorr(lv, c) ? 'This cell is in the A.T. corridor grid.' : 'Outside the A.T. corridor grid, in the HUC10 shell.'} Pick the A.T. corridor scale under Administrative filter to see the corridor's other layers.</p>` + histSection(lv, c) + soilSection(lv, c) + wetSection(lv, c)); return; }
     finishProfile(`<p class="none" style="font-size:13.5px;margin:0 0 10px">${note}</p>` + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c))); return; }
 
   // land
@@ -2573,8 +2582,8 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
     if (A) cells.slice().sort((a, b) => L_.mi[a] - L_.mi[b]).forEach(c => (A.list.get(c) || []).forEach(i => { const x = HIST.items[i];
       out.hist.push(Object.assign({grid_id:L_.id[c], trail_mile:L_.mi[c], kind:{nr:'National Register', hs:'Historic site (USGS)', cem:'Cemetery'}[x.t], name:x.nm, latitude:x.la, longitude:x.lo}, HIST.lands ? {land_class:x.ld ? (LANDMAP.get(x.ld) || [0, x.ld])[1] : 'Outside administrative areas', land_admin:x.adm || '', land_tract:x.tract || ''} : {},
         Object.fromEntries(Object.entries(x.a).map(([k, v]) => [k, v === true ? 'yes' : v === false ? '' : v])),
-        x.t === 'nr' && x.a.refnum ? {npgallery_url:'https://npgallery.nps.gov/AssetDetail/NRIS/' + x.a.refnum} : {}, x.a.osm ? {openstreetmap_url:'https://www.openstreetmap.org/' + x.a.osm} : {})); })); }
-  if (S.ext === 'huc'){ out.phen = []; out.phenRec = []; out.hist = []; out.cells = out.cells.map(r => Object.fromEntries(Object.entries(r).filter(([k]) => !/^(veg|nlcd|inat|ebird|unique|land|feat)_/.test(k)))); out.species = []; out.veg = []; out.land = []; out.features = []; out.live = []; out.layers = []; out.restoration = []; }
+        x.t === 'nr' && x.a.refnum ? {npgallery_url:'https://npgallery.nps.gov/AssetDetail/NRIS/' + x.a.refnum} : {}, x.a.osm ? {openstreetmap_url:'https://www.openstreetmap.org/' + x.a.osm} : {}, x.t === 'cem' ? {find_a_grave_url:x.a.fag ? 'https://www.findagrave.com/cemetery/' + x.a.fag : x.nm ? 'https://www.findagrave.com/cemetery-search?cemeteryName=' + encodeURIComponent(x.nm) : ''} : {})); })); }
+  if (S.ext === 'huc'){ out.phen = []; out.phenRec = [];  out.cells = out.cells.map(r => Object.fromEntries(Object.entries(r).filter(([k]) => !/^(veg|nlcd|inat|ebird|unique|land|feat)_/.test(k)))); out.species = []; out.veg = []; out.land = []; out.features = []; out.live = []; out.layers = []; out.restoration = []; }
   const ab = (k, x) => out.about.push({item:k, value:x});
   ab('Source', 'A.T. Resource Grid dashboard'); ab('Exported', localDay()); ab('iNaturalist and eBird data run', D.run);
   ab('Extent', S.ext === 'huc' ? 'HUC10 watershed: every grid cell in the HUC10 shell, soils and wetlands only' : 'A.T. corridor grid cells');
@@ -2586,7 +2595,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
   ab('Note', 'Land administrator shares are of the mapped land in the cell. Generalized to the grid; not a boundary determination.');
   ab('Note', 'Unique species ratings are held at 7 and 49 sq mi; 1 sq mi cells carry the rating of the 7 sq mi cell they sit in.');
   ab('Note', 'Facilities and landscapes: A.T. facilities inventory, official and additional features. Structure counts (drainage, steps, signs, barriers) are estimates, spread from maintainer sections by trail miles.');
-  ab('Historic resources', S.ext === 'huc' ? 'Not included for the HUC10 extent.' : out.histState === 'loaded' ? `${out.hist.length} National Register properties, USGS historic sites and cemeteries in the selected cells (NPS, USGS National Structures Dataset, OpenStreetMap; USGS and OpenStreetMap cemeteries merged when within 300 m, or 1.5 km with the same name). Loaded ${new Date(HIST.at).toLocaleDateString('en-US')}.${histAdmOn() ? ' Administrative filter: ' + histAdmText() + ' only.' : ''}`
+  ab('Historic resources', out.histState === 'loaded' ? `${out.hist.length} National Register properties, USGS historic sites and OpenStreetMap cemeteries in the selected cells (NPS, USGS National Structures Dataset, OpenStreetMap; cemeteries each as mapped). Scale: ${histAdmText()}. find_a_grave_url is the cemetery's page when its ID is recorded in OpenStreetMap or Wikidata, otherwise a search by name. Loaded ${new Date(HIST.at).toLocaleDateString('en-US')}.`
     : 'Not included: not loaded yet. Open “Where are the historic resources?” once, then export.');
   ab('Flowering', S.ext === 'huc' ? 'Not included for the HUC10 extent.' : out.phenLoaded && out.phenLoaded.length ? `Species loaded in this browser: ${out.phenLoaded.join(', ')}. Research-grade iNaturalist records with a flower buds or flowers annotation (beech leaf disease: all records); obscured locations left out. Dates pool all years: first = earliest 10% of flowering records, peak = median, last = latest 10%; 5 or more records for dates, 8 for season length. Records follow hikers, so they show when people saw it.`
     : 'Not included: no species loaded yet. Open “When does it flower here?” and pick each species to include, then export.');
@@ -2655,7 +2664,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
   const union = (th, f, cs) => { const m = new Map(); cs.forEach(c => (val(th, f, lv, c) || []).forEach(i => m.set(i, (m.get(i) || 0) + 1))); return [...m].sort((a,b) => b[1] - a[1] || D.spp[a[0]].localeCompare(D.spp[b[0]])); };
   let b = `<p class="boxm"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p><p class="none" style="font-size:13.5px;margin:6px 0 0">Combined from the ${nCells(N)}${S.box.label || w ? '' : ' whose centers fall inside the box'}. Records and acres are added up. Species and types are counted once, however many cells they occur in.</p>`;
 
-  if (S.ext === 'huc'){ finishProfile(b + (S.q.id === 'wet' ? wetBox(lv, cells) + soilBox(lv, cells) : soilBox(lv, cells) + wetBox(lv, cells))); return; }
+  if (S.ext === 'huc'){ finishProfile(b + (S.q.id === 'hist' ? histSection(lv, cells) : '') + (S.q.id === 'wet' ? wetBox(lv, cells) + soilBox(lv, cells) : soilBox(lv, cells) + wetBox(lv, cells))); return; }
 
   // vegetation
   { const cs = withTh('veg'); b += `<div class="sec" style="--hue:${HUE.veg}"><h3>Vegetation</h3>`;
