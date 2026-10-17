@@ -40,10 +40,18 @@
 <script>
 const PROJECT = 'appalachian-national-scenic-trail-huc10', API = 'https://api.inaturalist.org/v1/';
 const SPECIES = [
-  ["Bigelow's sedge","Carex bigelowii"],["Mountain avens","Geum peckii"],["Mountain avens (Dryas)","Dryas"],["Diapensia","Diapensia lapponica"],
-  ["Mountain cranberry","Vaccinium vitis-idaea"],["Labrador tea","Rhododendron groenlandicum"],["Alpine bilberry","Vaccinium uliginosum"],
-  ["Bunchberry","Cornus canadensis"],["Yellow trout lily","Erythronium americanum"],["Sugar maple","Acer saccharum"],["Common milkweed","Asclepias syriaca"],
-  ["Eastern redbud","Cercis canadensis"],["Flowering dogwood","Cornus florida"],["Common lilac","Syringa vulgaris"],["Northern spicebush","Lindera benzoin"]];
+  /* northern alpine (White Mountains, Mahoosucs, western Maine peaks, Katahdin) */
+  ["Diapensia","Diapensia lapponica"],["Lapland rosebay","Rhododendron lapponicum"],["Alpine azalea","Kalmia procumbens"],
+  ["Mountain avens","Geum peckii"],["Alpine goldenrod","Solidago leiocarpa"],["Alpine bilberry","Vaccinium uliginosum"],
+  ["Mountain cranberry","Vaccinium vitis-idaea"],["Cloudberry","Rubus chamaemorus"],
+  /* on summits north and south */
+  ["Three-toothed cinquefoil","Sibbaldia tridentata"],["Mountain sandwort","Minuartia groenlandica"],
+  /* southern balds (Roan Highlands, Grayson Highlands, Max Patch, Big Bald) */
+  ["Catawba rhododendron","Rhododendron catawbiense"],["Flame azalea","Rhododendron calendulaceum"],
+  ["Creeping bluet","Houstonia serpyllifolia"],["Skunk goldenrod","Solidago glomerata"],
+  /* high-elevation and cool-forest indicators, Georgia to Maine */
+  ["Painted trillium","Trillium undulatum"],["Hobblebush","Viburnum lantanoides"],["American mountain-ash","Sorbus americana"],
+  ["Mountain wood-sorrel","Oxalis montana"],["Bluebead lily","Clintonia borealis"],["Bunchberry","Cornus canadensis"]];
 const YEARS = Array.from({length:10}, (_, i) => 2016 + i), MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const $ = s => document.querySelector(s), sleep = ms => new Promise(r => setTimeout(r, ms));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -75,10 +83,14 @@ async function run(){ $('#run').disabled = true; $('#csv').disabled = true; rows
     const V = {'Flowering': pick(13, /^flower(s|ing)$/i), 'Fruiting': pick(14, /fruit/i), 'Flower Budding': pick(15, /bud/i), 'No Evidence of Flowering': pick(21, /^no /i)};
     $('#status').textContent = 'Annotation: ' + ph.label + ' (' + ph.values.map(v => v.label).join(', ') + ')';
     const STAGES = [['budding','Flower Budding'],['flowering','Flowering'],['fruiting','Fruiting'],['no_flowers','No Evidence of Flowering']];
-    for (const [i, [common, sci]] of SPECIES.entries()){
+    for (let [i, [common, sci]] of SPECIES.entries()){
       $('#status').textContent = `${i + 1} of ${SPECIES.length}: ${common}…`;
-      const tx = (await get('taxa', {q:sci, is_active:true, per_page:10})).results.find(t => t.name.toLowerCase() === sci.toLowerCase());
+      const res = (await get('taxa', {q:sci, is_active:true, per_page:10})).results || [];
+      /* exact name first; otherwise a taxon the name is a synonym of (iNaturalist reports it as matched_term) */
+      let tx = res.find(t => t.name.toLowerCase() === sci.toLowerCase()), renamed = '';
+      if (!tx){ tx = res.find(t => (t.matched_term || '').toLowerCase() === sci.toLowerCase()); if (tx) renamed = tx.name; }
       if (!tx){ rows.push({species:common, sci, note:'No exact iNaturalist match'}); draw(); continue; }
+      if (renamed) sci = sci + ' (now ' + renamed + ')';
       const base = {project_id:PROJECT, taxon_id:tx.id, verifiable:true}, count = async extra => (await get('observations', {...base, per_page:0, ...extra})).total_results;
       const r = {species:common, sci, taxon_id:tx.id, records: await count({})};
       for (const [k, lab] of STAGES) r[k] = await count({term_id:ph.id, term_value_id:V[lab]});
