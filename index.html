@@ -1005,7 +1005,9 @@ function phTick(){ let t = document.getElementById('phtick'); const on = S.q.id 
   if (!on){ t.style.display = 'none'; return; } const y = phYear(), A = phAgg(dispLevel()), ys = A.years, span = ys.length ? ys[0] + '–' + String(ys[ys.length - 1]).slice(2) : 'All years';
   let big, small;
   if (S.m.id === 'spread'){ big = y ? 'by ' + y : span; small = y ? 'cells with records so far' : 'year first recorded'; }
-  else { big = y || span; small = (y ? '' : 'All years · ') + esc(wkLabel(S.ph.wk)) + ' · ' + PHWORD[S.m.st()]; }
+  else if (y){ big = y; small = esc(wkLabel(S.ph.wk)) + ' · ' + PHWORD[S.m.st()]; }
+  /* all years together: the week is what changes as it plays, so it is the big line */
+  else { big = esc(wkLabel(S.ph.wk)); small = `all years (${span}) · ${PHWORD[S.m.st()]}`; }
   t.innerHTML = `<b>${big}</b><span>${small}</span>`; t.style.display = 'block'; phTickPos(); }
 /* top left of the map, just below the map controls (which wrap to more rows on a phone or when Map tools opens) */
 function phTickPos(){ const t = document.getElementById('phtick'), c = document.getElementById('ctls'), m = document.getElementById('map'); if (!t || !m) return;
