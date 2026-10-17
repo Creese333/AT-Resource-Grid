@@ -1151,6 +1151,13 @@ function phSection(lv, c){ if (S.q.id !== 'phen') return ''; const sp = phSp(), 
     : k === 'adult' ? 'Research-grade iNaturalist records; adults are those annotated with that life stage, and the dates use them. Records follow observers, so they show when and where it was noticed.'
     : 'Research-grade iNaturalist records of the nematode that causes beech leaf disease, usually photos of the leaf symptoms. Records follow observers, so the first year marks when it was noticed here.';
   return b + `<p class="none" style="font-size:13.5px;margin-top:8px">${note}</p></div>`; }
+/* the Results list for these measures: ranked the way each one reads (earliest dates first, longest seasons, most records that week) */
+function phSum(lv, rows, where){ const m = S.m, n0 = rows.length; if (m.yr === 'wk') rows = rows.filter(r => r[1] > 0);
+  if (!rows.length) return `<p class="statline">None of the ${fmt(n0, 0)} cells with records had any in the three weeks around ${esc(wkDate(S.ph.wk))}${phYear() ? ' in ' + phYear() : ''}. Press Play or pick another week.</p>`;
+  rows.sort((a, b) => m.asc ? a[1] - b[1] || L(a) - L(b) : b[1] - a[1]); function L(r){ return D.levels[lv].mi[r[0]]; }
+  const n = Math.min(50, rows.length), t = typeof m.sumTitle === 'function' ? m.sumTitle() : m.sumTitle;
+  return `<div class="rank"><h3>${esc(t)}${where}<span class="cnt">${rows.length > n ? 'top ' + n : 'all ' + n}</span></h3><ol class="scroll" tabindex="0" aria-label="${esc(t)}, scrollable list">` +
+    rows.slice(0, n).map(r => cellItem(lv, r[0], `<span class="val">${esc(m.showFn(r[1]))}</span>`)).join('') + '</ol></div>'; }
 /* ---------- restoration targets ----------
    Two scores from 0 to 100, worked out here from the other layers. Each factor is scaled 0 to 1 and given points; wetlands take
    points away, since nearby wetlands can limit herbicide use. Counts and acres are scaled by where a cell ranks among the cells of
@@ -1307,20 +1314,20 @@ const Q = [
  {id:'phen', th:'inat', hue:HUE.phen, ramp:'phen', title:'When does it flower here?',
   use:'When indicator plants of the trail’s high country flower and fruit, and when and where two forest pests, emerald ash borer and beech leaf disease, turn up, from research-grade iNaturalist records. The measures are the National Phenology Network’s: when the season starts (first date), peaks and how long it lasts; the share of records in flower week by week along the trail; and whether it is coming earlier or later than usual. Press Play to watch the season move along the trail, all years together or year by year. Records follow hikers, so this shows when people saw something; a blank cell means too few records, not absence',
   m:[{id:'wave', get label(){ const k = phSp().kind; return k === 'plant' ? 'Flowering, week by week' : k === 'adult' ? 'Adults, week by week' : 'Records, week by week'; },
-      yr:'wk', st:() => phMain(), int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'], fn:(lv, c) => phWin(lv, c, phMain()),
+      yr:'wk', st:() => phMain(), hasTxt:() => 'have records of this species', sumFn:phSum, sumTitle:() => `Most ${PHWORD[S.m.st()]} records around ${wkDate(S.ph.wk)}${phYear() ? ', ' + phYear() : ''}`, showFn:v => `${v} ${v === 1 ? 'record' : 'records'}`, int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'], fn:(lv, c) => phWin(lv, c, phMain()),
       colorFn:phWaveCol, legendFn:phWaveLegend, stripTop:lv => phTop(lv, phMain())},
-     {id:'fruit', label:'Fruiting, week by week', yr:'wk', st:() => 2, hideFn:() => phSp().kind !== 'plant', int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'],
+     {id:'fruit', label:'Fruiting, week by week', yr:'wk', st:() => 2, hasTxt:() => 'have records of this species', sumFn:phSum, sumTitle:() => `Most ${PHWORD[S.m.st()]} records around ${wkDate(S.ph.wk)}${phYear() ? ', ' + phYear() : ''}`, showFn:v => `${v} ${v === 1 ? 'record' : 'records'}`, hideFn:() => phSp().kind !== 'plant', int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'],
       fn:(lv, c) => phWin(lv, c, 2), colorFn:phWaveCol, legendFn:phWaveLegend, stripTop:lv => phTop(lv, 2)},
-     {id:'onset', get label(){ return `First ${phNoun()} date`; }, hideFn:() => phSp().kind === 'spread', d:0, none:'Fewer than 5 records', showFn:v => doyDate(v),
+     {id:'onset', get label(){ return `First ${phNoun()} date`; }, hasTxt:() => `have 5 or more ${phNoun()} records, enough to date`, sumFn:phSum, asc:1, sumTitle:() => `Earliest first ${phNoun()} dates`, hideFn:() => phSp().kind === 'spread', d:0, none:'Fewer than 5 records', showFn:v => doyDate(v),
       fn:(lv, c) => { const A = phAgg(lv); return A ? A.on[c] : null; }, colorFn:phDateCol, stripH:v => Math.max(1, v - 60), stripTop:() => 180,
       legendFn:() => phDateLegend(`Onset: the date of the earliest 10% of ${phNoun()} records in each cell, all years together. Cells need 5 or more records; larger cells fill in more.`)},
-     {id:'peak', get label(){ return `Peak ${phNoun()} date`; }, hideFn:() => phSp().kind === 'spread', d:0, none:'Fewer than 5 records', showFn:v => doyDate(v),
+     {id:'peak', get label(){ return `Peak ${phNoun()} date`; }, hasTxt:() => `have 5 or more ${phNoun()} records, enough to date`, sumFn:phSum, asc:1, sumTitle:() => `Earliest peak ${phNoun()} dates`, hideFn:() => phSp().kind === 'spread', d:0, none:'Fewer than 5 records', showFn:v => doyDate(v),
       fn:(lv, c) => { const A = phAgg(lv); return A ? A.pk[c] : null; }, colorFn:phDateCol, stripH:v => Math.max(1, v - 60), stripTop:() => 180,
       legendFn:() => phDateLegend(`Peak: the middle (median) date of the ${phNoun()} records in each cell, all years together. Cells need 5 or more records.`)},
-     {id:'len', get label(){ return phSp().kind === 'adult' ? 'Adult season length' : 'Flowering season length'; }, hideFn:() => phSp().kind === 'spread', d:0, unit:' days', none:'Fewer than 8 records',
-      showFn:v => `${Math.round(v / 7)} weeks`, fn:(lv, c) => { const A = phAgg(lv); return A ? A.len[c] : null; }, colorFn:phLenCol, stripTop:() => 70,
+     {id:'len', get label(){ return phSp().kind === 'adult' ? 'Adult season length' : 'Flowering season length'; }, hasTxt:() => `have 8 or more ${phNoun()} records, enough for a season length`, sumFn:phSum, sumTitle:() => phSp().kind === 'adult' ? 'Longest adult seasons' : 'Longest flowering seasons', hideFn:() => phSp().kind === 'spread', d:0, unit:' days', none:'Fewer than 8 records',
+      showFn:v => `${Math.max(1, Math.round(v / 7))} ${Math.round(v / 7) > 1 ? 'weeks' : 'week'}`, fn:(lv, c) => { const A = phAgg(lv); return A ? A.len[c] : null; }, colorFn:phLenCol, stripTop:() => 70,
       legendFn:() => PHLEN.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">Duration: from the earliest 10% to the latest 10% of ${phNoun()} records in each cell, all years together. Cells need 8 or more records.</p>`},
-     {id:'spread', label:'Year first recorded', yr:'y', hideFn:() => phSp().kind === 'plant', d:0, none:'No records (yet)', showFn:v => 'first recorded ' + v, fn:(lv, c) => phFirst(lv, c), colorFn:phFirstCol,
+     {id:'spread', label:'Year first recorded', yr:'y', hasTxt:() => phYear() ? `had a record by ${phYear()}` : 'have records', sumFn:phSum, asc:1, sumTitle:() => phYear() ? `Recorded by ${phYear()}, earliest first` : 'Recorded earliest', hideFn:() => phSp().kind === 'plant', d:0, none:'No records (yet)', showFn:v => 'first recorded ' + v, fn:(lv, c) => phFirst(lv, c), colorFn:phFirstCol,
       stripH:v => { const A = phAgg('wheel'); return A && A.years.length ? Math.max(.3, A.years[A.years.length - 1] + 1 - v) : 1; }, stripTop:() => { const A = phAgg('wheel'); return A && A.years.length ? A.years.length + 1 : 1; },
       legendFn:lv => PHFIRST.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${phYear(lv) ? 'Cells with a record by ' + phYear(lv) + ', by the year of the first one.' : 'The year of the first record in each cell.'} Bars under the map are taller where it has been known longer.</p>`}]},
  {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s on the trail here?',
@@ -1824,8 +1831,9 @@ function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows =
   let total = 0;
   for (let c = 0; c < n; c++){ if (!inSec(lv, c)) continue; total++; const v = m.get(lv, c); if (v != null) rows.push([c, v]); }
   const where = S.sec === 'all' ? '' : ' in ' + esc(secName());
-  let h = `<p class="statline">${fmt(rows.length,0)} of ${fmt(total,0)} cells${where} ${m.yn ? 'have ' + esc(m.yn) : 'have data for this measure'}.</p>`;
+  let h = `<p class="statline">${fmt(rows.length,0)} of ${fmt(total,0)} cells${where} ${m.hasTxt ? m.hasTxt() : m.yn ? 'have ' + esc(m.yn) : 'have data for this measure'}.</p>`;
   if (!rows.length) return h + '<p class="statline">Nothing to show for this measure here. Try a larger cell size or another section.</p>';
+  if (m.sumFn) return h + m.sumFn(lv, rows, where);
   if (m.yn){ rows.sort((a,b) => L_.mi[a[0]] - L_.mi[b[0]]);
     h += `<div class="rank"><h3>Cells with ${esc(m.yn)}<span class="cnt">${rows.length > 400 ? 'first 400, ' : ''}south to north</span></h3><ol class="scroll" tabindex="0" aria-label="Cells with ${esc(m.yn)}, scrollable list">`;
     rows.slice(0, 400).forEach(r => { h += cellItem(lv, r[0]); });
