@@ -5,6 +5,7 @@ Fetches, for the A.T. corridor (the 49 sq mi grid cells in at_wheel_cells.json):
   - National Register of Historic Places points (National Park Service)
   - Historic sites / points of interest and cemeteries (USGS National Structures Dataset)
   - Cemeteries from OpenStreetMap (Overpass API)
+  - the A.T. administrative area (AT_Lands tract) each record falls in, for the dashboard's Administrative filter
 merges USGS and OpenStreetMap cemeteries (same place within 300 m, or same name within 1.5 km),
 and writes historic_resources.json next to this script. The dashboard reads that file.
 
@@ -26,6 +27,7 @@ SRC = {
     'hs': {'urls': ['https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer/46'], 'fields': 'OBJECTID,NAME,GNIS_ID,ADDRESS,CITY,STATE'},
     'cem': {'urls': ['https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer/37'], 'fields': 'OBJECTID,NAME,GNIS_ID,ADDRESS,CITY,STATE'},
 }
+LANDS = 'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/AT_Lands/FeatureServer/1'
 # public Overpass servers; each stretch tries them in turn
 OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter',
             'https://maps.mail.ru/osm/tools/overpass/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
@@ -51,6 +53,80 @@ def in_ring(la, lo, ring):
             inside = not inside
         j = i
     return inside
+
+
+def in_poly(la, lo, rings):
+    # ArcGIS polygon rings are [x, y]; even-odd over all rings handles holes
+    inside = False
+    for ring in rings:
+        j = len(ring) - 1
+        for i in range(len(ring)):
+            xi, yi = ring[i][0], ring[i][1]; xj, yj = ring[j][0], ring[j][1]
+            if (yi > la) != (yj > la) and lo < (xj - xi) * (la - yi) / (yj - yi) + xi:
+                inside = not inside
+            j = i
+    return inside
+
+
+def lands_query(ch):
+    out, off = [], 0
+    while True:
+        q = urllib.parse.urlencode({'where': '1=1', 'geometry': json.dumps({'xmin': ch['w'], 'ymin': ch['s'], 'xmax': ch['e'], 'ymax': ch['n'], 'spatialReference': {'wkid': 4326}}),
+                                    'geometryType': 'esriGeometryEnvelope', 'inSR': 4326, 'spatialRel': 'esriSpatialRelIntersects', 'outFields': 'ADMIN,TRACT1,LEGEND3',
+                                    'returnGeometry': 'true', 'outSR': 4326, 'geometryPrecision': 6, 'resultOffset': off, 'resultRecordCount': 1000, 'f': 'json'})
+        j = get_json(LANDS + '/query?' + q)
+        if 'error' in j:
+            raise RuntimeError(j['error'].get('message', 'service error'))
+        feats = j.get('features') or []
+        for f in feats:
+            rings = (f.get('geometry') or {}).get('rings') or []
+            if not rings:
+                continue
+            xs = [p[0] for r in rings for p in r]; ys = [p[1] for r in rings for p in r]
+            out.append({'box': (min(ys), max(ys), min(xs), max(xs)), 'rings': rings, 'a': f.get('attributes') or {}})
+        if not j.get('exceededTransferLimit') or not feats:
+            return out
+        off += len(feats)
+
+
+def tag_lands(items, chunks):
+    # each record gets ld (the tract's LEGEND3 class, '' outside every tract), adm and tract; APPA tracts win where tracts overlap
+    def job(ch):
+        try:
+            return ch, lands_query(ch), None
+        except Exception as e:
+            return ch, None, str(e)
+    todo, res = list(chunks), {}
+    for attempt in range(2):
+        with ThreadPoolExecutor(4) as pool:
+            got = list(pool.map(job, todo))
+        todo = []
+        for ch, polys, e in got:
+            if e:
+                todo.append(ch); print(f'   AT_Lands: {e}', flush=True)
+            else:
+                res[id(ch)] = (ch, polys)
+        print(f'A.T. administrative areas: {len(res)} of {len(chunks)} stretches', flush=True)
+        if not todo:
+            break
+        time.sleep(20)
+    if todo:
+        return f'{len(todo)} of {len(chunks)} stretches not reached'
+    for x in items:
+        hits = []
+        for ch, polys in res.values():
+            if not (ch['s'] <= x['la'] <= ch['n'] and ch['w'] <= x['lo'] <= ch['e']):
+                continue
+            for p in polys:
+                b = p['box']
+                if b[0] <= x['la'] <= b[1] and b[2] <= x['lo'] <= b[3] and in_poly(x['la'], x['lo'], p['rings']):
+                    hits.append(p['a'])
+        hits.sort(key=lambda a: 0 if str(a.get('LEGEND3') or '').startswith('FEDERAL LAND - NPS - APPA') else 1)
+        a = hits[0] if hits else {}
+        x['ld'] = str(a.get('LEGEND3') or ('OTHER' if hits else '')).strip()
+        if hits:
+            x['adm'] = str(a.get('ADMIN') or '').strip(); x['tract'] = str(a.get('TRACT1') or '').strip()
+    return None
 
 
 def arc_query(src, ch):
@@ -212,9 +288,12 @@ def main():
     items += merge_cem(list(found['cem'].values()), list(osm.values()))
     for x in items:
         x['la'] = round(x['la'], 5); x['lo'] = round(x['lo'], 5)
-    if len(err) == 4:
+    if all(k in err for k in ('nr', 'hs', 'cem', 'osm')):
         sys.exit('Every source failed; keeping the existing file. ' + json.dumps(err))
-    json.dump({'at': int(time.time() * 1000), 'items': items, 'err': err}, open(OUT, 'w'), separators=(',', ':'))
+    le = tag_lands(items, chunks)
+    if le:
+        err['lands'] = le
+    json.dump({'at': int(time.time() * 1000), 'items': items, 'err': err, 'lands': not le}, open(OUT, 'w'), separators=(',', ':'))
     counts = {t: sum(1 for x in items if x['t'] == t) for t in ('nr', 'hs', 'cem')}
     print('wrote', OUT, counts, 'errors:', err or 'none')
 
