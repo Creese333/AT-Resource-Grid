@@ -27,13 +27,15 @@ SRC = {
 }
 LANDS = 'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/AT_Lands/FeatureServer/1'
 OSM_TIMEOUT = 45          # seconds per Overpass request
+ARC_BUDGET = 15 * 60      # National Register: stop after this many seconds (that source is then marked incomplete)
+LANDS_BUDGET = 10 * 60    # administrative-area lookup: stop after this many seconds (the scale filter is then left off)
 OSM_BUDGET = 20 * 60      # all OpenStreetMap work stops after this many seconds; stretches left keep the previous file's cemeteries
 # public Overpass servers; each stretch tries them in turn
 OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter',
             'https://maps.mail.ru/osm/tools/overpass/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
 
 
-def get_json(url, data=None, tries=3, timeout=90):
+def get_json(url, data=None, tries=2, timeout=45):
     for k in range(tries):
         try:
             req = urllib.request.Request(url, data=data, headers=UA)
@@ -91,7 +93,10 @@ def lands_query(ch):
 
 def tag_lands(items, chunks):
     # each record gets ld (the tract's LEGEND3 class, '' outside every tract), adm and tract; APPA tracts win where tracts overlap
+    stop = time.time() + LANDS_BUDGET
     def job(ch):
+        if time.time() > stop:
+            return ch, None, 'time budget used up'
         try:
             return ch, lands_query(ch), None
         except Exception as e:
@@ -239,8 +244,11 @@ def main():
     found = {'nr': {}}; osm = {}; err = {}
     def inside(ch, p):
         return any(in_ring(p['la'], p['lo'], r) for r in ch['rings'])
+    arc_stop = time.time() + ARC_BUDGET
     def arc_job(args):
         k, n, ch = args
+        if time.time() > arc_stop:
+            return k, ch, [], 'time budget used up'
         try:
             return k, ch, arc_query(SRC[k], ch), None
         except Exception as e:
