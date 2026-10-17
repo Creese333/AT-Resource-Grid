@@ -1177,10 +1177,15 @@ function phSection(lv, c){ const sp = phSp(), A = phAgg(lv), k = sp.kind;
   if (!A && S.q.id !== 'phen') return `<div class="sec" style="--hue:${HUE.phen}"><h3>Flowering</h3><p class="none">Open “When does it flower here?” and pick a species to load its flowering records; this section then shows them for any cell.</p></div>`;
   let b = `<div class="sec" style="--hue:${HUE.phen}"><h3>Flowering</h3><p style="margin:0 0 6px"><b>${esc(sp.common)}</b> <i style="color:var(--muted)">${esc(sp.sci)}</i></p>`;
   if (!A) return b + `<p class="none">${phStatus()}</p></div>`;
-  if (!A.any[c]) return b + '<p class="none">No records of this species in this cell.</p></div>';
+  /* c is one cell, or an array of cells for a box or multi-cell selection: weekly counts are added, dates pool the cells' records */
+  const cs = Array.isArray(c) ? c : [c], many = cs.length > 1;
+  if (!cs.some(x => A.any[x])) return b + `<p class="none">No records of this species in ${many ? 'the selected cells' : 'this cell'}.</p></div>`;
+  const ms = phMain(sp), pool = cs.flatMap(x => (A.d[ms].get(x) || []).map(p => p[0])).sort((p, q) => p - q), NM = pool.length;
+  const ON = NM >= PHMIN ? phPct(pool, .1) : null, PK = NM >= PHMIN ? phMed(pool) : null, END = NM >= PHMIN ? phPct(pool, .9) : null, LEN = NM >= PHMINLEN ? END - ON : null;
+  const FIRST = Math.min(...cs.map(x => A.first[x]).filter(v => v != null));
   const SER = k === 'plant' ? [[3, 'In bud', '#9CCB6B'], [1, 'Flowering', RAMP.phen[3]]] : k === 'adult' ? [[5, 'All records', '#8FA3B8'], [4, 'Adults', '#F08A5D']] : [[5, 'Records', '#C98B6B']];
   const stack = k === 'plant', yy = S.m.yr === 'wk' ? phSelText(lv) : '';
-  const at = (s, w) => A.w[s][c*53 + w], aty = (s, w) => { const a = yy ? phArr(lv, s) : null; return a ? a[c*53 + w] : 0; }, tot = {}, ytot = {};
+  const at = (s, w) => cs.reduce((t, x) => t + A.w[s][x*53 + w], 0), aty = (s, w) => { const a = yy ? phArr(lv, s) : null; return a ? cs.reduce((t, x) => t + a[x*53 + w], 0) : 0; }, tot = {}, ytot = {};
   let mx = 1; for (let w = 1; w <= 52; w++){ let t = 0; SER.forEach(([s]) => { tot[s] = (tot[s] || 0) + at(s, w); ytot[s] = (ytot[s] || 0) + aty(s, w); t = stack ? t + at(s, w) : Math.max(t, at(s, w)); }); mx = Math.max(mx, t); }
   const W = 300, H = 64, bw = W / 52; let svg = `<svg viewBox="0 0 ${W} ${H + 14}" width="100%" role="img" aria-label="Records by week">`;
   for (let w = 1; w <= 52; w++){ const x = (w - 1) * bw, get = yy ? aty : at;
@@ -1192,15 +1197,15 @@ function phSection(lv, c){ const sp = phSp(), A = phAgg(lv), k = sp.kind;
   ['Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'].forEach((m, i) => { const w = [9,14,18,22,27,31,35,40][i]; svg += `<text x="${(w - 1) * bw}" y="${H + 12}" font-size="9" fill="#A8B8CA">${m}</text>`; });
   b += svg + '</svg><div class="keys" style="margin-top:6px">' + SER.map(([s, lab, col]) => `<div><i style="background:${col}"></i><span>${lab} records${yy ? ', ' + yy : ''}</span><span>${yy ? fmt(ytot[s], 0) + ' of ' : ''}${fmt(tot[s], 0)}</span></div>`).join('') +
     (yy ? '<div><i style="background:#A8B8CA;opacity:.5"></i><span>All years</span><span></span></div>' : '') + '</div>';
-  const noun = phNoun(), few = need => `too few records (${A.nm[c]}; needs ${need})`;
+  const noun = phNoun(), few = need => `too few records (${NM}; needs ${need})`;
   b += '<div class="keys nosw" style="margin-top:6px">' + (k === 'spread' ? '' :
-      soilRow(`First ${noun} date`, A.on[c] == null ? few(PHMIN) : doyDate(A.on[c])) + soilRow(`Peak ${noun} date`, A.pk[c] == null ? few(PHMIN) : doyDate(A.pk[c])) +
-      soilRow(`${noun === 'adult' ? 'Adult' : 'Flowering'} season length`, A.len[c] == null ? few(PHMINLEN) : `${Math.round(A.len[c] / 7)} weeks (${doyDate(A.on[c])} to ${doyDate(A.end[c])})`)) +
-    soilRow('First recorded here', String(A.first[c])) + '</div>';
+      soilRow(`First ${noun} date`, ON == null ? few(PHMIN) : doyDate(ON)) + soilRow(`Peak ${noun} date`, PK == null ? few(PHMIN) : doyDate(PK)) +
+      soilRow(`${noun === 'adult' ? 'Adult' : 'Flowering'} season length`, LEN == null ? few(PHMINLEN) : `${Math.round(LEN / 7)} weeks (${doyDate(ON)} to ${doyDate(END)})`)) +
+    soilRow(many ? 'First recorded in these cells' : 'First recorded here', String(FIRST)) + '</div>';
   const note = k === 'plant' ? 'Research-grade iNaturalist records with a flower buds or flowers annotation. Dates pool every year: first is the earliest 10% of flowering records, peak the middle, and the season runs to the latest 10%. Records follow hikers, so they show when people saw it, not how much there is.'
     : k === 'adult' ? 'Research-grade iNaturalist records; adults are those annotated with that life stage, and the dates use them. Records follow observers, so they show when and where it was noticed.'
     : 'Research-grade iNaturalist records of the nematode that causes beech leaf disease, usually photos of the leaf symptoms. Records follow observers, so the first year marks when it was noticed here.';
-  return b + `<p class="none" style="font-size:13.5px;margin-top:8px">${note}</p></div>`; }
+  return b + `<p class="none" style="font-size:13.5px;margin-top:8px">${many ? 'Combined from the selected cells: weekly records are added, and the dates pool all their records. ' : ''}${note}</p></div>`; }
 /* the Results list for these measures: ranked the way each one reads (earliest dates first, longest seasons, most records that week) */
 function phSum(lv, rows, where){ const m = S.m, n0 = rows.length; if (m.yr === 'wk') rows = rows.filter(r => r[1] > 0);
   if (!rows.length) return `<p class="statline">None of the ${fmt(n0, 0)} cells with records had any in the three weeks around ${esc(wkDate(S.ph.wk))}${phYear() ? ' in ' + phYear() : ''}. Press Play or pick another week.</p>`;
@@ -1304,10 +1309,12 @@ const histBlock = () => `<p class="phstat" id="histstat" role="status" style="ma
 function histSection(lv, c){ const A = hAgg(lv);
   let b = `<div class="sec" style="--hue:${HUE.hist}"><h3>Historic resources</h3>`;
   if (!A) return b + `<p class="none">${HIST && HIST.st === 'loading' ? histStatus() : 'Open “Where are the historic resources?” to load the National Register, USGS historic sites and cemeteries; this section then lists them for any cell.'}</p></div>`;
-  const ids = A.list.get(c) || []; if (!ids.length) return b + '<p class="none">No National Register properties, USGS historic sites or cemeteries recorded in this cell.</p></div>';
+  /* c is one cell, or an array of cells for a box or multi-cell selection */
+  const cs = Array.isArray(c) ? c : [c], many = cs.length > 1, ids = cs.flatMap(x => A.list.get(x) || []);
+  if (!ids.length) return b + `<p class="none">No National Register properties, USGS historic sites or cemeteries recorded in ${many ? 'the selected cells' : 'this cell'}.</p></div>`;
   const it = ids.map(i => HIST.items[i]), grp = t => it.filter(x => x.t === t).sort((p, q) => p.nm.localeCompare(q.nm));
   const NR = grp('nr'), HS = grp('hs'), CM = grp('cem');
-  b += `<div class="facts"><div><b>${NR.length || 'None'}</b>National Register</div><div><b>${HS.length || 'None'}</b>historic sites</div><div><b>${CM.length || 'None'}</b>cemeteries</div></div>`;
+  b += `<div class="facts"><div><b>${NR.length || 'None'}</b>National Register</div><div><b>${HS.length || 'None'}</b>historic sites</div><div><b>${CM.length || 'None'}</b>cemeteries</div></div>` + (many ? `<p class="none" style="font-size:13.5px;margin:6px 0 0">In ${cs.filter(x => (A.list.get(x) || []).length).length} of the ${cs.length} selected cells.</p>` : '');
   const li = (x, extra) => `<li><span>${esc(x.nm || 'Unnamed')}</span><em>${extra}</em></li>`;
   if (NR.length) b += `<p style="margin:8px 0 0">National Register of Historic Places</p><ul class="flist hlist">` + NR.map(x => li(x, [x.a.type, x.a.listed ? 'listed ' + x.a.listed.slice(0, 4) : '', x.a.nhl ? '<b>National Historic Landmark</b>' : '',
     x.a.refnum ? `<a href="https://npgallery.nps.gov/AssetDetail/NRIS/${encodeURIComponent(x.a.refnum)}" target="_blank" rel="noopener">NPGallery</a>` : '', x.a.nara ? `<a href="${esc(x.a.nara)}" target="_blank" rel="noopener">nomination</a>` : ''].filter(Boolean).join(' · '))).join('') + '</ul>';
@@ -2690,6 +2697,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
       b += '<p class="none" style="font-size:13.5px;margin-top:8px">Generalized to the cells from tract records. Not a boundary determination, and not a record of who administers any given spot.</p>';
     } else b += '<p class="none">No land records summarized for the selected cells.</p>';
     b += '</div>'; }
+  b += phSection(lv, cells) + histSection(lv, cells);
   finishProfile(b); inatLive(cells.map(c => ring(lv, c)), lv + ':' + cells.join(',')); }
 
 /* Wetlands (USFWS National Wetlands Inventory): acres in the whole cell, by NWI type and Cowardin class, and on A.T. lands. */
