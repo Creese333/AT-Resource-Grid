@@ -1119,10 +1119,10 @@ function phCalendar(){ const sp = phSp(), A = phAgg('wheel'); if (!A || sp.kind 
 /* Earlier or later than usual, by year: each record's days from its cell's usual date; a year's value is the median of those
    (10 or more records), with a centered 3-year average; plus 2021–25 against 2016–20 (20 or more records in each) */
 function phTrend(){ const A = phAgg('wheel'), R = phResid(); if (!A || !R || A.years.length < 2) return ''; const rng = secRange();
-  const rs = R.filter(r => !rng || (r[3] >= rng[0] && r[3] <= rng[1])), ys = A.years, by = new Map();
+  const rs = R.filter(r => !rng || (r[3] >= rng[0] && r[3] <= rng[1])), by = new Map(); let ys = A.years;
   rs.forEach(r => { if (!by.has(r[0])) by.set(r[0], []); by.get(r[0]).push(r[1]); });
-  const ann = ys.map(y => { const a = by.get(y) || []; return {y, v:a.length >= 10 ? phMed(a) : null, k:a.length}; });
-  const sm = ann.map((p, i) => { const w = ann.slice(Math.max(0, i - 1), i + 2).filter(q => q.v != null); return {y:p.y, v:w.length >= 2 ? w.reduce((t, q) => t + q.v, 0) / w.length : null}; });
+  let ann = ys.map(y => { const a = by.get(y) || []; return {y, v:a.length >= 10 ? phMed(a) : null, k:a.length}; });
+  let sm = ann.map((p, i) => { const w = ann.slice(Math.max(0, i - 1), i + 2).filter(q => q.v != null); return {y:p.y, v:w.length >= 2 ? w.reduce((t, q) => t + q.v, 0) / w.length : null}; });
   const early = rs.filter(r => r[0] >= 2016 && r[0] <= 2020).map(r => r[1]), late = rs.filter(r => r[0] >= 2021 && r[0] <= 2025).map(r => r[1]);
   /* where the compared records come from: main-stage records in corridor cells, then 2016-2025, then cells with a usual date */
   let nAll = 0, nYrs = 0; for (const [c, L] of A.d[phMain()]){ const mi = D.levels.wheel.mi[c]; if (rng && (mi < rng[0] || mi > rng[1])) continue; nAll += L.length; nYrs += L.filter(p => p[1] >= 2016 && p[1] <= 2025).length; }
@@ -1133,11 +1133,14 @@ function phTrend(){ const A = phAgg('wheel'), R = phResid(); if (!A || !R || A.y
     : `<p class="phbig">${esc(phSp().common)} is ${phNoun() === 'adult' ? 'out as adults' : 'flowering'} <b>${cmp === 0 ? 'at about the same time' : phDays(cmp)}</b> in 2021–25 compared with 2016–20${S.sec === 'all' ? '' : ' in ' + esc(secName())} <span>(${fmt(late.length, 0)} and ${fmt(early.length, 0)} records)</span></p>`;
   head += flow;
   if (ann.filter(p => p.v != null).length < 2) return head + '<p class="phstat">Not enough records to chart single years here: a year needs 10 or more records in cells with a usual date.</p>';
+  /* the chart runs from the first to the last year with enough records here, so each species and section shows its own record span */
+  { const ok = ann.filter(p => p.v != null).map(p => p.y), y0 = ok[0], y1 = ok[ok.length - 1], inR = p => p.y >= y0 && p.y <= y1;
+    ys = ys.filter(y => y >= y0 && y <= y1); ann = ann.filter(inR); sm = sm.filter(inR); }
   let mx = 7; ann.forEach(p => { if (p.v != null) mx = Math.max(mx, Math.abs(p.v)); }); mx = Math.min(40, Math.ceil(mx / 7) * 7);
   const W = 320, H = 140, pl = 26, pr = 6, pt = 14, pb = 18, pw = W - pl - pr, ph = H - pt - pb, step = pw / Math.max(1, ys.length - 1);
   const X = y => pl + step * (y - ys[0]), Y = v => pt + ph / 2 - (ph / 2) * Math.max(-mx, Math.min(mx, v)) / mx, f = v => v.toFixed(1), sel = S.m.yr ? phYear() : 0, col = phSp().kind === 'adult' ? '#F08A5D' : '#F2C200';
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Days earlier or later than usual by year">`;
-  if (sel) g += `<rect x="${f(X(sel) - step / 2)}" y="${pt}" width="${f(step)}" height="${ph}" fill="#fff" opacity=".1"/>`;
+  if (sel && ys.includes(sel)) g += `<rect x="${f(X(sel) - step / 2)}" y="${pt}" width="${f(step)}" height="${ph}" fill="#fff" opacity=".1"/>`;
   [mx, mx / 2, -mx / 2, -mx].forEach(v => { g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${v > 0 ? '+' : '−'}${Math.abs(Math.round(v))}</text>`; });
   g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(0))}" y2="${f(Y(0))}" stroke="#E3EAF2" stroke-dasharray="3 3" stroke-width=".8"/><text x="${pl - 3}" y="${f(Y(0) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">0</text>`;
   g += `<text x="${pl + 3}" y="${pt - 4}" font-size="9" fill="#A8B8CA">▲ Later</text><text x="${pl + 3}" y="${pt + ph - 3}" font-size="9" fill="#A8B8CA">▼ Earlier</text>`;
