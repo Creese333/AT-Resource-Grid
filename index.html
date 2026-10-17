@@ -1252,9 +1252,16 @@ function histMergeCem(us, os){ const out = us.map(u => ({t:'cem', nm:u.a.NAME ||
     if (best >= 0){ used.add(best); const u = out[best]; u.a.source = 'USGS and OpenStreetMap'; u.a.osm = o.id; if (!u.nm && nm) u.nm = nm; if (o.tags.denomination) u.a.denomination = o.tags.denomination; }
     else out.push({t:'cem', nm, la:o.la, lo:o.lo, a:{source:'OpenStreetMap', osm:o.id, denomination:o.tags.denomination || '', operator:o.tags.operator || ''}}); });
   return out; }
+/* First choice: historic_resources.json beside this page (built monthly on GitHub); then this browser's saved copy; last, live from the services */
+const HISTFILE = 'historic_resources.json';
 function histLoad(force){ if (HIST && (HIST.st === 'loading' || (HIST.st === 'done' && !force))) return;
-  if (!force){ try { const x = JSON.parse(localStorage.getItem(HISTKEY)); if (x && Array.isArray(x.items) && Date.now() - x.at < HISTKEEP){ HIST = {st:'done', items:x.items, at:x.at, err:x.err || {}}; return; } } catch (e) {} }
-  const chunks = histChunks(); HIST = {st:'loading', items:[], done:0, total:chunks.length, err:{}};
+  HIST = {st:'loading', items:[], done:0, total:0, err:{}};
+  (async () => {
+    if (!force){ try { const r = await fetch(HISTFILE, {cache:'no-cache'}); if (r.ok){ const x = await r.json(); if (x && Array.isArray(x.items) && x.items.length){ HIST = {st:'done', items:x.items, at:x.at, err:x.err || {}, from:'file'}; histDone(); return; } } } catch (e) {}
+      try { const x = JSON.parse(localStorage.getItem(HISTKEY)); if (x && Array.isArray(x.items) && Date.now() - x.at < HISTKEEP){ HIST = {st:'done', items:x.items, at:x.at, err:x.err || {}, from:'saved'}; histDone(); return; } } catch (e) {} }
+    histLive(); })(); }
+function histDone(){ for (const k in HAGG) delete HAGG[k]; if (S.q.id === 'hist'){ BRK.clear(); redraw(); } else histStatusOnly(); }
+function histLive(){ const chunks = histChunks(); HIST = {st:'loading', items:[], done:0, total:chunks.length, err:{}}; histStatusOnly();
   (async () => { const nr = new Map(), hs = new Map(), us = new Map(), os = new Map(), inCorr = (ch, p) => ch.rings.some(r => inRingLL(p.la, p.lo, r));
     for (const ch of chunks){
       const jobs = [['nr', HISTSRC.nr, nr], ['hs', HISTSRC.hs, hs], ['cem', HISTSRC.cem, us]].map(async ([k, src, M]) => {
@@ -1267,11 +1274,15 @@ function histLoad(force){ if (HIST && (HIST.st === 'loading' || (HIST.st === 'do
     hs.forEach(p => items.push({t:'hs', nm:p.a.NAME || '', la:p.la, lo:p.lo, a:{gnis_id:p.a.GNIS_ID || '', address:p.a.ADDRESS || '', city:p.a.CITY || '', state:p.a.STATE || ''}}));
     histMergeCem([...us.values()], [...os.values()]).forEach(x => items.push(x));
     items.forEach(x => { x.la = Math.round(x.la * 1e5) / 1e5; x.lo = Math.round(x.lo * 1e5) / 1e5; });
-    HIST = {st:'done', items, at:Date.now(), err:HIST.err};
+    HIST = {st:'done', items, at:Date.now(), err:HIST.err, from:'live'};
     if (Object.keys(HIST.err).length < 4) try { localStorage.setItem(HISTKEY, JSON.stringify({at:HIST.at, items, err:HIST.err})); } catch (e) {}
     for (const k in HAGG) delete HAGG[k]; if (S.q.id === 'hist'){ BRK.clear(); redraw(); } })()
   .catch(e => { HIST = {st:'error', msg:e.message, items:[], err:{}}; if (S.q.id === 'hist') side(); }); }
-function histRefresh(){ try { localStorage.removeItem(HISTKEY); } catch (e) {} for (const k in HAGG) delete HAGG[k]; HIST = null; histLoad(true); side(); }
+function histRefresh(){ try { localStorage.removeItem(HISTKEY); } catch (e) {} for (const k in HAGG) delete HAGG[k]; HIST = null; histLoad(); side(); }
+/* save what was just loaded live as historic_resources.json, to put beside index.html on GitHub */
+function histSave(){ if (!HIST || HIST.st !== 'done') return; const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({at:HIST.at, items:HIST.items, err:HIST.err})], {type:'application/json'})); a.download = HISTFILE; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-histsave]')) histSave(); });
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-histref]')) histRefresh(); });
 /* items by cell at a size: counts by kind and the list of items in each cell */
 function hAgg(lv){ if (!HIST || HIST.st !== 'done') return null; if (HAGG[lv] && HAGG[lv].lev === D.levels[lv]) return HAGG[lv];
@@ -1279,12 +1290,14 @@ function hAgg(lv){ if (!HIST || HIST.st !== 'done') return null; if (HAGG[lv] &&
   HIST.items.forEach((x, i) => { const c = phCell(lv, x.la, x.lo); if (c < 0) return; A[x.t][c]++; A.any[c]++; if (!A.list.has(c)) A.list.set(c, []); A.list.get(c).push(i); });
   return A; }
 const hCount = (lv, c, k) => { const A = hAgg(lv); return A ? A[k][c] : null; };
-function histStatus(){ if (!HIST || HIST.st === 'loading') return `Loading historic resources along the trail from the National Park Service, USGS and OpenStreetMap…${HIST && HIST.total ? ` stretch ${HIST.done} of ${HIST.total}` : ''} The first load takes a minute or two; it is then kept in this browser for 30 days.`;
+function histStatus(){ if (!HIST || HIST.st === 'loading') return HIST && HIST.total ? `${HISTFILE} was not found, so loading live from the National Park Service, USGS and OpenStreetMap… stretch ${HIST.done} of ${HIST.total}. This takes a minute or two; it is then kept in this browser for 30 days.` : 'Loading historic resources…';
   if (HIST.st === 'error') return `Could not load (${esc(HIST.msg || 'error')}). <button type="button" data-histref="1">Try again</button>`;
   const n = t => HIST.items.filter(x => x.t === t).length, both = HIST.items.filter(x => x.t === 'cem' && /and/.test(x.a.source)).length;
   const errs = Object.keys(HIST.err || {}).map(k => ({nr:'National Register', hs:'USGS historic sites', cem:'USGS cemeteries', osm:'OpenStreetMap'})[k]);
-  return `${fmt(n('nr'), 0)} National Register properties, ${fmt(n('hs'), 0)} USGS historic sites and ${fmt(n('cem'), 0)} cemeteries (${fmt(both, 0)} in both USGS and OpenStreetMap, counted once) in corridor cells. Loaded ${new Date(HIST.at).toLocaleDateString('en-US')}.` +
-    (errs.length ? ` <b>Not reached: ${esc(errs.join(', '))}</b>; those counts are incomplete.` : '') + ` <button type="button" data-histref="1">Refresh</button>`; }
+  const when = new Date(HIST.at).toLocaleDateString('en-US');
+  return `${fmt(n('nr'), 0)} National Register properties, ${fmt(n('hs'), 0)} USGS historic sites and ${fmt(n('cem'), 0)} cemeteries (${fmt(both, 0)} in both USGS and OpenStreetMap, counted once) in corridor cells. ` +
+    (HIST.from === 'file' ? `From ${HISTFILE}, built ${when}.` : `Loaded live ${when}. <button type="button" data-histsave="1">Save as ${HISTFILE}</button> to put beside index.html on GitHub for fast loading.`) +
+    (errs.length ? ` <b>Not reached: ${esc(errs.join(', '))}</b>; those counts are incomplete.` : '') + (HIST.from === 'file' ? '' : ` <button type="button" data-histref="1">Refresh</button>`); }
 function histStatusOnly(){ const e = document.getElementById('histstat'); if (e) e.innerHTML = histStatus(); }
 const histBlock = () => `<p class="phstat" id="histstat" role="status" style="margin:2px 0 10px">${histStatus()}</p>`;
 /* the cell panel section */
