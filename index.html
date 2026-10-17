@@ -767,7 +767,7 @@ const RAMP = {
   feat:['#2E9A3E','#227E33','#196629','#114F20','#0A3816'],
   wet:['#D2F1F7','#9EE0EE','#5CC8DF','#1FA9C9','#0E6680'],
   rest:['#EDB8B3','#DB8580','#C2525A','#9E2B3A','#651425'],
-  phen:['#E9F3C9','#CFE58F','#AFD155','#8DB600','#557000']
+  phen:['#FFF06A','#FFE014','#F2C200','#C99A00','#8A6800']
 };
 const ZERO = '#E3E7E1';
 const CATCOL = {
@@ -803,7 +803,7 @@ CATCOL.APPA_YN = [['NPS - APPA land', '#1C58A8']]; D.cats.APPA_YN = ['NPS - APPA
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 const ADMINCOL = ['#24475F','#819FB4','#C9D6DE','#E6E9E4'];
 /* Blue Ridge color scheme */
-const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#D9A23A', soil:'#A8743F', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#9E2B3A', phen:'#8DB600'};
+const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#D9A23A', soil:'#A8743F', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#9E2B3A', phen:'#B8920A'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -938,11 +938,11 @@ function phSection(lv, c){ if (S.q.id !== 'phen') return ''; const sp = phSp(), 
   const W = 300, H = 64, bw = W / 52; let svg = `<svg viewBox="0 0 ${W} ${H + 14}" width="100%" role="img" aria-label="Flowering and fruiting records by week">`;
   for (let w = 1; w <= 52; w++){ const f = A.fl[c*53 + w], r = A.fr[c*53 + w], x = (w - 1) * bw, hf = H * f / mx, hr = H * r / mx;
     if (f) svg += `<rect x="${x}" y="${H - hf}" width="${bw - .6}" height="${hf}" fill="${RAMP.phen[3]}"><title>${wkLabel(w)}: ${f} flowering</title></rect>`;
-    if (r) svg += `<rect x="${x}" y="${H - hf - hr}" width="${bw - .6}" height="${hr}" fill="#C9772B"><title>${wkLabel(w)}: ${r} fruiting</title></rect>`; }
+    if (r) svg += `<rect x="${x}" y="${H - hf - hr}" width="${bw - .6}" height="${hr}" fill="#8E5BB5"><title>${wkLabel(w)}: ${r} fruiting</title></rect>`; }
   if (S.m.id === 'wave' || S.m.id === 'fruit') svg += `<rect x="${(S.ph.wk - 2) * bw}" y="0" width="${bw * 3}" height="${H}" fill="#fff" opacity=".12"/>`;
   ['Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'].forEach((m, i) => { const w = [9,14,18,22,27,31,35,40][i]; svg += `<text x="${(w - 1) * bw}" y="${H + 12}" font-size="9" fill="#A8B8CA">${m}</text>`; });
   b += svg + '</svg>';
-  b += `<div class="keys" style="margin-top:6px"><div><i style="background:${RAMP.phen[3]}"></i><span>Flowering records</span><span>${fmt(fl, 0)}</span></div><div><i style="background:#C9772B"></i><span>Fruiting records</span><span>${fmt(fr, 0)}</span></div></div>`;
+  b += `<div class="keys" style="margin-top:6px"><div><i style="background:${RAMP.phen[3]}"></i><span>Flowering records</span><span>${fmt(fl, 0)}</span></div><div><i style="background:#8E5BB5"></i><span>Fruiting records</span><span>${fmt(fr, 0)}</span></div></div>`;
   b += '<div class="keys nosw" style="margin-top:6px">' + soilRow('Typical flowering week', A.med[c] == null ? 'too few records' : 'week of ' + wkDate(Math.round(A.med[c]))) +
     soilRow('Change since 2016–20', A.shift[c] == null ? `too few records (${A.nE[c]} and ${A.nL[c]})` : (A.shift[c] === 0 ? 'no change' : `${Math.abs(A.shift[c])} days ${A.shift[c] < 0 ? 'earlier' : 'later'}`) + ` (${A.nE[c]} and ${A.nL[c]} records)`) + '</div>';
   return b + '<p class="none" style="font-size:13.5px;margin-top:8px">Research-grade iNaturalist records with a flowers or fruits annotation. Records follow hikers, so counts show when people saw it in bloom, not how much there is. Change compares median flowering weeks and needs 3 or more records in each period.</p></div>'; }
@@ -1134,7 +1134,7 @@ const Q = [
   m:[{id:'tier', label:'Unique Species', kind:'cat', f:'review_tie'}]}
 ];
 for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
-{ const ord = ['rest','phen','veg','inv','bird','pri','soil','wet','feat','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','veg','inv','bird','pri','soil','wet','feat','eff','land','phen']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
