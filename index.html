@@ -1255,13 +1255,17 @@ const histOsmCem = os => os.map(o => ({t:'cem', nm:o.tags.name || '', la:o.la, l
   fag:String(o.tags['ref:find_a_grave'] || '').replace(/\D/g, ''), wikidata:o.tags.wikidata || ''}}));
 /* First choice: historic_resources.json beside this page (built monthly on GitHub); then this browser's saved copy; last, live from the services */
 const HISTFILE = 'historic_resources.json';
-function histLoad(force){ if (HIST && (HIST.st === 'loading' || (HIST.st === 'done' && !force))) return;
+/* fileOnly: the cell panel asks for the file alone and never starts the slow live load */
+let HISTNOFILE = false;
+function histLoad(force, fileOnly){ if (HIST && (HIST.st === 'loading' || (HIST.st === 'done' && !force))) return; if (fileOnly && HISTNOFILE) return;
   HIST = {st:'loading', items:[], done:0, total:0, err:{}};
   (async () => {
     if (!force){ try { const r = await fetch(HISTFILE, {cache:'no-cache'}); if (r.ok){ const x = await r.json(); if (x && Array.isArray(x.items) && x.items.length){ HIST = {st:'done', items:x.items.filter(i => i.t !== 'hs'), at:x.at, err:x.err || {}, from:'file', lands:!!x.lands, scope:x.scope || 'corridor'}; histDone(); return; } } } catch (e) {}
       try { const x = JSON.parse(localStorage.getItem(HISTKEY)); if (x && Array.isArray(x.items) && Date.now() - x.at < HISTKEEP){ HIST = {st:'done', items:x.items, at:x.at, err:x.err || {}, from:'saved'}; histDone(); return; } } catch (e) {} }
+    if (fileOnly){ HIST = null; HISTNOFILE = true; histPanel(); return; }
     histLive(); })(); }
-function histDone(){ for (const k in HAGG) delete HAGG[k]; if (S.q.id === 'hist'){ BRK.clear(); redraw(); } else histStatusOnly();
+const histPanel = () => { if (S.q.id !== 'hist' && (S.cell != null || S.box)) profile(); };
+function histDone(){ for (const k in HAGG) delete HAGG[k]; if (S.q.id === 'hist'){ BRK.clear(); redraw(); } else { histStatusOnly(); histPanel(); }
   LIVE.forEach(l => { if (l.local && l.on) liveLoad(l); }); }
 /* Administrative filter, three scales: the HUC10 shell (every record, shown on the watershed cells), the A.T. corridor (records inside a tract
    of the A.T. administrative areas layer) and APPA lands (records on NPS – APPA tracts). Each record's tract is looked up when
@@ -1334,7 +1338,8 @@ const histFag = x => { const u = histFagUrl(x); return u ? `<a href="${esc(u)}" 
 /* the cell panel section */
 function histSection(lv, c){ const A = hAgg(lv);
   let b = `<div class="sec" style="--hue:${HUE.hist}"><h3>Historic resources</h3>`;
-  if (!A) return b + `<p class="none">${HIST && HIST.st === 'loading' ? histStatus() : 'Open “Where are the historic resources?” to load the National Register and cemeteries; this section then lists them for any cell.'}</p></div>`;
+  if (!A && !HIST) histLoad(false, true);   // load historic_resources.json for the panel, whatever the question
+  if (!A) return b + `<p class="none">${HIST && HIST.st === 'loading' ? 'Loading historic resources…' : HIST && HIST.st === 'error' ? histStatus() : 'Open “Where are the historic resources?” to load the National Register and cemeteries; this section then lists them for any cell.'}</p></div>`;
   /* c is one cell, or an array of cells for a box or multi-cell selection */
   const cs = Array.isArray(c) ? c : [c], many = cs.length > 1, ids = cs.flatMap(x => A.list.get(x) || []);
   if (histAdmOn()) b += `<p class="none" style="font-size:13.5px;margin:0 0 6px">Administrative filter: ${esc(histAdmText())} only.</p>`;
