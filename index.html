@@ -499,7 +499,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Vegetation</td><td>NPS vegetation map for the A.T., by mapped vegetation type</td><td>The map stops at the edge of the surveyed lands, so most cells are only partly covered.</td></tr>
       <tr><td>iNaturalist</td><td>Research-grade records, <span class="run"></span></td><td>Records follow people. Few records means few visits, not few species.</td></tr>
       <tr><td>eBird</td><td>Checklists, <span class="run"></span></td><td>Same caution. Thinly sampled cells are faded on the bird maps.</td></tr>
-      <tr><td>Trail features</td><td>A.T. facilities inventory (NPS and ATC)</td><td>Shelters, campsites, privies, parking, bridges, vistas, side trails and maintained landscapes placed in each cell, with miles of A.T. Removed, closed and grown-in features are left out. Trail structures such as waterbars and steps are recorded by maintainer section and estimated for each cell from its share of the trail miles.</td></tr>
+      <tr><td>Facilities and landscapes</td><td>A.T. facilities inventory (NPS and ATC)</td><td>Shelters, campsites, privies, parking, bridges, vistas, side trails and maintained landscapes placed in each cell, with miles of A.T. Removed, closed and grown-in features are left out. Trail structures such as waterbars and steps are recorded by maintainer section and estimated for each cell from its share of the trail miles.</td></tr>
       <tr><td>Soils</td><td>NRCS soil survey (gSSURGO), all 14 trail states</td><td>Area-weighted soil ratings for each cell. The trail vulnerability index averages three NRCS trail ratings (erosion hazard, paths and trails, rutting), each scored from 0 for its best class to 1 for its worst. It rates the soil, not the trail, and is a screening aid at survey scale. Blank where the soils are not rated.</td></tr>
       <tr><td>Wetlands</td><td>USFWS National Wetlands Inventory, all 14 trail states</td><td>Acres of wetland and deepwater habitat in each whole cell, by NWI type and Cowardin class, and the part on A.T. lands. Mapped from aerial imagery, so many small, forested and seasonally wet wetlands are missed. “Possibly sensitive” flags NWI codes that suggest bogs or fens, seeps, aquatic beds, beaver-influenced areas or vernal pools, for a field check. A planning screen, not a delineation.</td></tr>
       <tr><td>Restoration targets</td><td>Built in this page from the layers above</td><td>Two 0 to 100 scores for grasslands and forests. How they are scored is set out under Restoration targets below.</td></tr>
@@ -1375,7 +1375,7 @@ const Q = [
      {id:'spread', label:'Year first recorded', yr:'y', hasTxt:() => phYear() ? `had a record by ${phYear()}` : 'have records', sumFn:phSum, asc:1, sumTitle:() => phYear() ? `Recorded by ${phYear()}, earliest first` : 'Recorded earliest', hideFn:() => phSp().kind === 'plant', d:0, none:'No records (yet)', showFn:v => 'first recorded ' + v, fn:(lv, c) => phFirst(lv, c), colorFn:phFirstCol,
       stripH:v => { const A = phAgg('wheel'); return A && A.years.length ? Math.max(.3, A.years[A.years.length - 1] + 1 - v) : 1; }, stripTop:() => { const A = phAgg('wheel'); return A && A.years.length ? A.years.length + 1 : 1; },
       legendFn:lv => PHFIRST.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${phYear(lv) ? 'Cells with a record by ' + phYear(lv) + ', by the year of the first one.' : 'The year of the first record in each cell.'} Bars under the map are taller where it has been known longer.</p>`}]},
- {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s on the trail here?',
+ {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s built and maintained along the trail here?',
   use:'Trail facilities and features from the A.T. facilities inventory: shelters, campsites, privies, parking, bridges, vistas, side trails and maintained landscapes, with miles of A.T. in each cell. Trail structures such as waterbars and steps are recorded by maintainer section, so they are estimated for each cell from its share of the section\u2019s trail miles.',
   m:[{id:'fac', label:'Trail facilities', f:'N_FAC', int:1, hollow0:1, none:'None in this cell', noun:['facility','facilities'], note:'Shelters, campsites, privies, parking areas, bridges, buildings, dams and tunnels.'},
      {id:'atmi', label:'A.T. miles', f:'AT_MI', d:1, hollow0:1, none:'None in this cell', showFn:v => fmt(v, 1) + ' mi'},
@@ -2127,7 +2127,7 @@ function structHTML(items, note){ if (!items.length) return '';
 const STRUCT_NOTE = 'Trail structures are counted by maintainer section. Each section’s counts are spread over the cells it crosses by their share of its trail miles, so these are estimates. Boardwalk, retaining walls, turnpike and other items measured in feet are not included.';
 function featSection(lv, c){ if (!D.themes.feat || !D.themes.feat[lv]) return '';
   const v = f => val('feat', f, lv, c), ids = v('LIST') || [], side = v('SIDE') || [], ml = v('ML') || [], rd = v('ROADS') || [];
-  let b = `<div class="sec" style="--hue:${HUE.feat}"><h3>Trail features</h3>`;
+  let b = `<div class="sec" style="--hue:${HUE.feat}"><h3>Facilities and landscapes</h3>`;
   b += `<div class="facts"><div><b>${miTxt(v('AT_MI'))}</b>of the A.T.</div><div><b>${fmt(v('N_FAC') || 0, 0)}</b>${v('N_FAC') === 1 ? 'facility' : 'facilities'}</div><div><b>${fmt(v('N_VISTA') || 0, 0)}</b>${v('N_VISTA') === 1 ? 'vista' : 'vistas'}</div></div>`;
   if (!ids.length && !side.length && !ml.length && !v('AT_MI')) b += '<p class="none">No trail features recorded in this cell.</p>';
   b += featLists(ids);
@@ -2144,7 +2144,7 @@ function featBox(lv, cells){ if (!D.themes.feat || !D.themes.feat[lv]) return ''
     (val('feat','ML',lv,c) || []).forEach(x => ml.set(x[0], (ml.get(x[0]) || 0) + x[2]));
     (val('feat','ST',lv,c) || []).forEach(x => { const k = x[0] + '|' + x[1]; st.set(k, (st.get(k) || 0) + x[2]); }); });
   ids.sort((a, b) => D.feat[a][1].localeCompare(D.feat[b][1]));
-  let b = `<div class="sec" style="--hue:${HUE.feat}"><h3>Trail features</h3>`;
+  let b = `<div class="sec" style="--hue:${HUE.feat}"><h3>Facilities and landscapes</h3>`;
   b += `<div class="facts"><div><b>${miTxt(sum('AT_MI'))}</b>of the A.T.</div><div><b>${fmt(sum('N_FAC'), 0)}</b>facilities</div><div><b>${fmt(sum('N_VISTA'), 0)}</b>vistas</div></div>`;
   b += '<div class="keys nosw" style="margin-top:6px">' + FTYPES.map(([t, lab]) => { const n = sum('N_' + t.toUpperCase()); return n ? `<div><span>${lab}</span><span>${fmt(n, 0)}</span></div>` : ''; }).join('') +
     `<div><span>Side trails</span><span>${miTxt(sum('SIDE_MI'))}</span></div><div><span>Maintained landscapes</span><span>${fmt(sum('ML_AC'), 0)} acres</span></div></div>`;
@@ -2291,12 +2291,12 @@ function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'd
 const SECORDER = ['rest','veg','inat','live','phen','ebird','nrpz','soil','wet','feat','lands'];
 const QSEC = {rest:['rest'], veg:['veg'], inv:['inat','live'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], eff:[], land:['lands'], phen:['phen']};
 function finishProfile(html){ $('#pbody').innerHTML = html;
-  { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Trail features':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Land administrators':'lands'};
+  { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Land administrators':'lands'};
     const secs = [...document.querySelectorAll('#pbody .sec')]; if (secs.length > 1){ const par = secs[0].parentNode, anchor = document.createComment('secs'); par.insertBefore(anchor, secs[0]);
       const rank = el => { const i = SECORDER.indexOf(KEY[(el.querySelector('h3') || {}).textContent]); return i < 0 ? 99 : i; };
       secs.map((el, i) => [rank(el), i, el]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([, , el]) => par.insertBefore(el, anchor)); anchor.remove(); } }
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
-  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Trail features':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Land administrators':'lands'};
+  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Live iNaturalist':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
     const open = key in S.secOpen ? S.secOpen[key] : S.m.find ? key === S.m.th : (QSEC[S.q.id] || []).includes(key);
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
@@ -2425,7 +2425,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
   ab('Note', 'Species lists: birds, invasive plants and forest pests are complete for each cell. Other iNaturalist species are only the ten most recorded.');
   ab('Note', 'Land administrator shares are of the mapped land in the cell. Generalized to the grid; not a boundary determination.');
   ab('Note', 'Unique species ratings are held at 7 and 49 sq mi; 1 sq mi cells carry the rating of the 7 sq mi cell they sit in.');
-  ab('Note', 'Trail features: A.T. facilities inventory, official and additional features. Structure counts (drainage, steps, signs, barriers) are estimates, spread from maintainer sections by trail miles.');
+  ab('Note', 'Facilities and landscapes: A.T. facilities inventory, official and additional features. Structure counts (drainage, steps, signs, barriers) are estimates, spread from maintainer sections by trail miles.');
   ab('Flowering', S.ext === 'huc' ? 'Not included for the HUC10 extent.' : out.phenLoaded && out.phenLoaded.length ? `Species loaded in this browser: ${out.phenLoaded.join(', ')}. Research-grade iNaturalist records with a flower buds or flowers annotation (beech leaf disease: all records); obscured locations left out. Dates pool all years: first = earliest 10% of flowering records, peak = median, last = latest 10%; 5 or more records for dates, 8 for season length. Records follow hikers, so they show when people saw it.`
     : 'Not included: no species loaded yet. Open “When does it flower here?” and pick each species to include, then export.');
   if (out.layerState) out.layers.forEach(L2 => ab('Map layer: ' + L2.name, L2.state === 'loaded' ? `${L2.rows.length} ${L2.rows.length === 1 ? 'feature' : 'features'}, all attributes, fetched ${localDay()} from the map layer service. ${L2.type === 'pt' ? 'Each point is listed in the cell it falls in.' : 'Every feature touching a cell is listed under it, so one that crosses several cells appears in each; acres and lengths are for the whole feature.'}`
@@ -2456,7 +2456,7 @@ async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !==
     d.species.forEach(r => rows.push([r.grid_id, r.trail_mile, r.group, r.common_name, r.scientific_name, [r.habitat_group_or_list, r.lists].filter(Boolean).join('; '), '', '']));
     d.layers.forEach(L2 => L2.rows.forEach((r, i) => { const id = r.Name || r.NAME || r.Tract || r.TRACT1 || ''; Object.keys(r).forEach(k => { if (!['grid_id','trail_mile'].includes(k) && r[k] !== '') rows.push([r.grid_id, r.trail_mile, 'Map layer: ' + L2.name, k, '', `feature ${i + 1}${id ? ' (' + id + ')' : ''}`, r[k], '']); }); }));
     d.land.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Land administrator', r.administrator, '', '', r.pct_of_mapped_land, '% of mapped land']));
-    d.features.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Trail feature: ' + r.feature_type, r.name, '', r.detail, r.latitude === '' ? '' : r.latitude + ', ' + r.longitude, r.latitude === '' ? '' : 'lat, lon']));
+    d.features.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Facility or landscape: ' + r.feature_type, r.name, '', r.detail, r.latitude === '' ? '' : r.latitude + ', ' + r.longitude, r.latitude === '' ? '' : 'lat, lon']));
     d.phen.forEach(s => Object.keys(s).forEach(k => { if (!['grid_id','trail_mile','cell_size','species','scientific_name'].includes(k) && s[k] !== '') rows.push([s.grid_id, s.trail_mile, 'Flowering', s.species + ': ' + k, s.scientific_name, '', s[k], '']); }));
     d.phenRec.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Flowering record', r.species, r.scientific_name, [r.stage, r.observed_on, r.inaturalist_url].filter(Boolean).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
     d.live.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Live iNaturalist', r.common_name || r.scientific_name, r.scientific_name, [r.observed_on, r.observer, r.quality_grade, r.list, r.inaturalist_url].filter(Boolean).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
@@ -2464,7 +2464,7 @@ async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !==
     say(`CSV downloaded: ${fmt(rows.length - 1, 0)} rows for ${nCells(n)}.`); return; }
   say('Preparing the Excel file...');
   loadXLSX().then(() => { const wb = XLSX.utils.book_new(); const add = (nm, arr) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(arr.length ? arr : [{note:'No rows for this selection'}]), nm);
-    add('Cells', d.cells); add('Restoration', d.restoration); add('Soils', d.soils); add('Wetlands', d.wetlands); add('Species', d.species); add('Vegetation types', d.veg); add('Land administrators', d.land); d.layers.forEach(L2 => add(L2.name.slice(0, 31), L2.rows)); add('Trail features', d.features); add('Live iNaturalist', d.live); add('Flowering', d.phen); add('Flowering records', d.phenRec); add('About', d.about);
+    add('Cells', d.cells); add('Restoration', d.restoration); add('Soils', d.soils); add('Wetlands', d.wetlands); add('Species', d.species); add('Vegetation types', d.veg); add('Land administrators', d.land); d.layers.forEach(L2 => add(L2.name.slice(0, 31), L2.rows)); add('Facilities and landscapes', d.features); add('Live iNaturalist', d.live); add('Flowering', d.phen); add('Flowering records', d.phenRec); add('About', d.about);
     const buf = XLSX.write(wb, {bookType:'xlsx', type:'array'}); download(name + '.xlsx', new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
     say(`Excel workbook downloaded: ${nCells(n)}, ${fmt(d.species.length, 0)} species rows.`);
   }).catch(() => say('The Excel export could not load its helper file. Check the internet connection, or use Export CSV, which needs no download.')); }
