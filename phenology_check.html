@@ -20,7 +20,7 @@
   .wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
   table{border-collapse:collapse;width:100%;font-size:13.5px}
   th,td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
-  th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--panel)}
+  th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}td:nth-child(2){position:sticky;left:0;background:var(--panel)}
   th{color:var(--muted);font-weight:600;font-size:12.5px}
   td i{color:var(--muted);font-style:italic}
   .yes{color:var(--yes);font-weight:600} .no{color:var(--no)}
@@ -32,26 +32,24 @@
 <body>
 <main>
   <h1>Phenology data check</h1>
-  <p>Counts how many iNaturalist records in the Appalachian National Scenic Trail &ndash; HUC10 project carry a flowering or fruiting annotation, for each candidate species. It asks iNaturalist directly from this browser, about one small request a second (roughly two minutes for the list).</p>
+  <p>Counts how many iNaturalist records in the Appalachian National Scenic Trail &ndash; HUC10 project carry a flowering or fruiting annotation, for each candidate species: northern and southern indicators and the A.T. Seasons focal plants of the National Phenology Network. It asks iNaturalist directly from this browser, about one small request a second (roughly six minutes for the list).</p>
   <div class="bar"><button id="run">Run the check</button><button id="csv" class="sec" disabled>Download CSV</button><span id="status" role="status"></span></div>
   <div class="wrap"><table id="t"></table></div>
-  <p class="note"><b>wave</b>: 150+ flowering and fruiting records, enough to animate the season up the trail. <b>shift</b>: 30+ flowering records in both 2016&ndash;2020 and 2021&ndash;2025. Month bars show flowering records, January to December.</p>
+  <p class="note"><b>Flowering south</b>: flowering records south of 38&deg;N (Georgia to southern Virginia). <b>Flowering north</b>: north of 42&deg;N (Massachusetts to Maine). Month bars show flowering records, January to December.</p>
 </main>
 <script>
 const PROJECT = 'appalachian-national-scenic-trail-huc10', API = 'https://api.inaturalist.org/v1/';
+/* group: N = northern indicator, S = southern indicator, A = A.T. Seasons focal plant (USA-NPN's Appalachian Trail program) */
 const SPECIES = [
-  /* northern alpine (White Mountains, Mahoosucs, western Maine peaks, Katahdin) */
-  ["Diapensia","Diapensia lapponica"],["Lapland rosebay","Rhododendron lapponicum"],["Alpine azalea","Kalmia procumbens"],
-  ["Mountain avens","Geum peckii"],["Alpine goldenrod","Solidago leiocarpa"],["Alpine bilberry","Vaccinium uliginosum"],
-  ["Mountain cranberry","Vaccinium vitis-idaea"],["Cloudberry","Rubus chamaemorus"],
-  /* on summits north and south */
-  ["Three-toothed cinquefoil","Sibbaldia tridentata"],["Mountain sandwort","Minuartia groenlandica"],
-  /* southern balds (Roan Highlands, Grayson Highlands, Max Patch, Big Bald) */
-  ["Catawba rhododendron","Rhododendron catawbiense"],["Flame azalea","Rhododendron calendulaceum"],
-  ["Creeping bluet","Houstonia serpyllifolia"],["Skunk goldenrod","Solidago glomerata"],
-  /* high-elevation and cool-forest indicators, Georgia to Maine */
-  ["Painted trillium","Trillium undulatum"],["Hobblebush","Viburnum lantanoides"],["American mountain-ash","Sorbus americana"],
-  ["Mountain wood-sorrel","Oxalis montana"],["Bluebead lily","Clintonia borealis"],["Bunchberry","Cornus canadensis"]];
+  ["N","Painted trillium","Trillium undulatum"],["N","Bluebead lily","Clintonia borealis"],["N","Hobblebush","Viburnum lantanoides"],["N","Bunchberry","Cornus canadensis"],
+  ["N","Mountain wood-sorrel","Oxalis montana"],["N","Three-toothed cinquefoil","Sibbaldiopsis tridentata"],["N","Diapensia","Diapensia lapponica"],["N","Mountain sandwort","Mononeuria groenlandica"],
+  ["N","Wild lily-of-the-valley","Maianthemum canadense"],["N","Goldthread","Coptis trifolia"],["N","Starflower","Lysimachia borealis"],
+  ["S","Flame azalea","Rhododendron calendulaceum"],["S","Catawba rhododendron","Rhododendron catawbiense"],["S","Creeping bluet","Houstonia serpyllifolia"],
+  ["S","Galax","Galax urceolata"],["S","Fire pink","Silene virginica"],["S","Great rhododendron","Rhododendron maximum"],["S","Mountain laurel","Kalmia latifolia"],
+  ["S","Bee balm","Monarda didyma"],["S","Turk's-cap lily","Lilium superbum"],["S","Crested dwarf iris","Iris cristata"],["S","Fraser magnolia","Magnolia fraseri"],
+  ["A","Mayapple","Podophyllum peltatum"],["A","Spring beauty","Claytonia virginica"],["A","Red trillium","Trillium erectum"],["A","Flowering dogwood","Cornus florida"],
+  ["A","Red maple","Acer rubrum"],["A","Pin cherry","Prunus pensylvanica"],["A","Sugar maple","Acer saccharum"]];
+const GROUP = {N:'North', S:'South', A:'A.T. Seasons'};
 const YEARS = Array.from({length:10}, (_, i) => 2016 + i), MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const $ = s => document.querySelector(s), sleep = ms => new Promise(r => setTimeout(r, ms));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -64,13 +62,13 @@ async function get(path, params){ const url = API + path + '?' + new URLSearchPa
     catch (e){ $('#status').textContent = 'iNaturalist is busy, waiting…'; await sleep(5000 * (k + 1)); } }
   throw new Error('iNaturalist did not answer'); }
 
-function draw(){ const head = ['Species','Records','Budding','Flowering','Fruiting','No flowers','Annotated','wave','shift','2016–20','2021–25','Flowering by month'];
+function draw(){ const head = ['Group','Species','Records','Flowering','Fruiting','Annotated','Flowering south','Flowering north','2016–20','2021–25','Flowering by month'];
   $('#t').innerHTML = '<tr>' + head.map(h => `<th>${h}</th>`).join('') + '</tr>' + rows.map(r => {
-    if (r.note) return `<tr><td>${esc(r.species)} <i>${esc(r.sci)}</i></td><td colspan="11" style="text-align:left">${esc(r.note)}</td></tr>`;
+    if (r.note) return `<tr><td>${esc(r.group)}</td><td>${esc(r.species)} <i>${esc(r.sci)}</i></td><td colspan="9" style="text-align:left">${esc(r.note)}</td></tr>`;
     const mx = Math.max(1, ...MON.map(m => r['fl_' + m]));
     const spark = '<span class="spark" title="' + MON.map(m => m + ' ' + r['fl_' + m]).join(', ') + '">' + MON.map(m => `<span style="height:${Math.round(22 * r['fl_' + m] / mx)}px"></span>`).join('') + '</span>';
     const yn = v => `<span class="${v}">${v}</span>`, f = n => n.toLocaleString('en-US');
-    return `<tr><td>${esc(r.species)} <i>${esc(r.sci)}</i></td><td>${f(r.records)}</td><td>${f(r.budding)}</td><td>${f(r.flowering)}</td><td>${f(r.fruiting)}</td><td>${f(r.no_flowers)}</td><td>${r.annotated_pct}%</td><td>${yn(r.wave_ready)}</td><td>${yn(r.shift_ready)}</td><td>${f(r.early)}</td><td>${f(r.late)}</td><td>${spark}</td></tr>`; }).join(''); }
+    return `<tr><td>${esc(r.group)}</td><td>${esc(r.species)} <i>${esc(r.sci)}</i></td><td>${f(r.records)}</td><td>${f(r.flowering)}</td><td>${f(r.fruiting)}</td><td>${r.annotated_pct}%</td><td>${f(r.fl_south)}</td><td>${f(r.fl_north)}</td><td>${f(r.early)}</td><td>${f(r.late)}</td><td>${spark}</td></tr>`; }).join(''); }
 
 async function run(){ $('#run').disabled = true; $('#csv').disabled = true; rows = [];
   try {
@@ -83,18 +81,21 @@ async function run(){ $('#run').disabled = true; $('#csv').disabled = true; rows
     const V = {'Flowering': pick(13, /^flower(s|ing)$/i), 'Fruiting': pick(14, /fruit/i), 'Flower Budding': pick(15, /bud/i), 'No Evidence of Flowering': pick(21, /^no /i)};
     $('#status').textContent = 'Annotation: ' + ph.label + ' (' + ph.values.map(v => v.label).join(', ') + ')';
     const STAGES = [['budding','Flower Budding'],['flowering','Flowering'],['fruiting','Fruiting'],['no_flowers','No Evidence of Flowering']];
-    for (let [i, [common, sci]] of SPECIES.entries()){
+    for (let [i, [grp, common, sci]] of SPECIES.entries()){
       $('#status').textContent = `${i + 1} of ${SPECIES.length}: ${common}…`;
       const res = (await get('taxa', {q:sci, is_active:true, per_page:10})).results || [];
       /* exact name first; otherwise a taxon the name is a synonym of (iNaturalist reports it as matched_term) */
       let tx = res.find(t => t.name.toLowerCase() === sci.toLowerCase()), renamed = '';
       if (!tx){ tx = res.find(t => (t.matched_term || '').toLowerCase() === sci.toLowerCase()); if (tx) renamed = tx.name; }
-      if (!tx){ rows.push({species:common, sci, note:'No exact iNaturalist match'}); draw(); continue; }
+      if (!tx){ rows.push({group:GROUP[grp], species:common, sci, note:'No exact iNaturalist match'}); draw(); continue; }
       if (renamed) sci = sci + ' (now ' + renamed + ')';
       const base = {project_id:PROJECT, taxon_id:tx.id, verifiable:true}, count = async extra => (await get('observations', {...base, per_page:0, ...extra})).total_results;
-      const r = {species:common, sci, taxon_id:tx.id, records: await count({})};
+      const r = {group:GROUP[grp], species:common, sci, taxon_id:tx.id, records: await count({})};
       for (const [k, lab] of STAGES) r[k] = await count({term_id:ph.id, term_value_id:V[lab]});
       const ann = await count({term_id:ph.id}); r.annotated_pct = r.records ? Math.round(1000 * ann / r.records) / 10 : 0;
+      /* where the flowering records are: south of 38°N (Georgia to southern Virginia) and north of 42°N (Massachusetts to Maine) */
+      r.fl_south = await count({term_id:ph.id, term_value_id:V['Flowering'], swlat:30, swlng:-90, nelat:38, nelng:-60});
+      r.fl_north = await count({term_id:ph.id, term_value_id:V['Flowering'], swlat:42, swlng:-90, nelat:48, nelng:-60});
       const fl = {term_id:ph.id, term_value_id:V['Flowering'], date_field:'observed'};
       const yr = (await get('observations/histogram', {...base, ...fl, interval:'year'})).results.year;
       YEARS.forEach(y => r['fl_' + y] = Object.entries(yr).filter(([d]) => d.startsWith(String(y))).reduce((s, [, v]) => s + v, 0));
@@ -107,7 +108,7 @@ async function run(){ $('#run').disabled = true; $('#csv').disabled = true; rows
   } catch (e){ $('#status').textContent = 'Stopped: ' + e.message + '. Check the internet connection and try again.'; }
   $('#run').disabled = false; }
 
-async function csv(){ const cols = ['species','sci','taxon_id','records','budding','flowering','fruiting','no_flowers','annotated_pct','wave_ready','shift_ready','early','late', ...YEARS.map(y => 'fl_' + y), ...MON.map(m => 'fl_' + m), 'note'];
+async function csv(){ const cols = ['group','species','sci','taxon_id','records','budding','flowering','fruiting','no_flowers','annotated_pct','fl_south','fl_north','wave_ready','shift_ready','early','late', ...YEARS.map(y => 'fl_' + y), ...MON.map(m => 'fl_' + m), 'note'];
   const q = v => { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
   const text = [cols.join(','), ...rows.map(r => cols.map(c => q(r[c])).join(','))].join('\r\n');
   const dl = window.claude && await claude.use('downloads');
