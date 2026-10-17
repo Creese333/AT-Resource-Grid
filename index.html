@@ -414,6 +414,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .phkey i{display:inline-block;width:14px;height:4px;border-radius:2px;margin-right:5px;vertical-align:middle}
 .phkey .thin{color:var(--muted)}
 .phnote{font-size:12.5px;color:var(--muted);margin:3px 0 0}
+.phabout{margin:4px 0 2px}.phabout summary{cursor:pointer;font-size:12.5px;color:#E3EAF2;list-style:none;display:inline-flex;align-items:center;gap:5px}.phabout summary::-webkit-details-marker{display:none}.phabout summary::before{content:'';width:0;height:0;border-left:5px solid #E3EAF2;border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s}.phabout[open] summary::before{transform:rotate(90deg)}.phabout summary:hover{text-decoration:underline}
 .phbig{font-size:13.5px;color:#E3EAF2;margin:2px 0 4px}.phbig b{color:#FFE014}.phbig span{color:var(--muted);font-size:12.5px}
 .phstat{font-size:13px;color:var(--muted);margin:0}
 .phstat button{background:none;border:0;color:inherit;text-decoration:underline;padding:0;font:inherit;cursor:pointer}
@@ -1037,6 +1038,7 @@ function phWire(){ const s = $('#phsp'); if (!s) return;
   document.querySelectorAll('[data-phref]').forEach(x => x.onclick = phRefresh); phWireTrend(); }
 /* charts: a year maps that year's weeks (or, for the spread, where it was by then); a week on the calendar maps that week */
 function phWireTrend(){
+  document.querySelectorAll('[data-phab]').forEach(x => x.ontoggle = () => { S.ph.ab = S.ph.ab || {}; S.ph.ab[x.dataset.phab] = x.open; });
   document.querySelectorAll('[data-phy]').forEach(x => x.onclick = () => { phPlay(false); S.ph.yr = +x.dataset.phy;
     if (!S.m.yr) S.m = S.q.m.find(m => m.id === (phSp().kind === 'spread' ? 'spread' : 'wave')); BRK.clear(); redraw(); });
   document.querySelectorAll('[data-phw]').forEach(x => x.onclick = () => { phPlay(false); S.ph.wk = Math.max(8, Math.min(44, +x.dataset.phw));
@@ -1116,9 +1118,9 @@ function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) retu
   let h = '';
   if (sp.kind !== 'spread'){
     h += `<h4 class="phh">When it is ${sp.kind === 'plant' ? 'in flower' : 'out as adults'} along the trail</h4>` + phCalendar() +
-      `<p class="phnote">${sp.kind === 'plant' ? 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks. Brighter boxes: more of that week’s annotated records show flowers, so the season reads from bud to flower to fruit and moves north.' : 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks.'} Click a week to map it.</p>`;
+      `<details class="phabout" data-phab="cal"${S.ph.ab && S.ph.ab.cal ? ' open' : ''}><summary>About this graph</summary><p class="phnote">${sp.kind === 'plant' ? 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks. Brighter boxes: more of that week’s annotated records show flowers, so the season reads from bud to flower to fruit and moves north.' : 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks.'} Click a week to map it.</p></details>`;
     h += `<h4 class="phh">Is ${noun === 'adult' ? 'adult season' : 'flowering'} earlier or later than usual? ${esc(where)}</h4>` + phTrend() +
-      `<p class="phnote">Each record is measured against its own 49 sq mi cell’s usual ${noun} date (cells with 5 or more records), so years with more northern or higher records do not look late. Records are thin; read the 3-year line and the period comparison, not single years. Click a year to map it.</p>`; }
+      `<details class="phabout" data-phab="trend"${S.ph.ab && S.ph.ab.trend ? ' open' : ''}><summary>About this graph</summary><p class="phnote">Each record is measured against its own 49 sq mi cell’s usual ${noun} date (cells with 5 or more records), so years with more northern or higher records do not look late. Records are thin; read the 3-year line and the period comparison, not single years. Click a year to map it.</p></details>`; }
   if (sp.kind !== 'plant'){ const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
     h += `<h4 class="phh">Spread: cells with records by year, ${esc(where)}</h4>` + phSpreadSvg(lv, cells) +
       `<p class="phnote">${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} cells. Records follow hikers and observers, so a first record marks when it was noticed here, not when it arrived. Click a year to map it.</p>`; }
