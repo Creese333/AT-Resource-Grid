@@ -26,7 +26,9 @@ SRC = {
     'hs': {'urls': ['https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer/46'], 'fields': 'OBJECTID,NAME,GNIS_ID,ADDRESS,CITY,STATE'},
     'cem': {'urls': ['https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer/37'], 'fields': 'OBJECTID,NAME,GNIS_ID,ADDRESS,CITY,STATE'},
 }
-OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
+# public Overpass servers; each stretch tries them in turn
+OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter',
+            'https://maps.mail.ru/osm/tools/overpass/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
 
 
 def get_json(url, data=None, tries=3, timeout=90):
@@ -76,23 +78,29 @@ def arc_query(src, ch):
     raise RuntimeError('all URLs failed')
 
 
-def osm_query(ch):
+def osm_query(ch, rounds=1, pause=5):
     box = f"{ch['s']},{ch['w']},{ch['n']},{ch['e']}"
     q = f'[out:json][timeout:120];(nwr["landuse"="cemetery"]({box});nwr["amenity"="grave_yard"]({box}););out center tags;'
     data = urllib.parse.urlencode({'data': q}).encode()
-    for k in range(4):
-        try:
-            j = get_json(OVERPASS[k % 2], data=data, tries=1, timeout=120)
-            res = []
-            for e in j.get('elements', []):
-                la = e.get('lat', (e.get('center') or {}).get('lat')); lo = e.get('lon', (e.get('center') or {}).get('lon'))
-                if la is not None:
-                    res.append({'id': f"{e['type']}/{e['id']}", 'la': la, 'lo': lo, 'tags': e.get('tags') or {}})
-            return res
-        except Exception as e:
-            print(f'   Overpass retry {k + 1}: {e}', flush=True)
-            time.sleep(5 * (k + 1))
-    raise RuntimeError('Overpass did not answer')
+    last = None
+    for r in range(rounds):
+        for ep in OVERPASS:
+            try:
+                req = urllib.request.Request(ep, data=data, headers=dict(UA, **{'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded'}))
+                with urllib.request.urlopen(req, timeout=150) as resp:
+                    j = json.load(resp)
+                res = []
+                for e in j.get('elements', []):
+                    la = e.get('lat', (e.get('center') or {}).get('lat')); lo = e.get('lon', (e.get('center') or {}).get('lon'))
+                    if la is not None:
+                        res.append({'id': f"{e['type']}/{e['id']}", 'la': la, 'lo': lo, 'tags': e.get('tags') or {}})
+                return res
+            except Exception as e:
+                last = f'{ep.split("/")[2]}: {e}'
+                print(f'   Overpass {last}', flush=True)
+                time.sleep(pause)
+        time.sleep(pause * 4)
+    raise RuntimeError(last or 'Overpass did not answer')
 
 
 STOP = re.compile(r'\b(cemetery|cemeteries|cem|graveyard|grave yard|burying ground|burial ground|burial site|family|the|of|memorial gardens?)\b')
@@ -159,14 +167,36 @@ def main():
             done += 1
             if done % len(SRC) == 0:
                 print(f'NPS and USGS: stretch {done // len(SRC)} of {len(chunks)} ({time.time() - t0:.0f} s)', flush=True)
-        done = 0
+        done = 0; failed = []
         for ch, pts, e in osm_f:
-            if e: err['osm'] = e
+            if e: failed.append(ch)
             for p in pts:
                 if inside(ch, p):
                     osm[p['id']] = p
             done += 1
-            print(f'OpenStreetMap: stretch {done} of {len(chunks)} ({time.time() - t0:.0f} s)', flush=True)
+            print(f'OpenStreetMap: stretch {done} of {len(chunks)}{" (will retry)" if e else ""} ({time.time() - t0:.0f} s)', flush=True)
+    # second pass: stretches Overpass refused, one at a time, more patiently
+    still = []
+    for n, ch in enumerate(failed, 1):
+        print(f'OpenStreetMap retry {n} of {len(failed)}', flush=True); time.sleep(15)
+        try:
+            for p in osm_query(ch, rounds=3, pause=10):
+                if inside(ch, p):
+                    osm[p['id']] = p
+        except Exception as e:
+            still.append(ch); print(f'   gave up: {e}', flush=True)
+    # stretches never reached: keep the OpenStreetMap cemeteries from the previous file there
+    if still:
+        kept = 0
+        try:
+            prev = json.load(open(OUT))
+            for x in prev.get('items', []):
+                o = x.get('a', {}).get('osm')
+                if x.get('t') == 'cem' and o and any(inside(ch, x) for ch in still):
+                    osm[o] = {'id': o, 'la': x['la'], 'lo': x['lo'], 'tags': {'name': x.get('nm', ''), 'denomination': x['a'].get('denomination', ''), 'operator': x['a'].get('operator', '')}}; kept += 1
+        except Exception:
+            pass
+        err['osm'] = f'{len(still)} of {len(chunks)} stretches not reached' + (f'; {kept} OpenStreetMap cemeteries kept from the previous build there' if kept else '')
     items = []
     for p in found['nr'].values():
         a = p['a']; cd = a.get('CertDate')
