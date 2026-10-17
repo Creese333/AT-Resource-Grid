@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phenology data check</title>
+<style>
+  :root{--bg:#142235;--panel:#1B2D44;--line:#2E4460;--ink:#E3EAF2;--muted:#A8B8CA;--yes:#7BC47F;--no:#E07A5F;--accent:#3FA796}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:1180px;margin:0 auto;padding:20px 16px 40px}
+  h1{font-size:22px;margin:0 0 4px} p{margin:6px 0;color:var(--muted)}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}
+  button{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:7px 14px;font:inherit;font-weight:600;cursor:pointer}
+  button[disabled]{opacity:.5;cursor:default}
+  button.sec{background:var(--panel);border:1px solid var(--line)}
+  #status{color:var(--muted);font-size:14px}
+  .wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--panel)}
+  th{color:var(--muted);font-weight:600;font-size:12.5px}
+  td i{color:var(--muted);font-style:italic}
+  .yes{color:var(--yes);font-weight:600} .no{color:var(--no)}
+  .spark{display:inline-flex;gap:1px;align-items:flex-end;height:22px;vertical-align:middle}
+  .spark span{display:inline-block;width:6px;background:var(--accent);min-height:1px}
+  .note{font-size:13px;margin-top:12px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Phenology data check</h1>
+  <p>Counts how many iNaturalist records in the Appalachian National Scenic Trail &ndash; HUC10 project carry a flowering or fruiting annotation, for each candidate species. It asks iNaturalist directly from this browser, about one small request a second (roughly two minutes for the list).</p>
+  <div class="bar"><button id="run">Run the check</button><button id="csv" class="sec" disabled>Download CSV</button><span id="status" role="status"></span></div>
+  <div class="wrap"><table id="t"></table></div>
+  <p class="note"><b>wave</b>: 150+ flowering and fruiting records, enough to animate the season up the trail. <b>shift</b>: 30+ flowering records in both 2016&ndash;2020 and 2021&ndash;2025. Month bars show flowering records, January to December.</p>
+</main>
+<script>
+const PROJECT = 'appalachian-national-scenic-trail-huc10', API = 'https://api.inaturalist.org/v1/';
+const SPECIES = [
+  ["Bigelow's sedge","Carex bigelowii"],["Mountain avens","Geum peckii"],["Mountain avens (Dryas)","Dryas"],["Diapensia","Diapensia lapponica"],
+  ["Mountain cranberry","Vaccinium vitis-idaea"],["Labrador tea","Rhododendron groenlandicum"],["Alpine bilberry","Vaccinium uliginosum"],
+  ["Bunchberry","Cornus canadensis"],["Yellow trout lily","Erythronium americanum"],["Sugar maple","Acer saccharum"],["Common milkweed","Asclepias syriaca"],
+  ["Eastern redbud","Cercis canadensis"],["Flowering dogwood","Cornus florida"],["Common lilac","Syringa vulgaris"],["Northern spicebush","Lindera benzoin"]];
+const YEARS = Array.from({length:10}, (_, i) => 2016 + i), MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const $ = s => document.querySelector(s), sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let rows = [];
+
+async function get(path, params){ const url = API + path + '?' + new URLSearchParams(params);
+  for (let k = 0; k < 4; k++){
+    try { const r = await fetch(url); if (r.status === 429) throw new Error('busy'); if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json(); await sleep(1000); return j; }
+    catch (e){ $('#status').textContent = 'iNaturalist is busy, waiting…'; await sleep(5000 * (k + 1)); } }
+  throw new Error('iNaturalist did not answer'); }
+
+function draw(){ const head = ['Species','Records','Budding','Flowering','Fruiting','No flowers','Annotated','wave','shift','2016–20','2021–25','Flowering by month'];
+  $('#t').innerHTML = '<tr>' + head.map(h => `<th>${h}</th>`).join('') + '</tr>' + rows.map(r => {
+    if (r.note) return `<tr><td>${esc(r.species)} <i>${esc(r.sci)}</i></td><td colspan="11" style="text-align:left">${esc(r.note)}</td></tr>`;
+    const mx = Math.max(1, ...MON.map(m => r['fl_' + m]));
+    const spark = '<span class="spark" title="' + MON.map(m => m + ' ' + r['fl_' + m]).join(', ') + '">' + MON.map(m => `<span style="height:${Math.round(22 * r['fl_' + m] / mx)}px"></span>`).join('') + '</span>';
+    const yn = v => `<span class="${v}">${v}</span>`, f = n => n.toLocaleString('en-US');
+    return `<tr><td>${esc(r.species)} <i>${esc(r.sci)}</i></td><td>${f(r.records)}</td><td>${f(r.budding)}</td><td>${f(r.flowering)}</td><td>${f(r.fruiting)}</td><td>${f(r.no_flowers)}</td><td>${r.annotated_pct}%</td><td>${yn(r.wave_ready)}</td><td>${yn(r.shift_ready)}</td><td>${f(r.early)}</td><td>${f(r.late)}</td><td>${spark}</td></tr>`; }).join(''); }
+
+async function run(){ $('#run').disabled = true; $('#csv').disabled = true; rows = [];
+  try {
+    const terms = (await get('controlled_terms', {})).results, ph = terms.find(t => t.label === 'Plant Phenology');
+    const V = Object.fromEntries(ph.values.map(v => [v.label, v.id]));
+    const STAGES = [['budding','Flower Budding'],['flowering','Flowering'],['fruiting','Fruiting'],['no_flowers','No Evidence of Flowering']];
+    for (const [i, [common, sci]] of SPECIES.entries()){
+      $('#status').textContent = `${i + 1} of ${SPECIES.length}: ${common}…`;
+      const tx = (await get('taxa', {q:sci, is_active:true, per_page:10})).results.find(t => t.name.toLowerCase() === sci.toLowerCase());
+      if (!tx){ rows.push({species:common, sci, note:'No exact iNaturalist match'}); draw(); continue; }
+      const base = {project_id:PROJECT, taxon_id:tx.id, verifiable:true}, count = async extra => (await get('observations', {...base, per_page:0, ...extra})).total_results;
+      const r = {species:common, sci, taxon_id:tx.id, records: await count({})};
+      for (const [k, lab] of STAGES) r[k] = await count({term_id:ph.id, term_value_id:V[lab]});
+      const ann = await count({term_id:ph.id}); r.annotated_pct = r.records ? Math.round(1000 * ann / r.records) / 10 : 0;
+      const fl = {term_id:ph.id, term_value_id:V['Flowering'], date_field:'observed'};
+      const yr = (await get('observations/histogram', {...base, ...fl, interval:'year'})).results.year;
+      YEARS.forEach(y => r['fl_' + y] = Object.entries(yr).filter(([d]) => d.startsWith(String(y))).reduce((s, [, v]) => s + v, 0));
+      const mo = (await get('observations/histogram', {...base, ...fl, interval:'month_of_year'})).results.month_of_year;
+      MON.forEach((m, k) => r['fl_' + m] = mo[k + 1] || mo[String(k + 1)] || 0);
+      r.early = YEARS.filter(y => y <= 2020).reduce((s, y) => s + r['fl_' + y], 0); r.late = YEARS.filter(y => y > 2020).reduce((s, y) => s + r['fl_' + y], 0);
+      r.wave_ready = r.flowering + r.fruiting >= 150 ? 'yes' : 'no'; r.shift_ready = r.early >= 30 && r.late >= 30 ? 'yes' : 'no';
+      rows.push(r); draw(); }
+    $('#status').textContent = 'Done. ' + new Date().toLocaleString(); $('#csv').disabled = false;
+  } catch (e){ $('#status').textContent = 'Stopped: ' + e.message + '. Check the internet connection and try again.'; }
+  $('#run').disabled = false; }
+
+function csv(){ const cols = ['species','sci','taxon_id','records','budding','flowering','fruiting','no_flowers','annotated_pct','wave_ready','shift_ready','early','late', ...YEARS.map(y => 'fl_' + y), ...MON.map(m => 'fl_' + m), 'note'];
+  const q = v => { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const text = [cols.join(','), ...rows.map(r => cols.map(c => q(r[c])).join(','))].join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + text], {type:'text/csv'})); a.download = 'inat_phenology_check.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+
+$('#run').onclick = run; $('#csv').onclick = csv; draw();
+</script>
+</body>
+</html>
