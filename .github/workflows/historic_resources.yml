@@ -1,16 +1,23 @@
+# Rebuilds historic_resources.json for the A.T. Resource Grid on the 1st of every month,
+# or whenever you press "Run workflow" on the Actions tab. Commits the file only when it changed.
 name: Historic resources
+
 on:
   schedule:
-    - cron: '17 6 1 * *'
+    - cron: '17 6 1 * *'     # 06:17 UTC on the 1st of each month
   workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0       # full history, so the push step can catch up with newer commits
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -21,4 +28,11 @@ jobs:
           git config user.name  "historic-resources-bot"
           git config user.email "actions@users.noreply.github.com"
           git add historic_resources.json
-          git diff --cached --quiet || (git commit -m "Update historic resources" && git push)
+          git diff --cached --quiet && exit 0
+          git commit -m "Update historic resources"
+          # if files were uploaded while the build ran, catch up with them first, then push (up to 3 tries)
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1
