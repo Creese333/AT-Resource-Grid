@@ -414,6 +414,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .phkey i{display:inline-block;width:14px;height:4px;border-radius:2px;margin-right:5px;vertical-align:middle}
 .phkey .thin{color:var(--muted)}
 .phnote{font-size:12.5px;color:var(--muted);margin:3px 0 0}
+.phbig{font-size:13.5px;color:#E3EAF2;margin:2px 0 4px}.phbig b{color:#FFE014}.phbig span{color:var(--muted);font-size:12.5px}
 .phstat{font-size:13px;color:var(--muted);margin:0}
 .phstat button{background:none;border:0;color:inherit;text-decoration:underline;padding:0;font:inherit;cursor:pointer}
 </style>
@@ -490,7 +491,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Soils</td><td>NRCS soil survey (gSSURGO), all 14 trail states</td><td>Area-weighted soil ratings for each cell. The trail vulnerability index averages three NRCS trail ratings (erosion hazard, paths and trails, rutting), each scored from 0 for its best class to 1 for its worst. It rates the soil, not the trail, and is a screening aid at survey scale. Blank where the soils are not rated.</td></tr>
       <tr><td>Wetlands</td><td>USFWS National Wetlands Inventory, all 14 trail states</td><td>Acres of wetland and deepwater habitat in each whole cell, by NWI type and Cowardin class, and the part on A.T. lands. Mapped from aerial imagery, so many small, forested and seasonally wet wetlands are missed. “Possibly sensitive” flags NWI codes that suggest bogs or fens, seeps, aquatic beds, beaver-influenced areas or vernal pools, for a field check. A planning screen, not a delineation.</td></tr>
       <tr><td>Restoration targets</td><td>Built in this page from the layers above</td><td>Two 0 to 100 scores for grasslands and forests. How they are scored is set out under Restoration targets below.</td></tr>
-      <tr><td>Leaf-out, flowering and forest pests</td><td>iNaturalist, research-grade records in the project, loaded live: plants with a leaf buds, flowers or fruits annotation; emerald ash borer (adults by the life stage annotation) and beech leaf disease, all records</td><td>Sixteen indicator plants of cool forests, southern balds and northern alpine summits, plus American beech. The yearly measures follow the phenology literature: a year’s first date is its earliest 10% of records in a cell with 3 or more that year, compared with the cell’s average over 2 or more such years, and the chart averages those cells along the trail with a 3-year smoothed line. For the pests, the year a cell was first recorded maps spread. Records follow hikers and are concentrated in season and on weekends; a typical week needs 3 or more flowering records in a cell, and the 2021–25 against 2016–20 comparison 3 or more in each period. The week-by-week views can show all years together or one year at a time on one shared scale; single years are thin, so read them side by side rather than alone. Records with obscured locations are left out. A lead for timing work and field checks, not a measured trend.</td></tr>
+      <tr><td>Flowering, fruiting and forest pests</td><td>iNaturalist, research-grade records in the project, loaded live: plants with a flower buds, flowers or fruits annotation; emerald ash borer (adults by the life stage annotation) and beech leaf disease, all records</td><td>Sixteen indicator plants of cool forests, southern balds and northern alpine summits, plus American beech. Measures follow the National Phenology Network’s phenometrics, adapted to records that only show a plant in flower: first (onset), peak and last dates and season length per cell, all years pooled (earliest 10%, median and latest 10% of records; 5 or more records, 8 for length); the share of annotated records in flower by week in 200-mile stretches (the Network’s proportion of yes records); and earlier or later than usual by year, measuring each record against its 49 sq mi cell’s usual date (10 or more records a year; 2021–25 against 2016–20 needs 20 or more in each). Records follow hikers and are concentrated in season and on weekends; obscured locations are left out. A lead for timing work and field checks, not a measured trend.</td></tr>
       <tr><td>Unique species</td><td>Rare species priority zones</td><td>Rates how vulnerable the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
     </table>
     <h3>Restoration targets</h3>
@@ -854,14 +855,17 @@ function totalSpp(lv, c){ const i = val('inat','N_SPP',lv,c), e = val('ebird','N
    Unrated soils are blank, never zero. */
 const vulnClass = v => v == null ? null : v > 0.67 ? 'High' : v >= 0.33 ? 'Moderate' : 'Low';
 const vulnShow = v => `${fmt(v, 2)} (${vulnClass(v)})`;
-/* ---------- seasons: leaf-out, flowering, fruiting, and two forest pests ----------
-   Research-grade iNaturalist records from the trail's project. Plants: records annotated "Flowers and Fruits" = flowers or fruits,
-   and "Leaves" = leaf buds (leaf-out). Emerald ash borer: all records, and those annotated "Life Stage" = adult. Beech leaf disease:
-   all records. They load from iNaturalist the first time a species is picked, are kept in this browser for 30 days, and are placed
-   in the grid cells. Records with obscured locations are left out. Weeks run from January 1 (week 1 = Jan 1 to 7).
-   Stages: 1 flowers, 2 fruits, 3 leaf buds, 4 adults, 5 any record.
-   The yearly measures follow the iNaturalist phenology literature: onset is the date of the earliest 10% of records in a cell and
-   year (years with 3 or more records), and a year's anomaly is that onset against the cell's own average over its years. */
+/* ---------- seasons: flowering, fruiting, and two forest pests ----------
+   Research-grade iNaturalist records from the trail's project. Plants: records annotated "Flowers and Fruits" = flower buds,
+   flowers or fruits. Emerald ash borer: all records, and those annotated "Life Stage" = adult. Beech leaf disease: all records.
+   They load from iNaturalist the first time a species is picked, are kept in this browser for 30 days, and are placed in the grid
+   cells. Records with obscured locations are left out. Weeks run from January 1 (week 1 = Jan 1 to 7).
+   Stages: 1 flowers, 2 fruits, 3 flower buds, 4 adults, 5 any record.
+   The measures follow the National Phenology Network's phenometrics, adapted to records that only say "seen in flower":
+   onset (first), peak and end of the season and its length, the share of records in each phase by week (the Network's
+   "proportion of yes records"), and how the timing differs from year to year. iNaturalist records are thin in any one place and
+   year, so onset, peak and length pool every year in a cell, and the yearly comparison pools records along the trail after
+   taking out each 49 sq mi cell's own usual date (so a year with more northern or higher records does not look late). */
 const PHEN = [
   ['Cool forest and high elevation', [['Painted trillium','Trillium undulatum'],['Hobblebush','Viburnum lantanoides'],['Bluebead lily','Clintonia borealis'],
     ['Bunchberry','Cornus canadensis'],['Mountain wood-sorrel','Oxalis montana']]],
@@ -871,20 +875,24 @@ const PHEN = [
     ['Mountain cranberry','Vaccinium vitis-idaea'],['Alpine bilberry','Vaccinium uliginosum']]],
   ['Forest trees and pests', [['American beech','Fagus grandifolia'],['Emerald ash borer','Agrilus planipennis','adult'],['Beech leaf disease','Litylenchus crenatae','spread']]]];
 const PHSP = PHEN.flatMap(g => g[1].map(([common, sci, kind]) => ({common, sci, key:sci.toLowerCase().replace(/[^a-z]+/g, '-'), group:g[0], kind:kind || 'plant'})));
-const PHD = {};   /* by key: {st:'loading'|'done'|'error', pts:[[day of year, year, stage, lat, lon]], n, msg, at} */
-const PHKEEP = 30 * 864e5, phKey = sp => 'atgrid-phen-v2:' + (ATiNat.config.project || '') + ':' + sp.key;
+const PHD = {};   /* by key: {st:'loading'|'done'|'error', pts:[[day of year, year, stage, lat, lon, id]], n, msg, at} */
+const PHKEEP = 30 * 864e5, phKey = sp => 'atgrid-phen-v3:' + (ATiNat.config.project || '') + ':' + sp.key;
 const PHFIELDS = '(id:!t,observed_on:!t,quality_grade:!t,obscured:!t,geoprivacy:!t,taxon_geoprivacy:!t,geojson:all)';
 const phSp = () => PHSP.find(s => s.key === S.ph.sp) || PHSP[0];
 const phMain = (sp = phSp()) => sp.kind === 'plant' ? 1 : sp.kind === 'adult' ? 4 : 5;
-const PHWORD = {1:'flowering', 2:'fruiting', 3:'leaf-out', 4:'adults', 5:'records'};
+const PHWORD = {1:'flowering', 2:'fruiting', 3:'in bud', 4:'adults', 5:'records'};
+const phNoun = () => phSp().kind === 'adult' ? 'adult' : 'flowering';
 const doyOf = d => { const t = new Date(d + 'T12:00:00'); if (isNaN(t)) return null; return Math.round((t - new Date(t.getFullYear(), 0, 1, 12)) / 864e5) + 1; };
 const wkOf = d => Math.min(52, Math.floor((d - 1) / 7) + 1);
+const doyDate = d => new Date(2021, 0, Math.round(d)).toLocaleDateString('en-US', {month:'short', day:'numeric'});
 const wkDate = w => new Date(2021, 0, 1 + (w - 1) * 7).toLocaleDateString('en-US', {month:'short', day:'numeric'});
 const wkLabel = w => `${wkDate(w)} – ${new Date(2021, 0, (w - 1) * 7 + 7).toLocaleDateString('en-US', {month:'short', day:'numeric'})}`;
 const phDays = v => v === 0 ? 'as usual' : `${Math.abs(v)} ${Math.abs(v) === 1 ? 'day' : 'days'} ${v < 0 ? 'earlier' : 'later'}`;
+const phPct = (a, p) => a[Math.min(a.length - 1, Math.max(0, Math.round(p * (a.length - 1))))];
+const phMed = a => { const b = a.slice().sort((p, q) => p - q), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m-1] + b[m]) / 2; };
 /* annotation ids, looked up by name once (iNaturalist renames terms now and then), with the known ids as the fallback */
 let PHT = null;
-async function phTerms(){ if (PHT) return PHT; const T = {fl:[12, 13], fr:[12, 14], lb:null, ad:[1, 2]};
+async function phTerms(){ if (PHT) return PHT; const T = {fl:[12, 13], fr:[12, 14], bd:[12, 15], ad:[1, 2]};
   try { let terms; const k = 'atgrid-terms-v1';
     try { const x = JSON.parse(localStorage.getItem(k)); if (x && Date.now() - x.at < PHKEEP) terms = x.t; } catch (e) {}
     if (!terms){ const r = await fetch('https://api.inaturalist.org/v1/controlled_terms'); if (!r.ok) throw 0;
@@ -892,9 +900,7 @@ async function phTerms(){ if (PHT) return PHT; const T = {fl:[12, 13], fr:[12, 1
       try { localStorage.setItem(k, JSON.stringify({at:Date.now(), t:terms})); } catch (e) {} }
     const val = (t, re) => (t.values.find(v => re.test(v.label)) || {}).id;
     const ff = terms.find(t => t.id === 12) || terms.find(t => /flowers and fruits|phenology/i.test(t.label));
-    if (ff){ T.fl = [ff.id, val(ff, /^flowers?$|^flowering$/i) || 13]; T.fr = [ff.id, val(ff, /^fruit/i) || 14]; }
-    const lv = terms.find(t => /^leaves$/i.test(t.label)) || terms.find(t => t.id === 36);
-    if (lv){ const b = val(lv, /bud/i); if (b) T.lb = [lv.id, b]; }
+    if (ff){ T.fl = [ff.id, val(ff, /^flowers?$|^flowering$/i) || 13]; T.fr = [ff.id, val(ff, /^fruit/i) || 14]; T.bd = [ff.id, val(ff, /bud/i) || 15]; }
     const ls = terms.find(t => t.id === 1) || terms.find(t => /life stage/i.test(t.label));
     if (ls) T.ad = [ls.id, val(ls, /^adult$/i) || 2];
   } catch (e) {}
@@ -904,17 +910,16 @@ async function phPage(params){ const q = (ATiNat.config.project ? 'project_id=' 
       const j = await r.json(); if ((j.results || []).some(o => (!o.geojson && !o.obscured) || !('observed_on' in o))) throw 0; return j; } catch (e){ PRIO_V2 = false; } }
   const r = await fetch('https://api.inaturalist.org/v1/observations?' + q); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }
 function phLoad(sp){ let st = PHD[sp.key]; if (st && (st.st === 'done' || st.st === 'loading')) return;
-  try { const x = JSON.parse(localStorage.getItem(phKey(sp))); if (x && Array.isArray(x.pts) && Date.now() - x.at < PHKEEP){ PHD[sp.key] = {st:'done', pts:x.pts, n:x.pts.length, at:x.at, nolb:x.nolb}; return; } } catch (e) {}
+  try { const x = JSON.parse(localStorage.getItem(phKey(sp))); if (x && Array.isArray(x.pts) && Date.now() - x.at < PHKEEP){ PHD[sp.key] = {st:'done', pts:x.pts, n:x.pts.length, at:x.at}; return; } } catch (e) {}
   st = PHD[sp.key] = {st:'loading', pts:[], n:0};
   (async () => { const T = await phTerms(), taxon = await prioTaxon({sci:sp.sci}), tally = {obscured:0};
-    const streams = sp.kind === 'plant' ? [[1, T.fl], [2, T.fr], [3, T.lb]] : sp.kind === 'adult' ? [[4, T.ad], [5, null]] : [[5, null]];
-    st.nolb = sp.kind === 'plant' && !T.lb;
-    for (const [stage, tv] of streams){ if (stage !== 5 && !tv) continue; let above = 0;
+    const streams = sp.kind === 'plant' ? [[3, T.bd], [1, T.fl], [2, T.fr]] : sp.kind === 'adult' ? [[4, T.ad], [5, null]] : [[5, null]];
+    for (const [stage, tv] of streams){ let above = 0;
       for (let page = 0; page < 100; page++){ const j = await phPage(`taxon_id=${taxon}` + (tv ? `&term_id=${tv[0]}&term_value_id=${tv[1]}` : '') + `&id_above=${above}`), res = j.results || [];
-        res.forEach(o => { const p = prioKeep(o, tally), d = doyOf(o.observed_on || ''); if (p && d) st.pts.push([d, +String(o.observed_on).slice(0, 4), stage, p[0], p[1]]); });
+        res.forEach(o => { const p = prioKeep(o, tally), d = doyOf(o.observed_on || ''); if (p && d) st.pts.push([d, +String(o.observed_on).slice(0, 4), stage, p[0], p[1], o.id]); });
         st.n = st.pts.length; if (res.length) above = res[res.length - 1].id; phStatusOnly(); if (res.length < 200) break; } }
     st.st = 'done'; st.at = Date.now();
-    try { localStorage.setItem(phKey(sp), JSON.stringify({at:st.at, pts:st.pts, nolb:st.nolb})); } catch (e) {}
+    try { localStorage.setItem(phKey(sp), JSON.stringify({at:st.at, pts:st.pts})); } catch (e) {}
     for (const k in PHAGG) if (k.startsWith(sp.key + '|')) delete PHAGG[k];
     if (S.q.id === 'phen' && phSp() === sp){ BRK.clear(); redraw(); } })()
   .catch(e => { st.st = 'error'; st.msg = e.message; if (S.q.id === 'phen') side(); }); }
@@ -924,32 +929,25 @@ function phCell(lv, la, lo){ const L_ = D.levels[lv], n = L_.id.length, k = Math
   for (let c = 0; c < n; c++){ const dy = L_.c[c][0] - la, dx = (L_.c[c][1] - lo) * k, d = dx*dx + dy*dy;
     if (near.length < 3 || d < near[2][0]){ near.push([d, c]); near.sort((a, b) => a[0] - b[0]); if (near.length > 3) near.pop(); } }
   for (const [, c] of near) if (inRingLL(la, lo, ring(lv, c))) return c; return -1; }
-/* onset by year for one cell's records of one stage: Map year -> [days from the cell's average onset, records], or null when
-   the cell has fewer than 2 years with 3 or more records */
-function phOnsets(L){ const by = new Map(); for (const [d, y] of L){ if (y < PHY0) continue; if (!by.has(y)) by.set(y, []); by.get(y).push(d); }
-  const on = new Map(); for (const [y, a] of by) if (a.length >= 3){ a.sort((p, q) => p - q); on.set(y, [a[Math.floor(.1 * (a.length - 1))], a.length]); }
-  if (on.size < 2) return null; let base = 0; for (const v of on.values()) base += v[0]; base /= on.size;
-  const an = new Map(); for (const [y, v] of on) an.set(y, [v[0] - base, v[1]]); return an; }
-/* per species and cell size: weekly counts per stage (all years and each year), records by cell, first year, onsets */
-const PHAGG = {}, PHY0 = 2010, PHST = [1, 2, 3, 4, 5];
+/* per species and cell size: weekly counts per stage (all years and each year), records by cell, first year, and each cell's
+   season from the main stage, all years pooled: onset (10th percentile date, 5+ records), peak (median, 5+), end (90th) and length (8+) */
+const PHAGG = {}, PHY0 = 2010, PHST = [1, 2, 3, 4, 5], PHMIN = 5, PHMINLEN = 8;
 function phAgg(lv){ const sp = phSp(), st = PHD[sp.key]; if (!st || st.st !== 'done') return null;
   const key = sp.key + '|' + lv; let A = PHAGG[key]; if (A && A.lev === D.levels[lv]) return A;
-  const n = D.levels[lv].id.length, ms = phMain(sp), cnt = sp.kind === 'plant' ? 0 : 5;
-  A = PHAGG[key] = {lev:D.levels[lv], placed:0, any:new Uint16Array(n), first:new Array(n).fill(null), w:{}, y:{}, d:{}, an:{}, mx:{}, ymx:{}};
+  const n = D.levels[lv].id.length, ms = phMain(sp), cnt = sp.kind === 'plant' ? 0 : 5, seen = new Set();
+  A = PHAGG[key] = {lev:D.levels[lv], placed:0, any:new Uint16Array(n), first:new Array(n).fill(null), w:{}, y:{}, d:{}, mx:{}, ymx:{}};
   for (const s of PHST){ A.w[s] = new Uint16Array(n * 53); A.d[s] = new Map(); }
-  for (const [d, y, s, la, lo] of st.pts){ const c = phCell(lv, la, lo); if (c < 0) continue; const w = wkOf(d);
-    if (!cnt || s === cnt) A.placed++; A.any[c]++; if (A.first[c] == null || y < A.first[c]) A.first[c] = y;
+  for (const [d, y, s, la, lo, id] of st.pts){ const c = phCell(lv, la, lo); if (c < 0) continue; const w = wkOf(d);
+    if (cnt ? s === cnt : !seen.has(id)){ A.placed++; seen.add(id); } A.any[c]++; if (A.first[c] == null || y < A.first[c]) A.first[c] = y;
     A.w[s][c*53 + w]++;
     if (y >= PHY0){ const Y = A.y[y] || (A.y[y] = {}); (Y[s] || (Y[s] = new Uint16Array(n * 53)))[c*53 + w]++; }
     let L = A.d[s].get(c); if (!L) A.d[s].set(c, L = []); L.push([d, y]); }
   const cells = []; for (let c = 0; c < n; c++) if (A.any[c]) cells.push(c);
   const ys = Object.keys(A.y).map(Number).sort((p, q) => p - q); A.years = ys.length ? Array.from({length:ys[ys.length - 1] - ys[0] + 1}, (_, i) => ys[0] + i) : [];
-  /* typical week and the 2021-25 against 2016-20 change, from the species' main stage */
-  const med = a => { const b = a.slice().sort((p, q) => p - q), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m-1] + b[m]) / 2; };
-  A.med = new Array(n).fill(null); A.shift = new Array(n).fill(null); A.nE = new Uint16Array(n); A.nL = new Uint16Array(n);
-  for (const [c, L] of A.d[ms]){ const all = L.map(p => p[0]), e = L.filter(p => p[1] >= 2016 && p[1] <= 2020).map(p => p[0]), l = L.filter(p => p[1] >= 2021 && p[1] <= 2025).map(p => p[0]);
-    if (all.length >= 3) A.med[c] = (med(all) - 1) / 7 + 1; A.nE[c] = e.length; A.nL[c] = l.length; if (e.length >= 3 && l.length >= 3) A.shift[c] = Math.round(med(l) - med(e)); }
-  for (const s of [1, 3, 4]){ A.an[s] = new Map(); for (const [c, L] of A.d[s]){ const an = phOnsets(L); if (an) A.an[s].set(c, an); } }
+  A.on = new Array(n).fill(null); A.pk = new Array(n).fill(null); A.end = new Array(n).fill(null); A.len = new Array(n).fill(null); A.nm = new Uint16Array(n);
+  for (const [c, L] of A.d[ms]){ const a = L.map(p => p[0]).sort((p, q) => p - q); A.nm[c] = a.length;
+    if (a.length >= PHMIN){ A.on[c] = phPct(a, .1); A.pk[c] = phMed(a); A.end[c] = phPct(a, .9); }
+    if (a.length >= PHMINLEN) A.len[c] = A.end[c] - A.on[c]; }
   /* the busiest three-week window of any cell, all years and single years, so the chart under the map keeps one scale while it plays */
   const win = (a, c, w) => a[c*53 + w] + (w > 1 ? a[c*53 + w - 1] : 0) + (w < 52 ? a[c*53 + w + 1] : 0);
   for (const s of PHST){ let mx = 0, ymx = 0; const a = A.w[s];
@@ -957,30 +955,37 @@ function phAgg(lv){ const sp = phSp(), st = PHD[sp.key]; if (!st || st.st !== 'd
     for (const y of ys){ const b = A.y[y][s]; if (!b) continue; for (const c of cells) for (let w = 1; w <= 52; w++){ const v = win(b, c, w); if (v > ymx) ymx = v; } }
     A.mx[s] = mx; A.ymx[s] = ymx; }
   return A; }
-/* the year on show: 0 for all years together, otherwise a year with records; measures that need a year get the latest */
+/* records along the trail with each one's distance in days from its 49 sq mi cell's usual (median) date: [year, days, cell, mile].
+   Cells need 5 or more records of the main stage to set a usual date. */
+function phResid(){ const A = phAgg('wheel'); if (!A) return null; if (A.res) return A.res; const L_ = D.levels.wheel, out = [];
+  for (const [c, L] of A.d[phMain()]){ if (L.length < PHMIN) continue; const m = phMed(L.map(p => p[0])); for (const [d, y] of L) out.push([y, d - m, c, L_.mi[c]]); }
+  return A.res = out; }
+/* the year on show: 0 for all years together, otherwise a year with records */
 function phYear(lv){ const A = phAgg(lv || dispLevel()); if (!A || !A.years.length) return 0;
   if (S.ph.yr && A.years.includes(S.ph.yr)) return S.ph.yr; return S.m.yrNeed ? A.years[A.years.length - 1] : 0; }
 function phWin(lv, c, s){ const A = phAgg(lv); if (!A || !A.any[c]) return null; const y = phYear(lv), w = S.ph.wk;
   const a = y ? (A.y[y] && A.y[y][s]) : A.w[s]; if (!a) return 0;
   return a[c*53 + w] + (w > 1 ? a[c*53 + w - 1] : 0) + (w < 52 ? a[c*53 + w + 1] : 0); }
 const phTop = (lv, s) => { const A = phAgg(lv); return A ? Math.max(1, (phYear(lv) ? A.ymx[s] : A.mx[s]) / 3) : 1; };
-function phAnom(lv, c, s){ const A = phAgg(lv); if (!A) return null; const M = A.an[s].get(c); if (!M) return null; const v = M.get(phYear(lv)); return v ? Math.round(v[0]) : null; }
 function phFirst(lv, c){ const A = phAgg(lv); if (!A || A.first[c] == null) return null; const y = phYear(lv); return y && A.first[c] > y ? null : A.first[c]; }
 const PHWAVE = [[0, ZERO, 'Recorded here, not these weeks'], [1, null, '1 record'], [2, null, '2 records'], [5, null, '3 to 5 records'], [10, null, '6 to 10 records'], [Infinity, null, 'over 10 records']];
 const phWaveCol = v => { if (v == null) return null; if (v === 0) return ZERO; const i = PHWAVE.findIndex(e => v <= e[0]); return RAMP.phen[Math.max(0, Math.min(4, i - 1))]; };
 const phWaveLegend = () => PHWAVE.map((e, i) => `<div class="row"><i style="background:${i ? RAMP.phen[i - 1] : ZERO}"></i><span>${e[2]}</span></div>`).join('') +
   (phYear() ? `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, ${phYear()} only. Gray cells had records in other years or weeks.</p>`
     : `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, all years together.</p>`);
-const PHMON = [[13, '#FDE725', 'March or earlier'], [17, '#7AD151', 'April'], [22, '#22A884', 'May'], [26, '#2A788E', 'June'], [30, '#414487', 'July'], [Infinity, '#440154', 'August or later']];
-const phMonCol = v => v == null ? null : PHMON.find(e => v <= e[0])[1];
-const PHSHIFT = [[-14, '#B2182B', '2 weeks or more earlier'], [-4, '#EF8A62', '4 to 13 days earlier'], [3, '#E3E3E3', 'About the same (within 3 days)'], [13, '#67A9CF', '4 to 13 days later'], [Infinity, '#2166AC', '2 weeks or more later']];
-const phShiftCol = v => v == null ? null : PHSHIFT.find(e => v <= e[0])[1];
+/* dates by half month, early spring to late summer */
+const PHDATE = [[90, '#FDE725', 'March or earlier'], [105, '#B5DE2B', 'Early April'], [120, '#6ECE58', 'Late April'], [135, '#35B779', 'Early May'], [151, '#1F9E89', 'Late May'],
+  [166, '#26828E', 'Early June'], [181, '#31688E', 'Late June'], [212, '#3E4989', 'July'], [Infinity, '#482878', 'August or later']];
+const phDateCol = v => v == null ? null : PHDATE.find(e => v <= e[0])[1];
+const phDateLegend = what => PHDATE.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${what}</p>`;
+const PHLEN = [[14, '#FFF06A', '2 weeks or less'], [28, '#FFE014', '3 to 4 weeks'], [42, '#F2C200', '5 to 6 weeks'], [56, '#C99A00', '7 to 8 weeks'], [Infinity, '#8A6800', 'over 8 weeks']];
+const phLenCol = v => v == null ? null : PHLEN.find(e => v <= e[0])[1];
 const PHFIRST = [[2015, '#2D1160', '2015 or earlier'], [2017, '#721F81', '2016–17'], [2019, '#B73779', '2018–19'], [2021, '#F1605D', '2020–21'], [2023, '#FEAF77', '2022–23'], [Infinity, '#FCFDBF', '2024 or later']];
 const phFirstCol = v => v == null ? null : PHFIRST.find(e => v <= e[0])[1];
-/* the bars under the map: values as drawn (spread: years since first recorded, so the oldest records stand tallest) */
+/* the bars under the map: values as drawn (dates: later stands taller; spread: years since first recorded, so the oldest stand tallest) */
 function stripV(m, v){ return m.stripH ? m.stripH(v) : m.stripAbs ? Math.abs(v) : v; }
 let phTimer = null;
-/* Play: week views run the weeks of the season (with a year picked, each year's season in turn); yearly views step the years */
+/* Play: week views run the weeks of the season (with a year picked, each year's season in turn); the spread view steps the years */
 function phPlay(on){ if (phTimer){ clearInterval(phTimer); phTimer = null; }
   if (on && S.m.yr === 'y'){ phTimer = setInterval(() => { const A = phAgg(dispLevel()); if (!A || !A.years.length) return; const ys = A.years, y = phYear();
       S.ph.yr = !y || y >= ys[ys.length - 1] ? ys[0] : y + 1; phFrame(); }, 1000); }
@@ -998,8 +1003,7 @@ function phTick(){ let t = document.getElementById('phtick'); const on = S.q.id 
   if (!t){ if (!on) return; t = document.createElement('div'); t.id = 'phtick'; t.setAttribute('aria-live', 'off'); document.getElementById('map').appendChild(t); }
   if (!on){ t.style.display = 'none'; return; } const y = phYear(), A = phAgg(dispLevel()), ys = A.years, span = ys.length ? ys[0] + '–' + String(ys[ys.length - 1]).slice(2) : 'All years';
   let big, small;
-  if (S.m.id === 'onset'){ big = y; small = `first ${PHWORD[phMain()]} against usual`; }
-  else if (S.m.id === 'spread'){ big = y ? 'by ' + y : span; small = y ? 'cells with records so far' : 'year first recorded'; }
+  if (S.m.id === 'spread'){ big = y ? 'by ' + y : span; small = y ? 'cells with records so far' : 'year first recorded'; }
   else { big = y || span; small = (y ? '' : 'All years · ') + esc(wkLabel(S.ph.wk)) + ' · ' + PHWORD[S.m.st()]; }
   t.innerHTML = `<b>${big}</b><span>${small}</span>`; t.style.display = 'block'; phTickPos(); }
 /* top left of the map, just below the map controls (which wrap to more rows on a phone or when Map tools opens) */
@@ -1011,8 +1015,7 @@ function phStatus(){ const sp = phSp(), st = PHD[sp.key];
   if (!st || st.st === 'loading') return `Loading research-grade records of ${esc(sp.common.toLowerCase())} from iNaturalist…` + (st && st.n ? ` ${fmt(st.n, 0)} so far` : '');
   if (st.st === 'error') return `Could not load from iNaturalist (${esc(st.msg || 'error')}). <button type="button" data-phref="1">Try again</button>`;
   const A = phAgg(dispLevel()), n = s => fmt(st.pts.reduce((t, p) => t + (p[2] === s ? 1 : 0), 0), 0);
-  const what = sp.kind === 'plant' ? `${n(3)} leaf-out, ${n(1)} flowering and ${n(2)} fruiting records` + (st.nolb ? ' (iNaturalist’s leaf annotation was not found)' : '')
-    : sp.kind === 'adult' ? `${n(5)} records, ${n(4)} of them marked adult` : `${n(5)} records`;
+  const what = sp.kind === 'plant' ? `${n(3)} in bud, ${n(1)} flowering and ${n(2)} fruiting records` : sp.kind === 'adult' ? `${n(5)} records, ${n(4)} of them marked adult` : `${n(5)} records`;
   return `${what}; ${fmt(A ? A.placed : 0, 0)} fall in corridor cells. Loaded ${new Date(st.at).toLocaleDateString('en-US')}. <button type="button" data-phref="1">Refresh</button>`; }
 function phStatusOnly(){ const e = $('#phstat'); if (e) e.innerHTML = phStatus(); }
 /* a measure that does not apply to the species picked gives way to the first one that does */
@@ -1022,9 +1025,9 @@ function phBlock(){ const sp = phSp(), m = S.m, A = phAgg(dispLevel()), ys = A ?
   if (m.yr === 'wk'){ h += `<div class="wk"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button><input type="range" id="phwk" min="8" max="44" step="1" value="${S.ph.wk}" aria-label="Week of the year"></div><div class="wkl" id="phwkl">${wkLabel(S.ph.wk)}</div>`;
     if (ys.length >= 2) h += `<div class="wk yr"><span class="yrl" id="phyrl">${y || 'All years'}</span><input type="range" id="phyr" min="${ys[0] - 1}" max="${ys[ys.length - 1]}" step="1" value="${y || ys[0] - 1}" aria-label="Year (far left for all years)"></div>` +
       `<p class="phstat" style="margin-top:-3px">Slide left for all years together, or pick a year; Play then runs each year's season in turn.</p>`; }
-  else if (m.yr === 'y' && ys.length >= 2){ const lo = m.yrNeed ? ys[0] : ys[0] - 1;
+  else if (m.yr === 'y' && ys.length >= 2){ const lo = ys[0] - 1;
     h += `<div class="wk yr"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button><input type="range" id="phyr" min="${lo}" max="${ys[ys.length - 1]}" step="1" value="${y || lo}" aria-label="Year"><span class="yrl" id="phyrl">${y || 'All years'}</span></div>` +
-      `<p class="phstat" style="margin-top:-3px">${m.yrNeed ? 'Pick a year, or press Play to step through the years.' : 'Slide left for every year, or pick a year to see where it had been recorded by then; Play steps through the years.'}</p>`; }
+      `<p class="phstat" style="margin-top:-3px">Slide left for every year, or pick a year to see where it had been recorded by then; Play steps through the years.</p>`; }
   return h + `<p class="phstat" id="phstat" role="status">${phStatus()}</p><div id="phtrend">${phTrendBlock()}</div></div>`; }
 function phWire(){ const s = $('#phsp'); if (!s) return;
   const yr = $('#phyr'); if (yr){ yr.oninput = () => { const A = phAgg(dispLevel()); S.ph.yr = A && A.years.includes(+yr.value) ? +yr.value : 0; phFrame(); }; yr.onchange = () => { redraw(); }; }
@@ -1032,40 +1035,69 @@ function phWire(){ const s = $('#phsp'); if (!s) return;
   const r = $('#phwk'); if (r){ r.oninput = () => { S.ph.wk = +r.value; phFrame(); }; r.onchange = () => { redraw(); }; }
   const b = $('#phplay'); if (b) b.onclick = () => { phPlay(!phTimer); if (!phTimer) redraw(); };
   document.querySelectorAll('[data-phref]').forEach(x => x.onclick = phRefresh); phWireTrend(); }
-/* clicking a year on a chart shows that year (switching to the yearly view from a measure without years) */
-function phWireTrend(){ document.querySelectorAll('[data-phy]').forEach(x => x.onclick = () => { phPlay(false); S.ph.yr = +x.dataset.phy;
-  if (!S.m.yr) S.m = S.q.m.find(m => m.id === (phSp().kind === 'spread' ? 'spread' : 'onset')); BRK.clear(); redraw(); }); }
-/* ---------- charts: earlier or later each year, and spread ---------- */
-const phSeries = () => { const k = phSp().kind; return k === 'plant' ? [[3, 'First leaf-out', '#6CC48A'], [1, 'First flowering', '#F2C200']] : k === 'adult' ? [[4, 'First adults', '#F08A5D']] : []; };
-/* a year's value for a set of cells: the cells' onset anomalies averaged, each weighted by its records that year (up to 10);
-   an area needs 2 or more cells in a year. The smoothed line is a centered 3-year average. */
-function phTrendData(lv, cells, s){ const A = phAgg(lv), acc = new Map();
-  for (const c of cells){ const M = A.an[s].get(c); if (!M) continue; for (const [y, [a, n]] of M){ const w = Math.min(n, 10), e = acc.get(y) || [0, 0, 0]; e[0] += a * w; e[1] += w; e[2]++; acc.set(y, e); } }
-  const need = cells.length > 1 ? 2 : 1, ann = A.years.map(y => { const e = acc.get(y); return {y, v:e && e[2] >= need ? e[0] / e[1] : null, k:e ? e[2] : 0}; });
+/* charts: a year maps that year's weeks (or, for the spread, where it was by then); a week on the calendar maps that week */
+function phWireTrend(){
+  document.querySelectorAll('[data-phy]').forEach(x => x.onclick = () => { phPlay(false); S.ph.yr = +x.dataset.phy;
+    if (!S.m.yr) S.m = S.q.m.find(m => m.id === (phSp().kind === 'spread' ? 'spread' : 'wave')); BRK.clear(); redraw(); });
+  document.querySelectorAll('[data-phw]').forEach(x => x.onclick = () => { phPlay(false); S.ph.wk = Math.max(8, Math.min(44, +x.dataset.phw));
+    if (S.m.yr !== 'wk') S.m = S.q.m.find(m => m.id === 'wave'); BRK.clear(); redraw(); }); }
+/* ---------- charts ---------- */
+const PHBAND = 200;   /* trail miles per row of the season calendar */
+/* Season calendar: rows of 200 trail miles, north at the top, by week. Plants: the share of annotated records that are in flower
+   (the Network's proportion of "yes" records), from records in bud, in flower or in fruit; a box needs 4 or more. Pests with adults:
+   when adults are recorded, as each row's share of its adult records. */
+function phCalendar(){ const sp = phSp(), A = phAgg('wheel'); if (!A || sp.kind === 'spread') return ''; const L_ = D.levels.wheel, rng = secRange();
+  const nb = Math.ceil(D.totalMi / PHBAND), plant = sp.kind === 'plant', stg = plant ? [3, 1, 2] : [4], B = Array.from({length:nb}, () => ({}));
+  for (const s of stg) for (const [c, L] of A.d[s]){ const mi = L_.mi[c]; if (rng && (mi < rng[0] || mi > rng[1])) continue; const b = B[Math.min(nb - 1, Math.floor(mi / PHBAND))];
+    for (const [d] of L){ const w = wkOf(d), e = b[w] || (b[w] = {3:0, 1:0, 2:0, 4:0}); e[s]++; } }
+  let w0 = 52, w1 = 1; B.forEach(b => Object.keys(b).forEach(w => { w0 = Math.min(w0, +w); w1 = Math.max(w1, +w); })); if (w1 < w0) return '';
+  w0 = Math.max(1, w0 - 1); w1 = Math.min(52, w1 + 1);
+  const rows = B.map((b, i) => ({i, b, n:Object.values(b).reduce((t, e) => t + stg.reduce((u, s) => u + e[s], 0), 0)})).filter(r => r.n).reverse();
+  const W = 320, lab = 44, rh = Math.max(11, Math.min(18, 150 / rows.length)), H = rows.length * rh + 18, cw = (W - lab - 4) / (w1 - w0 + 1), f = v => v.toFixed(1);
+  const ramp = ['#3A3420', '#6B5A12', '#A8860A', '#E0B400', '#FFE014'];
+  let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Season calendar along the trail">`;
+  rows.forEach((r, k) => { const y = k * rh, mx = plant ? 1 : Math.max(1, ...Object.values(r.b).map(e => e[4]));
+    g += `<text x="${lab - 4}" y="${f(y + rh * .72)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">mi ${fmt(r.i * PHBAND, 0)}</text>`;
+    for (let w = w0; w <= w1; w++){ const e = r.b[w]; if (!e) continue; const tot = e[3] + e[1] + e[2];
+      let v, tip; if (plant){ if (tot < 4) { v = null; tip = `${tot} annotated ${tot === 1 ? 'record' : 'records'}, too few`; } else { v = e[1] / tot; tip = `${Math.round(100 * v)}% in flower (${e[3]} in bud, ${e[1]} flowering, ${e[2]} fruiting)`; } }
+      else { v = e[4] / mx; tip = `${e[4]} adult ${e[4] === 1 ? 'record' : 'records'}`; }
+      const x = lab + (w - w0) * cw, col = v == null ? '#2E4460' : ramp[Math.min(4, Math.floor(v * 4.999))];
+      g += `<rect data-phw="${w}" x="${f(x + .4)}" y="${f(y + .5)}" width="${f(cw - .8)}" height="${f(rh - 1)}" fill="${col}" style="cursor:pointer"><title>Miles ${fmt(r.i * PHBAND, 0)}–${fmt(Math.min(D.totalMi, (r.i + 1) * PHBAND), 0)}, ${wkLabel(w)}: ${tip}</title></rect>`; } });
+  const yb = rows.length * rh;
+  [['Mar', 9], ['Apr', 14], ['May', 18], ['Jun', 22], ['Jul', 27], ['Aug', 31], ['Sep', 35], ['Oct', 40], ['Nov', 44]].forEach(([m, w]) => { if (w >= w0 && w <= w1) g += `<text x="${f(lab + (w - w0) * cw)}" y="${yb + 12}" font-size="8.5" fill="#A8B8CA">${m}</text>`; });
+  if (S.m.yr === 'wk' && S.ph.wk >= w0 && S.ph.wk <= w1) g += `<rect x="${f(lab + (S.ph.wk - w0) * cw)}" y="0" width="${f(cw)}" height="${yb}" fill="none" stroke="#fff" stroke-width="1"/>`;
+  g += '</svg>';
+  const key = plant ? `<div class="phkey"><span><i style="background:linear-gradient(90deg,${ramp.join(',')})"></i>share of annotated records in flower, 0 to 100%</span><span class="thin">gray: fewer than 4 annotated records</span></div>`
+    : `<div class="phkey"><span><i style="background:linear-gradient(90deg,${ramp.join(',')})"></i>adult records, few to most in that row</span></div>`;
+  return g + key; }
+/* Earlier or later than usual, by year: each record's days from its cell's usual date; a year's value is the median of those
+   (10 or more records), with a centered 3-year average; plus 2021–25 against 2016–20 (20 or more records in each) */
+function phTrend(){ const A = phAgg('wheel'), R = phResid(); if (!A || !R || A.years.length < 2) return ''; const rng = secRange();
+  const rs = R.filter(r => !rng || (r[3] >= rng[0] && r[3] <= rng[1])), ys = A.years, by = new Map();
+  rs.forEach(r => { if (!by.has(r[0])) by.set(r[0], []); by.get(r[0]).push(r[1]); });
+  const ann = ys.map(y => { const a = by.get(y) || []; return {y, v:a.length >= 10 ? phMed(a) : null, k:a.length}; });
   const sm = ann.map((p, i) => { const w = ann.slice(Math.max(0, i - 1), i + 2).filter(q => q.v != null); return {y:p.y, v:w.length >= 2 ? w.reduce((t, q) => t + q.v, 0) / w.length : null}; });
-  return {ann, sm}; }
-function phTrendSvg(lv, cells, where){ const A = phAgg(lv), ser = phSeries(); if (!A || !ser.length || A.years.length < 2) return '';
-  const data = ser.map(([s, lab, col]) => Object.assign({s, lab, col}, phTrendData(lv, cells, s))).filter(d => d.ann.some(p => p.v != null));
-  if (!data.length) return `<p class="phstat">Not enough records for ${esc(where)} yet: a year needs 3 or more records in a cell, and a cell 2 or more such years.</p>`;
-  let mx = 10; data.forEach(d => d.ann.forEach(p => { if (p.v != null) mx = Math.max(mx, Math.abs(p.v)); })); mx = Math.min(40, Math.ceil(mx / 5) * 5);
-  const ys = A.years, W = 320, H = 150, pl = 26, pr = 6, pt = 14, pb = 18, pw = W - pl - pr, ph = H - pt - pb;
-  const X = y => pl + pw * (y - ys[0]) / Math.max(1, ys.length - 1), Y = v => pt + ph / 2 - (ph / 2) * Math.max(-mx, Math.min(mx, v)) / mx;
-  const sel = S.m.yr ? phYear(lv) : 0, f = v => v.toFixed(1);
-  let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Days earlier or later than usual by year, ${esc(where)}">`;
-  if (sel) g += `<rect x="${X(sel) - pw / Math.max(1, ys.length - 1) / 2}" y="${pt}" width="${pw / Math.max(1, ys.length - 1)}" height="${ph}" fill="#fff" opacity=".1"/>`;
-  [mx, mx / 2, -mx / 2, -mx].forEach(v => { g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${v > 0 ? '+' : '−'}${Math.abs(v)}</text>`; });
+  const early = rs.filter(r => r[0] >= 2016 && r[0] <= 2020).map(r => r[1]), late = rs.filter(r => r[0] >= 2021 && r[0] <= 2025).map(r => r[1]);
+  const cmp = early.length >= 20 && late.length >= 20 ? Math.round(phMed(late) - phMed(early)) : null;
+  const head = cmp == null ? `<p class="phbig">2021–25 against 2016–20: too few records to compare (${early.length} and ${late.length}; 20 or more each).</p>`
+    : `<p class="phbig"><b>${cmp === 0 ? 'No change' : phDays(cmp)}</b>: ${phNoun() === 'adult' ? 'adults' : 'flowering'} in 2021–25 compared with 2016–20 <span>(${fmt(late.length, 0)} and ${fmt(early.length, 0)} records)</span></p>`;
+  if (ann.filter(p => p.v != null).length < 2) return head + '<p class="phstat">Not enough records to chart single years here: a year needs 10 or more records in cells with a usual date.</p>';
+  let mx = 7; ann.forEach(p => { if (p.v != null) mx = Math.max(mx, Math.abs(p.v)); }); mx = Math.min(40, Math.ceil(mx / 7) * 7);
+  const W = 320, H = 140, pl = 26, pr = 6, pt = 14, pb = 18, pw = W - pl - pr, ph = H - pt - pb, step = pw / Math.max(1, ys.length - 1);
+  const X = y => pl + step * (y - ys[0]), Y = v => pt + ph / 2 - (ph / 2) * Math.max(-mx, Math.min(mx, v)) / mx, f = v => v.toFixed(1), sel = S.m.yr ? phYear() : 0, col = phSp().kind === 'adult' ? '#F08A5D' : '#F2C200';
+  let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Days earlier or later than usual by year">`;
+  if (sel) g += `<rect x="${f(X(sel) - step / 2)}" y="${pt}" width="${f(step)}" height="${ph}" fill="#fff" opacity=".1"/>`;
+  [mx, mx / 2, -mx / 2, -mx].forEach(v => { g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${v > 0 ? '+' : '−'}${Math.abs(Math.round(v))}</text>`; });
   g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(0))}" y2="${f(Y(0))}" stroke="#E3EAF2" stroke-dasharray="3 3" stroke-width=".8"/><text x="${pl - 3}" y="${f(Y(0) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">0</text>`;
   g += `<text x="${pl + 3}" y="${pt - 4}" font-size="9" fill="#A8B8CA">▲ Later</text><text x="${pl + 3}" y="${pt + ph - 3}" font-size="9" fill="#A8B8CA">▼ Earlier</text>`;
   const path = pts => { let d = '', pen = false; pts.forEach(p => { if (p.v == null){ pen = false; return; } d += (pen ? 'L' : 'M') + f(X(p.y)) + ' ' + f(Y(p.v)); pen = true; }); return d; };
-  data.forEach(d => { g += `<path d="${path(d.ann)}" fill="none" stroke="${d.col}" stroke-width="1.1" opacity=".75"/>`;
-    d.ann.forEach(p => { if (p.v != null) g += `<circle cx="${f(X(p.y))}" cy="${f(Y(p.v))}" r="1.8" fill="${d.col}"/>`; }); });
-  data.forEach(d => { g += `<path d="${path(d.sm)}" fill="none" stroke="${d.col}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>`; });
-  const step = ys.length > 12 ? 2 : 1;
-  ys.forEach((y, i) => { if (i % step === 0 || i === ys.length - 1) g += `<text x="${f(X(y))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${y === sel ? '#FFE014' : '#A8B8CA'}"${y === sel ? ' font-weight="700"' : ''}>’${String(y).slice(2)}</text>`;
-    const tip = data.map(d => { const p = d.ann.find(q => q.y === y); return `${d.lab}: ${p.v == null ? 'too few records' : phDays(Math.round(p.v))}${p.k ? ` (${p.k} ${p.k === 1 ? 'cell' : 'cells'})` : ''}`; }).join('; ');
-    g += `<rect data-phy="${y}" x="${f(X(y) - pw / Math.max(1, ys.length - 1) / 2)}" y="${pt}" width="${f(pw / Math.max(1, ys.length - 1))}" height="${ph + pb}" fill="transparent" style="cursor:pointer"><title>${y}. ${esc(tip)}</title></rect>`; });
-  g += '</svg>';
-  return g + `<div class="phkey">${data.map(d => `<span><i style="background:${d.col}"></i>${esc(d.lab)}</span>`).join('')}<span class="thin">thin: each year · thick: 3-year average</span></div>`; }
+  g += `<path d="${path(ann)}" fill="none" stroke="${col}" stroke-width="1.1" opacity=".75"/>`;
+  ann.forEach(p => { if (p.v != null) g += `<circle cx="${f(X(p.y))}" cy="${f(Y(p.v))}" r="2" fill="${col}"/>`; });
+  g += `<path d="${path(sm)}" fill="none" stroke="${col}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const every = ys.length > 12 ? 2 : 1;
+  ys.forEach((y, i) => { const p = ann[i]; if (i % every === 0 || i === ys.length - 1) g += `<text x="${f(X(y))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${y === sel ? '#FFE014' : '#A8B8CA'}"${y === sel ? ' font-weight="700"' : ''}>’${String(y).slice(2)}</text>`;
+    g += `<rect data-phy="${y}" x="${f(X(y) - step / 2)}" y="${pt}" width="${f(step)}" height="${ph + pb}" fill="transparent" style="cursor:pointer"><title>${y}: ${p.v == null ? `too few records (${p.k})` : phDays(Math.round(p.v)) + ` than usual (${p.k} records)`}</title></rect>`; });
+  return head + g + `</svg><div class="phkey"><span><i style="background:${col}"></i>median days from the usual date</span><span class="thin">thin: each year · thick: 3-year average</span></div>`; }
 function phSpreadSvg(lv, cells){ const A = phAgg(lv); if (!A || !A.years.length) return ''; const ys = A.years, nw = new Map();
   for (const c of cells){ let y = A.first[c]; if (y == null) continue; if (y < ys[0]) y = ys[0]; nw.set(y, (nw.get(y) || 0) + 1); }
   let cum = 0; const rows = ys.map(y => ({y, n:nw.get(y) || 0, t:(cum += nw.get(y) || 0)}));
@@ -1076,25 +1108,27 @@ function phSpreadSvg(lv, cells){ const A = phAgg(lv); if (!A || !A.years.length)
   rows.forEach((r, i) => { const hh = ph * r.n / mn; g += `<rect x="${f(pl + bw * i + 1)}" y="${f(pt + ph - hh)}" width="${f(bw - 2)}" height="${f(hh)}" fill="${phFirstCol(r.y)}" opacity="${sel && r.y > sel ? .25 : .9}"/>`; });
   g += `<path d="${rows.map((r, i) => (i ? 'L' : 'M') + f(X(i)) + ' ' + f(pt + ph - ph * r.t / cum)).join('')}" fill="none" stroke="#E3EAF2" stroke-width="2"/>`;
   g += `<text x="${pl - 3}" y="${pt + 3}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${mn}</text><text x="${W - pr + 3}" y="${pt + 3}" font-size="8.5" fill="#E3EAF2">${cum}</text><text x="${pl - 3}" y="${pt + ph + 3}" text-anchor="end" font-size="8.5" fill="#A8B8CA">0</text>`;
-  const step = ys.length > 12 ? 2 : 1;
-  rows.forEach((r, i) => { if (i % step === 0 || i === ys.length - 1) g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${r.y === sel ? '#FFE014' : '#A8B8CA'}"${r.y === sel ? ' font-weight="700"' : ''}>’${String(r.y).slice(2)}</text>`;
+  const every = ys.length > 12 ? 2 : 1;
+  rows.forEach((r, i) => { if (i % every === 0 || i === ys.length - 1) g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${r.y === sel ? '#FFE014' : '#A8B8CA'}"${r.y === sel ? ' font-weight="700"' : ''}>’${String(r.y).slice(2)}</text>`;
     g += `<rect data-phy="${r.y}" x="${f(pl + bw * i)}" y="${pt}" width="${f(bw)}" height="${ph + pb}" fill="transparent" style="cursor:pointer"><title>${r.y}: ${r.n} new ${r.n === 1 ? 'cell' : 'cells'}, ${r.t} in all</title></rect>`; });
   return g + '</svg><div class="phkey"><span class="thin">bars: cells first recorded that year (left scale) · line: all cells recorded so far (right scale)</span></div>'; }
-function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) return ''; const where = S.sec === 'all' ? 'the whole trail' : secName();
+function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) return ''; const where = S.sec === 'all' ? 'the whole trail' : secName(), noun = phNoun();
   let h = '';
-  if (phSeries().length){ const L_ = D.levels.wheel, cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec('wheel', c)) cells.push(c);
-    h += `<h4 class="phh">Earlier or later than usual each year, ${esc(where)}</h4>` + phTrendSvg('wheel', cells, where) +
-      '<p class="phnote">Days between the first records of a year (the earliest 10%) and the usual first date, in 49 sq mi cells with 3 or more records that year, averaged along the trail. Click a year to map it.</p>'; }
+  if (sp.kind !== 'spread'){
+    h += `<h4 class="phh">When it is ${sp.kind === 'plant' ? 'in flower' : 'out as adults'} along the trail</h4>` + phCalendar() +
+      `<p class="phnote">${sp.kind === 'plant' ? 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks. Brighter boxes: more of that week’s annotated records show flowers, so the season reads from bud to flower to fruit and moves north.' : 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks.'} Click a week to map it.</p>`;
+    h += `<h4 class="phh">Is ${noun === 'adult' ? 'adult season' : 'flowering'} earlier or later than usual? ${esc(where)}</h4>` + phTrend() +
+      `<p class="phnote">Each record is measured against its own 49 sq mi cell’s usual ${noun} date (cells with 5 or more records), so years with more northern or higher records do not look late. Records are thin; read the 3-year line and the period comparison, not single years. Click a year to map it.</p>`; }
   if (sp.kind !== 'plant'){ const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
     h += `<h4 class="phh">Spread: cells with records by year, ${esc(where)}</h4>` + phSpreadSvg(lv, cells) +
       `<p class="phnote">${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} cells. Records follow hikers and observers, so a first record marks when it was noticed here, not when it arrived. Click a year to map it.</p>`; }
   return h; }
-/* the cell panel: records by week, typical week, change, first year and the cell's own yearly chart */
+/* the cell panel: records by week by stage, and the cell's season */
 function phSection(lv, c){ if (S.q.id !== 'phen') return ''; const sp = phSp(), A = phAgg(lv), k = sp.kind;
   let b = `<div class="sec" style="--hue:${HUE.phen}"><h3>Flowering and fruiting</h3><p style="margin:0 0 6px"><b>${esc(sp.common)}</b> <i style="color:var(--muted)">${esc(sp.sci)}</i></p>`;
   if (!A) return b + `<p class="none">${phStatus()}</p></div>`;
   if (!A.any[c]) return b + '<p class="none">No records of this species in this cell.</p></div>';
-  const SER = k === 'plant' ? [[3, 'Leaf-out', '#6CC48A'], [1, 'Flowering', RAMP.phen[3]], [2, 'Fruiting', '#8E5BB5']] : k === 'adult' ? [[5, 'All records', '#8FA3B8'], [4, 'Adults', '#F08A5D']] : [[5, 'Records', '#C98B6B']];
+  const SER = k === 'plant' ? [[3, 'In bud', '#9CCB6B'], [1, 'Flowering', RAMP.phen[3]], [2, 'Fruiting', '#8E5BB5']] : k === 'adult' ? [[5, 'All records', '#8FA3B8'], [4, 'Adults', '#F08A5D']] : [[5, 'Records', '#C98B6B']];
   const stack = k === 'plant', yy = S.m.yr === 'wk' ? phYear(lv) : 0, Y = yy ? A.y[yy] || {} : null;
   const at = (s, w) => A.w[s][c*53 + w], aty = (s, w) => Y && Y[s] ? Y[s][c*53 + w] : 0, tot = {}, ytot = {};
   let mx = 1; for (let w = 1; w <= 52; w++){ let t = 0; SER.forEach(([s]) => { tot[s] = (tot[s] || 0) + at(s, w); ytot[s] = (ytot[s] || 0) + aty(s, w); t = stack ? t + at(s, w) : Math.max(t, at(s, w)); }); mx = Math.max(mx, t); }
@@ -1108,13 +1142,13 @@ function phSection(lv, c){ if (S.q.id !== 'phen') return ''; const sp = phSp(), 
   ['Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'].forEach((m, i) => { const w = [9,14,18,22,27,31,35,40][i]; svg += `<text x="${(w - 1) * bw}" y="${H + 12}" font-size="9" fill="#A8B8CA">${m}</text>`; });
   b += svg + '</svg><div class="keys" style="margin-top:6px">' + SER.map(([s, lab, col]) => `<div><i style="background:${col}"></i><span>${lab} records${yy ? ', ' + yy : ''}</span><span>${yy ? fmt(ytot[s], 0) + ' of ' : ''}${fmt(tot[s], 0)}</span></div>`).join('') +
     (yy ? '<div><i style="background:#A8B8CA;opacity:.5"></i><span>All years</span><span></span></div>' : '') + '</div>';
-  const word = k === 'adult' ? 'adult' : 'flowering';
-  b += '<div class="keys nosw" style="margin-top:6px">' + (k === 'spread' ? '' : soilRow(`Typical ${word} week`, A.med[c] == null ? 'too few records' : 'week of ' + wkDate(Math.round(A.med[c]))) +
-    soilRow('Change since 2016–20', A.shift[c] == null ? `too few records (${A.nE[c]} and ${A.nL[c]})` : (A.shift[c] === 0 ? 'no change' : `${Math.abs(A.shift[c])} days ${A.shift[c] < 0 ? 'earlier' : 'later'}`) + ` (${A.nE[c]} and ${A.nL[c]} records)`)) +
+  const noun = phNoun(), few = need => `too few records (${A.nm[c]}; needs ${need})`;
+  b += '<div class="keys nosw" style="margin-top:6px">' + (k === 'spread' ? '' :
+      soilRow(`First ${noun} date`, A.on[c] == null ? few(PHMIN) : doyDate(A.on[c])) + soilRow(`Peak ${noun} date`, A.pk[c] == null ? few(PHMIN) : doyDate(A.pk[c])) +
+      soilRow(`${noun === 'adult' ? 'Adult' : 'Flowering'} season length`, A.len[c] == null ? few(PHMINLEN) : `${Math.round(A.len[c] / 7)} weeks (${doyDate(A.on[c])} to ${doyDate(A.end[c])})`)) +
     soilRow('First recorded here', String(A.first[c])) + '</div>';
-  if (phSeries().length){ const t = phTrendSvg(lv, [c], 'this cell'); if (t) b += `<h4 class="phh" style="margin-top:10px">Earlier or later than usual, this cell</h4>` + t; }
-  const note = k === 'plant' ? 'Research-grade iNaturalist records with a leaf buds, flowers or fruits annotation. Records follow hikers, so counts show when people saw it, not how much there is. Change compares median flowering dates and needs 3 or more records in each period.'
-    : k === 'adult' ? 'Research-grade iNaturalist records; adults are those annotated with that life stage. Records follow observers, so they show when and where it was noticed. Typical week and change use the adult records.'
+  const note = k === 'plant' ? 'Research-grade iNaturalist records with a flower buds, flowers or fruits annotation. Dates pool every year: first is the earliest 10% of flowering records, peak the middle, and the season runs to the latest 10%. Records follow hikers, so they show when people saw it, not how much there is.'
+    : k === 'adult' ? 'Research-grade iNaturalist records; adults are those annotated with that life stage, and the dates use them. Records follow observers, so they show when and where it was noticed.'
     : 'Research-grade iNaturalist records of the nematode that causes beech leaf disease, usually photos of the leaf symptoms. Records follow observers, so the first year marks when it was noticed here.';
   return b + `<p class="none" style="font-size:13.5px;margin-top:8px">${note}</p></div>`; }
 /* ---------- restoration targets ----------
@@ -1270,25 +1304,23 @@ const Q = [
   use:'Two restoration scores, from 0 to 100, for restoration on A.T. corridor lands, built from the other layers here. Grasslands and early successional habitat favors open habitat near rare species, with priority invasive plants, soils suited to grassland management, grassland and shrubland birds, and vistas. Forests favors forest near rare species, with forest pests, priority invasive plants and places where hikers gather. Grassland birds carry the most weight, since they are declining and their habitat is scarce. Turn on Herbicide use to lower the scores of cells with wetlands, since nearby wetlands can limit herbicide use. Private land is left out: the points are scaled by the share of the cell\u2019s corridor land that is not private. Use it to shortlist cells for a closer look; check the parts in the cell panel.',
   m:[{id:'grass', label:'Grasslands and early successional', int:1, brkP:[.4,.7,.85,.95], none:'No open habitat mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('grass'), fn:(lv,c) => restScore('grass', lv, c)},
      {id:'forest', label:'Forests', int:1, brkP:[.4,.7,.85,.95], none:'No forest mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
- {id:'phen', th:'inat', hue:HUE.phen, ramp:'phen', title:'When does it leaf out and flower?',
-  use:'When indicator plants of the trail’s high country leaf out, flower and fruit, and when and where two forest pests, emerald ash borer and beech leaf disease, are turning up, from research-grade iNaturalist records. Pick a species and press Play to watch the season move along the trail, all years together or year by year. The yearly measures ask the questions phenology studies ask: was first leaf-out or first flowering earlier or later than usual this year, and is that changing? For the pests: where has it been recorded, and since when? Records follow hikers, so this shows when people saw something; a blank cell means no records, not absence.',
+ {id:'phen', th:'inat', hue:HUE.phen, ramp:'phen', title:'When does it flower here?',
+  use:'When indicator plants of the trail’s high country flower and fruit, and when and where two forest pests, emerald ash borer and beech leaf disease, turn up, from research-grade iNaturalist records. The measures are the National Phenology Network’s: when the season starts (first date), peaks and how long it lasts; the share of records in flower week by week along the trail; and whether it is coming earlier or later than usual. Press Play to watch the season move along the trail, all years together or year by year. Records follow hikers, so this shows when people saw something; a blank cell means too few records, not absence',
   m:[{id:'wave', get label(){ const k = phSp().kind; return k === 'plant' ? 'Flowering, week by week' : k === 'adult' ? 'Adults, week by week' : 'Records, week by week'; },
       yr:'wk', st:() => phMain(), int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'], fn:(lv, c) => phWin(lv, c, phMain()),
       colorFn:phWaveCol, legendFn:phWaveLegend, stripTop:lv => phTop(lv, phMain())},
-     {id:'leaf', label:'Leaf-out, week by week', yr:'wk', st:() => 3, hideFn:() => phSp().kind !== 'plant', int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'],
-      fn:(lv, c) => phWin(lv, c, 3), colorFn:phWaveCol, legendFn:phWaveLegend, stripTop:lv => phTop(lv, 3)},
      {id:'fruit', label:'Fruiting, week by week', yr:'wk', st:() => 2, hideFn:() => phSp().kind !== 'plant', int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'],
       fn:(lv, c) => phWin(lv, c, 2), colorFn:phWaveCol, legendFn:phWaveLegend, stripTop:lv => phTop(lv, 2)},
-     {id:'onset', get label(){ return phSp().kind === 'adult' ? 'First adults: earlier or later?' : 'First flowering: earlier or later?'; }, yr:'y', yrNeed:1, hideFn:() => phSp().kind === 'spread',
-      d:0, none:'Too few records that year', showFn:v => phDays(v) + ' than usual', fn:(lv, c) => phAnom(lv, c, phMain()), colorFn:phShiftCol, stripAbs:1, stripTop:() => 21,
-      legendFn:lv => PHSHIFT.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">First ${PHWORD[phMain()]} in ${phYear(lv)} against each cell’s usual date: the earliest 10% of records in a year with 3 or more, compared with the cell’s average over its years. Cells need 2 or more such years.</p>`},
-     {id:'peak', get label(){ return phSp().kind === 'adult' ? 'Typical week adults are seen' : 'Typical flowering week'; }, hideFn:() => phSp().kind === 'spread', d:0, none:'Fewer than 3 records', showFn:v => 'week of ' + wkDate(Math.round(v)),
-      fn:(lv, c) => { const A = phAgg(lv); return A ? A.med[c] : null; }, colorFn:phMonCol,
-      legendFn:() => PHMON.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + '<p class="sub">Median date of the records in each cell, all years.</p>'},
-     {id:'shift', get label(){ return (phSp().kind === 'adult' ? 'Adults' : 'Flowering') + ' 2021–25 vs 2016–20'; }, hideFn:() => phSp().kind === 'spread', d:0, none:'Too few records in one period', showFn:v => v === 0 ? 'no change' : `${Math.abs(v)} days ${v < 0 ? 'earlier' : 'later'}`,
-      fn:(lv, c) => { const A = phAgg(lv); return A ? A.shift[c] : null; }, colorFn:phShiftCol, stripAbs:1, stripTop:() => 21,
-      legendFn:() => PHSHIFT.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + '<p class="sub">Median date, 2021–25 against 2016–20. Cells need 3 or more records in each period. Short records and weather from year to year can drive this, so treat it as a lead, not a trend.</p>'},
-     {id:'spread', label:'Year first recorded', yr:'y', d:0, none:'No records (yet)', showFn:v => 'first recorded ' + v, fn:(lv, c) => phFirst(lv, c), colorFn:phFirstCol,
+     {id:'onset', get label(){ return `First ${phNoun()} date`; }, hideFn:() => phSp().kind === 'spread', d:0, none:'Fewer than 5 records', showFn:v => doyDate(v),
+      fn:(lv, c) => { const A = phAgg(lv); return A ? A.on[c] : null; }, colorFn:phDateCol, stripH:v => Math.max(1, v - 60), stripTop:() => 180,
+      legendFn:() => phDateLegend(`Onset: the date of the earliest 10% of ${phNoun()} records in each cell, all years together. Cells need 5 or more records; larger cells fill in more.`)},
+     {id:'peak', get label(){ return `Peak ${phNoun()} date`; }, hideFn:() => phSp().kind === 'spread', d:0, none:'Fewer than 5 records', showFn:v => doyDate(v),
+      fn:(lv, c) => { const A = phAgg(lv); return A ? A.pk[c] : null; }, colorFn:phDateCol, stripH:v => Math.max(1, v - 60), stripTop:() => 180,
+      legendFn:() => phDateLegend(`Peak: the middle (median) date of the ${phNoun()} records in each cell, all years together. Cells need 5 or more records.`)},
+     {id:'len', get label(){ return phSp().kind === 'adult' ? 'Adult season length' : 'Flowering season length'; }, hideFn:() => phSp().kind === 'spread', d:0, unit:' days', none:'Fewer than 8 records',
+      showFn:v => `${Math.round(v / 7)} weeks`, fn:(lv, c) => { const A = phAgg(lv); return A ? A.len[c] : null; }, colorFn:phLenCol, stripTop:() => 70,
+      legendFn:() => PHLEN.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">Duration: from the earliest 10% to the latest 10% of ${phNoun()} records in each cell, all years together. Cells need 8 or more records.</p>`},
+     {id:'spread', label:'Year first recorded', yr:'y', hideFn:() => phSp().kind === 'plant', d:0, none:'No records (yet)', showFn:v => 'first recorded ' + v, fn:(lv, c) => phFirst(lv, c), colorFn:phFirstCol,
       stripH:v => { const A = phAgg('wheel'); return A && A.years.length ? Math.max(.3, A.years[A.years.length - 1] + 1 - v) : 1; }, stripTop:() => { const A = phAgg('wheel'); return A && A.years.length ? A.years.length + 1 : 1; },
       legendFn:lv => PHFIRST.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${phYear(lv) ? 'Cells with a record by ' + phYear(lv) + ', by the year of the first one.' : 'The year of the first record in each cell.'} Bars under the map are taller where it has been known longer.</p>`}]},
  {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s on the trail here?',
