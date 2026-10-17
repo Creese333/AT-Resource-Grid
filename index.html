@@ -817,8 +817,6 @@ const CATCOL = {
   VULN_DOM:[['Low','#E3C9A6','Low'],['Moderate','#CDA373','Moderate'],['High','#6A4423','High']],
   review_tie:[['Avoid','#9E2B4E','Very highly vulnerable populations'],['Minimize','#E5892B','Highly vulnerable populations'],['Standard Review','#F2D94A','Moderately vulnerable populations']]
 };
-const L1 = [['L1_FOREST','Forest','#5E9C56'],['L1_SHRUB','Shrubland','#C9A85C'],['L1_HERB','Grass and herbaceous','#E3D58C'],['L1_AGRIC','Planted or cultivated','#D4CE3A'],
-  ['L1_WETLAND','Wetland','#7FB2CE'],['L1_WATER','Water','#41639A'],['L1_DEVELOPED','Developed','#D58E7F'],['L1_BARREN','Barren','#A9A295']];
 const L2 = [[11,'Open Water'],[21,'Developed, Open Space'],[22,'Developed, Low Intensity'],[23,'Developed, Medium Intensity'],[24,'Developed, High Intensity'],[31,'Barren Land'],[41,'Deciduous Forest'],[42,'Evergreen Forest'],[43,'Mixed Forest'],[52,'Shrub/Scrub'],[71,'Grassland/Herbaceous'],[81,'Pasture/Hay'],[82,'Cultivated Crops'],[90,'Woody Wetlands'],[95,'Emergent Herbaceous Wetlands']]
   .map(x => ['L2_' + x[0], x[1], CATCOL.L2_DOM.find(e => e[0] === x[1])[1]]);
 function shade(hex, f, dh){ let r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
@@ -837,7 +835,6 @@ CATCOL.WET_LDOM = CATCOL.WET_DOM;
 const FINDCOL = '#FFC233'; CATCOL.FIND = [['Recorded here', FINDCOL]]; D.cats.FIND = ['Recorded here'];
 CATCOL.APPA_YN = [['NPS - APPA land', '#1C58A8']]; D.cats.APPA_YN = ['NPS - APPA land'];
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
-const ADMINCOL = ['#24475F','#819FB4','#C9D6DE','#E6E9E4'];
 /* Blue Ridge color scheme */
 const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
@@ -854,7 +851,6 @@ function invSet(lv, c, pri){ if (!has('inat', lv, c)) return null; const s = new
 const invCount = (lv, c) => { const s = invSet(lv, c, false); return s ? s.size : null; }, priCount = (lv, c) => { const s = invSet(lv, c, true); return s ? s.size : null; };
 function invShare(lv, c){ const n = val('inat','N_OBS',lv,c); if (!n) return null; return Math.min(100, Math.round(1000 * ((val('inat','N_INV_OBS',lv,c) || 0) + (val('inat','N_PEST_OBS',lv,c) || 0)) / n) / 10); }
 /* The quarterly summary's cutoff: the newest record it contains. The live section shows what has come in after it. */
-const INAT_CUTOFF = (() => { let m = ''; Object.values(D.themes.inat || {}).forEach(t => (t.f.LAST_OBS || []).forEach(x => { if (x && x > m) m = x; })); return m; })();
 /* How much of a 7 or 49 sq mi cell actually has records: the number of its 1 sq mi hexes that hold data for the layer.
    (Not available for the 1 sq mi cells themselves, since nothing finer exists.) */
 const HEXIN = {cog:7, wheel:49}, COVER = {};
@@ -1231,7 +1227,7 @@ const HISTSRC = {
 };
 const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
 const HISTKEEP = 30 * 864e5, HISTKEY = 'atgrid-hist-v2';
-let HIST = null;   /* {st:'loading'|'done'|'error', items:[{t:'nr'|'hs'|'cem', nm, la, lo, a}], at, done, total, err:{}} */
+let HIST = null;   /* {st:'loading'|'done'|'error', items:[{t:'nr'|'cem', nm, la, lo, a, ld}], at, done, total, err:{}} */
 const HAGG = {};
 const hsleep = ms => new Promise(r => setTimeout(r, ms));
 /* the trail in stretches: wheel cells by trail mile, eight at a time, each with its bounding box */
@@ -1312,8 +1308,8 @@ document.addEventListener('click', e => { if (e.target.closest && e.target.close
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-histref]')) histRefresh(); });
 /* items by cell at a size: counts by kind and the list of items in each cell */
 function hAgg(lv){ if (!HIST || HIST.st !== 'done') return null; if (HAGG[lv] && HAGG[lv].lev === D.levels[lv]) return HAGG[lv];
-  const n = D.levels[lv].id.length, A = HAGG[lv] = {lev:D.levels[lv], nr:new Uint16Array(n), hs:new Uint16Array(n), cem:new Uint16Array(n), any:new Uint16Array(n), list:new Map()};
-  HIST.items.forEach((x, i) => { if (x.t === 'hs' || !histKeep(x)) return; const c = phCell(lv, x.la, x.lo); if (c < 0) return; A[x.t][c]++; A.any[c]++; if (!A.list.has(c)) A.list.set(c, []); A.list.get(c).push(i); });
+  const n = D.levels[lv].id.length, A = HAGG[lv] = {lev:D.levels[lv], nr:new Uint16Array(n), cem:new Uint16Array(n), any:new Uint16Array(n), list:new Map()};
+  HIST.items.forEach((x, i) => { if (!histKeep(x)) return; const c = phCell(lv, x.la, x.lo); if (c < 0) return; A[x.t][c]++; A.any[c]++; if (!A.list.has(c)) A.list.set(c, []); A.list.get(c).push(i); });
   return A; }
 const hCount = (lv, c, k) => { const A = hAgg(lv); return A ? A[k][c] : null; };
 function histStatus(){ if (!HIST || HIST.st === 'loading') return HIST && HIST.total ? `${HISTFILE} was not found, so loading live from the National Park Service and OpenStreetMap… stretch ${HIST.done} of ${HIST.total}. This takes a minute or two; it is then kept in this browser for 30 days.` : 'Loading historic resources…';
@@ -1366,7 +1362,6 @@ const RESTDEF = {
   forest: {label:'Forests', gate:'forest', none:'No forest mapped', wet:10, parts:[
     ['forest', 'Forest', 20], ['rare', 'Rare species nearby', 20], ['pest', 'Forest pests', 20],
     ['inv', 'Priority invasive plants', 20], ['hiker', 'Hiker gathering spots', 20]]}};
-const RESTRANK = ['open', 'forest', 'inv', 'birds', 'pest', 'hiker', 'wet'];     /* scaled by rank */
 const TIERVAL = {'Avoid':1, 'Minimize':2/3, 'Standard Review':1/3};
 /* Private land is left out: from the land administrators layer (the administrative areas), the habitat points are multiplied by the
    share of the mapped corridor land in the cell that is not private. Every other administrator counts the same (multiplier 1). */
@@ -1839,8 +1834,7 @@ const GLYPH = {
   vistas:'<path d="M1.6 13 6 5.8l2.6 3.4 1.7-2.1L14.4 13z" fill="#fff"/><circle cx="11.6" cy="4" r="1.5" fill="#fff"/>'};
 Object.assign(GLYPH, {
   osmcem:'<path d="M6.6 2.4h2.8v3h3v2.8h-3V14H6.6V8.2h-3V5.4h3z" fill="#fff"/>',
-  nrhp:'<path d="M2 6 8 2.6 14 6z" fill="#fff"/><path d="M3.6 7.2v4.6M6.5 7.2v4.6M9.5 7.2v4.6M12.4 7.2v4.6" stroke="#fff" stroke-width="1.5"/><path d="M2.2 13h11.6" stroke="#fff" stroke-width="1.6"/>',
-  usgshist:'<path d="M4.4 14V2.4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><path d="M5 2.8h7.6l-1.8 2.6 1.8 2.6H5z" fill="#fff"/>'});
+  nrhp:'<path d="M2 6 8 2.6 14 6z" fill="#fff"/><path d="M3.6 7.2v4.6M6.5 7.2v4.6M9.5 7.2v4.6M12.4 7.2v4.6" stroke="#fff" stroke-width="1.5"/><path d="M2.2 13h11.6" stroke="#fff" stroke-width="1.6"/>'});
 const glyphHTML = (l, size) => `<span class="fic" style="background:${l.color};color:${l.color};width:${size}px;height:${size}px"><svg viewBox="0 0 16 16" width="${Math.round(size * .68)}" height="${Math.round(size * .68)}" aria-hidden="true">${GLYPH[l.id] || ''}</svg></span>`;
 LIVE.forEach(l => { l.on = false; l.group = L.layerGroup(); l.status = ''; l.loaded = false; l.req = 0; });
 async function arcQuery(url, params, maxPages){ let out = [], off = 0; const seen = new Set();
@@ -1851,7 +1845,6 @@ async function arcQuery(url, params, maxPages){ let out = [], off = 0; const see
   return out; }
 async function arcMeta(l){ if (l.meta) return l.meta; try { const r = await fetch(l.url + '?f=json'); l.meta = await r.json(); } catch (e){ l.meta = {}; } return l.meta; }
 const tcase = s => String(s || '').toLowerCase().replace(/(^|[\s\-\/(])([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Nps|Usfs|Usfws|Appa|Hafe|Grsm|Blri|Shen|Choh|Dewa|Nhp|Nra|Nf|Np|Wma|Atc|Row|Us|Usa|Dcr|Dec|Dep|Dnr|Dcnr|Tva|Llc|Inc|Ii|Iii)\b/g, x => x.toUpperCase()).replace(/ (Of|The|And|For|At|In) /g, x => x.toLowerCase());
-const SKIPF = /^(OBJECTID|FID|GlobalID|Shape|GFID|LINK_ID|RELATE_ID)|Edit|Creat|Editor|FMSS|Asset|FBMS|^API$|^OB$|PDOP|HDOP|Avg_|Worst_|GPS|GNSS|Datafile|Unfilt|Filt_|Data_Dicti|Corr_|Rcvr|Publish|Version|Update_Sta|Feat_Name|Hist_|TRACT|PARCEL|DEED|OWNER|Length|^X$|^Y$|^Lat|^Lon|POINT_/i;
 function featName(l, p){ const bad = /^(na|n\/a|none|null|unknown|unnamed|tbd|[\s?.\-_]*)$/i, df = (l.meta || {}).displayField, k = [df, 'Name', 'NAME', 'Label'].find(k => k && p[k] != null && !bad.test(String(p[k]).trim())); return k ? String(p[k]).trim() : ''; }
 /* Popups for the live layers show the feature's name only, until the source attributes are reliable. Vistas also keep their photo buttons. */
 function featPopup(l, p){ const kind = ({lands:'Administrative area', shelters:'Shelter', campsites:'Campsite', parking:'Parking area', privies:'Privy', bridges:'Bridge', vistas:'Vista', sidetrails:'Side trail'})[l.id] || l.name;
@@ -2630,7 +2623,6 @@ async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !==
   if (kind === 'csv'){ /* one long table so a single file holds everything */
     const q = x => { x = x == null ? '' : String(x); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
     const rows = [['grid_id','trail_mile','table','item','scientific_name','detail','value','unit']];
-    const info = new Map(d.cells.map(c => [c.grid_id, c]));
     d.about.forEach(a => rows.push(['', '', 'About this export', a.item, '', '', a.value, '']));
     d.cells.forEach(c => Object.keys(c).forEach(k => { if (k !== 'grid_id' && k !== 'trail_mile' && c[k] !== '') rows.push([c.grid_id, c.trail_mile, 'Cell summary', k, '', '', c[k], '']); }));
     d.restoration.forEach(s => Object.keys(s).forEach(k => { if (!['grid_id','trail_mile','cell_size'].includes(k) && s[k] !== '') rows.push([s.grid_id, s.trail_mile, 'Restoration', k, '', '', s[k], k.endsWith('score') ? 'of 100' : 'points']); }));
