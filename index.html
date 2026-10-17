@@ -2318,23 +2318,31 @@ function liveEnsure(){ if (S.ext === 'huc' || !window.ATiNat || ATiNat.cached(li
   if (Math.max(...la) - Math.min(...la) > INAT_MAX_SPAN || Math.max(...lo) - Math.min(...lo) > INAT_MAX_SPAN) return Promise.resolve();
   const el = $('#inatlive') || document.createElement('div');
   return Promise.race([ATiNat.lookup({type:'MultiPolygon', coordinates:rings.map(r => [r.map(p => [p[1], p[0]])])}, el, {id:liveKey(), flags:inatFlags()}), new Promise(r => setTimeout(r, 15000))]); }
-/* the tracts touching each selected cell, asked of the AT_Lands service one cell at a time (six at once); kept per selection */
-const TRACTS = {}, TRACTMAX = 150, TRACTSKIP = /^(OBJECTID|FID|GlobalID|Shape|Shape__Area|Shape__Length|SHAPE_.*|created_.*|last_edited_.*)$/i;
-async function tractsEnsure(){ const key = liveKey(); if (TRACTS[key] || S.ext === 'huc') return TRACTS[key];
-  const l = LIVE.find(x => x.id === 'lands'), lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S.box.cells : [S.cell];
-  if (cells.length > TRACTMAX) return TRACTS[key] = {skipped:cells.length};
-  const meta = await arcMeta(l), F = (meta.fields || []).filter(f => !TRACTSKIP.test(f.name)), out = new Map();
-  const one = async c => { const g = {rings:[ring(lv, c).map(p => [p[1], p[0]])], spatialReference:{wkid:4326}};
-    const u = l.url + '/query?' + new URLSearchParams({where:'1=1', geometry:JSON.stringify(g), geometryType:'esriGeometryPolygon', inSR:4326, spatialRel:'esriSpatialRelIntersects', outFields:'*', returnGeometry:false, f:'json'});
-    const r = await fetch(u); if (!r.ok) throw new Error('HTTP ' + r.status); const j = await r.json(); if (j.error) throw new Error(j.error.message || 'service error'); out.set(c, (j.features || []).map(f => f.attributes || {})); };
-  for (let i = 0; i < cells.length; i += 6) await Promise.all(cells.slice(i, i + 6).map(one));
-  return TRACTS[key] = {fields:F, byCell:out}; }
+/* Map layers for the export. Point layers: one query over the selection's extent, each point placed in the cell it falls in.
+   Line and area layers (side trails, administrative areas): one query per cell (six at once), every feature touching it.
+   Kept per selection. Line and area layers are skipped for selections over LAYERMAX cells. */
+const LAYERS = {}, LAYERMAX = 150, LAYERSKIP = /^(OBJECTID|FID|GlobalID|Shape|Shape__Area|Shape__Length|SHAPE_.*|created_.*|last_edited_.*)$/i;
+async function layersEnsure(){ const key = liveKey(); if (LAYERS[key] || S.ext === 'huc') return LAYERS[key];
+  const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S.box.cells : [S.cell], rings = cells.map(c => ring(lv, c)), ll = rings.flat(), res = {};
+  const env = {xmin:Math.min(...ll.map(p => p[1])), ymin:Math.min(...ll.map(p => p[0])), xmax:Math.max(...ll.map(p => p[1])), ymax:Math.max(...ll.map(p => p[0])), spatialReference:{wkid:4326}};
+  const ask = async (l, geom, gtype, geo) => { const u = l.url + '/query?' + new URLSearchParams({where:'1=1', geometry:JSON.stringify(geom), geometryType:gtype, inSR:4326, spatialRel:'esriSpatialRelIntersects', outFields:'*', returnGeometry:geo, outSR:4326, resultRecordCount:2000, f:'json'});
+    const r = await fetch(u); if (!r.ok) throw new Error('HTTP ' + r.status); const j = await r.json(); if (j.error) throw new Error(j.error.message || 'service error'); return j.features || []; };
+  await Promise.all(LIVE.map(async l => { try { const meta = await arcMeta(l), F = (meta.fields || []).filter(f => !LAYERSKIP.test(f.name)), by = new Map();
+      if (l.type === 'pt'){ (await ask(l, env, 'esriGeometryEnvelope', true)).forEach(f => { const g = f.geometry; if (!g) return; const k = rings.findIndex(r => inRingLL(g.y, g.x, r)); if (k < 0) return;
+          const c = cells[k]; if (!by.has(c)) by.set(c, []); by.get(c).push(Object.assign({}, f.attributes, {__lat:+g.y.toFixed(5), __lon:+g.x.toFixed(5)})); }); }
+      else { if (cells.length > LAYERMAX){ res[l.id] = {skipped:cells.length}; return; }
+        for (let i = 0; i < cells.length; i += 6) await Promise.all(cells.slice(i, i + 6).map(async (c, k) => { const fs = await ask(l, {rings:[rings[i + k].map(p => [p[1], p[0]])], spatialReference:{wkid:4326}}, 'esriGeometryPolygon', false); if (fs.length) by.set(c, fs.map(f => f.attributes || {})); })); }
+      res[l.id] = {fields:F, byCell:by}; } catch (e){ res[l.id] = {error:e.message}; } }));
+  return LAYERS[key] = res; }
 function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S.box.cells : [S.cell], L_ = D.levels[lv];
   const v = (th, f, c) => val(th, f, lv, c);
-  const out = {cells:[], restoration:[], soils:[], wetlands:[], species:[], veg:[], land:[], tracts:[], features:[], live:[], phen:[], phenRec:[], about:[]};
-  { const T = TRACTS[liveKey()]; out.tractState = S.ext === 'huc' ? '' : !T ? 'missing' : T.skipped ? 'skipped' : 'loaded';
-    if (T && T.byCell) cells.slice().sort((a, b) => L_.mi[a] - L_.mi[b]).forEach(c => (T.byCell.get(c) || []).forEach(a => { const r = {grid_id:L_.id[c], trail_mile:L_.mi[c]};
-      T.fields.forEach(f => { let x = a[f.name]; if (x != null && f.type === 'esriFieldTypeDate') x = new Date(x).toISOString().slice(0, 10); r[(f.alias || f.name)] = x == null ? '' : x; }); out.tracts.push(r); })); }
+  const out = {cells:[], restoration:[], soils:[], wetlands:[], species:[], veg:[], land:[], features:[], live:[], phen:[], phenRec:[], layers:[], about:[]};
+  { const R = LAYERS[liveKey()] || {}; out.layerState = S.ext === 'huc' ? '' : LAYERS[liveKey()] ? 'loaded' : 'missing';
+    LIVE.forEach(l => { const T = R[l.id], rows = [];
+      if (T && T.byCell) cells.slice().sort((a, b) => L_.mi[a] - L_.mi[b]).forEach(c => (T.byCell.get(c) || []).forEach(a => { const r = {grid_id:L_.id[c], trail_mile:L_.mi[c]};
+        T.fields.forEach(f => { let x = a[f.name]; if (x != null && f.type === 'esriFieldTypeDate') x = new Date(x).toISOString().slice(0, 10); r[f.alias || f.name] = x == null ? '' : x; });
+        if (a.__lat != null){ r.latitude = a.__lat; r.longitude = a.__lon; } rows.push(r); }));
+      out.layers.push({id:l.id, name:l.name, type:l.type, rows, state:!T ? 'missing' : T.skipped ? 'skipped' : T.error ? 'error' : 'loaded'}); }); }
   cells.slice().sort((a,b) => L_.mi[a] - L_.mi[b]).forEach(c => { const id = L_.id[c], base = {grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c], trail_club:cat('club', L_.club[c]) || '', region:regionOf(L_.mi[c])};
     let plv = lv, pc = c; if (!D.themes.nrpz[lv]){ const p = parentOf(lv, c); if (p){ plv = p[0]; pc = p[1]; } }
     const tier = D.themes.nrpz[plv] ? val('nrpz','review_tie',plv,pc) : null, te = tier == null ? null : CATCOL.review_tie.find(x => x[0] === D.cats.review_tie[tier]);
@@ -2406,7 +2414,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
           first_flowering_date:isP && ok ? doyDate(phPct(a, .1)) : '', peak_flowering_date:isP && ok ? doyDate(phMed(a)) : '', last_flowering_date:isP && ok ? doyDate(phPct(a, .9)) : '',
           flowering_season_weeks:isP && okL ? Math.max(1, Math.round((phPct(a, .9) - phPct(a, .1)) / 7)) : '', first_year_recorded:e.first}); }); });
     out.phenLoaded = loaded.map(sp => sp.common); }
-  if (S.ext === 'huc'){ out.phen = []; out.phenRec = []; out.cells = out.cells.map(r => Object.fromEntries(Object.entries(r).filter(([k]) => !/^(veg|nlcd|inat|ebird|unique|land|feat)_/.test(k)))); out.species = []; out.veg = []; out.land = []; out.tracts = []; out.features = []; out.live = []; out.restoration = []; }
+  if (S.ext === 'huc'){ out.phen = []; out.phenRec = []; out.cells = out.cells.map(r => Object.fromEntries(Object.entries(r).filter(([k]) => !/^(veg|nlcd|inat|ebird|unique|land|feat)_/.test(k)))); out.species = []; out.veg = []; out.land = []; out.features = []; out.live = []; out.layers = []; out.restoration = []; }
   const ab = (k, x) => out.about.push({item:k, value:x});
   ab('Source', 'A.T. Resource Grid dashboard'); ab('Exported', localDay()); ab('iNaturalist and eBird data run', D.run);
   ab('Extent', S.ext === 'huc' ? 'HUC10 watershed: every grid cell in the HUC10 shell, soils and wetlands only' : 'A.T. corridor grid cells');
@@ -2420,8 +2428,8 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
   ab('Note', 'Trail features: A.T. facilities inventory, official and additional features. Structure counts (drainage, steps, signs, barriers) are estimates, spread from maintainer sections by trail miles.');
   ab('Flowering', S.ext === 'huc' ? 'Not included for the HUC10 extent.' : out.phenLoaded && out.phenLoaded.length ? `Species loaded in this browser: ${out.phenLoaded.join(', ')}. Research-grade iNaturalist records with a flower buds or flowers annotation (beech leaf disease: all records); obscured locations left out. Dates pool all years: first = earliest 10% of flowering records, peak = median, last = latest 10%; 5 or more records for dates, 8 for season length. Records follow hikers, so they show when people saw it.`
     : 'Not included: no species loaded yet. Open “When does it flower here?” and pick each species to include, then export.');
-  if (out.tractState) ab('Land tracts', out.tractState === 'loaded' ? `${out.tracts.length} tract ${out.tracts.length === 1 ? 'record' : 'records'} from the Administrative areas layer (AT_Lands), fetched ${localDay()}: every tract that touches each selected cell, with all of its attributes. A tract that crosses several cells is listed under each; acres are the whole tract, not the part in the cell.`
-    : out.tractState === 'skipped' ? `Not included: the selection has more than ${TRACTMAX} cells. Select fewer cells to include land tracts.` : 'Not included: the Administrative areas service could not be reached.');
+  if (out.layerState) out.layers.forEach(L2 => ab('Map layer: ' + L2.name, L2.state === 'loaded' ? `${L2.rows.length} ${L2.rows.length === 1 ? 'feature' : 'features'}, all attributes, fetched ${localDay()} from the map layer service. ${L2.type === 'pt' ? 'Each point is listed in the cell it falls in.' : 'Every feature touching a cell is listed under it, so one that crosses several cells appears in each; acres and lengths are for the whole feature.'}`
+      : L2.state === 'skipped' ? `Not included: the selection has more than ${LAYERMAX} cells. Select fewer cells to include this layer.` : 'Not included: the map layer service could not be reached.'));
   if (out.liveState) ab('Live iNaturalist', out.liveState === 'loaded' ? `${out.live.length} most recent observations with open locations, fetched ${localDay()} from the iNaturalist project. A snapshot, not a complete count; not part of any other number in this export.`
     : 'Not included: iNaturalist could not be reached, or the selection is too wide for a live lookup.');
   ab('Note', 'Restoration scores (0 to 100) are worked out from the other layers. Grasslands: ' + restNote('grass') + ' Forests: ' + restNote('forest') + ' Herbicide use (wetland deduction) was ' + (S.herb ? 'on' : 'off') + ' for this export. Lands: ' + (S.appa ? 'APPA lands only (other lands left out).' : 'all lands except private.') + ' Private land is left out: habitat points are multiplied by the share of the corridor land in the cell that is not private; all other administrators count the same. Counts and acres are scored by rank among cells of the same size; only A.T. corridor lands count: habitat acres and wetlands are those on corridor lands, and a cell needs at least one acre of open habitat or forest there to be scored.');
@@ -2432,7 +2440,7 @@ function download(name, blob){ const a = document.createElement('a'); a.href = U
 function loadXLSX(){ return window.XLSX ? Promise.resolve() : new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = () => res(); s.onerror = () => rej(new Error('load')); document.head.appendChild(s); }); }
 async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !== 'huc' && !ATiNat.cached(liveKey())) msg0.textContent = 'Fetching the latest iNaturalist observations...';
   await liveEnsure().catch(() => {});
-  if (msg0) msg0.textContent = 'Fetching land tracts…'; await tractsEnsure().catch(() => {});
+  if (msg0) msg0.textContent = 'Fetching map layers…'; await layersEnsure().catch(() => {});
   const msg = $('#pexmsg'), d = exportData(), n = d.cells.length, stamp = localDay(), name = `AT_resource_grid_${n}_${n === 1 ? 'cell' : 'cells'}_${stamp}`;
   const say = x => { if (msg) msg.textContent = x; };
   if (kind === 'csv'){ /* one long table so a single file holds everything */
@@ -2446,7 +2454,7 @@ async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !==
     d.wetlands.forEach(s => Object.keys(s).forEach(k => { if (!['grid_id','trail_mile','cell_size'].includes(k) && s[k] !== '') rows.push([s.grid_id, s.trail_mile, 'Wetlands', k, '', '', s[k], k.endsWith('_ac') || k.endsWith('_acres') ? 'acres' : '']); }));
     d.veg.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Vegetation type', r.vegetation_type, '', r.acres + ' acres', r.pct_of_mapped_acres, '% of mapped acres']));
     d.species.forEach(r => rows.push([r.grid_id, r.trail_mile, r.group, r.common_name, r.scientific_name, [r.habitat_group_or_list, r.lists].filter(Boolean).join('; '), '', '']));
-    d.tracts.forEach((r, i) => { const id = r.Tract || r.TRACT1 || r.Name || r.NAME || ''; Object.keys(r).forEach(k => { if (k !== 'grid_id' && k !== 'trail_mile' && r[k] !== '') rows.push([r.grid_id, r.trail_mile, 'Land tract', k, '', `tract ${i + 1}${id ? ' (' + id + ')' : ''}`, r[k], '']); }); });
+    d.layers.forEach(L2 => L2.rows.forEach((r, i) => { const id = r.Name || r.NAME || r.Tract || r.TRACT1 || ''; Object.keys(r).forEach(k => { if (!['grid_id','trail_mile'].includes(k) && r[k] !== '') rows.push([r.grid_id, r.trail_mile, 'Map layer: ' + L2.name, k, '', `feature ${i + 1}${id ? ' (' + id + ')' : ''}`, r[k], '']); }); }));
     d.land.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Land administrator', r.administrator, '', '', r.pct_of_mapped_land, '% of mapped land']));
     d.features.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Trail feature: ' + r.feature_type, r.name, '', r.detail, r.latitude === '' ? '' : r.latitude + ', ' + r.longitude, r.latitude === '' ? '' : 'lat, lon']));
     d.phen.forEach(s => Object.keys(s).forEach(k => { if (!['grid_id','trail_mile','cell_size','species','scientific_name'].includes(k) && s[k] !== '') rows.push([s.grid_id, s.trail_mile, 'Flowering', s.species + ': ' + k, s.scientific_name, '', s[k], '']); }));
@@ -2456,7 +2464,7 @@ async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !==
     say(`CSV downloaded: ${fmt(rows.length - 1, 0)} rows for ${nCells(n)}.`); return; }
   say('Preparing the Excel file...');
   loadXLSX().then(() => { const wb = XLSX.utils.book_new(); const add = (nm, arr) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(arr.length ? arr : [{note:'No rows for this selection'}]), nm);
-    add('Cells', d.cells); add('Restoration', d.restoration); add('Soils', d.soils); add('Wetlands', d.wetlands); add('Species', d.species); add('Vegetation types', d.veg); add('Land administrators', d.land); add('Land tracts', d.tracts); add('Trail features', d.features); add('Live iNaturalist', d.live); add('Flowering', d.phen); add('Flowering records', d.phenRec); add('About', d.about);
+    add('Cells', d.cells); add('Restoration', d.restoration); add('Soils', d.soils); add('Wetlands', d.wetlands); add('Species', d.species); add('Vegetation types', d.veg); add('Land administrators', d.land); d.layers.forEach(L2 => add(L2.name.slice(0, 31), L2.rows)); add('Trail features', d.features); add('Live iNaturalist', d.live); add('Flowering', d.phen); add('Flowering records', d.phenRec); add('About', d.about);
     const buf = XLSX.write(wb, {bookType:'xlsx', type:'array'}); download(name + '.xlsx', new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
     say(`Excel workbook downloaded: ${nCells(n)}, ${fmt(d.species.length, 0)} species rows.`);
   }).catch(() => say('The Excel export could not load its helper file. Check the internet connection, or use Export CSV, which needs no download.')); }
