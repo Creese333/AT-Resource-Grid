@@ -420,6 +420,8 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .phyrs button i{display:block;width:60%;background:#F2C200;border-radius:1px;margin-top:auto}
 .phyrs button span{font-size:10px;color:var(--muted);line-height:1.1}
 .phyrs button.thin{opacity:.45;border-style:dashed}
+.phyrs button.now{box-shadow:inset 0 0 0 2px #FFE014}
+.phstat button[data-phgood]{color:#E3EAF2}
 .phyrs button[aria-pressed=true]{border-color:#F0C419;background:color-mix(in srgb,#F0C419 28%,var(--panel));opacity:1}
 .phyrs button[aria-pressed=true] span{color:#E3EAF2}
 .phabout{margin:4px 0 2px}.phabout summary{cursor:pointer;font-size:12.5px;color:#E3EAF2;list-style:none;display:inline-flex;align-items:center;gap:5px}.phabout summary::-webkit-details-marker{display:none}.phabout summary::before{content:'';width:0;height:0;border-left:5px solid #E3EAF2;border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s}.phabout[open] summary::before{transform:rotate(90deg)}.phabout summary:hover{text-decoration:underline}
@@ -973,17 +975,27 @@ function phResid(){ const A = phAgg('wheel'); if (!A) return null; if (A.res) re
   for (const [c, L] of A.d[phMain()]){ if (L.length < PHMIN) continue; const m = phMed(L.map(p => p[0])); for (const [d, y] of L) out.push([y, d - m, c, L_.mi[c]]); }
   return A.res = out; }
 /* the year on show: 0 for all years together, otherwise a year with records */
+/* Week views: S.ph.sel holds the years picked (none = all years); S.ph.yr is the one year on show while Play steps through them.
+   The spread view picks a single year in S.ph.yr. */
+function phSel(lv){ const A = phAgg(lv || dispLevel()); return A ? (S.ph.sel || []).filter(y => A.years.includes(y)).sort((a, b) => a - b) : []; }
 function phYear(lv){ const A = phAgg(lv || dispLevel()); if (!A || !A.years.length) return 0;
+  if (S.m.yr === 'wk'){ const sel = phSel(lv); if (S.ph.yr && A.years.includes(S.ph.yr) && (!sel.length || sel.includes(S.ph.yr))) return S.ph.yr; return sel.length === 1 ? sel[0] : 0; }
   if (S.ph.yr && A.years.includes(S.ph.yr)) return S.ph.yr; return S.m.yrNeed ? A.years[A.years.length - 1] : 0; }
-function phWin(lv, c, s){ const A = phAgg(lv); if (!A || !A.any[c]) return null; const y = phYear(lv), w = S.ph.wk;
-  const a = y ? (A.y[y] && A.y[y][s]) : A.w[s]; if (!a) return 0;
+/* the weekly counts for what is on show: one year, the picked years added together, or every year */
+function phArr(lv, s){ const A = phAgg(lv); if (!A) return null; const y = phYear(lv); if (y) return A.y[y] && A.y[y][s] || null;
+  const sel = S.m.yr === 'wk' ? phSel(lv) : []; if (sel.length < 2) return A.w[s];
+  const key = s + ':' + sel.join(','); A.comb = A.comb || {}; if (A.comb[key]) return A.comb[key];
+  const out = new Uint16Array(A.w[s].length); sel.forEach(y => { const a = A.y[y] && A.y[y][s]; if (a) for (let i = 0; i < a.length; i++) out[i] += a[i]; }); return A.comb[key] = out; }
+const phSelText = lv => { const y = phYear(lv), sel = S.m.yr === 'wk' ? phSel(lv) : []; return y ? String(y) : sel.length > 4 ? `${sel.length} picked years` : sel.length > 1 ? sel.map(v => '’' + String(v).slice(2)).join(' ') : ''; };
+function phWin(lv, c, s){ const A = phAgg(lv); if (!A || !A.any[c]) return null; const w = S.ph.wk;
+  const a = phArr(lv, s); if (!a) return 0;
   return a[c*53 + w] + (w > 1 ? a[c*53 + w - 1] : 0) + (w < 52 ? a[c*53 + w + 1] : 0); }
 const phTop = (lv, s) => { const A = phAgg(lv); return A ? Math.max(1, (phYear(lv) ? A.ymx[s] : A.mx[s]) / 3) : 1; };
 function phFirst(lv, c){ const A = phAgg(lv); if (!A || A.first[c] == null) return null; const y = phYear(lv); return y && A.first[c] > y ? null : A.first[c]; }
 const PHWAVE = [[0, ZERO, 'Recorded here, not these weeks'], [1, null, '1 record'], [2, null, '2 records'], [5, null, '3 to 5 records'], [10, null, '6 to 10 records'], [Infinity, null, 'over 10 records']];
 const phWaveCol = v => { if (v == null) return null; if (v === 0) return ZERO; const i = PHWAVE.findIndex(e => v <= e[0]); return RAMP.phen[Math.max(0, Math.min(4, i - 1))]; };
 const phWaveLegend = () => PHWAVE.map((e, i) => `<div class="row"><i style="background:${i ? RAMP.phen[i - 1] : ZERO}"></i><span>${e[2]}</span></div>`).join('') +
-  (phYear() ? `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, ${phYear()} only. Gray cells had records in other years or weeks.</p>`
+  (phSelText() ? `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, ${phYear() ? phYear() + ' only' : 'years ' + esc(phSelText()) + ' together'}. Gray cells had records in other years or weeks.</p>`
     : `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, all years together.</p>`);
 /* dates by half month, early spring to late summer */
 const PHDATE = [[90, '#FDE725', 'March or earlier'], [105, '#B5DE2B', 'Early April'], [120, '#6ECE58', 'Late April'], [135, '#35B779', 'Early May'], [151, '#1F9E89', 'Late May'],
@@ -1001,21 +1013,22 @@ let phTimer = null;
 /* years with enough records to be worth a look (20 or more of the main stage in corridor cells); Play skips the rest */
 const PHYMIN = 20, phYearsOk = A => A.years.filter(y => (A.yn[y] || 0) >= PHYMIN);
 /* the year buttons: All years, then each year with its number of records; thin years are dimmed */
-function phYrBlock(ys, y){ const A = phAgg(dispLevel()); if (!A) return ''; const mx = Math.max(1, ...ys.map(v => A.yn[v] || 0));
-  return `<div class="phyrs" role="group" aria-label="Year" style="grid-template-columns:repeat(${Math.min(ys.length + 1, 12)},minmax(0,1fr))"><button type="button" data-phyr="0" aria-pressed="${!y}"><b>All</b><i></i><span>years</span></button>` +
+function phYrBlock(ys, y, multi){ const A = phAgg(dispLevel()); if (!A) return ''; const mx = Math.max(1, ...ys.map(v => A.yn[v] || 0)), sel = multi ? phSel() : (y ? [y] : []);
+  return `<div class="phyrs" role="group" aria-label="${multi ? 'Years (tap several)' : 'Year'}" style="grid-template-columns:repeat(${Math.min(ys.length + 1, 12)},minmax(0,1fr))"><button type="button" data-phyr="0" aria-pressed="${!sel.length}"><b>All</b><i></i><span>years</span></button>` +
     ys.map(v => { const n = A.yn[v] || 0, thin = n < PHYMIN;
-      return `<button type="button" data-phyr="${v}" aria-pressed="${v === y}" class="${thin ? 'thin' : ''}" title="${v}: ${fmt(n, 0)} ${PHWORD[phMain()]} ${n === 1 ? 'record' : 'records'}${thin ? ' (few; Play skips it)' : ''}"><b>’${String(v).slice(2)}</b><i style="height:${Math.max(1, Math.round(14 * n / mx))}px"></i><span>${n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n}</span></button>`; }).join('') + '</div>'; }
+      return `<button type="button" data-phyr="${v}" aria-pressed="${sel.includes(v)}" class="${thin ? 'thin' : ''}${multi && v === y && sel.length > 1 ? ' now' : ''}" title="${v}: ${fmt(n, 0)} ${PHWORD[phMain()]} ${n === 1 ? 'record' : 'records'}${thin ? ' (few records)' : ''}"><b>’${String(v).slice(2)}</b><i style="height:${Math.max(1, Math.round(14 * n / mx))}px"></i><span>${n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n}</span></button>`; }).join('') + '</div>'; }
 function phPlay(on){ if (phTimer){ clearInterval(phTimer); phTimer = null; }
   if (on && S.m.yr === 'y'){ phTimer = setInterval(() => { const A = phAgg(dispLevel()); if (!A || !A.years.length) return; const ys = A.years, y = phYear();
       S.ph.yr = !y || y >= ys[ys.length - 1] ? ys[0] : y + 1; phFrame(); }, 1000); }
-  else if (on){ const yrs = phYear() ? 1 : 0; phTimer = setInterval(() => { if (S.ph.wk < 44) S.ph.wk++; else { S.ph.wk = 8;
-        const A = phAgg(dispLevel()), y = phYear(); if (y && A){ const ok = phYearsOk(A), i = ok.indexOf(y); S.ph.yr = ok.length ? ok[(i + 1) % ok.length] : y; } }
+  else if (on){ const sel = phSel(); if (sel.length > 1 && !sel.includes(S.ph.yr)) S.ph.yr = sel[0]; const yrs = phSelText() ? 1 : 0; phTimer = setInterval(() => { if (S.ph.wk < 44) S.ph.wk++; else { S.ph.wk = 8;
+        const sel = phSel(); if (sel.length > 1){ const i = sel.indexOf(S.ph.yr); S.ph.yr = sel[(i + 1) % sel.length]; } }
       phFrame(); }, yrs ? 380 : 550); }
   phCtl(); }
 function phFrame(){ BRK.clear(); restyle(); strip(); legend(); phCtl(); const t = $('#phtrend'); if (t){ t.innerHTML = phTrendBlock(); phWireTrend(); } }
 function phCtl(){ const r = $('#phwk'), l = $('#phwkl'), b = $('#phplay'), y = phYear(), A = phAgg(dispLevel());
   if (r) r.value = S.ph.wk; if (l) l.textContent = wkLabel(S.ph.wk); if (b) b.textContent = phTimer ? 'Pause' : 'Play';
-  document.querySelectorAll('[data-phyr]').forEach(x => x.setAttribute('aria-pressed', +x.dataset.phyr === y));
+  const multi = S.m.yr === 'wk', sel = multi ? phSel() : (y ? [y] : []);
+  document.querySelectorAll('[data-phyr]').forEach(x => { const v = +x.dataset.phyr; x.setAttribute('aria-pressed', v ? sel.includes(v) : !sel.length); x.classList.toggle('now', multi && sel.length > 1 && v === y); });
   phTick(); }
 /* the year ticker on the map while a week or year view is showing */
 function phTick(){ let t = document.getElementById('phtick'); const on = S.q.id === 'phen' && S.m.yr && !S.m.find && phAgg(dispLevel());
@@ -1024,6 +1037,7 @@ function phTick(){ let t = document.getElementById('phtick'); const on = S.q.id 
   let big, small;
   if (S.m.id === 'spread'){ big = y ? 'by ' + y : span; small = y ? 'cells with records so far' : 'year first recorded'; }
   else if (y){ big = y; small = esc(wkLabel(S.ph.wk)) + ' · ' + PHWORD[S.m.st()]; }
+  else if (phSelText()){ big = esc(wkLabel(S.ph.wk)); small = `${esc(phSelText())} together · ${PHWORD[S.m.st()]}`; }
   /* all years together: the week is what changes as it plays, so it is the big line */
   else { big = esc(wkLabel(S.ph.wk)); small = `all years (${span}) · ${PHWORD[S.m.st()]}`; }
   t.innerHTML = `<b>${big}</b><span>${small}</span>`; t.style.display = 'block'; phTickPos(); }
@@ -1046,14 +1060,18 @@ function phBlock(){ const sp = phSp(), m = S.m, A = phAgg(dispLevel()), ys = A ?
   if (m.yr === 'wk'){ h += `<div class="wk"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button><input type="range" id="phwk" min="8" max="44" step="1" value="${S.ph.wk}" aria-label="Week of the year"></div><div class="wkl" id="phwkl">${wkLabel(S.ph.wk)}</div>`;
     /* years before the first one with enough records are left off, so the row stays short */
     const ok = phYearsOk(A || {years:[], yn:{}}), ys2 = ok.length ? ys.filter(v => v >= ok[0]) : ys;
-    if (ys2.length >= 2) h += phYrBlock(ys2, y) +
-      `<p class="phstat" style="margin-top:-3px">Pick All or a year; the numbers are each year’s records. With a year picked, Play runs each year’s season in turn, skipping dimmed years with fewer than ${PHYMIN} records.</p>`; }
+    if (ys2.length >= 2) h += phYrBlock(ys2, y, true) +
+      `<p class="phstat" style="margin-top:-3px">Tap years to add or remove them (numbers are each year’s records; dimmed years have fewer than ${PHYMIN}). Picked years show together; with two or more, Play runs each one’s season in turn. <button type="button" data-phgood="1">Pick years with ${PHYMIN}+ records</button></p>`; }
   else if (m.yr === 'y' && ys.length >= 2){ const lo = ys[0] - 1;
-    h += `<div class="wk yr"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button></div>` + phYrBlock(ys, y) +
+    h += `<div class="wk yr"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button></div>` + phYrBlock(ys, y, false) +
       `<p class="phstat" style="margin-top:-3px">Pick All, or a year to see where it had been recorded by then; Play steps through the years.</p>`; }
   return h + `<p class="phstat" id="phstat" role="status">${phStatus()}</p><div id="phtrend">${phTrendBlock()}</div></div>`; }
 function phWire(){ const s = $('#phsp'); if (!s) return;
-  document.querySelectorAll('[data-phyr]').forEach(x => x.onclick = () => { const v = +x.dataset.phyr, A = phAgg(dispLevel()); S.ph.yr = A && A.years.includes(v) ? v : 0; BRK.clear(); redraw(); });
+  document.querySelectorAll('[data-phyr]').forEach(x => x.onclick = () => { const v = +x.dataset.phyr, A = phAgg(dispLevel()); phPlay(false);
+    if (S.m.yr === 'wk'){ const sel = new Set(phSel()); if (!v) sel.clear(); else if (sel.has(v)) sel.delete(v); else sel.add(v); S.ph.sel = [...sel]; S.ph.yr = 0; }
+    else S.ph.yr = A && A.years.includes(v) ? v : 0;
+    BRK.clear(); redraw(); });
+  document.querySelectorAll('[data-phgood]').forEach(x => x.onclick = () => { const A = phAgg(dispLevel()); if (!A) return; phPlay(false); S.ph.sel = phYearsOk(A); S.ph.yr = 0; BRK.clear(); redraw(); });
   s.onchange = () => { phPlay(false); S.ph.sp = s.value; phLoad(phSp()); phFixM(); BRK.clear(); redraw(); };
   const r = $('#phwk'); if (r){ r.oninput = () => { S.ph.wk = +r.value; phFrame(); }; r.onchange = () => { redraw(); }; }
   const b = $('#phplay'); if (b) b.onclick = () => { phPlay(!phTimer); if (!phTimer) redraw(); };
@@ -1061,7 +1079,7 @@ function phWire(){ const s = $('#phsp'); if (!s) return;
 /* charts: a year maps that year's weeks (or, for the spread, where it was by then); a week on the calendar maps that week */
 function phWireTrend(){
   document.querySelectorAll('[data-phab]').forEach(x => x.ontoggle = () => { S.ph.ab = S.ph.ab || {}; S.ph.ab[x.dataset.phab] = x.open; });
-  document.querySelectorAll('[data-phy]').forEach(x => x.onclick = () => { phPlay(false); S.ph.yr = +x.dataset.phy;
+  document.querySelectorAll('[data-phy]').forEach(x => x.onclick = () => { phPlay(false); S.ph.yr = +x.dataset.phy; S.ph.sel = [+x.dataset.phy];
     if (!S.m.yr) S.m = S.q.m.find(m => m.id === (phSp().kind === 'spread' ? 'spread' : 'wave')); BRK.clear(); redraw(); });
   document.querySelectorAll('[data-phw]').forEach(x => x.onclick = () => { phPlay(false); S.ph.wk = Math.max(8, Math.min(44, +x.dataset.phw));
     if (S.m.yr !== 'wk') S.m = S.q.m.find(m => m.id === 'wave'); BRK.clear(); redraw(); }); }
@@ -1153,8 +1171,8 @@ function phSection(lv, c){ if (S.q.id !== 'phen') return ''; const sp = phSp(), 
   if (!A) return b + `<p class="none">${phStatus()}</p></div>`;
   if (!A.any[c]) return b + '<p class="none">No records of this species in this cell.</p></div>';
   const SER = k === 'plant' ? [[3, 'In bud', '#9CCB6B'], [1, 'Flowering', RAMP.phen[3]], [2, 'Fruiting', '#8E5BB5']] : k === 'adult' ? [[5, 'All records', '#8FA3B8'], [4, 'Adults', '#F08A5D']] : [[5, 'Records', '#C98B6B']];
-  const stack = k === 'plant', yy = S.m.yr === 'wk' ? phYear(lv) : 0, Y = yy ? A.y[yy] || {} : null;
-  const at = (s, w) => A.w[s][c*53 + w], aty = (s, w) => Y && Y[s] ? Y[s][c*53 + w] : 0, tot = {}, ytot = {};
+  const stack = k === 'plant', yy = S.m.yr === 'wk' ? phSelText(lv) : '';
+  const at = (s, w) => A.w[s][c*53 + w], aty = (s, w) => { const a = yy ? phArr(lv, s) : null; return a ? a[c*53 + w] : 0; }, tot = {}, ytot = {};
   let mx = 1; for (let w = 1; w <= 52; w++){ let t = 0; SER.forEach(([s]) => { tot[s] = (tot[s] || 0) + at(s, w); ytot[s] = (ytot[s] || 0) + aty(s, w); t = stack ? t + at(s, w) : Math.max(t, at(s, w)); }); mx = Math.max(mx, t); }
   const W = 300, H = 64, bw = W / 52; let svg = `<svg viewBox="0 0 ${W} ${H + 14}" width="100%" role="img" aria-label="Records by week">`;
   for (let w = 1; w <= 52; w++){ const x = (w - 1) * bw, get = yy ? aty : at;
@@ -1399,7 +1417,7 @@ function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   if (h.get('lands') === 'appa') S.appa = true;
   if (h.get('sp') && PHSP.some(s => s.key === h.get('sp'))) S.ph.sp = h.get('sp');
   if (+h.get('wk') >= 8 && +h.get('wk') <= 44) S.ph.wk = +h.get('wk');
-  if (+h.get('yr') >= 2010 && +h.get('yr') <= 2100) S.ph.yr = +h.get('yr');
+  if (h.get('yr')){ const ys = h.get('yr').split(',').map(Number).filter(v => v >= 2010 && v <= 2100); S.ph.sel = ys; if (ys.length === 1) S.ph.yr = ys[0]; }
   if (h.get('cell')){ for (const lv of ['hex','cog','wheel']) if (IDX[lv].has(h.get('cell'))){ S.cell = IDX[lv].get(h.get('cell')); S.cellLv = lv; }
     if (S.cell == null) S.pendingCell = h.get('cell'); } }   /* a watershed cell: found once the watershed cells load */
 function writeHash(){ const p = new URLSearchParams({q:S.q.id, m:S.m.id, size:S.level});
@@ -1408,7 +1426,7 @@ function writeHash(){ const p = new URLSearchParams({q:S.q.id, m:S.m.id, size:S.
   if (S.ext === 'huc') p.set('ext', 'huc');
   if (S.herb && S.q.id === 'rest') p.set('herb', '1');
   if (S.appa && S.q.id === 'rest') p.set('lands', 'appa');
-  if (S.q.id === 'phen'){ p.set('sp', S.ph.sp); if (S.m.yr === 'wk') p.set('wk', S.ph.wk); if (S.m.yr && phYear()) p.set('yr', phYear()); }
+  if (S.q.id === 'phen'){ p.set('sp', S.ph.sp); if (S.m.yr === 'wk') p.set('wk', S.ph.wk); if (S.m.yr === 'wk' && phSel().length) p.set('yr', phSel().join(',')); else if (S.m.yr && phYear()) p.set('yr', phYear()); }
   if (S.sec !== 'all') p.set('sec', S.sec); if (S.base !== DEFBASE) p.set('base', S.base); if (S.cell != null) p.set('cell', D.levels[S.cellLv].id[S.cell]);
   history.replaceState(null, '', '#' + p.toString()); }
 readHash();
