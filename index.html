@@ -508,6 +508,8 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     <p>The cell panel shows the points behind each score. A rarely surveyed cell can score low on invasives or birds simply because no one has looked, so check How well is it surveyed? alongside.</p>
     <h3>Reading the maps</h3>
     <ul>
+      <li>Map colors are set by the kind of measure. For counts and acres where a few cells are far above the rest, the classes break at the 50th, 75th, 90th and 97th percentiles: the lightest color is the lower half of cells and the darkest the top 3%. Percentages and other evenly spread measures use equal steps; small counts such as shelters get one color per number, with the last open-ended; restoration scores break at 25, 40, 55 and 70, and trail vulnerability at its Low, Moderate and High cut-offs. Breaks are rounded to clean numbers and worked out for each cell size.</li>
+      <li>In the chart under the map, each bar is a ten-mile stretch. For lopsided measures the chart’s top is set at the 95th-percentile stretch so the others stay readable; the few taller bars reach the top and carry a small white mark. Point to a bar for its exact value.</li>
       <li>Cell colors fade as you zoom in, so the basemap shows through. From zoom 15 inward the fill is 75% transparent and the white cell outlines remain. The map zooms in to street level; beyond each basemap's own detail its tiles are enlarged, so USGS maps look softer at the closest zooms.</li>
       <li>Filled cells have data for the measure on screen. Outlined cells have data in another layer but none for this measure.</li>
       <li>Species counts follow survey effort: more records nearly always means more species. So the species measures fade thinly sampled cells, and each ranked count shows the records or checklists behind it. Counts rank every cell, since thinly sampled cells fall to the bottom on their own. Shares, such as the invasive share of records, leave thinly sampled cells out of the ranking, because a share from a handful of records is not reliable. A cell is thinly sampled when its data status is not Adequate, or when its records sit in too few of its square miles: only one for a 7 sq mi cell, fewer than three for a 49 sq mi cell. Bird species, standardized is an estimate at equal sampling completeness and is the fairest comparison between cells.</li>
@@ -1059,17 +1061,32 @@ const secName = () => secSel.options[secSel.selectedIndex].text;
 
 /* ---------- classing ---------- */
 const BRK = new Map();
+/* Map classes, picked by the kind of measure (the zero class, where a measure has one, stays separate):
+   - restoration scores (0 to 100): fixed breaks at 25, 40, 55 and 70; trail vulnerability: 0.33, 0.5, 0.67, 0.8 (its Low / Moderate / High cut-offs)
+   - small counts (whole numbers up to 10): one class per value, the last one open-ended
+   - lopsided measures (highest value more than twice the 90th percentile): breaks at the 50th, 75th, 90th and 97th
+     percentiles, rounded to clean numbers, so the top classes pick out the real high spots
+   - everything else: five equal steps from the lowest to the highest value, rounded to clean numbers */
+const NICE = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+function niceNum(v){ if (!(v > 0)) return 0; const e = Math.pow(10, Math.floor(Math.log10(v))), f = v / e; return NICE.reduce((p, q) => Math.abs(Math.log(q / f)) < Math.abs(Math.log(p / f)) ? q : p) * e; }
+function scaleKind(m, a){ if (m.q.id === 'rest') return 'score'; if (m.th === 'soil' && m.id === 'vuln') return 'vuln';
+  if (!a.length) return 'even'; const mx = a[a.length-1], p90 = a[Math.min(a.length-1, Math.floor(.9 * a.length))];
+  if (m.int && mx <= 10) return 'small'; return mx > 2 * p90 ? 'skew' : 'even'; }
 function breaks(m, lv){ const key = m.q.id + m.id + lv; if (BRK.has(key)) return BRK.get(key);
   const n = D.levels[lv].id.length, a = [];
   for (let c = 0; c < n; c++){ const v = m.get(lv, c); if (v != null && !(m.zero && v === 0)) a.push(v); }
-  a.sort((x,y) => x - y); let b = [];
-  if (a.length){ const dec = m.int ? 0 : (m.d == null ? 1 : m.d);
-    const r = v => +v.toFixed(dec);
-    (m.brkP || [.2,.4,.6,.8]).forEach(p => { const v = r(a[Math.min(a.length-1, Math.floor(p*a.length))]); if (!b.length || v > b[b.length-1]) b.push(v); });
-    const mx = r(a[a.length-1]); b = b.filter(v => v < mx); }
+  a.sort((x,y) => x - y); let b = []; const kind = scaleKind(m, a);
+  if (a.length){ const dec = m.int ? 0 : (m.d == null ? 1 : m.d), r = v => +v.toFixed(dec), mn = a[0], mx = a[a.length-1];
+    const q = f => a[Math.min(a.length-1, Math.floor(f * a.length))];
+    if (kind === 'score') b = [25, 40, 55, 70];
+    else if (kind === 'vuln') b = [.33, .5, .67, .8];
+    else if (kind === 'small'){ for (let v = Math.max(1, Math.ceil(mn)); v < mx && b.length < 4; v++) b.push(v); }
+    else if (kind === 'skew') b = [.5, .75, .9, .97].map(f => { let v = niceNum(q(f)); if (m.int) v = Math.max(1, Math.round(v)); return r(v); });
+    else { const st = niceNum((mx - mn) / 5) || 1, s0 = Math.floor(mn / st) * st; for (let k = 1; k <= 4; k++) b.push(r(s0 + st * k)); }
+    b = b.filter((v, i) => v < mx && v >= mn && (i === 0 || v > b[i-1])); }
   const k = b.length + 1, ramp = RAMP[m.q.ramp];
   const cols = k === 1 ? [ramp[3]] : Array.from({length:k}, (_,i) => ramp[Math.round(i*4/(k-1))]);
-  const out = {b, cols, min:a[0], max:a[a.length-1], n:a.length, med:a.length ? a[Math.floor(a.length/2)] : null};
+  const out = {b, cols, kind, min:a[0], max:a[a.length-1], n:a.length, med:a.length ? a[Math.floor(a.length/2)] : null};
   BRK.set(key, out); return out; }
 function colorOf(m, lv, v){ if (v == null) return null;
   if (m.kind === 'cat'){ const e = CATMAP[m.f].get(D.cats[m.f][v]); return e ? e[1] : '#999'; }
@@ -2190,14 +2207,22 @@ function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stri
     else { b.val = b.v.reduce((s,x) => s + x, 0) / b.v.length; mx = Math.max(mx, b.val); }
     b.club = [...b.clubs].sort((x,y) => y[1] - x[1])[0][0]; });
   stripBins = bins;
+  /* the top of the chart: the full range for scores, the index and even percentages; for lopsided measures the 95th-percentile
+     stretch, so a few extreme stretches don't flatten the rest (taller bars are drawn to the top and marked) */
+  if (m.kind !== 'cat'){ const vs = bins.map(b => b.val).filter(v => v != null).sort((p, q) => p - q), sk = breaks(m, lv).kind;
+    const p95 = vs.length ? vs[Math.min(vs.length - 1, Math.floor(.95 * vs.length))] : 0, p90 = vs.length ? vs[Math.min(vs.length - 1, Math.floor(.9 * vs.length))] : 0;
+    if (sk === 'score') mx = 100; else if (sk === 'vuln') mx = 1;
+    else if (mx > 2 * p90 && p95 > 0) mx = p95;
+    else if (m.unit === '%') mx = 100; }
   const x = mi => pl + pw * mi / D.totalMi, rng = secRange();
   let h = '';
   if (rng) h += `<rect x="${x(rng[0])}" y="${top-4}" width="${Math.max(2, x(rng[1]) - x(rng[0]))}" height="${base - top + 6}" fill="#fff" opacity=".09"/>`;
   h += `<line x1="${pl}" x2="${W-pr}" y1="${base+.5}" y2="${base+.5}" stroke="#4D6079"/>`;
   bins.forEach((b,i) => { if (b.val == null) return; const bx = pl + i*bw;
     const inR = !rng || ((i+1)*BIN > rng[0] && i*BIN < rng[1]);
-    const hh = m.kind === 'cat' ? base - top - 18 : Math.max(1.5, (base - top) * (mx ? b.val / mx : 0)), col = m.kind !== 'cat' && m.zero && b.val === 0 ? '#60738B' : colorOf(m, lv, b.val);
-    h += `<rect x="${bx}" y="${base-hh}" width="${Math.max(1,bw-.6)}" height="${hh}" fill="${col}" opacity="${inR ? 1 : .3}" stroke="#fff" stroke-opacity=".22" stroke-width=".5"/>`; });
+    const clip = m.kind !== 'cat' && mx && b.val > mx * 1.001, hh = m.kind === 'cat' ? base - top - 18 : Math.max(1.5, (base - top) * (mx ? Math.min(1, b.val / mx) : 0)), col = m.kind !== 'cat' && m.zero && b.val === 0 ? '#60738B' : colorOf(m, lv, b.val);
+    h += `<rect x="${bx}" y="${base-hh}" width="${Math.max(1,bw-.6)}" height="${hh}" fill="${col}" opacity="${inR ? 1 : .3}" stroke="#fff" stroke-opacity=".22" stroke-width=".5"/>` +
+      (clip ? `<path d="M${bx + bw / 2 - Math.min(3.5, bw / 2)} ${top} L${bx + bw / 2} ${top - 5} L${bx + bw / 2 + Math.min(3.5, bw / 2)} ${top} Z" fill="#fff" opacity="${inR ? .9 : .3}"/>` : ''); });
   h += `<rect id="vwin" x="0" y="${top-4}" width="0" height="${base-top+6}" fill="none" stroke="#fff" stroke-width="1.5" rx="2"/>`;
   h += `<rect id="shover" x="0" y="${top-4}" width="${bw}" height="${base-top+6}" fill="#fff" opacity="0"/>`;
   D.regions.forEach((r,i) => { const x0 = x(r[1]), x1 = x(r[2]);
