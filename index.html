@@ -791,7 +791,7 @@ const RAMP = {
   soil:['#EAD7C0','#C9A27A','#9C6B3E','#6E4421','#3F230E'],
   feat:['#2E9A3E','#227E33','#196629','#114F20','#0A3816'],
   wet:['#D2F1F7','#9EE0EE','#5CC8DF','#1FA9C9','#0E6680'],
-  rest:['#EDB8B3','#DB8580','#C2525A','#9E2B3A','#651425'],
+  rest:['#E8A097','#D0605B','#AE2C35','#821225','#4C0613'],
   phen:['#FFF06A','#FFE014','#F2C200','#C99A00','#8A6800']
 };
 const ZERO = '#E3E7E1';
@@ -828,7 +828,7 @@ CATCOL.APPA_YN = [['NPS - APPA land', '#1C58A8']]; D.cats.APPA_YN = ['NPS - APPA
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 const ADMINCOL = ['#24475F','#819FB4','#C9D6DE','#E6E9E4'];
 /* Blue Ridge color scheme */
-const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#9E2B3A', phen:'#F0C419'};
+const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -1551,8 +1551,8 @@ let shown = null;
 function autoLevel(){ const z = map.getZoom(); return z >= 10.5 ? 'hex' : z >= 8.5 ? 'cog' : 'wheel'; }
 function dispLevel(){ let lv = S.level === 'auto' ? autoLevel() : S.level;
   if (!D.themes[S.m.th][lv]) lv = 'cog'; return lv; }
-/* Cell fill thins out as you zoom in: full strength up to zoom 9, down to 25% opacity (75% transparent) at the closest zoom. */
-const FADE_FROM = 9, FADE_TO = 15, FILL_FAR = .86, FILL_NEAR = .25;
+/* Cell fill thins out as you zoom in: full strength up to zoom 9, down to 40% opacity (60% transparent) at the closest zoom. */
+const FADE_FROM = 9, FADE_TO = 15, FILL_FAR = .86, FILL_NEAR = .4;
 function zoomFade(){ const k = Math.max(0, Math.min(1, (map.getZoom() - FADE_FROM) / (FADE_TO - FADE_FROM))); return (FILL_FAR - k * (FILL_FAR - FILL_NEAR)) / FILL_FAR; }
 function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, w = lv === 'hex' ? .4 : .7, strong = m.th === 'feat'; /* trail features: solid fill and a dark outline at every zoom, so any cell with a feature stands out */
   for (let c = 0; c < ps.length; c++){ const v = m.get(lv, c), ins = inSec(lv, c);
