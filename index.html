@@ -483,7 +483,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Soils suited to grassland management</td><td>15</td><td>Share of soils in land capability classes 1 to 4</td><td>Ground that can be worked and mowed stays open</td></tr>
       <tr><td>Grassland and shrubland birds</td><td>25</td><td>Grassland and shrubland bird species on eBird checklists</td><td>Weighted most: these birds are declining and their habitat is scarce, while forest is abundant</td></tr>
       <tr><td>Vistas</td><td>15</td><td>Full points for any vista in the cell</td><td>Keeping views open is a trail value too</td></tr>
-      <tr><td>Wetlands</td><td style="white-space:nowrap">up to −10</td><td>Share of the A.T. lands in the cell that is mapped wetland (NWI)</td><td>Nearby wetlands can limit herbicide use</td></tr>
+      <tr><td>Wetlands</td><td style="white-space:nowrap">up to −10</td><td>Share of the A.T. lands in the cell that is mapped wetland (NWI); only when Herbicide use is on</td><td>Nearby wetlands can limit herbicide use</td></tr>
     </table>
     <table style="margin-top:10px">
       <tr><th>Forests</th><th>Points</th><th>Based on</th><th>Why it counts</th></tr>
@@ -492,8 +492,9 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Forest pests</td><td>20</td><td>Forest pest species reported on iNaturalist</td><td>A sign of declining forest health</td></tr>
       <tr><td>Priority invasive plants</td><td>20</td><td>Priority invasive plant species reported on iNaturalist</td><td>Treating them is part of the restoration</td></tr>
       <tr><td>Hiker gathering spots</td><td>20</td><td>Shelters, privies, bridges, campsites and parking areas in the cell</td><td>Where hikers gather sees the most wear and the most visitors</td></tr>
-      <tr><td>Wetlands</td><td style="white-space:nowrap">up to −10</td><td>Share of the A.T. lands in the cell that is mapped wetland (NWI)</td><td>Nearby wetlands can limit herbicide use</td></tr>
+      <tr><td>Wetlands</td><td style="white-space:nowrap">up to −10</td><td>Share of the A.T. lands in the cell that is mapped wetland (NWI); only when Herbicide use is on</td><td>Nearby wetlands can limit herbicide use</td></tr>
     </table>
+    <p style="margin-top:10px"><b>Herbicide use.</b> The wetland deduction is off by default. Turn on Herbicide use, under the question, when the work will rely on herbicides: cells are then marked down by the share of their A.T. lands that is wetland, by up to 10 points.</p>
     <p style="margin-top:10px"><b>Land priority.</b> The habitat points are then multiplied by a land priority taken from the administrative areas: each administrator's share of the corridor land in the cell times its multiplier. A cell that is all APPA land keeps its full points; one that is half APPA and half private keeps half.</p>
     <table>
       <tr><th>Land administered by</th><th>Multiplier</th></tr>
@@ -890,7 +891,7 @@ function restScale(k, lv, c){ const x = restRaw(k, lv, c);
 function restParts(kind, lv, c){ const d = RESTDEF[kind], g = restRaw(d.gate, lv, c);
   if (g == null || g < 1) return [null, [], 0, 0, {}, 0];
   const parts = d.parts.map(([k, lab, w]) => [k, lab, w * restScale(k, lv, c), w, restRaw(k, lv, c)]);
-  const wet = d.wet * restScale('wet', lv, c), pts = Math.max(0, parts.reduce((t, p) => t + p[2], 0) - wet), [mult, sh] = restLand(lv, c);
+  const wet = S.herb ? d.wet * restScale('wet', lv, c) : 0, pts = Math.max(0, parts.reduce((t, p) => t + p[2], 0) - wet), [mult, sh] = restLand(lv, c);
   return [Math.max(0, Math.min(100, Math.round(pts * mult))), parts, wet, mult, sh, pts]; }
 const restScore = (kind, lv, c) => has('veg', lv, c) ? restParts(kind, lv, c)[0] : null;
 function restRawText(k, x, lv, c){ switch (k){
@@ -902,14 +903,14 @@ function restRawText(k, x, lv, c){ switch (k){
   case 'birds': return x ? `${x} species` : 'none recorded';
   case 'vista': return x ? `${x} ${x === 1 ? 'vista' : 'vistas'}` : 'none';
   case 'hiker': return x ? `${x} ${x === 1 ? 'site' : 'sites'}` : 'none'; } }
-const restNote = kind => RESTDEF[kind].parts.map(p => `${p[1]} ${p[2]}`).join(', ') + `; wetlands up to −${RESTDEF[kind].wet}.`;
+const restNote = kind => RESTDEF[kind].parts.map(p => `${p[1]} ${p[2]}`).join(', ') + `; with herbicide use on, wetlands up to −${RESTDEF[kind].wet}.`;
 function restSection(lv, c){ if (!has('veg', lv, c)) return '';
   let b = `<div class="sec" style="--hue:${HUE.rest}"><h3>Restoration targets</h3>`;
   for (const kind of S.m.id === 'forest' && S.q.id === 'rest' ? ['forest', 'grass'] : ['grass', 'forest']){ const d = RESTDEF[kind], [s, parts, wet, mult, sh, pts] = restParts(kind, lv, c);
     b += `<p style="margin-top:8px"><b>${d.label}:</b> ${s == null ? d.none.toLowerCase() : `<b>${s}</b> of 100`}</p>`;
     if (s == null) continue;
     b += '<div class="keys nosw">' + parts.map(([k, lab, pts, w, x]) => soilRow(`${lab} <span style="color:var(--muted)">(${restRawText(k, x, lv, c)})</span>`, `${Math.round(pts)} / ${w}`)).join('') +
-      soilRow(`Wetlands <span style="color:var(--muted)">(${fmt(restRaw('wet', lv, c), 1)}% of A.T. lands)</span>`, wet >= .5 ? '−' + Math.round(wet) : '0') +
+      soilRow(`Wetlands <span style="color:var(--muted)">(${fmt(restRaw('wet', lv, c), 1)}% of A.T. lands${S.herb ? '' : '; herbicide use off'})</span>`, !S.herb ? '–' : wet >= .5 ? '−' + Math.round(wet) : '0') +
       soilRow('<b>Habitat points</b>', `<b>${Math.round(pts)}</b>`) + soilRow(`Land priority <span style="color:var(--muted)">(${landText(sh) || 'no mapped land'})</span>`, '×' + fmt(mult, 2)) + '</div>'; }
   return b + '<p class="none" style="font-size:13.5px;margin-top:8px">Scores rank cells for a closer look; they are worked out from the other layers on this page and are not a site assessment. Counts and acres are scored by how a cell ranks among cells of its size.</p></div>'; }
 function restBox(lv, cells){ if (!D.themes.veg || !D.themes.veg[lv]) return ''; let b = `<div class="sec" style="--hue:${HUE.rest}"><h3>Restoration targets</h3><div class="keys nosw">`;
@@ -986,7 +987,7 @@ const Q = [
      {id:'lands', label:'Wetland acres on A.T. lands', f:'L_WET_AC', zero:1, zeroText:'None mapped', noun:['acre','acres'], showFn:wetAc,
       note:'Only the part of each wetland that lies on A.T. lands. Cells without A.T. lands show none.'}]},
  {id:'rest', th:'veg', hue:HUE.rest, ramp:'rest', title:'Where do we target restoration?',
-  use:'Two restoration scores, from 0 to 100, for restoration on A.T. corridor lands, built from the other layers here. Grasslands and early successional habitat favors open habitat near rare species, with priority invasive plants, soils suited to grassland management, grassland and shrubland birds, and vistas. Forests favors forest near rare species, with forest pests, priority invasive plants and places where hikers gather. Grassland birds carry the most weight, since they are declining and their habitat is scarce. Wetlands lower both scores equally, since nearby wetlands can limit herbicide use. The points are then weighted by who administers the land: APPA first, then other NPS and federal, state, and other; private land is left out. Use it to shortlist cells for a closer look; check the parts in the cell panel.',
+  use:'Two restoration scores, from 0 to 100, for restoration on A.T. corridor lands, built from the other layers here. Grasslands and early successional habitat favors open habitat near rare species, with priority invasive plants, soils suited to grassland management, grassland and shrubland birds, and vistas. Forests favors forest near rare species, with forest pests, priority invasive plants and places where hikers gather. Grassland birds carry the most weight, since they are declining and their habitat is scarce. Turn on Herbicide use to lower the scores of cells with wetlands, since nearby wetlands can limit herbicide use. The points are then weighted by who administers the land: APPA first, then other NPS and federal, state, and other; private land is left out. Use it to shortlist cells for a closer look; check the parts in the cell panel.',
   m:[{id:'grass', label:'Grasslands and early successional', int:1, brkP:[.4,.7,.85,.95], none:'No open habitat mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('grass'), fn:(lv,c) => restScore('grass', lv, c)},
      {id:'forest', label:'Forests', int:1, brkP:[.4,.7,.85,.95], none:'No forest mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
  {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s on the trail here?',
@@ -1030,12 +1031,14 @@ function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   if (h.get('find')) S.pendingFind = h.get('find');
   if (h.get('layers')) S.pendingLayers = h.get('layers').split(',');
   if (h.get('ext') === 'huc') S.pendingExt = 'huc';
+  if (h.get('herb') === '1') S.herb = true;
   if (h.get('cell')){ for (const lv of ['hex','cog','wheel']) if (IDX[lv].has(h.get('cell'))){ S.cell = IDX[lv].get(h.get('cell')); S.cellLv = lv; }
     if (S.cell == null) S.pendingCell = h.get('cell'); } }   /* a watershed cell: found once the watershed cells load */
 function writeHash(){ const p = new URLSearchParams({q:S.q.id, m:S.m.id, size:S.level});
   if (S.m.find) p.set('find', S.m.find.key);
   { const on = LIVE.filter(l => l.on).map(l => l.id); if (on.length) p.set('layers', on.join(',')); }
   if (S.ext === 'huc') p.set('ext', 'huc');
+  if (S.herb && S.q.id === 'rest') p.set('herb', '1');
   if (S.sec !== 'all') p.set('sec', S.sec); if (S.base !== DEFBASE) p.set('base', S.base); if (S.cell != null) p.set('cell', D.levels[S.cellLv].id[S.cell]);
   history.replaceState(null, '', '#' + p.toString()); }
 readHash();
@@ -1453,7 +1456,9 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
   if (S.m.find){ const fs = findSummary(lv); el.innerHTML = h + `<div class="qbody">${fs[0]}${blk('results', 'Results', fs[1], 'res')}</div>`; return; }
   const extBlk = !EXTQ.includes(q.id) ? '' : `<div class="extsw" role="group" aria-label="Extent"><span>Extent</span><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
     (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow. Trail miles are those of the nearest corridor cell.</p>' : '');
-  h += `<div class="qbody" style="--hue:${q.hue}">` + extBlk + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
+  const herbBlk = q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Herbicide use"><span>Herbicide use</span><button type="button" data-herb="off" aria-pressed="${!S.herb}">Off</button><button type="button" data-herb="on" aria-pressed="${!!S.herb}">On</button></div>` +
+    (S.herb ? '<p class="extnote">Cells are marked down by up to 10 points for the share of their A.T. lands in wetland, where herbicide use may be limited.</p>' : '');
+  h += `<div class="qbody" style="--hue:${q.hue}">` + extBlk + herbBlk + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m}">${esc(m.label)}</button>`).join('') + '</div>') +
     blk('results', 'Results', summary(lv), 'res') + '</div>';
   el.innerHTML = h; }
@@ -1490,6 +1495,7 @@ function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows =
   return h + '</ol></div>'; }
 $('#side').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.ext){ setExt(b.dataset.ext); return; }
+  if (b.dataset.herb){ S.herb = b.dataset.herb === 'on'; BRK.clear(); redraw(); return; }
   if (b.dataset.blk){ S.side[b.dataset.blk] = !S.side[b.dataset.blk]; side(); return; }
   if (b.dataset.selall && S.m.find){ const lv = dispLevel(), e = S.m.find, L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c) && e.cells[lv].has(c)) cells.push(c);
     if (cells.length) selectMany(lv, cells, null, e.common || e.sci); return; }
@@ -1965,7 +1971,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
   ab('Note', 'Trail features: A.T. facilities inventory, official and additional features. Structure counts (drainage, steps, signs, barriers) are estimates, spread from maintainer sections by trail miles.');
   if (out.liveState) ab('Live iNaturalist', out.liveState === 'loaded' ? `${out.live.length} most recent observations with open locations, fetched ${localDay()} from the iNaturalist project. A snapshot, not a complete count; not part of any other number in this export.`
     : 'Not included: iNaturalist could not be reached, or the selection is too wide for a live lookup.');
-  ab('Note', 'Restoration scores (0 to 100) are worked out from the other layers. Grasslands: ' + restNote('grass') + ' Forests: ' + restNote('forest') + ' Habitat points are multiplied by land priority: NPS - APPA 1.00, other NPS and federal 0.85, state 0.70, other 0.55, private 0, blended by share of the corridor land in the cell. Counts and acres are scored by rank among cells of the same size; only A.T. corridor lands count: habitat acres and wetlands are those on corridor lands, and a cell needs at least one acre of open habitat or forest there to be scored.');
+  ab('Note', 'Restoration scores (0 to 100) are worked out from the other layers. Grasslands: ' + restNote('grass') + ' Forests: ' + restNote('forest') + ' Herbicide use (wetland deduction) was ' + (S.herb ? 'on' : 'off') + ' for this export. Habitat points are multiplied by land priority: NPS - APPA 1.00, other NPS and federal 0.85, state 0.70, other 0.55, private 0, blended by share of the corridor land in the cell. Counts and acres are scored by rank among cells of the same size; only A.T. corridor lands count: habitat acres and wetlands are those on corridor lands, and a cell needs at least one acre of open habitat or forest there to be scored.');
   ab('Note', 'Wetlands: USFWS National Wetlands Inventory, acres in the whole cell. Possibly sensitive = NWI codes suggesting bogs or fens, seeps, aquatic beds, beaver-influenced areas or possible vernal pools; a flag for field checks. NWI misses many small, forested and seasonal wetlands; not a delineation.');
   ab('Note', 'Soils: NRCS gSSURGO, area-weighted over each cell. Trail vulnerability index 0 to 1: three NRCS trail ratings, each scored in even steps from best class (0) to worst (1), averaged. Low under 0.33, High over 0.67. Blank where the soils are not rated.');
   return out; }
