@@ -510,6 +510,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     <h3>Reading the maps</h3>
     <ul>
       <li>Map colors are set by the kind of measure. For counts and acres where a few cells are far above the rest, the classes break at the 50th, 75th, 90th and 97th percentiles: the lightest color is the lower half of cells and the darkest the top 3%. Percentages and other evenly spread measures use equal steps; small counts such as shelters get one color per number, with the last open-ended; restoration scores break at 25, 40, 55 and 70, and trail vulnerability at its Low, Moderate and High cut-offs. Breaks are rounded to clean numbers and worked out for each cell size.</li>
+      <li>The shaded outline behind the chart is the trail’s elevation, smoothed at ten-mile intervals, from 0 to 7,000 feet. Summits, towns, rivers and other landmarks are labelled above the chart, and state lines are dashed. Where labels would overlap, the less prominent are left out, and on narrow screens the labels are hidden. Point to a stretch for its approximate elevation.</li>
       <li>In the chart under the map, each bar is a ten-mile stretch. For lopsided measures the chart’s top is set at the 95th-percentile stretch so the others stay readable; the few taller bars reach the top and carry a small white mark. Point to a bar for its exact value.</li>
       <li>Cell colors fade as you zoom in, so the basemap shows through. From zoom 15 inward the fill is 75% transparent and the white cell outlines remain. The map zooms in to street level; beyond each basemap's own detail its tiles are enlarged, so USGS maps look softer at the closest zooms.</li>
       <li>Filled cells have data for the measure on screen. Outlined cells have data in another layer but none for this measure.</li>
@@ -537,6 +538,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li><b>iNaturalist.</b> iNaturalist contributors, iNaturalist (2026). iNaturalist Research-grade Observations. iNaturalist.org. Occurrence dataset <a href="https://doi.org/10.15468/ab3s5x" target="_blank" rel="noopener">doi.org/10.15468/ab3s5x</a>, accessed via GBIF.org.</li>
       <li><b>eBird.</b> Cornell Lab of Ornithology. EOD, eBird Observation Dataset. Occurrence dataset <a href="https://doi.org/10.15468/aomfnb" target="_blank" rel="noopener">doi.org/10.15468/aomfnb</a>, accessed via GBIF.org.</li>
       <li><b>Soils.</b> Soil Survey Staff, Natural Resources Conservation Service, United States Department of Agriculture. Gridded Soil Survey Geographic (gSSURGO) Database for the 14 Appalachian Trail states. <a href="https://www.nrcs.usda.gov/resources/data-and-reports/gridded-soil-survey-geographic-gssurgo-database" target="_blank" rel="noopener">nrcs.usda.gov</a></li>
+      <li><b>Elevation profile.</b> National Park Service. Trail elevations smoothed at ten-mile intervals.</li>
       <li><b>Wetlands.</b> U.S. Fish and Wildlife Service. National Wetlands Inventory, state downloads for the 14 Appalachian Trail states. <a href="https://www.fws.gov/program/national-wetlands-inventory" target="_blank" rel="noopener">fws.gov</a></li>
       <li><b>GBIF.</b> GBIF.org (2026). GBIF Occurrence Download, Global Biodiversity Information Facility. <a href="https://www.gbif.org" target="_blank" rel="noopener">gbif.org</a></li>
       <li><b>National Park Service.</b> NPS DataStore, reference 2319082. <a href="https://irma.nps.gov/DataStore/Reference/Profile/2319082" target="_blank" rel="noopener">irma.nps.gov/DataStore/Reference/Profile/2319082</a></li>
@@ -760,7 +762,7 @@ const RAMP = {
   land:['#F7DCE8','#EEB2CC','#E287B0','#D65A92','#8C3A61'],
   veg:['#D1EAE6','#A3D5CD','#6FBDB0','#3FA796','#26645A'],
   inv:['#F8DFD9','#F0BFB2','#E89B87','#E07A5F','#864939'],
-  eff:['#F7EBCF','#EFD39B','#E4B862','#D9A23A','#8A6420'],
+  eff:['#C9D4EE','#93A8DB','#5D7CC4','#2F55A8','#162F6B'],
   bird:['#D4E0F4','#A9C2E8','#799FDC','#4C7FD0','#2E4C7D'],
   pri:['#E7DBF2','#CFB8E5','#B490D6','#9B6BC8','#5D4078'],
   soil:['#F2E6D6','#E3C9A6','#CDA373','#A8743F','#6A4423'],
@@ -803,7 +805,7 @@ CATCOL.APPA_YN = [['NPS - APPA land', '#1C58A8']]; D.cats.APPA_YN = ['NPS - APPA
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 const ADMINCOL = ['#24475F','#819FB4','#C9D6DE','#E6E9E4'];
 /* Blue Ridge color scheme */
-const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#D9A23A', soil:'#A8743F', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#9E2B3A', phen:'#B8920A'};
+const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#E07A5F', live:'#8FD3B6', ebird:'#4C7FD0', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#A8743F', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#9E2B3A', phen:'#B8920A'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -2325,8 +2327,50 @@ function selectMany(lv, cells, bounds, label, within){ S.cell = null; pin.remove
 /* ---------- trail strip ---------- */
 const BIN = 10; let NB = Math.ceil(D.totalMi / BIN);
 let stripBins = [];
+/* ---------- elevation profile behind the chart ----------
+   Smoothed trail elevations every 10 miles, supplied by the National Park Service (ELEVSRC, miles on a 2,190-mile scale,
+   fitted here to the dashboard's trail miles). Drawn as a smooth curve behind the bars. Landmark labels sit in a band above the
+   chart so they never cover the bars; the most important are placed first and others are left out where they would overlap. */
+const ELEVSRC = [[0,3099],[10,2954],[20,3116],[30,3456],[40,3374],[50,3411],[60,3637],[70,3277],[80,4052],[90,4660],[100,4557],[110,4198],[120,4577],[130,4281],[140,3071],[150,3718],[160,3197],[170,2812],[180,4329],[190,4717],[200,6643],[210,5409],[220,5490],[230,5253],[240,2961],[250,3402],[260,3977],[270,3130],[280,2175],[290,2961],[300,3958],[310,3742],[320,3936],[330,4517],[340,3363],[350,2589],[360,3981],[370,3967],[380,6285],[390,5149],[400,3643],[410,3212],[420,3483],[430,2551],[440,2870],[450,3788],[460,3583],[470,3051],[480,2542],[490,3207],[500,4856],[510,4831],[520,3652],[530,3133],[540,3412],[550,2936],[560,2941],[570,2981],[580,3906],[590,2916],[600,2985],[610,2767],[620,2456],[630,3595],[640,2916],[650,2762],[660,3226],[670,3509],[680,2878],[690,2928],[700,2234],[710,2208],[720,2292],[730,2237],[740,1734],[750,2142],[760,2379],[770,1818],[780,3500],[790,2399],[800,1743],[810,1975],[820,2639],[830,3628],[840,2956],[850,2651],[860,2966],[870,2110],[880,2482],[890,2712],[900,2913],[910,2670],[920,2990],[930,3366],[940,3442],[950,3178],[960,2713],[970,2962],[980,1840],[990,1501],[1000,1443],[1010,1001],[1020,1394],[1030,1041],[1040,761],[1050,1319],[1060,1619],[1070,1564],[1080,1354],[1090,1580],[1100,1869],[1110,1378],[1120,993],[1130,783],[1140,510],[1150,1026],[1160,902],[1170,1197],[1180,1353],[1190,987],[1200,1377],[1210,1502],[1220,1523],[1230,1120],[1240,1270],[1250,1501],[1260,1502],[1270,1294],[1280,1511],[1290,1494],[1300,1107],[1310,1197],[1320,1443],[1330,1340],[1340,1458],[1350,1126],[1360,739],[1370,1078],[1380,1134],[1390,1008],[1400,995],[1410,702],[1420,696],[1430,904],[1440,958],[1450,792],[1460,660],[1470,1029],[1480,1058],[1490,1041],[1500,1025],[1510,1009],[1520,992],[1530,976],[1540,1588],[1550,1449],[1560,1878],[1570,1767],[1580,1534],[1590,2648],[1600,1814],[1610,2392],[1620,2663],[1630,3086],[1640,2806],[1650,2239],[1660,2781],[1670,2214],[1680,1921],[1690,1548],[1700,3006],[1710,2030],[1720,2191],[1730,1395],[1740,1254],[1750,903],[1760,1202],[1770,1543],[1780,2383],[1790,1703],[1800,2585],[1810,2988],[1820,2814],[1830,4012],[1840,3643],[1850,2655],[1860,4591],[1870,6288],[1880,3470],[1890,3334],[1900,1773],[1910,2945],[1920,3266],[1930,2656],[1940,2166],[1950,2566],[1960,2559],[1970,2349],[1980,3005],[1990,2832],[2000,3005],[2010,2647],[2020,2156],[2030,1390],[2040,1035],[2050,1493],[2060,1453],[2070,911],[2080,1153],[2090,937],[2100,1970],[2110,1441],[2120,2503],[2130,1377],[2140,643],[2150,599],[2160,927],[2170,1103],[2180,700],[2190,5269]];
+const ELEVK = () => D.totalMi / 2190;
+let ELEV = null;
+/* [file mile, name, kind (s summit, p place, f feature, r river), known feet or null, priority (lower first)] */
+const ELEVMARKS = [[0,'Springer Mtn','s',3782,1],[2190,'Katahdin','s',5267,1],[200,'Clingmans Dome','s',6643,2],[1870,'Mt Washington','s',6288,2],
+  [1025,'Harpers Ferry','p',null,3],[1408,'Hudson River','r',124,4],[380,'Roan High Knob','s',6285,5],[470,'Damascus','p',null,6],[920,'Shenandoah','f',null,7],
+  [274,'Hot Springs','p',null,8],[1295,'Delaware Water Gap','f',null,8],[166,'Fontana Dam','p',null,9],[500,'Grayson Highlands','f',null,10],
+  [1585,'Mt Greylock','s',3491,11],[1795,'Mt Moosilauke','s',4802,12],[720,'McAfee Knob','s',3197,12],[1150,'Susquehanna River','r',null,13],
+  [2030,'Bigelow Mtn','s',4145,14],[788,'James River','r',null,14],[1750,'Hanover','p',null,15],[1915,'Mahoosuc Notch','f',null,16],[2090,'100-Mile Wilderness','f',null,17]];
+const ELEVSTATES = [[78, 'GA', 'NC'], [469, 'TN', 'VA'], [1023, 'VA', 'MD'], [1064, 'MD', 'PA'], [1290, 'PA', 'NJ'], [1361, 'NJ', 'NY'],
+  [1459, 'NY', 'CT'], [1510, 'CT', 'MA'], [1600, 'MA', 'VT'], [1744, 'VT', 'NH'], [1910, 'NH', 'ME']];
+function elevLoad(){ const k = ELEVK(); ELEV = ELEVSRC.map(([m, f]) => [m * k, f]); strip(); }
+const elevAt = mi => { if (!ELEV) return null; for (let i = 0; i < ELEV.length - 1; i++){ const [m0, f0] = ELEV[i], [m1, f1] = ELEV[i + 1]; if (mi <= m1) return f0 + (f1 - f0) * Math.max(0, (mi - m0) / (m1 - m0)); } return ELEV[ELEV.length - 1][1]; };
+/* the profile as an SVG area behind the bars (0 to 7,000 ft); with labels set, the landmarks, state lines and scale on top */
+function elevSvg(pl, bw, top, base, W, pr, labels){ if (!ELEV) return ''; const pw = W - pl - pr, X = mi => pl + pw * mi / D.totalMi, Y = f => base - (base - top) * Math.min(1, Math.max(0, f) / 7000);
+  if (labels){ let g = [2000, 4000, 6000].map(f => `<text x="${pl + 3}" y="${(Y(f) + 3.5).toFixed(1)}" font-size="9.5" fill="#9FB2C8" stroke="#142235" stroke-width="3" paint-order="stroke">${fmt(f, 0)} ft</text>`).join('');
+    const edges = [0, ...ELEVSTATES.map(s => s[0]), D.totalMi], names = [ELEVSTATES[0][1], ...ELEVSTATES.map(s => s[2])];
+    ELEVSTATES.forEach(([mi]) => { const x = X(mi).toFixed(1); g += `<line x1="${x}" x2="${x}" y1="${top}" y2="${base}" stroke="#C9D6E3" stroke-opacity=".2" stroke-dasharray="2 3"/>`; });
+    names.forEach((nm, i) => { const x0 = X(edges[i]), x1 = X(edges[i + 1]); if (x1 - x0 < 20) return;
+      g += `<text x="${((x0 + x1) / 2).toFixed(1)}" y="${base - 3}" text-anchor="middle" font-size="9" font-weight="600" fill="#C9D6E3" stroke="#142235" stroke-width="2.5" paint-order="stroke">${nm}</text>`; });
+    if (top > 10){ const rows = [[], []], k = ELEVK(), placed = [];
+      ELEVMARKS.filter(m => m[4] <= (pw > 1100 ? 14 : pw > 800 ? 10 : 6)).sort((a, b) => a[4] - b[4]).forEach(([fm, name, kind, ft]) => { const mi = fm * k, x = X(mi), txt = name + (ft ? ' ' + fmt(ft, 0) + '′' : ''), w = txt.length * 6.1 + 8;
+        const anc = x - w / 2 < pl ? 'start' : x + w / 2 > W - pr ? 'end' : 'middle', L0 = anc === 'start' ? x - 4 : anc === 'end' ? x - w + 4 : x - w / 2, R0 = L0 + w;
+        const row = rows.findIndex(r => r.every(([a, b]) => R0 + 12 < a || L0 - 12 > b)); if (row < 0) return; rows[row].push([L0, R0]); placed.push([x, mi, kind, txt, anc, row]); });
+      placed.forEach(([x, mi, kind, txt, anc, row]) => { const ty = row ? top - 5 : top - 18, py = Y(elevAt(mi)), xs = x.toFixed(1);
+        g += (kind === 's' ? `<path d="M${(x - 3.2).toFixed(1)},${(py + 2).toFixed(1)} L${xs},${(py - 3.5).toFixed(1)} L${(x + 3.2).toFixed(1)},${(py + 2).toFixed(1)} Z" fill="#fff" stroke="#142235" stroke-width=".8"/>`
+                          : `<circle cx="${xs}" cy="${py.toFixed(1)}" r="2.3" fill="${kind === 'r' ? '#8EC5F0' : '#fff'}" stroke="#142235" stroke-width=".8"/>`) +
+          `<line x1="${xs}" x2="${xs}" y1="${ty + 2}" y2="${top}" stroke="#fff" stroke-opacity=".4"/>` +
+          `<text x="${xs}" y="${ty}" text-anchor="${anc}" font-size="9.5" font-weight="600" fill="#fff" stroke="#142235" stroke-width="3" paint-order="stroke">${esc(txt)}</text>`; }); }
+    return g; }
+  const P = ELEV.map(([mi, f]) => [X(mi), Y(f)]);
+  let d = `M${pl},${base} L${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}`;
+  for (let i = 0; i < P.length - 1; i++){ const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
+    d += ` C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)},${Math.min(base, p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)},${Math.min(base, p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`; }
+  d += ` L${(W - pr).toFixed(1)},${P[P.length - 1][1].toFixed(1)} L${W - pr},${base} Z`;
+  let g = `<path d="${d}" fill="#9FB6CF" fill-opacity=".16" stroke="#C9D6E3" stroke-opacity=".6" stroke-width="1.2" stroke-linejoin="round"/>`;
+  [2000, 4000, 6000].forEach(f => { g += `<line x1="${pl}" x2="${W - pr}" y1="${Y(f).toFixed(1)}" y2="${Y(f).toFixed(1)}" stroke="#B9CBE0" stroke-opacity=".08"/>`; });
+  return g; }
 function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stripsvg');
-  const W = svg.clientWidth || 800, H = 136, pl = 4, pr = 4, top = 6, base = 92, pw = W - pl - pr, bw = pw / NB;
+  const W = svg.clientWidth || 800, H = 136, pl = 4, pr = 4, top = ELEV && W > 568 ? 36 : 6, base = 92, pw = W - pl - pr, bw = pw / NB;
   const bins = Array.from({length:NB}, () => ({v:[], clubs:new Map()}));
   for (let c = 0; c < L_.id.length; c++){ const b = bins[Math.min(NB-1, Math.floor(L_.mi[c] / BIN))]; const v = m.get(lv, c);
     b.clubs.set(L_.club[c], (b.clubs.get(L_.club[c]) || 0) + 1); if (v != null) b.v.push(v); }
@@ -2346,6 +2390,7 @@ function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stri
     if (m.stripTop) mx = m.stripTop(lv); }
   const x = mi => pl + pw * mi / D.totalMi, rng = secRange();
   let h = '';
+  h += elevSvg(pl, bw, top, base, W, pr);
   if (rng) h += `<rect x="${x(rng[0])}" y="${top-4}" width="${Math.max(2, x(rng[1]) - x(rng[0]))}" height="${base - top + 6}" fill="#fff" opacity=".09"/>`;
   h += `<line x1="${pl}" x2="${W-pr}" y1="${base+.5}" y2="${base+.5}" stroke="#4D6079"/>`;
   bins.forEach((b,i) => { if (b.val == null) return; const bx = pl + i*bw;
@@ -2353,6 +2398,7 @@ function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stri
     const clip = m.kind !== 'cat' && mx && (m.stripAbs ? Math.abs(b.val) : b.val) > mx * 1.001, hh = m.kind === 'cat' ? base - top - 18 : Math.max(1.5, (base - top) * (mx ? Math.min(1, (m.stripAbs ? Math.abs(b.val) : b.val) / mx) : 0)), col = m.kind !== 'cat' && m.zero && b.val === 0 ? '#60738B' : colorOf(m, lv, b.val);
     h += `<rect x="${bx}" y="${base-hh}" width="${Math.max(1,bw-.6)}" height="${hh}" fill="${col}" opacity="${inR ? 1 : .3}" stroke="#fff" stroke-opacity=".22" stroke-width=".5"/>` +
       (clip ? `<path d="M${bx + bw / 2 - Math.min(3.5, bw / 2)} ${top} L${bx + bw / 2} ${top - 5} L${bx + bw / 2 + Math.min(3.5, bw / 2)} ${top} Z" fill="#fff" opacity="${inR ? .9 : .3}"/>` : ''); });
+  h += elevSvg(pl, bw, top, base, W, pr, true);
   h += `<rect id="vwin" x="0" y="${top-4}" width="0" height="${base-top+6}" fill="none" stroke="#fff" stroke-width="1.5" rx="2"/>`;
   h += `<rect id="shover" x="0" y="${top-4}" width="${bw}" height="${base-top+6}" fill="#fff" opacity="0"/>`;
   D.regions.forEach((r,i) => { const x0 = x(r[1]), x1 = x(r[2]);
@@ -2375,7 +2421,7 @@ $('#stripsvg').addEventListener('pointermove', e => { const i = binAt(e); if (i 
   const where = `Miles ${fmt(i*BIN,0)} to ${fmt(Math.min(D.totalMi,(i+1)*BIN),0)}`;
   const club = b.club != null ? ', ' + shortClub(cat('club', b.club) || '') : '';
   let txt = S.m.find ? 'not recorded' : (S.m.none ? S.m.none.toLowerCase().replace('nps - appa', 'NPS - APPA') : 'no data'); if (b.val != null) txt = S.m.find ? 'recorded in this stretch' : S.m.yn ? S.m.yn + ' in this stretch' : S.m.kind === 'cat' ? 'mostly ' + show(S.m, b.val) : (S.m.unit === '%' ? fmt(b.val, 1) + '%' : fmt(b.val, b.val < 10 ? 1 : 0)) + ' on average per 49 sq mi cell';
-  $('#stripread').textContent = `${where}${club}: ${txt}`; });
+  $('#stripread').textContent = `${where}${club}: ${txt}` + (ELEV ? `; trail about ${fmt(Math.round(elevAt((i + .5) * BIN) / 100) * 100, 0)} ft` : ''); });
 $('#stripsvg').addEventListener('pointerleave', () => { $('#shover').setAttribute('opacity', 0); });
 $('#stripsvg').addEventListener('click', e => { const i = binAt(e); if (i < 0) return; const L_ = D.levels.wheel, pts = [];
   for (let c = 0; c < L_.id.length; c++) if (L_.mi[c] >= i*BIN - BIN && L_.mi[c] < (i+2)*BIN) pts.push(L_.c[c]);
@@ -2405,7 +2451,7 @@ $('#about').addEventListener('click', e => { if (e.target === $('#about')) $('#a
 /* ---------- start ---------- */
 map.fitBounds(L.latLngBounds(D.levels.wheel.c).pad(.03)); baseSync(); mapGestures();
 if (S.sec !== 'all') fitSection();
-draw(); strip();
+draw(); strip(); elevLoad();
 if (S.pendingLayers) S.pendingLayers.forEach(id => { const l = LIVE.find(x => x.id === id), cb = document.querySelector('#layerspanel [data-live="' + id + '"]'); if (l && cb){ cb.checked = true; liveToggle(l, true); } });
 if (S.pendingFind){ const e = findIndex().get(S.pendingFind); if (e) setFind(e, false); }
 if (S.cell != null) select(S.cellLv, S.cell, true);
