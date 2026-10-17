@@ -6,6 +6,8 @@
 <title>Phenology data check</title>
 <style>
   :root{--bg:#142235;--panel:#1B2D44;--line:#2E4460;--ink:#E3EAF2;--muted:#A8B8CA;--yes:#7BC47F;--no:#E07A5F;--accent:#3FA796}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#142235;--panel:#1B2D44;--line:#2E4460;--ink:#E3EAF2;--muted:#A8B8CA}}
+  :root[data-theme="dark"]{--bg:#142235;--panel:#1B2D44;--line:#2E4460;--ink:#E3EAF2;--muted:#A8B8CA}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
   main{max-width:1180px;margin:0 auto;padding:20px 16px 40px}
@@ -64,8 +66,14 @@ function draw(){ const head = ['Species','Records','Budding','Flowering','Fruiti
 
 async function run(){ $('#run').disabled = true; $('#csv').disabled = true; rows = [];
   try {
-    const terms = (await get('controlled_terms', {})).results, ph = terms.find(t => t.label === 'Plant Phenology');
-    const V = Object.fromEntries(ph.values.map(v => [v.label, v.id]));
+    /* iNaturalist renamed this annotation ("Plant Phenology" became "Flowers and Fruits"), so find it by id or either name,
+       and its values by id (13 flowers, 14 fruits, 15 buds, 21 none) or by name */
+    const terms = (await get('controlled_terms', {})).results || [];
+    const ph = terms.find(t => t.id === 12) || terms.find(t => /phenology|flowers and fruits/i.test(t.label || ''));
+    if (!ph || !ph.values) throw new Error('iNaturalist did not list its flowering annotation');
+    const pick = (id, re) => (ph.values.find(v => v.id === id) || ph.values.find(v => re.test(v.label || '')) || {}).id;
+    const V = {'Flowering': pick(13, /^flower(s|ing)$/i), 'Fruiting': pick(14, /fruit/i), 'Flower Budding': pick(15, /bud/i), 'No Evidence of Flowering': pick(21, /^no /i)};
+    $('#status').textContent = 'Annotation: ' + ph.label + ' (' + ph.values.map(v => v.label).join(', ') + ')';
     const STAGES = [['budding','Flower Budding'],['flowering','Flowering'],['fruiting','Fruiting'],['no_flowers','No Evidence of Flowering']];
     for (const [i, [common, sci]] of SPECIES.entries()){
       $('#status').textContent = `${i + 1} of ${SPECIES.length}: ${common}…`;
@@ -87,9 +95,11 @@ async function run(){ $('#run').disabled = true; $('#csv').disabled = true; rows
   } catch (e){ $('#status').textContent = 'Stopped: ' + e.message + '. Check the internet connection and try again.'; }
   $('#run').disabled = false; }
 
-function csv(){ const cols = ['species','sci','taxon_id','records','budding','flowering','fruiting','no_flowers','annotated_pct','wave_ready','shift_ready','early','late', ...YEARS.map(y => 'fl_' + y), ...MON.map(m => 'fl_' + m), 'note'];
+async function csv(){ const cols = ['species','sci','taxon_id','records','budding','flowering','fruiting','no_flowers','annotated_pct','wave_ready','shift_ready','early','late', ...YEARS.map(y => 'fl_' + y), ...MON.map(m => 'fl_' + m), 'note'];
   const q = v => { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
   const text = [cols.join(','), ...rows.map(r => cols.map(c => q(r[c])).join(','))].join('\r\n');
+  const dl = window.claude && await claude.use('downloads');
+  if (dl){ try { await dl.save({filename:'inat_phenology_check.csv', data:'﻿' + text}); } catch (e){ if (e && e.code !== 'declined') $('#status').textContent = 'The CSV could not be saved here.'; } return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + text], {type:'text/csv'})); a.download = 'inat_phenology_check.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
 
 $('#run').onclick = run; $('#csv').onclick = csv; draw();
