@@ -1845,8 +1845,8 @@ function setExt(ext, quiet){ if (ext === S.ext) return Promise.resolve();
 /* outlines of the corridor cells, drawn over the watershed cells */
 map.createPane('corrline').style.zIndex = 415; map.getPane('corrline').style.pointerEvents = 'none';
 const corrRenderer = L.canvas({pane:'corrline', padding:.4}), CORRLINE = {};
-let corrShown = null;
-function corrSync(lv){ const want = S.ext === 'huc' && S.cells ? lv : null; if (corrShown === want) return;
+let corrShown = null, corrLast = null; const CORRZ = 8;
+function corrSync(lv){ corrLast = lv; const want = S.ext === 'huc' && S.cells && map.getZoom() >= CORRZ ? lv : null; if (corrShown === want) return;
   if (corrShown) map.removeLayer(CORRLINE[corrShown]); corrShown = want; if (!want) return;
   if (!CORRLINE[lv]){ const L_ = EXT.corr.levels[lv], ps = [];
     for (let c = 0; c < L_.id.length; c++){ const g = L_.g[c], r = []; let la = g[0], lo = g[1]; r.push([la/1e5, lo/1e5]);
@@ -1854,6 +1854,7 @@ function corrSync(lv){ const want = S.ext === 'huc' && S.cells ? lv : null; if (
       ps.push(L.polygon(r, {renderer:corrRenderer, pane:'corrline', fill:false, color:'#FFD54A', weight:lv === 'hex' ? 1 : 1.6, opacity:.85, interactive:false})); }
     CORRLINE[lv] = L.layerGroup(ps); }
   CORRLINE[lv].addTo(map); }
+map.on('zoomend', () => { if (corrLast) corrSync(corrLast); });
 const CORRSET = {}; function inCorr(lv, c){ if (!EXT.corr) return true; const s_ = CORRSET[lv] = CORRSET[lv] || new Set(EXT.corr.levels[lv].id); return s_.has(D.levels[lv].id[c]); }
 function refreshProfile(){ if ((S.cell != null || S.box) && $('#profile').classList.contains('open')) profile(); }
 map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown) draw(); else if (shown) restyle(); });
@@ -2083,7 +2084,7 @@ function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3><button type="b
   h += `<div class="row"><i class="hollow"></i><span>${m.find ? 'Not recorded' : (m.none || 'No data for this measure')}</span></div>`;
   if (m.find) h += `<p class="sub">${m.find.complete ? 'A blank cell means no record there. It does not mean the species is absent.' : 'Partial results. Only each cell\'s ten most-recorded iNaturalist species can be searched, so a blank cell is not an absence.'}</p>`;
   if (m.note) h += `<p class="sub">${esc(m.note)}</p>`;
-  if (S.ext === 'huc' && S.cells) h += '<div class="row"><i class="corrkey"></i><span>A.T. corridor cells</span></div>';
+  if (S.ext === 'huc' && S.cells) h += '<div class="row"><i class="corrkey"></i><span>A.T. corridor cells (outlined when zoomed in)</span></div>';
   h += `<p class="sub">Per ${LV[lv].name} cell${S.ext === 'huc' ? ', HUC10 watershed' : ''}</p>`;
   if (m.find) h += '<button type="button" id="findclear" class="lbtn">Clear search</button>';
   if (m.fade) h += `<label><input type="checkbox" id="fadebox" ${S.fade ? 'checked' : ''}> ${m.fadeLabel ? m.fadeLabel : m.th === 'veg' ? 'Fade cells with under ' + THIN_AC + ' acres mapped' : 'Fade thinly sampled cells'}</label>`;
@@ -2099,7 +2100,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
   if (S.m.find){ const fs = findSummary(lv); el.innerHTML = h + `<div class="qbody">${fs[0]}${blk('results', 'Results', fs[1], 'res')}</div>`; return; }
   const extBlk = !EXTQ.includes(q.id) ? '' : `<div class="extsw" role="group" aria-label="Extent"><span>Extent</span><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
-    (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow. Trail miles are those of the nearest corridor cell.' + '</p>' : '');
+    (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow once you zoom in. Trail miles are those of the nearest corridor cell.' + '</p>' : '');
   const herbBlk = q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Herbicide use"><span>Herbicide use</span><button type="button" data-herb="off" aria-pressed="${!S.herb}">Off</button><button type="button" data-herb="on" aria-pressed="${!!S.herb}">On</button></div>` +
     (S.herb ? '<p class="extnote">Cells are marked down by up to 10 points for the share of their A.T. lands in wetland, where herbicide use may be limited.</p>' : '') +
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
