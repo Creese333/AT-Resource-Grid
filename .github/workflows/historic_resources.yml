@@ -1,4 +1,4 @@
-# Rebuilds historic_resources.json for the A.T. Resource Grid on the 1st of every month,
+# Rebuilds historic_resources.json and place_names.json for the A.T. Resource Grid on the 1st of every month,
 # or whenever you press "Run workflow" on the Actions tab. Commits the file only when it changed.
 name: Historic resources
 
@@ -23,11 +23,14 @@ jobs:
           python-version: '3.12'
       - name: Build historic_resources.json
         run: python build_historic_resources.py
+      - name: Build place_names.json
+        run: python build_place_names.py
+        continue-on-error: true    # if the USGS names service is down, keep last month's file and still save the historic resources
       - name: Commit if changed
         run: |
           git config user.name  "historic-resources-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add historic_resources.json
+          git add historic_resources.json place_names.json 2>/dev/null || git add historic_resources.json
           git diff --cached --quiet && exit 0
           git commit -m "Update historic resources"
           # if files were uploaded while the build ran, catch up with them first, then push (up to 3 tries)
