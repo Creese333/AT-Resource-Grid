@@ -579,6 +579,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 <li><b>Place names in the search.</b> U.S. Geological Survey, Geographic Names Information System (GNIS), via The National Map. <a href="https://www.usgs.gov/tools/geographic-names-information-system-gnis" target="_blank" rel="noopener">usgs.gov</a></li>
 <li><b>HUC10 watersheds.</b> U.S. Geological Survey, Watershed Boundary Dataset. <a href="https://www.usgs.gov/national-hydrography/watershed-boundary-dataset" target="_blank" rel="noopener">usgs.gov</a></li>
 <li><b>Basemaps.</b> USGS The National Map; OpenTopoMap; Mapbox; © OpenStreetMap contributors. <a href="https://basemap.nationalmap.gov" target="_blank" rel="noopener">basemap.nationalmap.gov</a></li>
+<li id="biodl" hidden></li>
 </ul>
     <button class="close" type="button" id="aboutclose">Close</button>
   </div>
@@ -1768,6 +1769,7 @@ function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
   if (S.q.id === 'phen'){ phFixM(); phLoad(phSp()); } else if (phTimer) phPlay(false);
   if (S.q.id === 'hist') histLoad();
   phTick();
+  if (BIO && !BIO.done && S.ext === 'corr') bioApply();
   const lv = dispLevel();
   if (shown !== lv){ if (shown) map.removeLayer(GROUP[shown]); group(lv); shown = lv; restyle(); if (S.cells) GROUP[lv].addTo(map); }
   else restyle();
@@ -2195,7 +2197,10 @@ function findAll(q){ const G = {spp:[], place:[], feat:[], hist:[], tract:[], wh
   ELEVMARKS.forEach(([fm, name, kind, ft]) => { if (fscore(name.toLowerCase(), q) < 0) return; seen.add(name.toLowerCase());
     G.place.push({g:'place', nm:name, kind:LMKIND[kind] + (ft ? ', ' + fmt(ft, 0) + ' ft' : '') + ', on the trail', mile:fm * ELEVK()}); });
   if (PLACES && PLACES.st === 'done'){ const pl = []; PLACES.items.forEach(x => { const lc = x.lc, sc = fscore(lc, q); if (sc >= 0 && !seen.has(lc)) pl.push([sc, PLACEK[(x.k || '').toLowerCase()] ?? 9, x.n.length, x]); });
-    pl.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]); pl.slice(0, Math.max(0, 10 - G.place.length)).forEach(([, , , x]) => G.place.push({g:'place', nm:x.n, kind:[x.k, x.s].filter(Boolean).join(', '), la:x.la, lo:x.lo})); }
+    /* among equally good matches, places in the corridor grid come first (checked for the best 80 only, to stay quick) */
+    pl.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+    const top = pl.slice(0, 80).map(p => [p[0], nearMile(p[3].la, p[3].lo) == null ? 1 : 0, p[1], p[2], p[3]]);
+    top.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2] || a[3] - b[3]); top.map(p => [p[0], p[2], p[3], p[4]]).slice(0, Math.max(0, 10 - G.place.length)).forEach(([, , , x]) => G.place.push({g:'place', nm:x.n, kind:[x.k, x.s].filter(Boolean).join(', '), la:x.la, lo:x.lo})); }
   /* trail features (shelters, campsites, parking, bridges, vistas ...) */
   const ft = []; D.feat.forEach((f, i) => { const sc = fscore(f[1].toLowerCase(), q); if (sc >= 0) ft.push([sc, f[1].length, i]); });
   ft.sort((a, b) => a[0] - b[0] || a[1] - b[1]); G.feat = ft.slice(0, 6).map(x => { const f = D.feat[x[2]]; return {g:'feat', nm:f[1], kind:f[0] + (f[2] ? ', ' + f[2].toLowerCase() : ''), la:f[3], lo:f[4]}; });
@@ -3073,6 +3078,28 @@ $('#about').addEventListener('click', e => { if (e.target === $('#about')) $('#a
 /* ---------- start ---------- */
 map.fitBounds(L.latLngBounds(D.levels.wheel.c).pad(.03)); baseSync(); mapGestures();
 if (S.sec !== 'all') fitSection();
+/* ---------- quarterly iNaturalist and eBird summaries from inat_ebird.json ----------
+   Built on GitHub from GBIF downloads (build_inat_ebird.py). When the file is there, its summaries replace the ones built into
+   this page; species strings are merged into D.spp and cells are matched by grid ID. Applied once the corridor cells are shown. */
+var BIO = null;   // var: draw() may run before this line
+fetch('inat_ebird.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ BIO = j; if (S.ext === 'corr'){ bioApply(); redraw(); } } }).catch(() => {});
+function bioApply(){ const j = BIO; if (!j || j.done || S.ext !== 'corr') return; j.done = true;
+  const si = new Map(D.spp.map((s, i) => [s, i])), sp = i => { const s = j.spp[i]; let k = si.get(s); if (k == null){ k = D.spp.length; D.spp.push(s); si.set(s, k); } return k; };
+  const ds = (j.cats && j.cats.DATA_STATUS || []).map(x => { let k = D.cats.DATA_STATUS.indexOf(x); if (k < 0){ k = D.cats.DATA_STATUS.length; D.cats.DATA_STATUS.push(x); } return k; });
+  for (const th of ['inat', 'ebird']){ const src = j.themes[th]; if (!src) continue; const out = {};
+    for (const lv in src){ if (!IDX[lv]) continue; const t = src[lv], keep = [], ix = [];
+      t.ids.forEach((id, k) => { const c = IDX[lv].get(id); if (c != null){ keep.push(k); ix.push(c); } });
+      const f = {};
+      for (const name in t.f){ const col = t.f[name];
+        f[name] = keep.map(k => { const x = col[k]; if (name === 'DATA_STATUS') return x == null ? null : ds[x];
+          if (name.endsWith('_LIST') || name === 'TOP10_SPECIES') return (x || []).map(sp); return x; }); }
+      out[lv] = {ix, f}; }
+    D.themes[th] = out; }
+  if (j.run) D.run = j.run; document.querySelectorAll('.run').forEach(e => e.textContent = D.run);
+  const m = j.meta || {}, dl = document.getElementById('biodl');
+  if (dl && m.inat || dl && m.ebird) dl.hidden = false;
+  if (dl) dl.innerHTML = '<b>Quarterly downloads.</b> GBIF.org occurrence downloads: ' + ['inat', 'ebird'].filter(k => m[k] && m[k].doi).map(k => `${k === 'inat' ? 'iNaturalist' : 'eBird'} ${esc(m[k].built || '')}, <a href="https://doi.org/${esc(m[k].doi)}" target="_blank" rel="noopener">doi.org/${esc(m[k].doi)}</a>`).join('; ') + '.';
+  extIndex(); FIDX = null; for (const k in RESTC) delete RESTC[k]; }
 draw(); strip(); elevLoad();
 if (S.pendingLayers) S.pendingLayers.forEach(id => { const l = LIVE.find(x => x.id === id), cb = document.querySelector('#layerspanel [data-live="' + id + '"]'); if (l && cb){ cb.checked = true; liveToggle(l, true); } });
 if (S.pendingFind){ const e = findIndex().get(S.pendingFind); if (e) setFind(e, false); }
