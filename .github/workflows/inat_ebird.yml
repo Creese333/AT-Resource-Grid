@@ -44,7 +44,7 @@ jobs:
         run: |
           git config user.name  "inat-ebird-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add inat_ebird.json
+          git add inat_ebird.json common_names.json 2>/dev/null || git add inat_ebird.json
           git diff --cached --quiet && exit 0
           git commit -m "Update iNaturalist and eBird summaries"
           for i in 1 2 3; do
