@@ -311,9 +311,12 @@ def summarize(kind, zpath, levels, names):
             u = r.get('coordinateUncertaintyInMeters')
             if u and u.replace('.', '', 1).isdigit() and float(u) > MAX_UNCERTAINTY_M:
                 continue
-        hit = {lv: cell_of(levels[lv], la, lo) for lv in levels}
-        if hit['wheel'] < 0 and hit['cog'] < 0 and hit['hex'] < 0:
+        # only records in a corridor 1 sq mi cell count, at every size: the 7 and 49 sq mi summaries add up their corridor
+        # square miles (as the ArcGIS summaries did), not everything inside the larger hexagons
+        hx = cell_of(levels['hex'], la, lo)
+        if hx < 0:
             continue
+        hit = {'hex': hx, 'cog': cell_of(levels['cog'], la, lo), 'wheel': cell_of(levels['wheel'], la, lo)}
         n_in += 1
         d = (r.get('eventDate') or '')[:10]; who = (r.get('recordedBy') or '').strip().lower()
         if kind == 'ebird':
