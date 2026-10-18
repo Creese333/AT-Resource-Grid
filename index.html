@@ -448,7 +448,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   <div class="secpick"><label for="section">Section of trail</label><select id="section"></select>
     <label for="find" class="findlabel">Search species, places, tracts and more</label>
     <div class="find" role="search">
-      <input id="find" type="search" autocomplete="off" spellcheck="false" placeholder="Try bobolink, Guyot Shelter, a tract number or mile 1347" role="combobox" aria-expanded="false" aria-controls="findlist" aria-autocomplete="list">
+      <input id="find" type="search" autocomplete="off" spellcheck="false" placeholder="Try Harpers Ferry, Guyot Shelter, bobolink or a tract number" role="combobox" aria-expanded="false" aria-controls="findlist" aria-autocomplete="list">
       <ul id="findlist" role="listbox" aria-label="Search results" hidden></ul>
     </div></div>
   <div id="side"></div>
@@ -576,6 +576,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 <li><b>National Register of Historic Places.</b> National Park Service. <a href="https://mapservices.nps.gov/arcgis/rest/services/cultural_resources/nrhp_locations/MapServer/0" target="_blank" rel="noopener">mapservices.nps.gov</a></li>
 <li><b>Cemeteries.</b> © OpenStreetMap contributors, Open Database License. <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">openstreetmap.org/copyright</a></li>
 <li><b>Find a Grave IDs.</b> OpenStreetMap and Wikidata (property P2025); links open Find a Grave. <a href="https://www.wikidata.org/wiki/Property:P2025" target="_blank" rel="noopener">wikidata.org</a></li>
+<li><b>Place names in the search.</b> U.S. Geological Survey, Geographic Names Information System (GNIS), via The National Map. <a href="https://www.usgs.gov/tools/geographic-names-information-system-gnis" target="_blank" rel="noopener">usgs.gov</a></li>
 <li><b>HUC10 watersheds.</b> U.S. Geological Survey, Watershed Boundary Dataset. <a href="https://www.usgs.gov/national-hydrography/watershed-boundary-dataset" target="_blank" rel="noopener">usgs.gov</a></li>
 <li><b>Basemaps.</b> USGS The National Map; OpenTopoMap; Mapbox; © OpenStreetMap contributors. <a href="https://basemap.nationalmap.gov" target="_blank" rel="noopener">basemap.nationalmap.gov</a></li>
 </ul>
@@ -2167,16 +2168,30 @@ function findSummary(lv){ const e = S.m.find, L_ = D.levels[lv], rows = []; let 
 /* ---------- one search for everything: species and vegetation types, trail features and places, historic resources,
    tract numbers (looked up live in the administrative areas layer), trail miles, grid IDs and trail clubs.
    Results are grouped by kind; a species shows where it is recorded, everything else zooms there and opens its cell. */
-const FGROUPS = [['spp', 'Species and vegetation'], ['feat', 'Places and trail features'], ['hist', 'Historic resources'], ['tract', 'Tracts'], ['where', 'Trail miles, cells and clubs']];
+const FGROUPS = [['spp', 'Species and vegetation'], ['place', 'Places and landmarks'], ['feat', 'Trail features'], ['hist', 'Historic resources'], ['tract', 'Tracts'], ['where', 'Trail miles, cells and clubs']];
+/* place names: the landmarks on the elevation profile, plus USGS GNIS names (towns, summits, gaps, falls, lakes, rivers ...) from
+   place_names.json, built monthly on GitHub; loaded the first time the search is used */
+let PLACES = null;
+function placesLoad(){ if (PLACES) return; PLACES = {st:'loading', items:[]};
+  fetch('place_names.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { PLACES = {st:'done', items:j && Array.isArray(j.items) ? j.items : []};
+    if (document.activeElement === fin && fin.value.trim().length >= 2) listFind(); }).catch(() => { PLACES = {st:'done', items:[]}; }); }
+const PLACEK = {'populated place':0, summit:1, gap:2, falls:3, lake:4, reservoir:4, stream:5, ridge:6, range:6};
+const LMKIND = {s:'Summit', p:'Town', f:'Landmark', r:'River'};
 let TRACTQ = '', TRACTRES = [], tractT = 0, tractLayer = null;
 const fscore = (s, q) => s.startsWith(q) ? 0 : (s.includes(' ' + q) || s.includes('-' + q) || s.includes('(' + q)) ? 1 : s.includes(q) ? 2 : -1;
 const nearMile = (la, lo) => { const c = phCell('cog', la, lo); return c < 0 ? null : D.levels.cog.mi[c]; };
-function findAll(q){ const G = {spp:[], feat:[], hist:[], tract:[], where:[]};
+function findAll(q){ const G = {spp:[], place:[], feat:[], hist:[], tract:[], where:[]};
   /* species and vegetation types, as before */
   const sp = []; findIndex().forEach(e => { const c = e.lc, s = e.ls; let sc = -1;
     if (c.startsWith(q)) sc = 0; else if (c.includes(' ' + q) || c.includes('-' + q)) sc = 1; else if (c.includes(q)) sc = 2; else if (s.startsWith(q)) sc = 3; else if (s.includes(q)) sc = 4;
     if (sc >= 0) sp.push([sc, -e.cells.wheel.size, e]); });
   sp.sort((a, b) => a[0] - b[0] || a[1] - b[1]); G.spp = sp.slice(0, 8).map(x => ({g:'spp', e:x[2]}));
+  /* landmarks (on the elevation profile, so they have a trail mile) and GNIS place names */
+  const seen = new Set();
+  ELEVMARKS.forEach(([fm, name, kind, ft]) => { if (fscore(name.toLowerCase(), q) < 0) return; seen.add(name.toLowerCase());
+    G.place.push({g:'place', nm:name, kind:LMKIND[kind] + (ft ? ', ' + fmt(ft, 0) + ' ft' : '') + ', on the trail', mile:fm * ELEVK()}); });
+  if (PLACES && PLACES.st === 'done'){ const pl = []; PLACES.items.forEach(x => { const lc = x.n.toLowerCase(), sc = fscore(lc, q); if (sc >= 0 && !seen.has(lc)) pl.push([sc, PLACEK[(x.k || '').toLowerCase()] ?? 9, x.n.length, x]); });
+    pl.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]); pl.slice(0, Math.max(0, 7 - G.place.length)).forEach(([, , , x]) => G.place.push({g:'place', nm:x.n, kind:[x.k, x.s].filter(Boolean).join(', '), la:x.la, lo:x.lo})); }
   /* trail features (shelters, campsites, parking, bridges, vistas ...) */
   const ft = []; D.feat.forEach((f, i) => { const sc = fscore(f[1].toLowerCase(), q); if (sc >= 0) ft.push([sc, f[1].length, i]); });
   ft.sort((a, b) => a[0] - b[0] || a[1] - b[1]); G.feat = ft.slice(0, 6).map(x => { const f = D.feat[x[2]]; return {g:'feat', nm:f[1], kind:f[0] + (f[2] ? ', ' + f[2].toLowerCase() : ''), la:f[3], lo:f[4]}; });
@@ -2217,14 +2232,14 @@ function pickFind(r){ if (!r || r.none) return;
 const fin = $('#find'), fl = $('#findlist'); let fsel = -1, fres = [];
 function closeFind(){ fl.hidden = true; fin.setAttribute('aria-expanded', 'false'); fin.removeAttribute('aria-activedescendant'); fsel = -1; }
 function listFind(){ const q = fin.value.trim().toLowerCase(); if (q.length < 2){ closeFind(); return; }
-  if (!HIST) histLoad(false, true); tractLookup(q);
+  if (!HIST) histLoad(false, true); placesLoad(); tractLookup(q);
   const G = findAll(q); fres = []; let h = '';
   /* a query with digits is most likely a tract number or a trail mile, so those groups come first */
-  const order = /\d/.test(q) ? [FGROUPS[3], FGROUPS[4], FGROUPS[0], FGROUPS[1], FGROUPS[2]] : FGROUPS;
+  const order = /\d/.test(q) ? ['tract', 'where', 'spp', 'place', 'feat', 'hist'].map(k => FGROUPS.find(g => g[0] === k)) : FGROUPS;
   order.forEach(([g, title]) => { const rs = G[g]; if (!rs.length) return; h += `<li class="fgrp" role="presentation">${title}</li>`;
     rs.forEach(r => { const i = fres.length; fres.push(r);
       if (r.g === 'spp'){ const e = r.e; h += `<li role="option" id="fo${i}" data-i="${i}" aria-selected="${i === fsel}"><span>${esc(e.common || e.sci)}${e.common && e.sci ? ` <em>${esc(e.sci)}</em>` : ''}</span><span class="n">${nCells(e.cells.wheel.size)}</span><span class="k">${e.kind}${e.prio && !e.complete ? ', full records load live' : e.complete ? '' : ', partial'}</span></li>`; return; }
-      const mi = r.la != null ? nearMile(r.la, r.lo) : null;
+      const mi = r.la != null ? nearMile(r.la, r.lo) : r.g === 'place' && r.mile != null ? r.mile : null;
       h += `<li role="option" id="fo${i}" data-i="${i}" aria-selected="${i === fsel}"${r.none ? ' class="none"' : ''}><span>${esc(r.nm)}</span><span class="n">${mi != null ? 'mile ' + fmt(mi, 0) : ''}</span><span class="k">${esc(r.kind || '')}${r.la != null && mi == null ? ', outside the corridor grid' : ''}</span></li>`; }); });
   if (/\d/.test(q) && TRACTQ !== q) h = '<li class="fgrp" role="presentation">Tracts</li><li class="none">Looking up tract numbers…</li>' + h;
   fl.innerHTML = h || '<li class="none">No match. Try a species, a shelter or other trail feature, a cemetery, a tract number, a trail mile or a trail club.</li>';
