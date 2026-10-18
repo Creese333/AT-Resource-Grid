@@ -510,7 +510,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Wetlands</td><td>USFWS National Wetlands Inventory, all 14 trail states</td><td>Wetland acres in each cell by type, and the part on A.T. lands. Small, forested and seasonal wetlands are often missed. “Possibly sensitive” flags likely bogs, fens, seeps and vernal pools for a field check. Not a delineation.</td></tr>
       <tr><td>Restoration targets</td><td>Built in this page from the layers above</td><td>Two 0 to 100 scores for grasslands and forests. How they are scored is set out under Restoration targets below.</td></tr>
       <tr><td>Flowering and beech leaf disease</td><td>iNaturalist research-grade records, loaded live</td><td>Twenty plants: trail-wide, A.T. Seasons, northern and southern indicators. First, peak and season length follow USA National Phenology Network measures, pooled across years. Earlier or later compares each record with its cell’s usual date. Records follow hikers, so read changes as leads, not measured trends.</td></tr>
-      <tr><td>Historic resources</td><td>National Register of Historic Places (NPS) and OpenStreetMap cemeteries, rebuilt monthly</td><td>Three scales: HUC10 shell, A.T. corridor (administrative areas) and APPA lands. Recorded sites only: small family cemeteries are often missing and some National Register locations are generalized. Find a Grave links open the cemetery’s page when its ID is known, otherwise a search.</td></tr>
+      <tr><td>Historic resources</td><td>National Register of Historic Places (NPS) and OpenStreetMap cemeteries, rebuilt monthly</td><td>Two extents: A.T. corridor (records inside an A.T. administrative area) and HUC10 watershed. Recorded sites only: small family cemeteries are often missing and some National Register locations are generalized. Find a Grave links open the cemetery’s page when its ID is known, otherwise a search.</td></tr>
       <tr><td>Unique species</td><td>Rare species priority zones</td><td>Rates how vulnerable the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
     </table>
     <h3>Restoration targets</h3>
@@ -555,7 +555,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <li>Each cell has two iNaturalist sections. iNaturalist Records summarizes the research-grade records in the quarterly download: records, species, observers, a standardized species count, recent records and what the records are of (plants, insects, fungi and other groups), with the most recorded species. Below it, Live lookup fetches the 20 newest observations in the cell from the iNaturalist project Appalachian National Scenic Trail - HUC10, with a badge on invasive species and forest pests; an export adds them on their own sheet. Live records are not counted anywhere else on the page, and obscured locations are left out. Invasive species is the interpreted quarterly summary: invasive plants and forest pests counted together, with forest pests also counted as priority invasives.</li>
       <li>Priority species, such as American black bear, are searchable everywhere they have been recorded. The quarterly summary lists them only where they rank among a cell's ten most-recorded iNaturalist species, so their research-grade records are fetched live from the iNaturalist project. Searching for one loads all its records along the trail and keeps them in your browser, so a later visit only fetches what is new.</li>
       <li>Species names link to Wikipedia, looked up by scientific name. A name with no article of its own opens a Wikipedia search instead.</li>
-      <li>iNaturalist, invasive species, birds, survey effort, flowering, soils and wetlands can be shown for two extents (historic resources have their own Administrative filter). A.T. corridor shows the grid cells along the trail that every layer uses. HUC10 watershed shows every grid cell in the HUC10 watersheds around the trail, with the corridor cells outlined in yellow. Vegetation, land administrators, unique species, facilities and restoration are mapped for the corridor only. Both use the same whole-cell values, so a corridor cell reads the same in either. The watershed cells load from a second file the first time they are shown. Colors and rankings are worked out within the extent on screen.</li>
+      <li>iNaturalist, invasive species, birds, survey effort, flowering, soils and wetlands can be shown for two extents (historic resources too). A.T. corridor shows the grid cells along the trail that every layer uses. HUC10 watershed shows every grid cell in the HUC10 watersheds around the trail, with the corridor cells outlined in yellow. Vegetation, land administrators, unique species, facilities and restoration are mapped for the corridor only. Both use the same whole-cell values, so a corridor cell reads the same in either. The watershed cells load from a second file the first time they are shown. Colors and rankings are worked out within the extent on screen.</li>
       <li>Trail miles are measured along the mapped centerline, south to north from Springer Mountain, and are approximate.</li>
     </ul>
     <h3>Updates</h3>
@@ -1290,17 +1290,17 @@ function histDone(){ for (const k in HAGG) delete HAGG[k]; if (S.q.id === 'hist'
 /* Administrative filter, three scales: the HUC10 shell (every record, shown on the watershed cells), the A.T. corridor (records inside a tract
    of the A.T. administrative areas layer) and APPA lands (records on NPS – APPA tracts). Each record's tract is looked up when
    historic_resources.json is built (ld: the tract's LEGEND3 class, '' outside every tract). */
-const HADM = [['huc', 'HUC10 shell'], ['adm', 'A.T. corridor'], ['appa', 'APPA lands']];
-const isAppa = ld => /^FEDERAL LAND - NPS - APPA/.test(ld || '');
-const histScale = () => S.hadm === 'adm' || S.hadm === 'appa' ? S.hadm : 'huc';
+const HADM = [['adm', 'A.T. corridor'], ['huc', 'HUC10 watershed']];
+const isAppa = ld => /\bAPPA\b/.test(ld || '');   /* NPS – APPA fee, easement and right-of-way tracts, and USFS – APPA administratively transferred lands */
+const histScale = () => ['adm', 'huc'].includes(S.hadm) ? S.hadm : S.ext === 'huc' ? 'huc' : 'adm';
 const histAdmOn = () => !!(HIST && HIST.lands && histScale() !== 'huc');
 const histKeep = x => !histAdmOn() || (histScale() === 'appa' ? isAppa(x.ld) : !!x.ld);
 function histAdmBlock(){ const ok = HIST && HIST.st === 'done' && HIST.lands;
-  return `<div class="extsw" role="group" aria-label="Administrative filter"><span>Scale</span>` + HADM.map(([k, t]) => `<button type="button" data-hadm="${k}" aria-pressed="${histScale() === k}"${ok || k === 'huc' ? '' : ' disabled'}>${t}</button>`).join('') + '</div>' +
+  return `<div class="extsw" role="group" aria-label="Extent"><span>Extent</span>` + HADM.map(([k, t]) => `<button type="button" data-hadm="${k}" aria-pressed="${histScale() === k}"${ok || k === 'huc' ? '' : ' disabled'}>${t}</button>`).join('') + '</div>' +
     (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : '') +
     (!HIST || HIST.st !== 'done' ? '<p class="extnote">Available once the historic resources have loaded.</p>'
-      : !ok ? `<p class="extnote">The A.T. corridor and APPA lands scales need each record's land tract, which is added when ${HISTFILE} is built. Run the Historic resources workflow on GitHub again to turn them on.</p>`
-      : `<p class="extnote">HUC10 shell: every record, shown on the HUC10 watershed cells (corridor cells outlined). A.T. corridor: records inside a tract of the A.T. administrative areas layer. APPA lands: NPS – APPA fee, easement, right-of-way easement and administratively transferred tracts. ${fmt(HIST.items.length, 0)} records in all, ${fmt(HIST.items.filter(x => x.ld).length, 0)} in the A.T. corridor, ${fmt(HIST.items.filter(x => isAppa(x.ld)).length, 0)} on APPA lands.</p>`); }
+      : !ok ? `<p class="extnote">The A.T. corridor extent needs each record's land tract, which is added when ${HISTFILE} is built. Run the Historic resources workflow on GitHub again to turn them on.</p>`
+      : `<p class="extnote">${histScale() === 'huc' ? 'Every record in the HUC10 watersheds around the trail' : histScale() === 'appa' ? 'Records on NPS – APPA fee, easement, right-of-way easement and administratively transferred tracts' : 'Records inside a tract of the A.T. administrative areas layer'}: ${fmt(histScale() === 'huc' ? HIST.items.length : histScale() === 'appa' ? HIST.items.filter(x => isAppa(x.ld)).length : HIST.items.filter(x => x.ld).length, 0)} in all.${histScale() === 'huc' ? ' Corridor cells are outlined in yellow once you zoom in.' : ''}</p>`); }
 const histAdmText = () => (HADM.find(h => h[0] === histScale()) || HADM[0])[1];
 /* the OpenStreetMap cemeteries as a map layer, from the loaded file (no separate request) */
 async function histLayer(l, my){
@@ -1339,7 +1339,7 @@ const hCount = (lv, c, k) => { const A = hAgg(lv); return A ? A[k][c] : null; };
 function histStatus(){ if (!HIST || HIST.st === 'loading') return HIST && HIST.total ? `${HISTFILE} was not found, so loading live from the National Park Service and OpenStreetMap… stretch ${HIST.done} of ${HIST.total}. This takes a minute or two; it is then kept in this browser for 30 days.` : 'Loading historic resources…';
   if (HIST.st === 'error') return `Could not load (${esc(HIST.msg || 'error')}). <button type="button" data-histref="1">Try again</button>`;
   const n = t => HIST.items.filter(x => x.t === t).length;
-  const errs = Object.keys(HIST.err || {}).map(k => ({nr:'National Register', osm:'OpenStreetMap', lands:'A.T. administrative areas (Administrative filter off)'})[k] || k);
+  const errs = Object.keys(HIST.err || {}).map(k => ({nr:'National Register', osm:'OpenStreetMap', lands:'A.T. administrative areas (A.T. corridor extent off)'})[k] || k);
   const when = new Date(HIST.at).toLocaleDateString('en-US');
   return `${fmt(n('nr'), 0)} National Register properties and ${fmt(n('cem'), 0)} OpenStreetMap cemeteries${HIST.scope === 'huc' ? ' out to the HUC10 shell' : ' in corridor cells'}. ` +
     (HIST.from === 'file' ? `From ${HISTFILE}, built ${when}.` : `Loaded live ${when}. <button type="button" data-histsave="1">Save as ${HISTFILE}</button> to put beside index.html on GitHub for fast loading.`) +
@@ -1362,7 +1362,7 @@ function histSection(lv, c){ const A = hAgg(lv);
   if (!A) return b + `<p class="none">${HIST && HIST.st === 'loading' ? 'Loading historic resources…' : HIST && HIST.st === 'error' ? histStatus() : 'Open “Where are the historic resources?” to load the National Register and cemeteries; this section then lists them for any cell.'}</p></div>`;
   /* c is one cell, or an array of cells for a box or multi-cell selection */
   const cs = Array.isArray(c) ? c : [c], many = cs.length > 1, ids = cs.flatMap(x => A.list.get(x) || []);
-  if (histAdmOn()) b += `<p class="none" style="font-size:13.5px;margin:0 0 6px">Administrative filter: ${esc(histAdmText())} only.</p>`;
+  if (histAdmOn()) b += `<p class="none" style="font-size:13.5px;margin:0 0 6px">Extent: ${esc(histAdmText())} only.</p>`;
   if (!ids.length) return b + `<p class="none">No National Register properties or cemeteries recorded ${histAdmOn() ? 'on ' + esc(histAdmText().toLowerCase()) + ' ' : ''}in ${many ? 'the selected cells' : 'this cell'}.</p></div>`;
   const it = ids.map(i => HIST.items[i]), grp = t => it.filter(x => x.t === t).sort((p, q) => p.nm.localeCompare(q.nm));
   const NR = grp('nr'), CM = grp('cem');
@@ -1590,7 +1590,7 @@ const Q = [
       stripH:v => { const A = phAgg('wheel'); return A && A.years.length ? Math.max(.3, A.years[A.years.length - 1] + 1 - v) : 1; }, stripTop:() => { const A = phAgg('wheel'); return A && A.years.length ? A.years.length + 1 : 1; },
       legendFn:lv => PHFIRST.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${phYear(lv) ? 'Cells with a record by ' + phYear(lv) + ', by the year of the first one.' : 'The year of the first record in each cell.'} Bars under the map are taller where it has been known longer.</p>`}]},
  {id:'hist', th:'feat', hue:HUE.hist, ramp:'hist', title:'Where are the historic resources?',
-  use:'National Register properties and OpenStreetMap cemeteries in each cell, with links to Find a Grave. The Administrative filter sets the scale: HUC10 shell, A.T. corridor or APPA lands. Recorded sites only: small family cemeteries are often missing.',
+  use:'National Register properties and OpenStreetMap cemeteries in each cell, with links to Find a Grave. The extent buttons set the scale: A.T. corridor or HUC10 watershed. Recorded sites only: small family cemeteries are often missing.',
   m:[{id:'hany', label:'All historic resources', fn:(lv, c) => hCount(lv, c, 'any'), int:1, hollow0:1, none:'None recorded', noun:['resource','resources'], hasTxt:() => 'have a recorded historic resource'},
      {id:'hnr', label:'National Register properties', fn:(lv, c) => hCount(lv, c, 'nr'), int:1, hollow0:1, none:'None recorded', noun:['property','properties'], hasTxt:() => 'have a National Register property'},
      {id:'hcem', label:'Cemeteries (OpenStreetMap)', fn:(lv, c) => hCount(lv, c, 'cem'), int:1, hollow0:1, none:'None recorded', noun:['cemetery','cemeteries'], hasTxt:() => 'have a recorded cemetery'}]},
@@ -1637,7 +1637,7 @@ function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   if (h.get('ext') === 'huc') S.pendingExt = 'huc';
   if (h.get('herb') === '1') S.herb = true;
   if (h.get('lands') === 'appa') S.appa = true;
-  if (['adm', 'appa'].includes(h.get('hadm'))) S.hadm = h.get('hadm');
+  if (['adm', 'huc'].includes(h.get('hadm'))) S.hadm = h.get('hadm');
   if (h.get('sp') && PHSP.some(s => s.key === h.get('sp'))) S.ph.sp = h.get('sp');
   if (+h.get('wk') >= 8 && +h.get('wk') <= 44) S.ph.wk = +h.get('wk');
   if (h.get('yr')){ const ys = h.get('yr').split(',').map(Number).filter(v => v >= 2010 && v <= 2100); S.ph.sel = ys; if (ys.length === 1) S.ph.yr = ys[0]; }
@@ -2106,7 +2106,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
     (S.herb ? '<p class="extnote">Cells are marked down by up to 10 points for the share of their A.T. lands in wetland, where herbicide use may be limited.</p>' : '') +
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
       (S.appa ? '<p class="extnote">Only NPS – APPA land counts: scores are scaled by the share of the cell’s corridor land that APPA administers. Cells without APPA land score 0.</p>' : ''));
-  h += `<div class="qbody" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + (q.id === 'phen' && !S.m.find ? phBlock() : '') + (q.id === 'hist' && !S.m.find ? histBlock() + blk('hadm', `Administrative filter <small class="mgsum">${esc(histAdmText())}</small>`, histAdmBlock()) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
+  h += `<div class="qbody" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + (q.id === 'phen' && !S.m.find ? phBlock() : '') + (q.id === 'hist' && !S.m.find ? histAdmBlock() + histBlock() : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.hideFn || !m.hideFn()).map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m}">${esc(m.label)}</button>`).join('') + '</div>') +
     blk('results', 'Results', summary(lv), 'res') + '</div>';
   el.innerHTML = h; phWire(); }
@@ -2143,7 +2143,7 @@ function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows =
   rows.slice(0, 50).forEach(r => { const e = eff(r[0]); h += cellItem(lv, r[0], `<span class="val${e ? ' two' : ''}">${fmt(r[1], m.d)}${m.unit === '%' ? '%' : ''}</span>${e}`); });
   return h + '</ol></div>'; }
 $('#side').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.ext){ setExt(b.dataset.ext); return; }
+  if (b.dataset.ext){ S.hadm = null; setExt(b.dataset.ext); return; }
   if (b.dataset.herb){ S.herb = b.dataset.herb === 'on'; BRK.clear(); redraw(); return; }
   if (b.dataset.lands){ S.appa = b.dataset.lands === 'appa'; BRK.clear(); redraw(); return; }
   if (b.dataset.hadm){ S.hadm = b.dataset.hadm; S.histHucFail = false; for (const k in HAGG) delete HAGG[k]; BRK.clear(); const want = histScale() === 'huc' ? 'huc' : 'corr';
@@ -2364,7 +2364,7 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
   h += scales + `<div class="pnav">${EXPORTBTNS}</div>`;
   $('#phead').innerHTML = h; wireScales($('#phead')); exportWire();
   const v = (th, f) => val(th, f, lv, c); let b = '';
-  if (S.ext === 'huc'){ const note = S.q.id === 'hist' ? `${inCorr(lv, c) ? 'This cell is in the A.T. corridor grid.' : 'Outside the A.T. corridor grid, in the HUC10 shell.'} Pick the A.T. corridor scale under Administrative filter to see the corridor's other layers.`
+  if (S.ext === 'huc'){ const note = S.q.id === 'hist' ? `${inCorr(lv, c) ? 'This cell is in the A.T. corridor grid.' : 'Outside the A.T. corridor grid, in the HUC10 shell.'} Switch the extent to A.T. corridor to see the corridor's other layers.`
       : (inCorr(lv, c) ? 'This cell is in the A.T. corridor grid. ' : 'Outside the A.T. corridor grid, in the HUC10 shell. ') + HUCONLY;
     b = recSection(lv, c) + invSection(lv, c) + birdSection(lv, c) + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c)) + histSection(lv, c) + phSection(lv, c);
     finishProfile(`<p class="none" style="font-size:13.5px;margin:0 0 10px">${note}</p>` + b); inatLive([ring(lv, c)], L_.id[c]); return; }
