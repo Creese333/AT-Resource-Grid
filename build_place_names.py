@@ -7,7 +7,10 @@ Standard library only. Run by the Historic resources workflow on GitHub (it reus
 The service's layers and field names are read from the service itself, so small schema changes do not break the build.
 If the service cannot be reached the existing place_names.json is kept.
 """
-import csv, io, json, os, re, sys, time, urllib.parse, urllib.request, zipfile
+import builtins, csv, io, json, os, re, sys, time, urllib.parse, urllib.request, zipfile
+LOG = []
+def print(*a, **k):
+    LOG.append(' '.join(str(x) for x in a)[:600]); builtins.print(*a, **k)
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -98,9 +101,9 @@ def from_files(cells):
     try:
         xml = get_bytes(f'{BUCKET}/?list-type=2&prefix={urllib.parse.quote(PREFIX)}', 60).decode('utf-8', 'replace')
     except Exception as e:
-        print('GNIS file listing not reached:', e, flush=True); return None
+        print('GNIS file listing not reached:', repr(e), flush=True); return None
     keys = re.findall(r'<Key>([^<]+\.zip)</Key>', xml)
-    print('GNIS files listed:', len(keys), [k.rsplit('/', 1)[-1] for k in keys][:8], flush=True)
+    print('GNIS files listed:', len(keys), [k.rsplit('/', 1)[-1] for k in keys][:40], flush=True)
     text = [k for k in keys if re.search(r'text', k, re.I)] or keys
     per_state = {st: next((k for k in text if re.search(rf'[_/-]{st}[_.-]', k)), None) for st in AT_STATES}
     if all(per_state.values()):
@@ -117,7 +120,8 @@ def from_files(cells):
         try:
             z = zipfile.ZipFile(io.BytesIO(get_bytes(f'{BUCKET}/{k}')))
         except Exception as e:
-            print('   ', k, e, flush=True); continue
+            print('   ', k, repr(e), flush=True); continue
+        print('   ', k, 'members:', z.namelist()[:6], flush=True)
         for member in z.namelist():
             if not member.lower().endswith('.txt'):
                 continue
@@ -127,7 +131,7 @@ def from_files(cells):
             iid, inm, icl = col(r'feature_id'), col(r'feature_name'), col(r'feature_class')
             ist, ila, ilo = col(r'state_alpha', r'state_name'), col(r'prim_lat_dec'), col(r'prim_long_dec')
             if None in (inm, ila, ilo):
-                print('   unexpected columns in', member, head[:12], flush=True); continue
+                print('   unexpected columns in', member, head[:20], flush=True); continue
             n0 = len(out)
             for row in rd:
                 try:
@@ -156,7 +160,7 @@ def main():
         except Exception as e:
             print('service:', e, flush=True)
     if not svc:
-        sys.exit('GNIS service not reached; keeping the existing file')
+        return save_log_only('GNIS service not reached; keeping the existing file')
     layers = []
     for L in meta.get('layers', []):
         try:
@@ -174,7 +178,7 @@ def main():
     print('layers:', [(l['id'], l['title'], l['name'], l['cls']) for l in layers], flush=True)
     print('all layers in the service:', [(L.get('id'), L.get('name')) for L in meta.get('layers', [])], flush=True)
     if not layers:
-        sys.exit('no point layers with names found; keeping the existing file')
+        return save_log_only('no point layers with names found; keeping the existing file')
     chunks = []
     for i in range(0, len(cells), 10):
         rings = [c['ring'] for c in cells[i:i + 10]]; pts = [p for r in rings for p in r]
@@ -222,8 +226,19 @@ def main():
             if n % 50 == 0:
                 print(f'GNIS: {n} of {len(chunks) * len(layers)} requests, {len(out)} names', flush=True)
     if not out:
-        sys.exit('no names found; keeping the existing file')
+        return save_log_only('no names found; keeping the existing file')
     write(out, failed)
+
+
+def save_log_only(reason):
+    # keep the existing names, but record what happened so the run can be checked from the repository
+    print(reason)
+    try:
+        j = json.load(open(OUT))
+    except Exception:
+        j = {'rows': [], 'classes': [], 'states': []}
+    j['log'] = LOG[-80:]; j['log_at'] = int(time.time() * 1000)
+    json.dump(j, open(OUT, 'w'), separators=(',', ':'), ensure_ascii=False)
 
 
 def write(out, failed):
@@ -233,7 +248,7 @@ def write(out, failed):
     ci = {c: i for i, c in enumerate(classes)}; si = {c: i for i, c in enumerate(states)}
     rows = [[x['n'], ci[x['k']], x['la'], x['lo'], si[x.get('s') or '']] for x in items]
     json.dump({'at': int(time.time() * 1000), 'source': 'USGS Geographic Names Information System', 'incomplete': failed,
-               'classes': classes, 'states': states, 'rows': rows}, open(OUT, 'w'), separators=(',', ':'), ensure_ascii=False)
+               'classes': classes, 'states': states, 'rows': rows, 'log': LOG[-80:]}, open(OUT, 'w'), separators=(',', ':'), ensure_ascii=False)
     print('wrote', OUT, len(rows), 'names;', failed, 'requests failed;', os.path.getsize(OUT) // 1024, 'KB')
 
 
