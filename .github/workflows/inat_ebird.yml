@@ -1,0 +1,54 @@
+# Rebuilds inat_ebird.json (iNaturalist and eBird summaries for the A.T. Resource Grid) from GBIF downloads.
+# Runs on the 5th of January, April, July and October: iNaturalist every quarter, eBird in January (GBIF refreshes eBird about yearly).
+# Or press "Run workflow" on the Actions tab and choose what to rebuild.
+# Needs two repository secrets: GBIF_USER and GBIF_PWD (a free gbif.org account).
+name: iNaturalist and eBird
+
+on:
+  schedule:
+    - cron: '23 7 5 1,4,7,10 *'
+  workflow_dispatch:
+    inputs:
+      which:
+        description: 'What to rebuild'
+        type: choice
+        options: [inat, ebird, both]
+        default: inat
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360          # GBIF can take a few hours to prepare the eBird download
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Choose datasets
+        id: pick
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "which=${{ inputs.which }}" >> "$GITHUB_OUTPUT";
+          elif [ "$(date -u +%m)" = "01" ]; then echo "which=both" >> "$GITHUB_OUTPUT";
+          else echo "which=inat" >> "$GITHUB_OUTPUT"; fi
+      - name: Build inat_ebird.json
+        env:
+          GBIF_USER: ${{ secrets.GBIF_USER }}
+          GBIF_PWD: ${{ secrets.GBIF_PWD }}
+        run: python build_inat_ebird.py ${{ steps.pick.outputs.which }}
+      - name: Commit if changed
+        run: |
+          git config user.name  "inat-ebird-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add inat_ebird.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Update iNaturalist and eBird summaries"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1
