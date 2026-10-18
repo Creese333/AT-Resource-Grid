@@ -1,4 +1,5 @@
-# Rebuilds inat_ebird.json (iNaturalist and eBird summaries for the A.T. Resource Grid) from GBIF downloads.
+# Rebuilds inat_ebird.json (A.T. corridor) and inat_ebird_huc10.json (HUC10 shell), the iNaturalist and eBird summaries
+# for the A.T. Resource Grid, from GBIF downloads.
 # Runs on the 5th of January, April, July and October: iNaturalist every quarter, eBird in January (GBIF refreshes eBird about yearly).
 # Or press "Run workflow" on the Actions tab and choose what to rebuild.
 # Needs two repository secrets: GBIF_USER and GBIF_PWD (a free gbif.org account).
@@ -44,7 +45,7 @@ jobs:
         run: |
           git config user.name  "inat-ebird-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add inat_ebird.json common_names.json 2>/dev/null || git add inat_ebird.json
+          git add inat_ebird.json inat_ebird_huc10.json common_names.json 2>/dev/null || git add inat_ebird.json
           git diff --cached --quiet && exit 0
           git commit -m "Update iNaturalist and eBird summaries"
           for i in 1 2 3; do
