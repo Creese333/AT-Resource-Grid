@@ -1,6 +1,6 @@
 """
-Builds place_names.json for the A.T. Resource Grid search: named places, summits, gaps, waterfalls, lakes, rivers and other
-landmarks from the USGS Geographic Names Information System (GNIS, The National Map "geonames" service), within the
+Builds place_names.json for the A.T. Resource Grid search: every named place in the USGS Geographic Names Information
+System (GNIS, The National Map "geonames" service) — towns, summits, gaps, streams, falls, lakes, churches, schools and more — within the
 HUC10 shell (the 49 sq mi cells in soils_wetlands_huc10.json; the corridor cells in at_wheel_cells.json if that is missing).
 
 Standard library only. Run by the Historic resources workflow on GitHub (it reuses that workflow's monthly schedule).
@@ -16,9 +16,7 @@ UA = {'User-Agent': 'AT-Resource-Grid place names build (NPS Appalachian Nationa
 SERVICES = ['https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer',
             'https://carto-wfs.nationalmap.gov/arcgis/rest/services/geonames/MapServer']
 BUDGET = 15 * 60
-# GNIS feature classes worth finding on a trail map; streams only when they are rivers
-KEEP = {'summit', 'gap', 'ridge', 'range', 'populated place', 'falls', 'lake', 'reservoir', 'park', 'valley', 'cliff',
-        'pillar', 'arch', 'basin', 'island', 'flat', 'bench', 'crossing', 'bridge', 'dam', 'tunnel', 'trail', 'forest', 'swamp', 'spring'}
+# every GNIS name in the shell is kept (towns, summits, gaps, streams, churches, schools, cemeteries ...); the search ranks them
 
 
 def get_json(url, tries=2, timeout=45):
@@ -133,9 +131,6 @@ def main():
                 name = str(a.get(L['name']) or '').strip(); cls = str(a.get(L['cls']) or '').strip() if L['cls'] else ''
                 if not name:
                     continue
-                c = cls.lower()
-                if L['cls'] and c not in KEEP and not (c == 'stream' and re.search(r'\briver\b', name, re.I)):
-                    continue
                 la, lo = round(g['y'], 5), round(g['x'], 5)
                 if not any(in_ring(la, lo, r) for r in ch['rings']):
                     continue
@@ -145,10 +140,14 @@ def main():
                 print(f'GNIS: {n} of {len(chunks) * len(layers)} requests, {len(out)} names', flush=True)
     if not out:
         sys.exit('no names found; keeping the existing file')
+    # compact rows to keep the file small: [name, class index, lat, lon, state index]
     items = sorted(out.values(), key=lambda x: x['n'])
-    json.dump({'at': int(time.time() * 1000), 'source': 'USGS Geographic Names Information System', 'incomplete': failed, 'items': items},
-              open(OUT, 'w'), separators=(',', ':'))
-    print('wrote', OUT, len(items), 'names;', failed, 'requests failed')
+    classes = sorted({x['k'] for x in items}); states = sorted({x.get('s') or '' for x in items})
+    ci = {c: i for i, c in enumerate(classes)}; si = {c: i for i, c in enumerate(states)}
+    rows = [[x['n'], ci[x['k']], x['la'], x['lo'], si[x.get('s') or '']] for x in items]
+    json.dump({'at': int(time.time() * 1000), 'source': 'USGS Geographic Names Information System', 'incomplete': failed,
+               'classes': classes, 'states': states, 'rows': rows}, open(OUT, 'w'), separators=(',', ':'), ensure_ascii=False)
+    print('wrote', OUT, len(rows), 'names;', failed, 'requests failed;', os.path.getsize(OUT) // 1024, 'KB')
 
 
 if __name__ == '__main__':

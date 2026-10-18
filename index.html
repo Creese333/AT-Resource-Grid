@@ -2173,9 +2173,13 @@ const FGROUPS = [['spp', 'Species and vegetation'], ['place', 'Places and landma
    place_names.json, built monthly on GitHub; loaded the first time the search is used */
 let PLACES = null;
 function placesLoad(){ if (PLACES) return; PLACES = {st:'loading', items:[]};
-  fetch('place_names.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { PLACES = {st:'done', items:j && Array.isArray(j.items) ? j.items : []};
+  fetch('place_names.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => {
+    /* compact rows [name, class index, lat, lon, state index]; older files list objects */
+    const items = !j ? [] : Array.isArray(j.rows) ? j.rows.map(r => ({n:r[0], k:j.classes[r[1]], la:r[2], lo:r[3], s:j.states[r[4]]})) : Array.isArray(j.items) ? j.items : [];
+    items.forEach(x => { x.lc = x.n.toLowerCase(); }); PLACES = {st:'done', items};
     if (document.activeElement === fin && fin.value.trim().length >= 2) listFind(); }).catch(() => { PLACES = {st:'done', items:[]}; }); }
-const PLACEK = {'populated place':0, summit:1, gap:2, falls:3, lake:4, reservoir:4, stream:5, ridge:6, range:6};
+/* ranking among names that match equally well: towns and natural landmarks before buildings and other local features */
+const PLACEK = {'populated place':0, civil:1, summit:1, gap:2, falls:3, lake:4, reservoir:4, stream:5, ridge:5, range:5, valley:6, park:6, island:6, cliff:6, spring:7, 'locale':8, bridge:8, dam:8, crossing:8};
 const LMKIND = {s:'Summit', p:'Town', f:'Landmark', r:'River'};
 let TRACTQ = '', TRACTRES = [], tractT = 0, tractLayer = null;
 const fscore = (s, q) => s.startsWith(q) ? 0 : (s.includes(' ' + q) || s.includes('-' + q) || s.includes('(' + q)) ? 1 : s.includes(q) ? 2 : -1;
@@ -2190,8 +2194,8 @@ function findAll(q){ const G = {spp:[], place:[], feat:[], hist:[], tract:[], wh
   const seen = new Set();
   ELEVMARKS.forEach(([fm, name, kind, ft]) => { if (fscore(name.toLowerCase(), q) < 0) return; seen.add(name.toLowerCase());
     G.place.push({g:'place', nm:name, kind:LMKIND[kind] + (ft ? ', ' + fmt(ft, 0) + ' ft' : '') + ', on the trail', mile:fm * ELEVK()}); });
-  if (PLACES && PLACES.st === 'done'){ const pl = []; PLACES.items.forEach(x => { const lc = x.n.toLowerCase(), sc = fscore(lc, q); if (sc >= 0 && !seen.has(lc)) pl.push([sc, PLACEK[(x.k || '').toLowerCase()] ?? 9, x.n.length, x]); });
-    pl.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]); pl.slice(0, Math.max(0, 7 - G.place.length)).forEach(([, , , x]) => G.place.push({g:'place', nm:x.n, kind:[x.k, x.s].filter(Boolean).join(', '), la:x.la, lo:x.lo})); }
+  if (PLACES && PLACES.st === 'done'){ const pl = []; PLACES.items.forEach(x => { const lc = x.lc, sc = fscore(lc, q); if (sc >= 0 && !seen.has(lc)) pl.push([sc, PLACEK[(x.k || '').toLowerCase()] ?? 9, x.n.length, x]); });
+    pl.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]); pl.slice(0, Math.max(0, 10 - G.place.length)).forEach(([, , , x]) => G.place.push({g:'place', nm:x.n, kind:[x.k, x.s].filter(Boolean).join(', '), la:x.la, lo:x.lo})); }
   /* trail features (shelters, campsites, parking, bridges, vistas ...) */
   const ft = []; D.feat.forEach((f, i) => { const sc = fscore(f[1].toLowerCase(), q); if (sc >= 0) ft.push([sc, f[1].length, i]); });
   ft.sort((a, b) => a[0] - b[0] || a[1] - b[1]); G.feat = ft.slice(0, 6).map(x => { const f = D.feat[x[2]]; return {g:'feat', nm:f[1], kind:f[0] + (f[2] ? ', ' + f[2].toLowerCase() : ''), la:f[3], lo:f[4]}; });
