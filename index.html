@@ -1342,8 +1342,8 @@ function histStatus(){ if (!HIST || HIST.st === 'loading') return HIST && HIST.t
   const errs = Object.keys(HIST.err || {}).map(k => ({nr:'National Register', osm:'OpenStreetMap', lands:'A.T. administrative areas (A.T. corridor extent off)'})[k] || k);
   const when = new Date(HIST.at).toLocaleDateString('en-US');
   return `${fmt(n('nr'), 0)} National Register properties and ${fmt(n('cem'), 0)} OpenStreetMap cemeteries${HIST.scope === 'huc' ? ' out to the HUC10 shell' : ' in corridor cells'}. ` +
-    (HIST.from === 'file' ? `From ${HISTFILE}, built ${when}.` : `Loaded live ${when}. <button type="button" data-histsave="1">Save as ${HISTFILE}</button> to put beside index.html on GitHub for fast loading.`) +
-    (errs.length ? ` <b>Not reached: ${esc(errs.join(', '))}</b>; those counts are incomplete.` : '') + (HIST.from === 'file' ? '' : ` <button type="button" data-histref="1">Refresh</button>`); }
+    (HIST.from === 'file' ? '' : `Loaded live ${when}. <button type="button" data-histsave="1">Save as ${HISTFILE}</button> to put beside index.html on GitHub for fast loading.`) +
+    (errs.length && HIST.from !== 'file' ? ` <b>Not reached: ${esc(errs.join(', '))}</b>; those counts are incomplete.` : '') + (HIST.from === 'file' ? '' : ` <button type="button" data-histref="1">Refresh</button>`); }
 function histStatusOnly(){ const e = document.getElementById('histstat'); if (e) e.innerHTML = histStatus(); }
 const histBlock = () => `<p class="phstat" id="histstat" role="status" style="margin:2px 0 10px">${histStatus()}</p>`;
 /* Find a Grave: the cemetery page when its ID is known; otherwise a web search of findagrave.com for the name and state
