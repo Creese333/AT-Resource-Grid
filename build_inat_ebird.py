@@ -16,11 +16,13 @@ Re-running with a dataset left out keeps that dataset's part of the existing ina
 Standard library only.
 """
 import base64, csv, io, json, math, os, re, sys, time, urllib.request, zipfile
-from collections import defaultdict
+from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'inat_ebird.json')
+NAMES = os.path.join(HERE, 'common_names.json')    # cache of common names looked up on GBIF, kept between runs
 INDEX = os.path.join(HERE, 'index.html')
 API = 'https://api.gbif.org/v1'
 DATASETS = {'inat': '50c9509d-22c7-4a22-a47d-8c48425ef4a7',    # iNaturalist Research-grade Observations
@@ -254,6 +256,39 @@ def cov_richness(inc, T, target=COVERAGE_TARGET):
     return round(Sx(t), 1), round(100 * sc, 1)
 
 
+# ---------------------------------------------------------------- common names from GBIF
+def vernacular(spp, keys, budget=25 * 60):
+    try:
+        cache = json.load(open(NAMES))
+    except Exception:
+        cache = {}
+    todo = [x for x in spp if norm(x) not in cache and keys.get(x)]
+    print(f'common names: {len(spp)} species without one in the dashboard or lookups; {len(todo)} to look up on GBIF', flush=True)
+    stop = time.time() + budget
+    def one(x):
+        if time.time() > stop:
+            return x, None
+        try:
+            j = json.loads(gbif(f'/species/{keys[x]}/vernacularNames?limit=200'))
+        except Exception:
+            return x, None
+        en = [v for v in j.get('results', []) if (v.get('language') or '').lower() in ('eng', 'en')]
+        if not en:
+            return x, ''
+        pick = next((v['vernacularName'] for v in en if 'inaturalist' in (v.get('source') or '').lower()), None)
+        if not pick:
+            pick = Counter(v['vernacularName'].strip() for v in en).most_common(1)[0][0]
+        return x, pick.strip()
+    with ThreadPoolExecutor(8) as pool:
+        for x, v in pool.map(one, todo):
+            if v is not None:
+                cache[norm(x)] = v
+    json.dump(cache, open(NAMES, 'w'), ensure_ascii=False, indent=0, sort_keys=True)
+    got = {k: v for k, v in cache.items() if v}
+    print(f'common names: {sum(1 for x in spp if got.get(norm(x)))} of {len(spp)} found', flush=True)
+    return got
+
+
 # ---------------------------------------------------------------- summaries
 def new_cell():
     return {'n': 0, 'users': set(), 'units': set(), 'spp': defaultdict(int), 'inc': defaultdict(set), 'last': '', 'recent': 0, 'grp': defaultdict(set),
@@ -265,7 +300,7 @@ def summarize(kind, zpath, levels, names):
     look, guild, common = load_birds() if kind == 'ebird' else (None, None, None)
     cells = {lv: defaultdict(new_cell) for lv in levels}
     cutoff = str(date.today().year - RECENT_YEARS)
-    n_in = n_all = 0; t0 = time.time()
+    n_in = n_all = 0; t0 = time.time(); keys = {}
     for r in rows(zpath):
         n_all += 1
         try:
@@ -300,6 +335,7 @@ def summarize(kind, zpath, levels, names):
                 continue
             s['spp'][sp] += 1
             if d: s['inc'][sp].add(unit)
+            if sp not in keys and r.get('speciesKey'): keys[sp] = r['speciesKey']
             if kind == 'inat':
                 for g, test in GROUPS:
                     if test(r): s['grp'][g].add(sp)
@@ -315,6 +351,10 @@ def summarize(kind, zpath, levels, names):
         if n_all % 500000 == 0:
             print(f'   {kind}: {n_all:,} rows read, {n_in:,} in corridor cells ({time.time() - t0:.0f} s)', flush=True)
     print(f'{kind}: {n_all:,} rows, {n_in:,} in corridor cells', flush=True)
+    # every species gets a common name: dashboard and lookup names first, then GBIF's English vernacular names (cached)
+    have = lambda x: names.get(norm(x)) or (common or {}).get(norm(x)) or (inv.get(norm(x), (0, 0, ''))[2] if inv else '') or PESTS.get(x)
+    missing = sorted({sp for lv in cells for c in cells[lv].values() for sp in c['spp'] if not have(sp)})
+    names.update(vernacular(missing, keys))
 
     def nm(sp, tags=None):
         k = norm(sp); c = names.get(k) or (common.get(k) if common else None) or (inv.get(k, (0, 0, ''))[2] if inv else '') or PESTS.get(sp, '')
@@ -335,7 +375,7 @@ def summarize(kind, zpath, levels, names):
                          N_NONNATIVE_SPP=len(s['nonnat']), N_INV_SPP=len(s['inv']), N_INV_OBS=sum(s['inv'].values()),
                          PCT_INV_OBS=round(100 * sum(s['inv'].values()) / n, 1) if n else 0, N_EDRR_SPP=len(ed), N_PEST_OBS=sum(s['pest'].values()),
                          INVASIVE_LIST=sorted((nm(x) for x in s['inv']), key=str.lower), EDRR_LIST=sorted((nm(x) for x in ed), key=str.lower),
-                         PEST_LIST=sorted(s['pest']), TOP10_SPECIES=[nm(x) for x, _ in top], TOP10_COUNTS=[k for _, k in top])
+                         PEST_LIST=sorted((nm(x) for x in s['pest']), key=str.lower), TOP10_SPECIES=[nm(x) for x, _ in top], TOP10_COUNTS=[k for _, k in top])
                 for g, _ in GROUPS:
                     v[g] = len(s['grp'][g])
             else:

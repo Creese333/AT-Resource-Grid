@@ -47,6 +47,7 @@ header p{margin:0;color:#BCCDE0;font-size:14px;flex:1 1 260px;min-width:0}
 #findlist .k{grid-column:1;font-size:13px;color:#A8B8CA}
 #findlist .n{grid-row:1/3;grid-column:2;align-self:center;font-size:13px;color:#A8B8CA;white-space:nowrap}
 #findlist .none{cursor:default;color:#A8B8CA;display:block}
+.obslink{margin-left:8px;font-size:12.5px;color:#9EC9FF!important;white-space:nowrap}
 #findlist .fgrp{display:block;cursor:default;padding:8px 8px 2px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#8FA3B8}
 #findlist .fgrp:first-child{padding-top:3px}
 .findbar{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin:8px 0 4px;padding:8px 10px;border:1px solid #6B5A1E;border-left:5px solid #FFC233;border-radius:4px;background:#2A2718}
@@ -2271,10 +2272,15 @@ const PEST_NAMES = {'Adelges tsugae':'Hemlock woolly adelgid', 'Agrilus planipen
 const SPPN = [];
 function sppName(i){ if (SPPN[i]) return SPPN[i]; const s = D.spp[i], m = s.match(/^(.*?)\s*\(([^)]*)\)\s*(\[.*\])?$/), sci = m ? m[2] : s.replace(/\s*\[.*\]$/, '');
   return SPPN[i] = {common: m ? m[1] : (PEST_NAMES[sci] || ''), sci, tag: m && m[3] ? m[3].slice(1, -1) : ''}; }
-function sppItem(i, edrr){ const {common, sci, tag} = sppName(i), tx = common ? `${esc(common)} <em>${esc(sci)}</em>` : `<em>${esc(sci)}</em>`;
+/* SPPBOX: the bounding box of the selected cell(s), set when the details panel is built */
+let SPPBOX = null;
+const setSppBox = rings => { const ll = rings.flat(); SPPBOX = ll.length ? [Math.min(...ll.map(p => p[0])), Math.min(...ll.map(p => p[1])), Math.max(...ll.map(p => p[0])), Math.max(...ll.map(p => p[1]))] : null; };
+const inatObsUrl = sci => SPPBOX ? `https://www.inaturalist.org/observations?taxon_name=${encodeURIComponent(sci)}&swlat=${SPPBOX[0].toFixed(4)}&swlng=${SPPBOX[1].toFixed(4)}&nelat=${SPPBOX[2].toFixed(4)}&nelng=${SPPBOX[3].toFixed(4)}&quality_grade=research` : '';
+function sppItem(i, edrr, inat){ const {common, sci, tag} = sppName(i), tx = common ? `${esc(common)} <em>${esc(sci)}</em>` : `<em>${esc(sci)}</em>`;
   let h = `<a href="${wiki(sci)}" target="_blank" rel="noopener" title="Look up ${esc(sci)} on Wikipedia">${tx}</a>`;
   if (tag) h += `<span class="tag">${esc(tag)}</span>`;
   if (edrr) h += '<span class="tag edrr">priority invasive</span>';
+  if (inat && SPPBOX) h += `<a class="obslink" href="${inatObsUrl(sci)}" target="_blank" rel="noopener" title="Research-grade iNaturalist observations of ${esc(sci)} in this area">iNat records</a>`;
   return `<li>${h}</li>`; }
 /* The other cell sizes for a cell: the larger cells it sits in, and the smaller cells inside it (selected together).
    from: the cell the row is built around; on: the size now shown. */
@@ -2327,7 +2333,7 @@ const vegRow = x => `<div><i style="background:${CATMAP.DOM_TYPE.get(x[0])[1]}">
 function coverHTML(shares){ const l = shares.filter(x => x[1] >= 1).sort((a,b) => b[1] - a[1]), un = 100 - l.reduce((s,x) => s + x[1], 0); if (un >= 1) l.push(['Unassigned', un, '#ECEFEA']);
   return '<p style="margin-top:10px">NLCD level 2 land cover:</p><div class="stack">' + l.map(x => `<span style="width:${x[1]}%;background:${x[2]}"></span>`).join('') + '</div><div class="keys">' +
     l.map(x => `<div><i style="background:${x[2]}"></i><span>${x[0]}</span><span>${fmt(x[1],0)}%</span></div>`).join('') + '</div>'; }
-function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c);
+function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c); setSppBox([ring(lv, c)]);
   let h = `<h2>${LV[lv].name} cell near mile ${fmt(L_.mi[c],0)}</h2><p>${esc(cat('club', L_.club[c]) || '')}, ${esc(regionOf(L_.mi[c]))} region</p><p class="id">Grid ID ${esc(L_.id[c])}</p>`;
   h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(show(S.m, cellValue(lv, c)))}</b></p>`;
   const [scales, wireScales] = scaleRow([lv, c], lv);
@@ -2366,12 +2372,12 @@ function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.c
     const nInv = invCount(lv, c), nPri = priCount(lv, c), sh = invShare(lv, c), big = n => n ? fmt(n, 0) : 'None';
     b += `<div class="facts"><div><b>${big(nInv)}</b>invasive species</div><div><b>${big(nPri)}</b>priority invasives</div><div><b>${sh ? fmt(sh, sh < 10 ? 1 : 0) + '%' : 'None'}</b>of records</div></div>`;
     b += `<p class="none" style="font-size:13.5px">Invasive plants and forest pests are counted together.</p>`;
-    b += inv.length ? `<p style="margin-top:8px">${inv.length} invasive ${inv.length === 1 ? 'plant' : 'plants'}:</p><ul class="spp">${inv.map(i => sppItem(i, ed.has(i))).join('')}</ul>` : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
-    b += pest.length ? `<p style="margin-top:8px">${pest.length} forest ${pest.length === 1 ? 'pest' : 'pests'}:</p><ul class="spp">${pest.map(i => sppItem(i, true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
+    b += inv.length ? `<p style="margin-top:8px">${inv.length} invasive ${inv.length === 1 ? 'plant' : 'plants'}:</p><ul class="spp">${inv.map(i => sppItem(i, ed.has(i), true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
+    b += pest.length ? `<p style="margin-top:8px">${pest.length} forest ${pest.length === 1 ? 'pest' : 'pests'}:</p><ul class="spp">${pest.map(i => sppItem(i, true, true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
     b += `<p style="margin-top:10px"><span class="badge">${esc(cat('DATA_STATUS', v('inat','DATA_STATUS')) || '')}</span> Quarterly summary (${esc(D.run)}).</p>`;
     b += `<p class="none" style="font-size:13.5px">Based on ${fmt(v('inat','N_OBS'),0)} iNaturalist ${v('inat','N_OBS') === 1 ? 'record' : 'records'} of ${fmt(v('inat','N_SPP'),0)} species from ${fmt(v('inat','N_OBSERVERS'),0)} ${v('inat','N_OBSERVERS') === 1 ? 'observer' : 'observers'}.`;
     { const k = cover('inat', lv, c); b += (k != null ? ` Records fall in ${k} of this cell's ${HEXIN[lv]} square miles.` : '') + '</p>'; }
-    if (top.length){ const tn = v('inat','TOP10_COUNTS') || []; b += `<details><summary>Most recorded species</summary><ul class="spp">${top.map((i, k) => tn[k] != null ? sppItem(i).replace('</li>', `<span class="tag">${fmt(tn[k], 0)} ${tn[k] === 1 ? 'record' : 'records'}</span></li>`) : sppItem(i)).join('')}</ul></details>`; }
+    if (top.length){ const tn = v('inat','TOP10_COUNTS') || []; b += `<details><summary>Most recorded species</summary><ul class="spp">${top.map((i, k) => tn[k] != null ? sppItem(i, false, true).replace('</li>', `<span class="tag">${fmt(tn[k], 0)} ${tn[k] === 1 ? 'record' : 'records'}</span></li>`) : sppItem(i)).join('')}</ul></details>`; }
   } else b += '<p class="none">No iNaturalist records in this cell in the quarterly summary.</p>';
   b += '</div>';
   b += LIVESEC;
@@ -2784,7 +2790,7 @@ function boxMeasure(m, lv, cells){ const vals = []; cells.forEach(c => { const v
   if (m.unit === '%') return `${fmt(sum / vals.length, 1)}% on average, up to ${fmt(mx, m.d)}%`;
   if (['acres','records','checklists'].includes(noun)) return `${fmt(sum, 0)} ${noun} in total`;
   return `${fmt(sum / vals.length, 1)} ${noun} per cell on average, up to ${fmt(mx, 0)}`.replace('  ', ' '); }
-function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[lv], N = cells.length;
+function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[lv], N = cells.length; setSppBox(cells.map(c => ring(lv, c)));
   const mis = cells.map(c => L_.mi[c]), lo = Math.min(...mis), hi = Math.max(...mis);
   const w = S.box.within, wName = w && `${LV[w[0]].name} cell near mile ${fmt(D.levels[w[0]].mi[w[1]], 0)}`;
   let h = `<h2>${nCells(N)} selected</h2><p>${w ? `Every ${LV[lv].name} cell inside the ${wName}` : `${S.box.label ? 'Every cell with ' + esc(S.box.label) + '. ' : ''}${LV[lv].name} cells, trail miles ${fmt(lo,0)} to ${fmt(hi,0)}`}</p>`;
@@ -2794,7 +2800,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
   $('#phead').innerHTML = h; if (sr) sr[1]($('#phead')); $('#pclearbox').onclick = clearSel; exportWire();
   const withTh = th => D.themes[th] && D.themes[th][lv] ? cells.filter(c => has(th, lv, c)) : [];
   const ctag = n => `<span class="tag">${nCells(n)}</span>`;
-  const item = (i, n, ed) => sppItem(i, ed).replace('</li>', ctag(n) + '</li>');
+  const item = (i, n, ed) => sppItem(i, ed, ed !== undefined).replace('</li>', ctag(n) + '</li>');
   const union = (th, f, cs) => { const m = new Map(); cs.forEach(c => (val(th, f, lv, c) || []).forEach(i => m.set(i, (m.get(i) || 0) + 1))); return [...m].sort((a,b) => b[1] - a[1] || D.spp[a[0]].localeCompare(D.spp[b[0]])); };
   let b = `<p class="boxm"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p><p class="none" style="font-size:13.5px;margin:6px 0 0">Combined from the ${nCells(N)}${S.box.label || w ? '' : ' whose centers fall inside the box'}. Records and acres are added up. Species and types are counted once, however many cells they occur in.</p>`;
 
@@ -2826,7 +2832,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
         cs.forEach(c => { const ids = val('inat','TOP10_SPECIES',lv,c) || [], ns = hasN ? (val('inat','TOP10_COUNTS',lv,c) || []) : [];
           ids.forEach((i, r) => { const e = sc.get(i) || [0, 0]; e[0] += hasN ? (ns[r] || 0) : Math.max(1, 10 - r); e[1]++; sc.set(i, e); }); });
         const top = [...sc].sort((a,b) => b[1][0] - a[1][0] || b[1][1] - a[1][1] || D.spp[a[0]].localeCompare(D.spp[b[0]])).slice(0, 10);
-        const tag = x => sppItem(x[0]).replace('</li>', `<span class="tag">${hasN ? fmt(x[1][0], 0) + (x[1][0] === 1 ? ' record, ' : ' records, ') : ''}${nCells(x[1][1])}</span></li>`);
+        const tag = x => sppItem(x[0], false, true).replace('</li>', `<span class="tag">${hasN ? fmt(x[1][0], 0) + (x[1][0] === 1 ? ' record, ' : ' records, ') : ''}${nCells(x[1][1])}</span></li>`);
         if (top.length) b += `<details class="t10" ${S.t10 === false ? '' : 'open'}><summary>Top ten species across the selection</summary><ol class="spp top10">${top.map(tag).join('')}</ol><p class="none" style="font-size:13.5px;margin-top:6px">` +
           (hasN ? 'Record counts are added across the selected cells. A species is counted only in cells where it is among the ten most recorded, so its true total can be higher.'
                 : 'Ranked from each cell\'s own top ten: first place in a cell counts most, tenth least. The number beside each species is how many selected cells list it. The data holds each cell\'s ranking but not record counts, so this is a combined ranking and not a count of records.') + '</p></details>'; }
