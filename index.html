@@ -791,6 +791,9 @@ for (const th in D.themes){ ROW[th] = {};
   for (const lv in D.themes[th]){ const a = new Int32Array(D.levels[lv].id.length).fill(-1);
     D.themes[th][lv].ix.forEach((c,k) => a[c] = k); ROW[th][lv] = a; } }
 const IDX = {}; for (const lv in D.levels){ const m = new Map(); D.levels[lv].id.forEach((id,i) => m.set(id,i)); IDX[lv] = m; }
+/* layout viewport: steady while pinch-zooming and as phone toolbars slide in and out */
+function VW(){ return document.documentElement.clientWidth || window.innerWidth; }
+function VH(){ return document.documentElement.clientHeight || window.innerHeight; }
 function val(th, f, lv, c){ const t = D.themes[th][lv]; if (!t) return null; const r = ROW[th][lv][c]; if (r < 0) return null; const a = t.f[f]; if (!a) return null; const x = a[r]; return (x == null || x === -1) ? null : x; }
 const has = (th, lv, c) => !!D.themes[th][lv] && ROW[th][lv][c] >= 0;
 const cat = (name, i) => i == null ? null : D.cats[name][i];
@@ -1635,7 +1638,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 /* ---------- state ---------- */
 /* The basemap the page opens on: USGS topo. */
 const DEFBASE = 'topo';
-const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: innerWidth > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {about:false, measures:true, results:true, mgmt:false, hadm:false}};
+const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {about:false, measures:true, results:true, mgmt:false, hadm:false}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
@@ -1807,7 +1810,7 @@ function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
   const want = S.level === 'auto' ? autoLevel() : S.level, note = $('#note');
   if (want !== lv){ note.style.display = 'block'; note.textContent = 'Unique species ratings are shown at 7 and 49 sq mi, not for single square miles.'; } else note.style.display = 'none';
   document.querySelectorAll('#levels button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.lv === S.level);
-    if (b.dataset.lv === 'auto') b.textContent = (S.level === 'auto' && innerWidth > 860) ? 'Auto: ' + LV[lv].name : 'Auto'; });
+    if (b.dataset.lv === 'auto') b.textContent = (S.level === 'auto' && VW() > 860) ? 'Auto: ' + LV[lv].name : 'Auto'; });
   if (!S.m.find && document.activeElement !== $('#find')) $('#find').value = '';
   corrSync(lv); legend(); side(); refreshProfile(); pinSync(); }
 function redraw(){ draw(); strip(); writeHash(); }
@@ -2067,10 +2070,10 @@ arcQuery(SVC + 'ANST_Centerline/FeatureServer/0', {outFields:'OBJECTID', maxAllo
    On a phone the map fills most of the screen, so a one-finger drag on it must scroll the page.
    Two fingers move and zoom the map. Taps still select cells. Wide screens are not affected. */
 const TOUCHDEV = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-function mapGestures(){ if (TOUCHDEV && window.innerWidth <= 860) map.dragging.disable(); else map.dragging.enable(); }
+function mapGestures(){ if (TOUCHDEV && VW() <= 860) map.dragging.disable(); else map.dragging.enable(); }
 { const mc = map.getContainer(), hint = $('#maphint'); let sx = 0, sy = 0, ht = null;
   const showHint = () => { hint.classList.add('on'); clearTimeout(ht); ht = setTimeout(() => hint.classList.remove('on'), 1600); };
-  const onTouch = e => { if (S.drawing){ if (e.cancelable) e.preventDefault(); return; } if (!(TOUCHDEV && window.innerWidth <= 860)) return;
+  const onTouch = e => { if (S.drawing){ if (e.cancelable) e.preventDefault(); return; } if (!(TOUCHDEV && VW() <= 860)) return;
     if (e.touches.length >= 2){ if (e.cancelable) e.preventDefault(); hint.classList.remove('on'); return; }
     if (e.type === 'touchstart'){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; return; }
     const dx = Math.abs(e.touches[0].clientX - sx), dy = Math.abs(e.touches[0].clientY - sy); if (dx > 18 && dx > dy * 1.3) showHint(); };
@@ -2339,7 +2342,7 @@ function select(lv, c, fly){ S.box = null; boxRect.remove(); S.pinOff = false; S
 function clearSel(){ S.cell = null; S.box = null; boxRect.remove(); pin.remove(); $('#clearbtn').hidden = true; selOuter.setLatLngs([]); selInner.setLatLngs([]); $('#profile').classList.remove('open', 'peek', 'full'); S.sheetFull = false; writeHash(); }
 /* Phones only: the cell details sit in the page under the graph, as a short summary that expands in place.
    Wide screens keep the popup inside the map and never get the peek/full classes. */
-const isPhone = () => window.innerWidth <= 860;
+const isPhone = () => VW() <= 860;
 function placeProfile(){ const p = $('#profile'), phone = isPhone();
   if (phone && p.parentNode !== document.body) $('#strip').after(p);
   else if (!phone && p.parentNode !== $('#mapwrap')) $('#mapwrap').appendChild(p); }
@@ -3004,7 +3007,7 @@ function drawMode(on){ S.drawing = on; $('#mapwrap').classList.toggle('drawing',
 $('#boxbtn').onclick = () => drawMode(!S.drawing);
 function toolsOpen(on){ S.tools = on; $('#toolsbody').hidden = !on; $('#toolstog').setAttribute('aria-expanded', on); }
 $('#toolstog').onclick = () => toolsOpen(!S.tools);
-toolsOpen(window.innerWidth > 860);
+toolsOpen(VW() > 860);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.drawing) drawMode(false); });
 { const mc = map.getContainer(), bd = $('#boxdraw'); let st = null;
   const pt = e => { const r = $('#mapwrap').getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
@@ -3140,10 +3143,10 @@ function viewWindow(){ const w = $('#vwin'), svg = $('#stripsvg'); if (!w || !sv
 /* Phones: browsers resize the window as their address bar slides in and out while you scroll. The map's height is set once, in pixels,
    and only recalculated when the screen width changes (a rotation), so the map block stays the same size while scrolling. */
 let lockW = 0;
-function lockMapHeight(){ const mw = $('#mapwrap'); if (window.innerWidth > 860){ if (mw.style.height){ mw.style.height = ''; lockW = 0; map.invalidateSize(); } return; }
-  if (window.innerWidth === lockW) return; lockW = window.innerWidth; mw.style.height = Math.max(360, Math.round(window.innerHeight * .62)) + 'px'; map.invalidateSize(); }
+function lockMapHeight(){ const mw = $('#mapwrap'); if (VW() > 860){ if (mw.style.height){ mw.style.height = ''; lockW = 0; map.invalidateSize(); } return; }
+  if (VW() === lockW) return; lockW = VW(); mw.style.height = Math.max(360, Math.round(VH() * .62)) + 'px'; map.invalidateSize(); }
 lockMapHeight();
-let rz, rzW = window.innerWidth; window.addEventListener('resize', () => { lockMapHeight(); clearTimeout(rz); rz = setTimeout(() => { const wChanged = window.innerWidth !== rzW; rzW = window.innerWidth; if (wChanged || window.innerWidth > 860){ strip(); map.invalidateSize(); } }, 150); });
+let rz, rzW = VW(); window.addEventListener('resize', () => { lockMapHeight(); clearTimeout(rz); rz = setTimeout(() => { const wChanged = VW() !== rzW; rzW = VW(); if (wChanged || VW() > 860){ strip(); map.invalidateSize(); } }, 150); });
 
 /* ---------- about ---------- */
 $('#aboutbtn').onclick = () => $('#about').showModal();
