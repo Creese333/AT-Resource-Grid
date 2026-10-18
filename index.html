@@ -1778,11 +1778,12 @@ function dispLevel(){ let lv = S.level === 'auto' ? autoLevel() : S.level;
 /* Cell fill thins out as you zoom in: full strength up to zoom 9, down to 40% opacity (60% transparent) at the closest zoom. */
 const FADE_FROM = 9, FADE_TO = 15, FILL_FAR = .86, FILL_NEAR = .4;
 function zoomFade(){ const k = Math.max(0, Math.min(1, (map.getZoom() - FADE_FROM) / (FADE_TO - FADE_FROM))); return (FILL_FAR - k * (FILL_FAR - FILL_NEAR)) / FILL_FAR; }
-function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, w = lv === 'hex' ? .4 : .7, strong = m.th === 'feat'; /* trail features: solid fill and a dark outline at every zoom, so any cell with a feature stands out */
+function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, strong = m.th === 'feat';
+  const px = {hex:1700, cog:4500, wheel:12000}[lv] * Math.pow(2, map.getZoom()) / (156543 * Math.cos(map.getCenter().lat * Math.PI / 180)), tiny = px < 10, w = tiny ? 1 : lv === 'hex' ? .4 : .7; /* trail features: solid fill and a dark outline at every zoom, so any cell with a feature stands out */
   for (let c = 0; c < ps.length; c++){ const v = m.get(lv, c), ins = inSec(lv, c);
-    if (v == null) ps[c].setStyle({fill:true, fillOpacity:0, stroke:true, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
+    if (v == null) ps[c].setStyle({fill:true, fillOpacity:0, stroke:!tiny, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
     else if (strong) ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : .9) * Math.max(zf, .85), stroke:true, color:'#0B2410', weight:lv === 'hex' ? 1.6 : 2, opacity:ins ? 1 : .2});
-    else ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf, stroke:true, color:'#fff', weight:w, opacity:ins ? .9 : .2}); } }
+    else ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf, stroke:true, color:tiny ? colorOf(m, lv, v) : '#fff', weight:w, opacity:tiny ? (!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf : ins ? .9 : .2}); } }
 function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
     if (sc === 'huc' && S.ext !== 'huc' && !S.histHucFail) setExt('huc', true).then(() => { if (S.ext !== 'huc'){ S.histHucFail = true; S.extMsg = ''; redraw(); } });
     else if (sc !== 'huc' && S.ext === 'huc') setExt('corr', true); }
