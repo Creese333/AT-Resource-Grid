@@ -1814,8 +1814,9 @@ function extSnapshot(){ const cats = {}; SOILCATS.forEach(k => { if (D.cats[k]) 
 function extLoad(){ if (EXT.huc) return Promise.resolve(); if (extLoading) return extLoading;
   extLoading = fetch(EXTFILE).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(j => {
     const themes = {}; for (const th in D.themes) themes[th] = {}; themes.soil = j.soil; if (j.wet) themes.wet = j.wet;
-    EXT.huc = {levels:j.levels, themes, cats:j.cats, group:{}, poly:{}};
-    return fetch(BIOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(b => { if (b && b.themes) bioHuc(b); }).catch(() => {}); });
+    const H = {levels:j.levels, themes, cats:j.cats, group:{}, poly:{}};
+    /* the watershed iNaturalist and eBird summaries load with the cells, so both are ready together */
+    return fetch(BIOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(b => { if (b && b.themes) bioHuc(b, H); }).catch(() => {}).then(() => { EXT.huc = H; }); });
   extLoading.catch(() => {}).then(() => { extLoading = null; });
   return extLoading; }
 function extIndex(){ for (const th in ROW) delete ROW[th];
@@ -2098,7 +2099,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
   if (S.m.find){ const fs = findSummary(lv); el.innerHTML = h + `<div class="qbody">${fs[0]}${blk('results', 'Results', fs[1], 'res')}</div>`; return; }
   const extBlk = !EXTQ.includes(q.id) ? '' : `<div class="extsw" role="group" aria-label="Extent"><span>Extent</span><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
-    (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow. Trail miles are those of the nearest corridor cell.' + ((q.th === 'inat' || q.th === 'ebird') && q.id !== 'phen' && EXT.huc && !EXT.huc.bio ? ' The watershed iNaturalist and eBird summaries (inat_ebird_huc10.json) are not on the site yet; they are built by the quarterly iNaturalist and eBird action.' : '') + '</p>' : '');
+    (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow. Trail miles are those of the nearest corridor cell.' + '</p>' : '');
   const herbBlk = q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Herbicide use"><span>Herbicide use</span><button type="button" data-herb="off" aria-pressed="${!S.herb}">Off</button><button type="button" data-herb="on" aria-pressed="${!!S.herb}">On</button></div>` +
     (S.herb ? '<p class="extnote">Cells are marked down by up to 10 points for the share of their A.T. lands in wetland, where herbicide use may be limited.</p>' : '') +
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
@@ -3167,8 +3168,8 @@ function bioConv(j, idx){ const si = new Map(D.spp.map((s, i) => [s, i])), sp = 
   return themes; }
 /* the watershed (HUC10) summaries, inat_ebird_huc10.json, loaded with the watershed cells */
 const BIOHUC = 'inat_ebird_huc10.json';
-function bioHuc(j){ const idx = {}; for (const lv in EXT.huc.levels){ const m = new Map(); EXT.huc.levels[lv].id.forEach((id, i) => m.set(id, i)); idx[lv] = m; }
-  Object.assign(EXT.huc.themes, bioConv(j, idx)); EXT.huc.bio = j.run || true; INATFLAGS = null; }
+function bioHuc(j, H){ const idx = {}; for (const lv in H.levels){ const m = new Map(); H.levels[lv].id.forEach((id, i) => m.set(id, i)); idx[lv] = m; }
+  Object.assign(H.themes, bioConv(j, idx)); H.bio = j.run || true; INATFLAGS = null; }
 function bioApply(){ const j = BIO; if (!j || j.done || S.ext !== 'corr') return; j.done = true;
   Object.assign(D.themes, bioConv(j, IDX));
   if (j.run) D.run = j.run; document.querySelectorAll('.run').forEach(e => e.textContent = D.run);
