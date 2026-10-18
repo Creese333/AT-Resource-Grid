@@ -428,7 +428,7 @@ INV_ID,SCI_NAME,INAT_NAME,COMMON_NAME,TAXON_RANK,FAMILY,GRIIS_DEGREE,INV_CLASS,E
 427,Berberis julianae,Berberis julianae,Wintergreen barberry,Species,Berberidaceae,D2,Naturalized,0,0,0,,0,,ALL,,,AT Invasive Species Management app (SPECIES_DATA),
 428,Berberis koreana,Berberis koreana,Barberry,Species,Berberidaceae,C3,Introduced,0,0,0,,0,,ALL,,,AT Invasive Species Management app (SPECIES_DATA),
 429,Berberis sargentiana,Berberis sargentiana,Sargent's barberry,Species,Berberidaceae,C3,Introduced,0,0,0,,0,,ALL,,,AT Invasive Species Management app (SPECIES_DATA),
-430,Berberis thunbergii,Berberis thunbergii,Japanese barberry,Species,Berberidaceae,E,Priority,0,0,1,Medium,0,,ALL,,,AT Invasive Species Management app (SPECIES_DATA),
+430,Berberis thunbergii,Berberis thunbergii,Japanese barberry,Species,Berberidaceae,E,Priority,0,0,1,Medium,0,1,ALL,,,AT Invasive Species Management app (SPECIES_DATA),
 431,Berberis vulgaris,Berberis vulgaris,Common barberry,Species,Berberidaceae,E,Naturalized,0,0,0,,0,,ALL,,,AT Invasive Species Management app (SPECIES_DATA),
 432,Berkheya heterophylla,Berkheya heterophylla,Prickly gousblom,Species,Asteraceae,C3,Introduced,0,0,0,,0,,ALL,,,AT Invasive Species Management app (SPECIES_DATA),
 433,Berteroa incana,Berteroa incana,Hoary alyssum,Species,Brassicaceae,E,Naturalized,0,0,0,,0,,ALL,,,AT Invasive Species Management app (SPECIES_DATA),

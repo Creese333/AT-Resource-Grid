@@ -167,7 +167,9 @@ def binomial(s):
 def load_invasive():
     inv = {}
     for r in csv.DictReader(open(os.path.join(HERE, 'invasive_lookup.csv'), encoding='utf-8-sig')):
-        v = (r['INV_CLASS'], r.get('APP_EDRR') == '1', r.get('COMMON_NAME') or '')
+        # priority invasive: Appalachian EDRR list, or marked in the APPA_PRIORITY column (1, Y, Yes, Priority or High)
+        pri = r.get('APP_EDRR') == '1' or (r.get('APPA_PRIORITY') or '').strip().lower() in ('1', 'y', 'yes', 'true', 'priority', 'high')
+        v = (r['INV_CLASS'], pri, r.get('COMMON_NAME') or '')
         for n in (r['SCI_NAME'], r.get('INAT_NAME')):
             if n:
                 inv.setdefault(norm(n), v)

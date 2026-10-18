@@ -2504,6 +2504,12 @@ function recGroups(rows, n, spLab){ const hasObs = rows.some(r => r[1] != null);
     rows.map(r => { const x = hasObs ? r[1] : r[2], sp = spLab && hasObs && r[2] ? ` <em style="color:var(--muted);font-style:normal;font-size:12.5px">${fmt(r[2], 0)} spp.</em>` : '';
       return `<div class="guild rg"><div>${esc(r[0])}${sp}</div><div><span style="width:${100 * x / mx}%"></span></div><div>${hasObs ? recP(n ? 100 * x / n : 0) : fmt(x, 0)}</div></div>`; }).join('') +
     (hasObs ? '' : '<p class="none" style="font-size:13.5px;margin-top:6px">Shares of records come with the next quarterly download.</p>'); }
+/* priority invasive (EDRR list, APPA priority or forest pest) and invasive flags by species, from every cell's lists */
+let RECFLAG = null;
+function recFlags(){ const t = D.themes.inat; if (RECFLAG && RECFLAG.t === t) return RECFLAG; const pri = new Set(), inv = new Set();
+  Object.values(t || {}).forEach(L => { [['EDRR_LIST', pri], ['PEST_LIST', pri], ['INVASIVE_LIST', inv]].forEach(([f, set]) => (L.f[f] || []).forEach(a => (a || []).forEach(i => set.add(i)))); });
+  return RECFLAG = {t, pri, inv}; }
+function recItem(i){ const F = recFlags(), p = F.pri.has(i); let h = sppItem(i, p, true); if (!p && F.inv.has(i)) h = h.replace(/(<\/a>)/, '$1<span class="tag">invasive</span>'); return h; }
 var LIVEBODY = '<h4 class="livehd">Live lookup</h4><p class="none" style="font-size:13.5px">The most recent observations here, fetched from iNaturalist now, including ones not yet research grade. They are separate from the counts above.</p><div id="inatrec"><div id="inatlive" style="margin-top:6px"></div></div>';
 function recOpen(){ return `<div class="sec" style="--hue:${HUE.live};--tint:36%"><h3>iNaturalist Records</h3>`; }
 function recSection(lv, c){ const v = f => val('inat', f, lv, c); let b = recOpen();
@@ -2515,7 +2521,7 @@ function recSection(lv, c){ const v = f => val('inat', f, lv, c); let b = recOpe
     if (cr == null) b += '<p class="none" style="font-size:13.5px">Too few records for a standardized species count.</p>';
     b += recGroups(RECG.map(([lab, k]) => [lab, v(k + '_OBS'), v(k + '_SPP')]), n, true);
     { const nn = v('N_NONNATIVE_PLANT_SPP'), ns = v('PLANT_SPP'); if (nn != null && ns) b += `<p class="none" style="font-size:13.5px;margin-top:6px">Native plants: ${recP(100 * (ns - nn) / ns)} of ${fmt(ns, 0)} plant species${nn ? ` (${fmt(nn, 0)} introduced)` : ''}.</p>`; }
-    if (top.length) b += `<details><summary>Most recorded species</summary><ul class="spp">${top.map((i, k) => tn[k] != null ? sppItem(i, false, true).replace('</li>', `<span class="tag">${fmt(tn[k], 0)} ${tn[k] === 1 ? 'record' : 'records'}</span></li>`) : sppItem(i)).join('')}</ul></details>`;
+    if (top.length) b += `<details><summary>Most recorded species</summary><ul class="spp">${top.map((i, k) => tn[k] != null ? recItem(i).replace('</li>', `<span class="tag">${fmt(tn[k], 0)} ${tn[k] === 1 ? 'record' : 'records'}</span></li>`) : recItem(i)).join('')}</ul></details>`;
   } else b += '<p class="none">No research-grade iNaturalist records in this cell in the quarterly download.</p>';
   return b + LIVEBODY + '</div>'; }
 function recBox(lv, cells){ let b = recOpen(); const cs = D.themes.inat && D.themes.inat[lv] ? cells.filter(c => has('inat', lv, c)) : [], N = cells.length;
@@ -2530,7 +2536,7 @@ function recBox(lv, cells){ let b = recOpen(); const cs = D.themes.inat && D.the
       cs.forEach(c => { const ids = val('inat','TOP10_SPECIES',lv,c) || [], ns = hasN ? (val('inat','TOP10_COUNTS',lv,c) || []) : [];
         ids.forEach((i, r) => { const e = sc.get(i) || [0, 0]; e[0] += hasN ? (ns[r] || 0) : Math.max(1, 10 - r); e[1]++; sc.set(i, e); }); });
       const top = [...sc].sort((a,b) => b[1][0] - a[1][0] || b[1][1] - a[1][1] || D.spp[a[0]].localeCompare(D.spp[b[0]])).slice(0, 10);
-      const tag = x => sppItem(x[0], false, true).replace('</li>', `<span class="tag">${hasN ? fmt(x[1][0], 0) + (x[1][0] === 1 ? ' record, ' : ' records, ') : ''}${nCells(x[1][1])}</span></li>`);
+      const tag = x => recItem(x[0]).replace('</li>', `<span class="tag">${hasN ? fmt(x[1][0], 0) + (x[1][0] === 1 ? ' record, ' : ' records, ') : ''}${nCells(x[1][1])}</span></li>`);
       if (top.length) b += `<details class="t10" ${S.t10 === false ? '' : 'open'}><summary>Top ten species across the selection</summary><ol class="spp top10">${top.map(tag).join('')}</ol><p class="none" style="font-size:13.5px;margin-top:6px">` +
         (hasN ? 'Record counts are added across the selected cells. A species is counted only in cells where it is among the ten most recorded, so its true total can be higher.'
               : 'Ranked from each cell\'s own top ten: first place in a cell counts most, tenth least. The number beside each species is how many selected cells list it.') + '</p></details>'; }
