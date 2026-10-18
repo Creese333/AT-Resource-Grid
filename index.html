@@ -1620,7 +1620,7 @@ const Q = [
   m:[{id:'tier', label:'Unique Species', kind:'cat', f:'review_tie'}]}
 ];
 for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
-{ const ord = ['rec','rest','veg','inv','phen','bird','pri','soil','wet','feat','hist','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','veg','inv','rec','phen','bird','pri','soil','wet','feat','hist','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
@@ -2657,7 +2657,7 @@ function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerC
 /* records of a species in one cell once its full load is done; null before that */
 function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'done' ? st.counts[lv].get(c) || 0 : null; }
 /* panel sections follow the order of the questions; each question opens its own sections (survey effort has none of its own) */
-const SECORDER = ['live','rest','veg','inat','phen','ebird','nrpz','soil','wet','feat','hist','lands'];
+const SECORDER = ['rest','veg','inat','live','phen','ebird','nrpz','soil','wet','feat','hist','lands'];
 const QSEC = {rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:[], land:['lands'], phen:['phen']};
 function finishProfile(html){ $('#pbody').innerHTML = html;
   { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Land administrators':'lands'};
