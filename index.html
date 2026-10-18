@@ -858,11 +858,17 @@ function cover(th, lv, c){ if (lv === 'hex' || !D.themes[th] || !D.themes[th].he
   if (!m){ m = COVER[key] = new Map(); const H = D.levels.hex.id, cut = lv === 'cog' ? 1 : 2;
     D.themes[th].hex.ix.forEach(h => { let p = H[h]; for (let k = 0; k < cut; k++) p = p.slice(0, p.lastIndexOf('-')); m.set(p, (m.get(p) || 0) + 1); }); }
   return m.get(D.levels[lv].id[c]) || 0; }
-/* Thinly sampled: the layer's own data status is not "Adequate", or the records sit in too few of the cell's square miles
-   (a single one for a 7 sq mi cell, fewer than three for a 49 sq mi cell). The corridor is narrow, so a share of the whole cell would be unfair. */
-const THIN_MIN = {cog:2, wheel:3};
+/* Thinly sampled: the layer's own data status is not "Adequate", or a modest number of records (under 100 checklists or records)
+   sit in too few of the cell's corridor square miles: one, when a 7 sq mi cell has two or more along the corridor; fewer than
+   three, when a 49 sq mi cell has three or more. Cells with only one or two corridor square miles are not marked down for it. */
+const THIN_MIN = {cog:2, wheel:3}, THIN_N = 100, CORRHEX = {};
+function corrHex(lv, c){ let m = CORRHEX[lv]; if (!m || m.lev !== D.levels[lv]){ m = CORRHEX[lv] = new Map(); m.lev = D.levels[lv]; const cut = lv === 'cog' ? 1 : 2;
+    D.levels.hex.id.forEach(id => { let p = id; for (let k = 0; k < cut; k++) p = p.slice(0, p.lastIndexOf('-')); m.set(p, (m.get(p) || 0) + 1); }); }
+  return m.get(D.levels[lv].id[c]) || 0; }
 function thin(th, lv, c){ if (!D.themes[th] || !D.themes[th][lv] || ROW[th][lv][c] < 0) return false; if (cat('DATA_STATUS', val(th, 'DATA_STATUS', lv, c)) !== 'Adequate') return true;
-  const k = cover(th, lv, c); return k != null && k < THIN_MIN[lv]; }
+  const k = cover(th, lv, c); if (k == null) return false;
+  const n = val(th, th === 'ebird' ? 'N_CHECKLISTS' : 'N_OBS', lv, c) || 0; if (n >= THIN_N) return false;
+  return k < Math.min(THIN_MIN[lv], corrHex(lv, c)); }
 const sampled = m => !!m.fade && !m.fadeFn && (m.th === 'inat' || m.th === 'ebird');
 function totalSpp(lv, c){ const i = val('inat','N_SPP',lv,c), e = val('ebird','N_SPP',lv,c); if (i == null && e == null) return null;
   const ib = val('inat','BIRD_SPP',lv,c) || 0; return Math.max(0, (i || 0) - ib) + Math.max(ib, e || 0); }
