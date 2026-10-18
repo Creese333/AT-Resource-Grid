@@ -1,0 +1,331 @@
+SCI_NAME,ALT_SCI_NAMES,COMMON_NAME,FAMILY,TAXON_ORDER,HABITAT_GUILD,NEST_GUILD,FORAGE_GUILD,DIET,MIGRATION,ORIGIN,GUILD_SOURCE,ORIGINAL_GUILD
+Anser caerulescens,,Snow Goose,"Anatidae (Ducks, Geese, and Waterfowl)",256,Waterbird,Ground,Dabbler/grazer,Herbivore,Transient,Native,APPA compiled,
+Branta canadensis,,Canada Goose,"Anatidae (Ducks, Geese, and Waterfowl)",324,Waterbird,Ground,Dabbler/grazer,Herbivore,Resident,Native,APPA compiled,
+Cygnus olor,,Mute Swan,"Anatidae (Ducks, Geese, and Waterfowl)",358,Waterbird,Ground,Dabbler/grazer,Herbivore,Resident,Exotic,APPA compiled,
+Cygnus columbianus,,Tundra Swan,"Anatidae (Ducks, Geese, and Waterfowl)",365,Waterbird,Ground,Dabbler/grazer,Herbivore,Transient,Native,APPA compiled,
+Aix sponsa,,Wood Duck,"Anatidae (Ducks, Geese, and Waterfowl)",433,Wetland,Secondary cavity,Dabbler/grazer,Omnivore,Short-distance migrant,Native,APPA compiled,
+Spatula discors,,Blue-winged Teal,"Anatidae (Ducks, Geese, and Waterfowl)",460,Wetland,Ground,Dabbler/grazer,Omnivore,Neotropical migrant,Native,APPA compiled,
+Spatula clypeata,,Northern Shoveler,"Anatidae (Ducks, Geese, and Waterfowl)",474,Waterbird,Ground,Dabbler/grazer,Omnivore,Transient,Native,APPA compiled,
+Mareca strepera,,Gadwall,"Anatidae (Ducks, Geese, and Waterfowl)",478,Waterbird,Ground,Dabbler/grazer,Herbivore,Winter visitor,Native,APPA compiled,
+Mareca americana,,American Wigeon,"Anatidae (Ducks, Geese, and Waterfowl)",487,Waterbird,Ground,Dabbler/grazer,Herbivore,Winter visitor,Native,APPA compiled,
+Anas platyrhynchos,,Mallard,"Anatidae (Ducks, Geese, and Waterfowl)",515,Wetland,Ground,Dabbler/grazer,Omnivore,Resident,Native,APPA compiled,
+Anas rubripes,,American Black Duck,"Anatidae (Ducks, Geese, and Waterfowl)",537,Wetland,Ground,Dabbler/grazer,Omnivore,Short-distance migrant,Native,APPA compiled,
+Anas acuta,,Northern Pintail,"Anatidae (Ducks, Geese, and Waterfowl)",558,Waterbird,Ground,Dabbler/grazer,Omnivore,Winter visitor,Native,APPA compiled,
+Anas crecca,,Green-winged Teal,"Anatidae (Ducks, Geese, and Waterfowl)",574,Wetland,Ground,Dabbler/grazer,Omnivore,Winter visitor,Native,APPA compiled,
+Aythya valisineria,,Canvasback,"Anatidae (Ducks, Geese, and Waterfowl)",627,Waterbird,Emergent vegetation,Diver,Omnivore,Winter visitor,Native,APPA compiled,
+Aythya americana,,Redhead,"Anatidae (Ducks, Geese, and Waterfowl)",628,Waterbird,Emergent vegetation,Diver,Omnivore,Winter visitor,Native,APPA compiled,
+Aythya collaris,,Ring-necked Duck,"Anatidae (Ducks, Geese, and Waterfowl)",634,Waterbird,Emergent vegetation,Diver,Omnivore,Winter visitor,Native,APPA compiled,
+Aythya marila,,Greater Scaup,"Anatidae (Ducks, Geese, and Waterfowl)",655,Waterbird,Ground,Diver,Omnivore,Winter visitor,Native,APPA compiled,
+Aythya affinis,,Lesser Scaup,"Anatidae (Ducks, Geese, and Waterfowl)",661,Waterbird,Ground,Diver,Omnivore,Winter visitor,Native,APPA compiled,
+Bucephala albeola,,Bufflehead,"Anatidae (Ducks, Geese, and Waterfowl)",701,Waterbird,Secondary cavity,Diver,Omnivore,Winter visitor,Native,APPA compiled,
+Bucephala clangula,,Common Goldeneye,"Anatidae (Ducks, Geese, and Waterfowl)",702,Waterbird,Secondary cavity,Diver,Omnivore,Winter visitor,Native,APPA compiled,
+Lophodytes cucullatus,,Hooded Merganser,"Anatidae (Ducks, Geese, and Waterfowl)",712,Wetland,Secondary cavity,Diver,Piscivore,Short-distance migrant,Native,APPA compiled,
+Mergus merganser,,Common Merganser,"Anatidae (Ducks, Geese, and Waterfowl)",720,Riparian,Secondary cavity,Diver,Piscivore,Short-distance migrant,Native,APPA compiled,
+Mergus serrator,,Red-breasted Merganser,"Anatidae (Ducks, Geese, and Waterfowl)",728,Waterbird,Ground,Diver,Piscivore,Winter visitor,Native,APPA compiled,
+Oxyura jamaicensis,,Ruddy Duck,"Anatidae (Ducks, Geese, and Waterfowl)",736,Waterbird,Emergent vegetation,Diver,Omnivore,Winter visitor,Native,APPA compiled,
+Colinus virginianus,,Northern Bobwhite,Odontophoridae (New World Quail),979,Shrub-dependent,Ground,Ground forager,Omnivore,Resident,Native,APPA compiled,Edge Generalist
+Meleagris gallopavo,,Wild Turkey,"Phasianidae (Pheasants, Grouse, and Allies)",1222,Forest Generalist,Ground,Ground forager,Omnivore,Resident,Native,APPA compiled,
+Bonasa umbellus,,Ruffed Grouse,"Phasianidae (Pheasants, Grouse, and Allies)",1231,Forest Generalist,Ground,Ground forager,Omnivore,Resident,Native,APPA compiled,
+Canachites canadensis,,Spruce Grouse,"Phasianidae (Pheasants, Grouse, and Allies)",1351,High-elevation Conifer,Ground,Ground forager,Herbivore,Resident,Native,APPA compiled,
+Phasianus colchicus,,Ring-necked Pheasant,"Phasianidae (Pheasants, Grouse, and Allies)",1420,Grassland Obligate,Ground,Ground forager,Omnivore,Resident,Exotic,APPA compiled,
+Podilymbus podiceps,,Pied-billed Grebe,Podicipedidae (Grebes),1831,Wetland,Floating/water,Diver,Omnivore,Short-distance migrant,Native,APPA compiled,
+Podiceps auritus,,Horned Grebe,Podicipedidae (Grebes),1842,Waterbird,Floating/water,Diver,Piscivore,Winter visitor,Native,APPA compiled,
+Columba livia,,Rock Pigeon,Columbidae (Pigeons and Doves),1874,Edge Generalist,Cliff/structure,Ground forager,Granivore,Resident,Exotic,APPA compiled,Edge Generalist; Exotic
+Zenaida macroura,,Mourning Dove,Columbidae (Pigeons and Doves),2427,Edge Generalist,Tree/canopy,Ground forager,Granivore,Resident,Native,APPA compiled,Edge Generalist
+Coccyzus americanus,,Yellow-billed Cuckoo,Cuculidae (Cuckoos),3230,Forest Generalist,Shrub,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Coccyzus erythropthalmus,,Black-billed Cuckoo,Cuculidae (Cuckoos),3235,Forest Generalist,Shrub,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Chordeiles minor,,Common Nighthawk,Caprimulgidae (Nightjars and Allies),3508,Edge Generalist,Ground,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Antrostomus carolinensis,,Chuck-will's-widow,Caprimulgidae (Nightjars and Allies),3610,Forest Generalist,Ground,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Antrostomus vociferus,,Eastern Whip-poor-will,Caprimulgidae (Nightjars and Allies),3630,Forest Generalist,Ground,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Chaetura pelagica,,Chimney Swift,Apodidae (Swifts),3874,Edge Generalist,Cliff/structure,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Archilochus colubris,,Ruby-throated Hummingbird,Trochilidae (Hummingbirds),4776,Edge Generalist,Tree/canopy,Nectarivore,Nectarivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Rallus obsoletus,,Ridgway's Rail,"Rallidae (Rails, Gallinules, and Coots)",5227,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Rallus elegans,,King Rail,"Rallidae (Rails, Gallinules, and Coots)",5243,Wetland,Emergent vegetation,Prober,Omnivore,Short-distance migrant,Native,APPA compiled,Shorebirds
+Rallus crepitans,,Clapper Rail,"Rallidae (Rails, Gallinules, and Coots)",5247,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Rallus limicola,,Virginia Rail,"Rallidae (Rails, Gallinules, and Coots)",5268,Wetland,Emergent vegetation,Prober,Insectivore,Short-distance migrant,Native,APPA compiled,Shorebirds
+Porzana carolina,,Sora,"Rallidae (Rails, Gallinules, and Coots)",5428,Wetland,Emergent vegetation,Ground forager,Omnivore,Neotropical migrant,Native,APPA compiled,Shorebirds
+Gallinula galeata,,Common Gallinule,"Rallidae (Rails, Gallinules, and Coots)",5442,Wetland,Emergent vegetation,Dabbler/grazer,Omnivore,Short-distance migrant,Native,APPA compiled,
+Fulica americana,,American Coot,"Rallidae (Rails, Gallinules, and Coots)",5474,Waterbird,Floating/water,Dabbler/grazer,Herbivore,Winter visitor,Native,APPA compiled,
+Porphyrio poliocephalus,,Gray-headed Swamphen,"Rallidae (Rails, Gallinules, and Coots)",5507,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Coturnicops noveboracensis,,Yellow Rail,"Rallidae (Rails, Gallinules, and Coots)",5597,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Laterallus jamaicensis,,Black Rail,"Rallidae (Rails, Gallinules, and Coots)",5621,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Antigone canadensis,,Sandhill Crane,Gruidae (Cranes),5671,Wetland,Ground,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,
+Himantopus mexicanus,,Black-necked Stilt,Recurvirostridae (Stilts and Avocets),5741,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Recurvirostra americana,,American Avocet,Recurvirostridae (Stilts and Avocets),5751,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Haematopus palliatus,,American Oystercatcher,Haematopodidae (Oystercatchers),5770,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Haematopus bachmani,,Black Oystercatcher,Haematopodidae (Oystercatchers),5777,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Pluvialis squatarola,,Black-bellied Plover,Charadriidae (Plovers and Lapwings),5782,Shorebirds,Ground,Prober,Insectivore,Transient,Native,APPA compiled,Shorebirds
+Pluvialis dominica,,American Golden-Plover,Charadriidae (Plovers and Lapwings),5786,Shorebirds,Ground,Ground forager,Insectivore,Transient,Native,APPA compiled,Shorebirds
+Charadrius vociferus,,Killdeer,Charadriidae (Plovers and Lapwings),5798,Edge Generalist,Ground,Ground forager,Insectivore,Short-distance migrant,Native,APPA compiled,Shorebirds
+Charadrius semipalmatus,,Semipalmated Plover,Charadriidae (Plovers and Lapwings),5805,Shorebirds,Ground,Ground forager,Insectivore,Transient,Native,APPA compiled,Shorebirds
+Charadrius melodus,,Piping Plover,Charadriidae (Plovers and Lapwings),5807,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Anarhynchus wilsonia,,Wilson's Plover,Charadriidae (Plovers and Lapwings),5894,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Anarhynchus montanus,,Mountain Plover,Charadriidae (Plovers and Lapwings),5900,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Anarhynchus nivosus,,Snowy Plover,Charadriidae (Plovers and Lapwings),5907,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Bartramia longicauda,,Upland Sandpiper,Scolopacidae (Sandpipers and Allies),5976,Grassland Obligate,Ground,Ground forager,Insectivore,Neotropical migrant,Native,APPA compiled,Grassland Obligate
+Numenius phaeopus,,Whimbrel,Scolopacidae (Sandpipers and Allies),5978,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Numenius americanus,,Long-billed Curlew,Scolopacidae (Sandpipers and Allies),5988,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Limosa haemastica,,Hudsonian Godwit,Scolopacidae (Sandpipers and Allies),6015,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Limosa fedoa,,Marbled Godwit,Scolopacidae (Sandpipers and Allies),6018,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Limnodromus griseus,,Short-billed Dowitcher,Scolopacidae (Sandpipers and Allies),6024,Shorebirds,Ground,Prober,Insectivore,Transient,Native,APPA compiled,Shorebirds
+Limnodromus scolopaceus,,Long-billed Dowitcher,Scolopacidae (Sandpipers and Allies),6028,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Scolopax minor,,American Woodcock,Scolopacidae (Sandpipers and Allies),6031,Shrub-dependent,Ground,Prober,Insectivore,Short-distance migrant,Native,APPA compiled,Edge Generalist; Shorebirds
+Gallinago delicata,,Wilson's Snipe,Scolopacidae (Sandpipers and Allies),6069,Wetland,Ground,Prober,Insectivore,Short-distance migrant,Native,APPA compiled,Shorebirds
+Phalaropus tricolor,,Wilson's Phalarope,Scolopacidae (Sandpipers and Allies),6084,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Phalaropus fulicarius,,Red Phalarope,Scolopacidae (Sandpipers and Allies),6085,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Phalaropus lobatus,,Red-necked Phalarope,Scolopacidae (Sandpipers and Allies),6086,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Actitis macularius,,Spotted Sandpiper,Scolopacidae (Sandpipers and Allies),6091,Riparian,Ground,Ground forager,Insectivore,Neotropical migrant,Native,APPA compiled,Shorebirds
+Tringa solitaria,,Solitary Sandpiper,Scolopacidae (Sandpipers and Allies),6094,Shorebirds,Tree/canopy,Ground forager,Insectivore,Transient,Native,APPA compiled,Shorebirds
+Tringa incana,,Wandering Tattler,Scolopacidae (Sandpipers and Allies),6098,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Tringa flavipes,,Lesser Yellowlegs,Scolopacidae (Sandpipers and Allies),6109,Shorebirds,Ground,Prober,Insectivore,Transient,Native,APPA compiled,Shorebirds
+Tringa semipalmata,,Willet,Scolopacidae (Sandpipers and Allies),6111,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Tringa melanoleuca,,Greater Yellowlegs,Scolopacidae (Sandpipers and Allies),6118,Shorebirds,Ground,Prober,Insectivore,Transient,Native,APPA compiled,Shorebirds
+Arenaria interpres,,Ruddy Turnstone,Scolopacidae (Sandpipers and Allies),6125,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Arenaria melanocephala,,Black Turnstone,Scolopacidae (Sandpipers and Allies),6128,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Calidris canutus,,Red Knot,Scolopacidae (Sandpipers and Allies),6130,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Calidris himantopus,,Stilt Sandpiper,Scolopacidae (Sandpipers and Allies),6147,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Calidris subruficollis,,Buff-breasted Sandpiper,Scolopacidae (Sandpipers and Allies),6152,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Calidris alba,,Sanderling,Scolopacidae (Sandpipers and Allies),6153,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Calidris alpina,,Dunlin,Scolopacidae (Sandpipers and Allies),6156,Shorebirds,Ground,Prober,Insectivore,Transient,Native,APPA compiled,Shorebirds
+Calidris maritima,,Purple Sandpiper,Scolopacidae (Sandpipers and Allies),6171,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Calidris bairdii,,Baird's Sandpiper,Scolopacidae (Sandpipers and Allies),6180,Shorebirds,,,,,Native,Original guild sheet,Shorebirds
+Calidris fuscicollis,,White-rumped Sandpiper,Scolopacidae (Sandpipers and Allies),6183,Shorebirds,Ground,Prober,Insectivore,Transient,Native,APPA compiled,Shorebirds
+Calidris minutilla,,Least Sandpiper,Scolopacidae (Sandpipers and Allies),6187,Shorebirds,Ground,Prober,Insectivore,Transient,Native,APPA compiled,Shorebirds
+Calidris melanotos,,Pectoral Sandpiper,Scolopacidae (Sandpipers and Allies),6188,Shorebirds,Ground,Prober,Insectivore,Transient,Native,APPA compiled,Shorebirds
+Calidris pusilla,,Semipalmated Sandpiper,Scolopacidae (Sandpipers and Allies),6193,Shorebirds,Ground,Prober,Insectivore,Transient,Native,APPA compiled,
+Chroicocephalus philadelphia,,Bonaparte's Gull,"Laridae (Gulls, Terns, and Skimmers)",6422,Waterbird,Tree/canopy,Fish eater,Omnivore,Winter visitor,Native,APPA compiled,
+Leucophaeus atricilla,,Laughing Gull,"Laridae (Gulls, Terns, and Skimmers)",6448,Seabirds,Ground,Generalist omnivore,Omnivore,Short-distance migrant,Native,APPA compiled,
+Larus delawarensis,,Ring-billed Gull,"Laridae (Gulls, Terns, and Skimmers)",6479,Waterbird,Ground,Generalist omnivore,Omnivore,Short-distance migrant,Native,APPA compiled,
+Larus smithsonianus,Larus argentatus,American Herring Gull,"Laridae (Gulls, Terns, and Skimmers)",6496,Waterbird,Ground,Generalist omnivore,Omnivore,Resident,Native,APPA compiled,
+Larus marinus,,Great Black-backed Gull,"Laridae (Gulls, Terns, and Skimmers)",6516,Seabirds,Ground,Generalist omnivore,Omnivore,Resident,Native,APPA compiled,
+Hydroprogne caspia,,Caspian Tern,"Laridae (Gulls, Terns, and Skimmers)",6657,Waterbird,Ground,Fish eater,Piscivore,Transient,Native,APPA compiled,
+Sterna forsteri,,Forster's Tern,"Laridae (Gulls, Terns, and Skimmers)",6670,Waterbird,Emergent vegetation,Fish eater,Piscivore,Transient,Native,APPA compiled,
+Sterna hirundo,,Common Tern,"Laridae (Gulls, Terns, and Skimmers)",6686,Waterbird,Ground,Fish eater,Piscivore,Neotropical migrant,Native,APPA compiled,
+Gavia stellata,,Red-throated Loon,Gaviidae (Loons),6768,Seabirds,Ground,Diver,Piscivore,Winter visitor,Native,APPA compiled,
+Gavia immer,,Common Loon,Gaviidae (Loons),6774,Waterbird,Floating/water,Diver,Piscivore,Short-distance migrant,Native,APPA compiled,
+Phoebastria immutabilis,,Laysan Albatross,Diomedeidae (Albatrosses),6827,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Phoebastria nigripes,,Black-footed Albatross,Diomedeidae (Albatrosses),6828,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Oceanites oceanicus,,Wilson's Storm-Petrel,Oceanitidae (Southern Storm-Petrels),6853,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Hydrobates furcatus,,Fork-tailed Storm-Petrel,Hydrobatidae (Northern Storm-Petrels),6888,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Fulmarus glacialis,,Northern Fulmar,Procellariidae (Shearwaters and Petrels),6928,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Ardenna gravis,,Great Shearwater,Procellariidae (Shearwaters and Petrels),7040,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Ardenna grisea,,Sooty Shearwater,Procellariidae (Shearwaters and Petrels),7046,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Fregata magnificens,,Magnificent Frigatebird,Fregatidae (Frigatebirds),7147,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Morus bassanus,,Northern Gannet,Sulidae (Boobies and Gannets),7165,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Sula sula,,Red-footed Booby,Sulidae (Boobies and Gannets),7168,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Sula leucogaster,,Brown Booby,Sulidae (Boobies and Gannets),7172,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Sula dactylatra,,Masked Booby,Sulidae (Boobies and Gannets),7177,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Sula nebouxii,,Blue-footed Booby,Sulidae (Boobies and Gannets),7186,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Anhinga anhinga,,Anhinga,Anhingidae (Anhingas),7195,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Urile penicillatus,,Brandt's Cormorant,Phalacrocoracidae (Cormorants and Shags),7216,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Urile urile,,Red-faced Cormorant,Phalacrocoracidae (Cormorants and Shags),7217,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Urile pelagicus,,Pelagic Cormorant,Phalacrocoracidae (Cormorants and Shags),7218,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Phalacrocorax carbo,,Great Cormorant,Phalacrocoracidae (Cormorants and Shags),7224,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Nannopterum auritum,,Double-crested Cormorant,Phalacrocoracidae (Cormorants and Shags),7253,Waterbird,Tree/canopy,Diver,Piscivore,Short-distance migrant,Native,APPA compiled,Seabirds
+Nannopterum brasilianum,,Neotropic Cormorant,Phalacrocoracidae (Cormorants and Shags),7260,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Pelecanus erythrorhynchos,,American White Pelican,Pelecanidae (Pelicans),7288,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Pelecanus occidentalis,,Brown Pelican,Pelecanidae (Pelicans),7289,Seabirds,,,,,Native,Original guild sheet,Seabirds
+Botaurus lentiginosus,,American Bittern,"Ardeidae (Herons, Egrets, and Bitterns)",7335,Wetland,Emergent vegetation,Wading stalker,Carnivore,Short-distance migrant,Native,APPA compiled,
+Botaurus exilis,Ixobrychus exilis,Least Bittern,"Ardeidae (Herons, Egrets, and Bitterns)",7340,Wetland,Emergent vegetation,Wading stalker,Piscivore,Neotropical migrant,Native,APPA compiled,
+Nyctanassa violacea,,Yellow-crowned Night Heron,"Ardeidae (Herons, Egrets, and Bitterns)",7364,Wetland,Tree/canopy,Wading stalker,Carnivore,Short-distance migrant,Native,APPA compiled,
+Nycticorax nycticorax,,Black-crowned Night Heron,"Ardeidae (Herons, Egrets, and Bitterns)",7373,Wetland,Tree/canopy,Wading stalker,Piscivore,Short-distance migrant,Native,APPA compiled,
+Egretta caerulea,,Little Blue Heron,"Ardeidae (Herons, Egrets, and Bitterns)",7401,Wetland,Tree/canopy,Wading stalker,Piscivore,Short-distance migrant,Native,APPA compiled,
+Butorides virescens,,Green Heron,"Ardeidae (Herons, Egrets, and Bitterns)",7469,Wetland,Tree/canopy,Wading stalker,Piscivore,Neotropical migrant,Native,APPA compiled,
+Ardea ibis,Bubulcus ibis,Western Cattle-Egret,"Ardeidae (Herons, Egrets, and Bitterns)",7487,Edge Generalist,Tree/canopy,Ground forager,Insectivore,Short-distance migrant,Native,APPA compiled,
+Ardea alba,,Great Egret,"Ardeidae (Herons, Egrets, and Bitterns)",7491,Wetland,Tree/canopy,Wading stalker,Piscivore,Short-distance migrant,Native,APPA compiled,
+Ardea herodias,,Great Blue Heron,"Ardeidae (Herons, Egrets, and Bitterns)",7514,Wetland,Tree/canopy,Wading stalker,Piscivore,Short-distance migrant,Native,APPA compiled,
+Plegadis falcinellus,,Glossy Ibis,Threskiornithidae (Ibises and Spoonbills),7551,Wetland,Tree/canopy,Prober,Insectivore,Short-distance migrant,Native,APPA compiled,
+Coragyps atratus,,Black Vulture,Cathartidae (New World Vultures),7620,Edge Generalist,Cliff/structure,Scavenger,Carnivore,Resident,Native,APPA compiled,
+Cathartes aura,,Turkey Vulture,Cathartidae (New World Vultures),7624,Edge Generalist,Cliff/structure,Scavenger,Carnivore,Short-distance migrant,Native,APPA compiled,
+Pandion haliaetus,,Osprey,Pandionidae (Osprey),7640,Riparian,Tree/canopy,Fish eater,Piscivore,Neotropical migrant,Native,APPA compiled,
+Aquila chrysaetos,,Golden Eagle,"Accipitridae (Hawks, Eagles, and Kites)",7875,Edge Generalist,Cliff/structure,Raptor,Carnivore,Winter visitor,Native,APPA compiled,
+Ictinia mississippiensis,,Mississippi Kite,"Accipitridae (Hawks, Eagles, and Kites)",7926,Edge Generalist,Tree/canopy,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Circus hudsonius,,Northern Harrier,"Accipitridae (Hawks, Eagles, and Kites)",7950,Grassland Obligate,Ground,Raptor,Carnivore,Short-distance migrant,Native,APPA compiled,Grassland Obligate
+Accipiter striatus,,Sharp-shinned Hawk,"Accipitridae (Hawks, Eagles, and Kites)",8109,Forest Generalist,Tree/canopy,Raptor,Carnivore,Short-distance migrant,Native,APPA compiled,
+Astur cooperii,Accipiter cooperii,Cooper's Hawk,"Accipitridae (Hawks, Eagles, and Kites)",8122,Forest Generalist,Tree/canopy,Raptor,Carnivore,Resident,Native,APPA compiled,
+Astur atricapillus,Accipiter atricapillus,American Goshawk,"Accipitridae (Hawks, Eagles, and Kites)",8149,Forest Interior,Tree/canopy,Raptor,Carnivore,Resident,Native,APPA compiled,
+Haliaeetus leucocephalus,,Bald Eagle,"Accipitridae (Hawks, Eagles, and Kites)",8187,Riparian,Tree/canopy,Fish eater,Piscivore,Resident,Native,APPA compiled,
+Buteo lineatus,,Red-shouldered Hawk,"Accipitridae (Hawks, Eagles, and Kites)",8284,Forest Generalist,Tree/canopy,Raptor,Carnivore,Resident,Native,APPA compiled,
+Buteo platypterus,,Broad-winged Hawk,"Accipitridae (Hawks, Eagles, and Kites)",8293,Forest Interior,Tree/canopy,Raptor,Carnivore,Neotropical migrant,Native,APPA compiled,
+Buteo jamaicensis,,Red-tailed Hawk,"Accipitridae (Hawks, Eagles, and Kites)",8312,Edge Generalist,Tree/canopy,Raptor,Carnivore,Resident,Native,APPA compiled,
+Buteo lagopus,,Rough-legged Hawk,"Accipitridae (Hawks, Eagles, and Kites)",8332,Grassland Obligate,Cliff/structure,Raptor,Carnivore,Winter visitor,Native,APPA compiled,
+Tyto furcata,Tyto alba,American Barn Owl,Tytonidae (Barn-Owls),8416,Grassland Obligate,Secondary cavity,Raptor,Carnivore,Resident,Native,APPA compiled,
+Megascops asio,,Eastern Screech-Owl,Strigidae (Owls),8664,Forest Generalist,Secondary cavity,Raptor,Carnivore,Resident,Native,APPA compiled,
+Bubo scandiacus,,Snowy Owl,Strigidae (Owls),8704,Grassland Obligate,Ground,Raptor,Carnivore,Winter visitor,Native,APPA compiled,
+Bubo virginianus,,Great Horned Owl,Strigidae (Owls),8705,Forest Generalist,Tree/canopy,Raptor,Carnivore,Resident,Native,APPA compiled,
+Strix varia,,Barred Owl,Strigidae (Owls),9011,Forest Interior,Secondary cavity,Raptor,Carnivore,Resident,Native,APPA compiled,
+Asio otus,,Long-eared Owl,Strigidae (Owls),9045,Forest Generalist,Tree/canopy,Raptor,Carnivore,Winter visitor,Native,APPA compiled,
+Asio flammeus,,Short-eared Owl,Strigidae (Owls),9068,Grassland Obligate,Ground,Raptor,Carnivore,Winter visitor,Native,APPA compiled,Grassland Obligate
+Aegolius acadicus,,Northern Saw-whet Owl,Strigidae (Owls),9096,High-elevation Conifer,Secondary cavity,Raptor,Carnivore,Short-distance migrant,Native,APPA compiled,
+Megaceryle alcyon,,Belted Kingfisher,Alcedinidae (Kingfishers),10022,Riparian,Burrow/bank,Fish eater,Piscivore,Short-distance migrant,Native,APPA compiled,
+Sphyrapicus varius,,Yellow-bellied Sapsucker,Picidae (Woodpeckers),10907,Forest Generalist,Cavity excavator,Bark forager,Omnivore,Short-distance migrant,Native,APPA compiled,
+Melanerpes erythrocephalus,,Red-headed Woodpecker,Picidae (Woodpeckers),10926,Edge Generalist,Cavity excavator,Aerial insectivore,Omnivore,Short-distance migrant,Native,APPA compiled,
+Melanerpes carolinus,,Red-bellied Woodpecker,Picidae (Woodpeckers),10979,Forest Generalist,Cavity excavator,Bark forager,Omnivore,Resident,Native,APPA compiled,
+Picoides arcticus,,Black-backed Woodpecker,Picidae (Woodpeckers),11000,High-elevation Conifer,Cavity excavator,Bark forager,Insectivore,Resident,Native,APPA compiled,
+Dryobates pubescens,,Downy Woodpecker,Picidae (Woodpeckers),11175,Forest Generalist,Cavity excavator,Bark forager,Insectivore,Resident,Native,APPA compiled,
+Dryobates villosus,,Hairy Woodpecker,Picidae (Woodpeckers),11202,Forest Interior,Cavity excavator,Bark forager,Insectivore,Resident,Native,APPA compiled,
+Dryocopus pileatus,,Pileated Woodpecker,Picidae (Woodpeckers),11527,Forest Interior,Cavity excavator,Bark forager,Insectivore,Resident,Native,APPA compiled,
+Colaptes auratus,,Northern Flicker,Picidae (Woodpeckers),11665,Edge Generalist,Cavity excavator,Ground forager,Insectivore,Short-distance migrant,Native,APPA compiled,
+Falco sparverius,,American Kestrel,Falconidae (Falcons and Caracaras),11791,Grassland Obligate,Secondary cavity,Raptor,Carnivore,Short-distance migrant,Native,APPA compiled,Grassland Obligate
+Falco columbarius,,Merlin,Falconidae (Falcons and Caracaras),11825,Edge Generalist,Tree/canopy,Raptor,Carnivore,Short-distance migrant,Native,APPA compiled,
+Falco peregrinus,,Peregrine Falcon,Falconidae (Falcons and Caracaras),11875,Edge Generalist,Cliff/structure,Raptor,Carnivore,Short-distance migrant,Native,APPA compiled,
+Contopus cooperi,,Olive-sided Flycatcher,Tyrannidae (Tyrant Flycatchers),16581,High-elevation Conifer,Tree/canopy,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Contopus virens,,Eastern Wood-Pewee,Tyrannidae (Tyrant Flycatchers),16615,Forest Generalist,Tree/canopy,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Empidonax flaviventris,,Yellow-bellied Flycatcher,Tyrannidae (Tyrant Flycatchers),16640,High-elevation Conifer,Ground,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Empidonax virescens,,Acadian Flycatcher,Tyrannidae (Tyrant Flycatchers),16641,Forest Interior,Tree/canopy,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Empidonax alnorum,,Alder Flycatcher,Tyrannidae (Tyrant Flycatchers),16642,Shrub-dependent,Shrub,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,Shrub-dependent
+Empidonax traillii,,Willow Flycatcher,Tyrannidae (Tyrant Flycatchers),16643,Shrub-dependent,Shrub,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,Shrub-dependent
+Empidonax minimus,,Least Flycatcher,Tyrannidae (Tyrant Flycatchers),16654,Forest Generalist,Tree/canopy,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Sayornis phoebe,,Eastern Phoebe,Tyrannidae (Tyrant Flycatchers),16697,Edge Generalist,Cliff/structure,Aerial insectivore,Insectivore,Short-distance migrant,Native,APPA compiled,Edge Generalist
+Myiarchus crinitus,,Great Crested Flycatcher,Tyrannidae (Tyrant Flycatchers),17021,Forest Generalist,Secondary cavity,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Tyrannus tyrannus,,Eastern Kingbird,Tyrannidae (Tyrant Flycatchers),17156,Edge Generalist,Tree/canopy,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Vireo griseus,,White-eyed Vireo,"Vireonidae (Vireos, Shrike-Babblers, and Erpornis)",18816,Shrub-dependent,Shrub,Foliage gleaner,Insectivore,Short-distance migrant,Native,APPA compiled,
+Vireo flavifrons,,Yellow-throated Vireo,"Vireonidae (Vireos, Shrike-Babblers, and Erpornis)",18867,Forest Generalist,Tree/canopy,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Vireo solitarius,,Blue-headed Vireo,"Vireonidae (Vireos, Shrike-Babblers, and Erpornis)",18873,Forest Interior,Tree/canopy,Foliage gleaner,Insectivore,Short-distance migrant,Native,APPA compiled,
+Vireo philadelphicus,,Philadelphia Vireo,"Vireonidae (Vireos, Shrike-Babblers, and Erpornis)",18889,Forest Generalist,Tree/canopy,Foliage gleaner,Insectivore,Transient,Native,APPA compiled,
+Vireo gilvus,,Warbling Vireo,"Vireonidae (Vireos, Shrike-Babblers, and Erpornis)",18890,Riparian,Tree/canopy,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Vireo olivaceus,,Red-eyed Vireo,"Vireonidae (Vireos, Shrike-Babblers, and Erpornis)",18910,Forest Interior,Tree/canopy,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Lanius ludovicianus,,Loggerhead Shrike,Laniidae (Shrikes),20684,Grassland Obligate,Shrub,Raptor,Carnivore,Short-distance migrant,Native,APPA compiled,
+Lanius borealis,,Northern Shrike,Laniidae (Shrikes),20696,Grassland Obligate,Tree/canopy,Raptor,Carnivore,Winter visitor,Native,APPA compiled,
+Perisoreus canadensis,,Canada Jay,"Corvidae (Crows, Jays, and Magpies)",20787,High-elevation Conifer,Tree/canopy,Generalist omnivore,Omnivore,Resident,Native,APPA compiled,
+Cyanocitta cristata,,Blue Jay,"Corvidae (Crows, Jays, and Magpies)",20899,Forest Generalist,Tree/canopy,Ground forager,Omnivore,Resident,Native,APPA compiled,Edge Generalist
+Corvus brachyrhynchos,,American Crow,"Corvidae (Crows, Jays, and Magpies)",21168,Edge Generalist,Tree/canopy,Generalist omnivore,Omnivore,Resident,Native,APPA compiled,Edge Generalist
+Corvus ossifragus,,Fish Crow,"Corvidae (Crows, Jays, and Magpies)",21181,Edge Generalist,Tree/canopy,Generalist omnivore,Omnivore,Resident,Native,APPA compiled,Edge Generalist
+Corvus corax,,Common Raven,"Corvidae (Crows, Jays, and Magpies)",21235,Forest Generalist,Cliff/structure,Generalist omnivore,Omnivore,Resident,Native,APPA compiled,Edge Generalist
+Poecile carolinensis,,Carolina Chickadee,"Paridae (Tits, Chickadees, and Titmice)",21671,Forest Generalist,Cavity excavator,Foliage gleaner,Insectivore,Resident,Native,APPA compiled,
+Poecile atricapillus,,Black-capped Chickadee,"Paridae (Tits, Chickadees, and Titmice)",21676,Forest Generalist,Cavity excavator,Foliage gleaner,Insectivore,Resident,Native,APPA compiled,Edge Generalist
+Poecile hudsonicus,,Boreal Chickadee,"Paridae (Tits, Chickadees, and Titmice)",21710,High-elevation Conifer,Cavity excavator,Foliage gleaner,Insectivore,Resident,Native,APPA compiled,
+Baeolophus bicolor,,Tufted Titmouse,"Paridae (Tits, Chickadees, and Titmice)",21771,Forest Generalist,Secondary cavity,Foliage gleaner,Omnivore,Resident,Native,APPA compiled,Edge Generalist
+Eremophila alpestris,,Horned Lark,Alaudidae (Larks),22182,Grassland Obligate,Ground,Ground forager,Omnivore,Resident,Native,APPA compiled,Grassland Obligate
+Riparia riparia,,Bank Swallow,Hirundinidae (Swallows),23636,Riparian,Burrow/bank,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Tachycineta bicolor,,Tree Swallow,Hirundinidae (Swallows),23649,Wetland,Secondary cavity,Aerial insectivore,Insectivore,Short-distance migrant,Native,APPA compiled,Edge Generalist
+Progne subis,,Purple Martin,Hirundinidae (Swallows),23666,Edge Generalist,Secondary cavity,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Stelgidopteryx serripennis,,Northern Rough-winged Swallow,Hirundinidae (Swallows),23691,Riparian,Burrow/bank,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Hirundo rustica,,Barn Swallow,Hirundinidae (Swallows),23772,Edge Generalist,Cliff/structure,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Petrochelidon pyrrhonota,,Cliff Swallow,Hirundinidae (Swallows),23861,Edge Generalist,Cliff/structure,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Corthylio calendula,,Ruby-crowned Kinglet,Regulidae (Kinglets),26391,High-elevation Conifer,Tree/canopy,Foliage gleaner,Insectivore,Short-distance migrant,Native,APPA compiled,
+Regulus satrapa,,Golden-crowned Kinglet,Regulidae (Kinglets),26395,High-elevation Conifer,Tree/canopy,Foliage gleaner,Insectivore,Short-distance migrant,Native,APPA compiled,
+Sitta carolinensis,,White-breasted Nuthatch,Sittidae (Nuthatches),26436,Forest Interior,Secondary cavity,Bark forager,Omnivore,Resident,Native,APPA compiled,
+Sitta canadensis,,Red-breasted Nuthatch,Sittidae (Nuthatches),26484,High-elevation Conifer,Cavity excavator,Bark forager,Omnivore,Short-distance migrant,Native,APPA compiled,
+Certhia americana,,Brown Creeper,Certhiidae (Treecreepers),26564,Forest Interior,Tree/canopy,Bark forager,Insectivore,Short-distance migrant,Native,APPA compiled,
+Polioptila caerulea,,Blue-gray Gnatcatcher,Polioptilidae (Gnatcatchers),26669,Forest Generalist,Tree/canopy,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Troglodytes aedon,,House Wren,Troglodytidae (Wrens),26737,Edge Generalist,Secondary cavity,Foliage gleaner,Insectivore,Short-distance migrant,Native,APPA compiled,Edge Generalist
+Troglodytes hiemalis,,Winter Wren,Troglodytidae (Wrens),26844,Forest Interior,Ground,Ground forager,Insectivore,Short-distance migrant,Native,APPA compiled,
+Cistothorus stellaris,,Sedge Wren,Troglodytidae (Wrens),26852,Grassland Obligate,Ground,Ground forager,Insectivore,Short-distance migrant,Native,APPA compiled,
+Cistothorus palustris,,Marsh Wren,Troglodytidae (Wrens),26878,Wetland,Emergent vegetation,Foliage gleaner,Insectivore,Short-distance migrant,Native,APPA compiled,
+Thryothorus ludovicianus,,Carolina Wren,Troglodytidae (Wrens),26897,Edge Generalist,Secondary cavity,Ground forager,Insectivore,Resident,Native,APPA compiled,
+Sturnus vulgaris,,European Starling,Sturnidae (Starlings),27356,Edge Generalist,Secondary cavity,Ground forager,Omnivore,Resident,Exotic,APPA compiled,Edge Generalist; Exotic
+Dumetella carolinensis,,Gray Catbird,Mimidae (Mockingbirds and Thrashers),27539,Shrub-dependent,Shrub,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Edge Generalist
+Toxostoma rufum,,Brown Thrasher,Mimidae (Mockingbirds and Thrashers),27577,Shrub-dependent,Shrub,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Shrub-dependent
+Mimus polyglottos,,Northern Mockingbird,Mimidae (Mockingbirds and Thrashers),27652,Edge Generalist,Shrub,Ground forager,Omnivore,Resident,Native,APPA compiled,Edge Generalist
+Sialia sialis,,Eastern Bluebird,Turdidae (Thrushes and Allies),27662,Edge Generalist,Secondary cavity,Ground forager,Insectivore,Short-distance migrant,Native,APPA compiled,Edge Generalist
+Catharus fuscescens,,Veery,Turdidae (Thrushes and Allies),27846,Forest Interior,Ground,Ground forager,Insectivore,Neotropical migrant,Native,APPA compiled,
+Catharus minimus,,Gray-cheeked Thrush,Turdidae (Thrushes and Allies),27851,High-elevation Conifer,Shrub,Ground forager,Insectivore,Transient,Native,APPA compiled,
+Catharus bicknelli,,Bicknell's Thrush,Turdidae (Thrushes and Allies),27854,High-elevation Conifer,Shrub,Ground forager,Insectivore,Neotropical migrant,Native,APPA compiled,
+Catharus ustulatus,,Swainson's Thrush,Turdidae (Thrushes and Allies),27857,High-elevation Conifer,Shrub,Ground forager,Insectivore,Neotropical migrant,Native,APPA compiled,
+Catharus guttatus,,Hermit Thrush,Turdidae (Thrushes and Allies),27866,Forest Interior,Ground,Ground forager,Insectivore,Short-distance migrant,Native,APPA compiled,
+Hylocichla mustelina,,Wood Thrush,Turdidae (Thrushes and Allies),27880,Forest Interior,Tree/canopy,Ground forager,Insectivore,Neotropical migrant,Native,APPA compiled,
+Turdus migratorius,,American Robin,Turdidae (Thrushes and Allies),28096,Edge Generalist,Tree/canopy,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Edge Generalist
+Bombycilla cedrorum,,Cedar Waxwing,Bombycillidae (Waxwings),29386,Edge Generalist,Tree/canopy,Foliage gleaner,Frugivore,Short-distance migrant,Native,APPA compiled,Edge Generalist
+Passer domesticus,,House Sparrow,Passeridae (Old World Sparrows),31018,Edge Generalist,Secondary cavity,Ground forager,Granivore,Resident,Exotic,APPA compiled,Edge Generalist; Exotic
+Anthus rubescens,,American Pipit,Motacillidae (Wagtails and Pipits),31361,Grassland Obligate,Ground,Ground forager,Insectivore,Transient,Native,APPA compiled,
+Coccothraustes vespertinus,,Evening Grosbeak,"Fringillidae (Finches, Euphonias, and Allies)",31563,High-elevation Conifer,Tree/canopy,Seed eater,Granivore,Winter visitor,Native,APPA compiled,
+Pinicola enucleator,,Pine Grosbeak,"Fringillidae (Finches, Euphonias, and Allies)",31701,High-elevation Conifer,Tree/canopy,Seed eater,Granivore,Winter visitor,Native,APPA compiled,
+Haemorhous mexicanus,,House Finch,"Fringillidae (Finches, Euphonias, and Allies)",31790,Edge Generalist,Tree/canopy,Seed eater,Granivore,Resident,Exotic,APPA compiled,Edge Generalist; Exotic
+Haemorhous purpureus,,Purple Finch,"Fringillidae (Finches, Euphonias, and Allies)",31804,High-elevation Conifer,Tree/canopy,Seed eater,Granivore,Short-distance migrant,Native,APPA compiled,
+Acanthis flammea,,Common Redpoll,"Fringillidae (Finches, Euphonias, and Allies)",31962,Edge Generalist,Shrub,Seed eater,Granivore,Winter visitor,Native,APPA compiled,
+Loxia curvirostra,,Red Crossbill,"Fringillidae (Finches, Euphonias, and Allies)",31977,High-elevation Conifer,Tree/canopy,Seed eater,Granivore,Resident,Native,APPA compiled,
+Loxia leucoptera,,White-winged Crossbill,"Fringillidae (Finches, Euphonias, and Allies)",32020,High-elevation Conifer,Tree/canopy,Seed eater,Granivore,Winter visitor,Native,APPA compiled,
+Spinus pinus,,Pine Siskin,"Fringillidae (Finches, Euphonias, and Allies)",32073,High-elevation Conifer,Tree/canopy,Seed eater,Granivore,Winter visitor,Native,APPA compiled,
+Spinus tristis,,American Goldfinch,"Fringillidae (Finches, Euphonias, and Allies)",32095,Edge Generalist,Shrub,Seed eater,Granivore,Short-distance migrant,Native,APPA compiled,
+Calcarius lapponicus,,Lapland Longspur,Calcariidae (Longspurs and Snow Buntings),32138,Grassland Obligate,Ground,Seed eater,Granivore,Winter visitor,Native,APPA compiled,
+Plectrophenax nivalis,,Snow Bunting,Calcariidae (Longspurs and Snow Buntings),32146,Grassland Obligate,Ground,Seed eater,Granivore,Winter visitor,Native,APPA compiled,
+Ammodramus savannarum,,Grasshopper Sparrow,Passerellidae (New World Sparrows),32413,Grassland Obligate,Ground,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Grassland Obligate
+Spizella passerina,,Chipping Sparrow,Passerellidae (New World Sparrows),32460,Edge Generalist,Tree/canopy,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Edge Generalist
+Spizella pusilla,,Field Sparrow,Passerellidae (New World Sparrows),32473,Shrub-dependent,Shrub,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Shrub-dependent
+Spizelloides arborea,,American Tree Sparrow,Passerellidae (New World Sparrows),32567,Shrub-dependent,Ground,Seed eater,Granivore,Winter visitor,Native,APPA compiled,
+Passerella iliaca,,Fox Sparrow,Passerellidae (New World Sparrows),32571,Shrub-dependent,Ground,Ground forager,Omnivore,Winter visitor,Native,APPA compiled,
+Junco hyemalis,,Dark-eyed Junco,Passerellidae (New World Sparrows),32595,Forest Generalist,Ground,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,
+Zonotrichia leucophrys,,White-crowned Sparrow,Passerellidae (New World Sparrows),32658,Shrub-dependent,Ground,Ground forager,Omnivore,Winter visitor,Native,APPA compiled,
+Zonotrichia albicollis,,White-throated Sparrow,Passerellidae (New World Sparrows),32672,Forest Generalist,Ground,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Edge Generalist
+Pooecetes gramineus,,Vesper Sparrow,Passerellidae (New World Sparrows),32688,Grassland Obligate,Ground,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Grassland Obligate
+Passerculus sandwichensis,,Savannah Sparrow,Passerellidae (New World Sparrows),32715,Grassland Obligate,Ground,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Grassland Obligate
+Centronyx henslowii,,Henslow's Sparrow,Passerellidae (New World Sparrows),32743,Grassland Obligate,Ground,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,
+Melospiza melodia,,Song Sparrow,Passerellidae (New World Sparrows),32748,Shrub-dependent,Shrub,Ground forager,Omnivore,Resident,Native,APPA compiled,Edge Generalist
+Melospiza lincolnii,,Lincoln's Sparrow,Passerellidae (New World Sparrows),32781,Wetland,Ground,Ground forager,Omnivore,Transient,Native,APPA compiled,
+Melospiza georgiana,,Swamp Sparrow,Passerellidae (New World Sparrows),32786,Wetland,Emergent vegetation,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,
+Pipilo erythrophthalmus,,Eastern Towhee,Passerellidae (New World Sparrows),32888,Shrub-dependent,Ground,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Shrub-dependent
+Icteria virens,,Yellow-breasted Chat,Icteriidae (Yellow-breasted Chat),33035,Shrub-dependent,Shrub,Foliage gleaner,Omnivore,Neotropical migrant,Native,APPA compiled,
+Dolichonyx oryzivorus,,Bobolink,Icteridae (Troupials and Allies),33040,Grassland Obligate,Ground,Ground forager,Omnivore,Neotropical migrant,Native,APPA compiled,Grassland Obligate
+Sturnella magna,,Eastern Meadowlark,Icteridae (Troupials and Allies),33044,Grassland Obligate,Ground,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Grassland Obligate
+Icterus spurius,,Orchard Oriole,Icteridae (Troupials and Allies),33153,Edge Generalist,Tree/canopy,Foliage gleaner,Omnivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Icterus galbula,,Baltimore Oriole,Icteridae (Troupials and Allies),33241,Edge Generalist,Tree/canopy,Foliage gleaner,Omnivore,Neotropical migrant,Native,APPA compiled,Edge Generalist
+Agelaius phoeniceus,,Red-winged Blackbird,Icteridae (Troupials and Allies),33251,Wetland,Emergent vegetation,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Edge Generalist
+Molothrus ater,,Brown-headed Cowbird,Icteridae (Troupials and Allies),33307,Edge Generalist,Brood parasite,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Edge Generalist
+Euphagus carolinus,,Rusty Blackbird,Icteridae (Troupials and Allies),33322,Wetland,Tree/canopy,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,
+Quiscalus quiscula,,Common Grackle,Icteridae (Troupials and Allies),33327,Edge Generalist,Tree/canopy,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,Edge Generalist
+Seiurus aurocapilla,,Ovenbird,Parulidae (New World Warblers),33419,Forest Interior,Ground,Ground forager,Insectivore,Neotropical migrant,Native,APPA compiled,
+Helmitheros vermivorum,,Worm-eating Warbler,Parulidae (New World Warblers),33423,Forest Interior,Ground,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Parkesia motacilla,,Louisiana Waterthrush,Parulidae (New World Warblers),33425,Riparian,Ground,Ground forager,Insectivore,Neotropical migrant,Native,APPA compiled,
+Parkesia noveboracensis,,Northern Waterthrush,Parulidae (New World Warblers),33426,Wetland,Ground,Ground forager,Insectivore,Neotropical migrant,Native,APPA compiled,
+Vermivora chrysoptera,,Golden-winged Warbler,Parulidae (New World Warblers),33429,Shrub-dependent,Ground,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,Shrub-dependent
+Vermivora cyanoptera,,Blue-winged Warbler,Parulidae (New World Warblers),33430,Shrub-dependent,Ground,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,Shrub-dependent
+Mniotilta varia,,Black-and-white Warbler,Parulidae (New World Warblers),33435,Forest Interior,Ground,Bark forager,Insectivore,Neotropical migrant,Native,APPA compiled,
+Protonotaria citrea,,Prothonotary Warbler,Parulidae (New World Warblers),33436,Riparian,Secondary cavity,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Limnothlypis swainsonii,,Swainson's Warbler,Parulidae (New World Warblers),33437,Forest Interior,Shrub,Ground forager,Insectivore,Neotropical migrant,Native,APPA compiled,
+Leiothlypis peregrina,,Tennessee Warbler,Parulidae (New World Warblers),33445,High-elevation Conifer,Ground,Foliage gleaner,Insectivore,Transient,Native,APPA compiled,
+Leiothlypis ruficapilla,,Nashville Warbler,Parulidae (New World Warblers),33454,Shrub-dependent,Ground,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Geothlypis philadelphia,,Mourning Warbler,Parulidae (New World Warblers),33479,Shrub-dependent,Ground,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Geothlypis formosa,,Kentucky Warbler,Parulidae (New World Warblers),33484,Forest Interior,Ground,Ground forager,Insectivore,Neotropical migrant,Native,APPA compiled,
+Geothlypis trichas,,Common Yellowthroat,Parulidae (New World Warblers),33499,Shrub-dependent,Ground,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,Shrub-dependent
+Setophaga citrina,,Hooded Warbler,Parulidae (New World Warblers),33528,Forest Interior,Shrub,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Setophaga ruticilla,,American Redstart,Parulidae (New World Warblers),33529,Forest Generalist,Tree/canopy,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Setophaga tigrina,,Cape May Warbler,Parulidae (New World Warblers),33531,High-elevation Conifer,Tree/canopy,Foliage gleaner,Insectivore,Transient,Native,APPA compiled,
+Setophaga cerulea,,Cerulean Warbler,Parulidae (New World Warblers),33532,Forest Interior,Tree/canopy,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Setophaga americana,,Northern Parula,Parulidae (New World Warblers),33534,Forest Interior,Tree/canopy,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Setophaga magnolia,,Magnolia Warbler,Parulidae (New World Warblers),33550,High-elevation Conifer,Shrub,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Setophaga castanea,,Bay-breasted Warbler,Parulidae (New World Warblers),33554,High-elevation Conifer,Tree/canopy,Foliage gleaner,Insectivore,Transient,Native,APPA compiled,
+Setophaga fusca,,Blackburnian Warbler,Parulidae (New World Warblers),33555,High-elevation Conifer,Tree/canopy,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Setophaga petechia,,Yellow Warbler,Parulidae (New World Warblers),33557,Riparian,Shrub,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,Shrub-dependent
+Setophaga pensylvanica,,Chestnut-sided Warbler,Parulidae (New World Warblers),33599,Shrub-dependent,Shrub,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,Shrub-dependent
+Setophaga striata,,Blackpoll Warbler,Parulidae (New World Warblers),33601,High-elevation Conifer,Shrub,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Setophaga caerulescens,,Black-throated Blue Warbler,Parulidae (New World Warblers),33604,Forest Interior,Shrub,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Setophaga palmarum,,Palm Warbler,Parulidae (New World Warblers),33611,Shrub-dependent,Ground,Ground forager,Insectivore,Transient,Native,APPA compiled,
+Setophaga pinus,,Pine Warbler,Parulidae (New World Warblers),33616,Forest Generalist,Tree/canopy,Bark forager,Omnivore,Short-distance migrant,Native,APPA compiled,
+Setophaga coronata,,Yellow-rumped Warbler,Parulidae (New World Warblers),33622,High-elevation Conifer,Tree/canopy,Foliage gleaner,Omnivore,Short-distance migrant,Native,APPA compiled,
+Setophaga dominica,,Yellow-throated Warbler,Parulidae (New World Warblers),33631,Forest Generalist,Tree/canopy,Bark forager,Insectivore,Neotropical migrant,Native,APPA compiled,
+Setophaga discolor,,Prairie Warbler,Parulidae (New World Warblers),33643,Shrub-dependent,Shrub,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,Shrub-dependent
+Setophaga virens,,Black-throated Green Warbler,Parulidae (New World Warblers),33675,Forest Interior,Tree/canopy,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Cardellina canadensis,,Canada Warbler,Parulidae (New World Warblers),33798,Forest Interior,Ground,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Cardellina pusilla,,Wilson's Warbler,Parulidae (New World Warblers),33799,Shrub-dependent,Ground,Foliage gleaner,Insectivore,Transient,Native,APPA compiled,
+Piranga rubra,,Summer Tanager,Cardinalidae (Cardinals and Allies),33885,Forest Generalist,Tree/canopy,Aerial insectivore,Insectivore,Neotropical migrant,Native,APPA compiled,
+Piranga olivacea,,Scarlet Tanager,Cardinalidae (Cardinals and Allies),33889,Forest Interior,Tree/canopy,Foliage gleaner,Insectivore,Neotropical migrant,Native,APPA compiled,
+Cardinalis cardinalis,,Northern Cardinal,Cardinalidae (Cardinals and Allies),33967,Edge Generalist,Shrub,Ground forager,Omnivore,Resident,Native,APPA compiled,Edge Generalist
+Pheucticus ludovicianus,,Rose-breasted Grosbeak,Cardinalidae (Cardinals and Allies),34009,Forest Generalist,Tree/canopy,Foliage gleaner,Omnivore,Neotropical migrant,Native,APPA compiled,
+Passerina caerulea,,Blue Grosbeak,Cardinalidae (Cardinals and Allies),34051,Shrub-dependent,Shrub,Ground forager,Omnivore,Neotropical migrant,Native,APPA compiled,
+Passerina cyanea,,Indigo Bunting,Cardinalidae (Cardinals and Allies),34060,Shrub-dependent,Shrub,Ground forager,Omnivore,Neotropical migrant,Native,APPA compiled,Shrub-dependent
+Spiza americana,,Dickcissel,Cardinalidae (Cardinals and Allies),34080,Grassland Obligate,Shrub,Ground forager,Omnivore,Neotropical migrant,Native,APPA compiled,Grassland Obligate
+Sitta pusilla,,Brown-headed Nuthatch,Sittidae,,Forest Generalist,Cavity excavator,Bark forager,Omnivore,Resident,Native,APPA compiled,
+Passerina ciris,,Painted Bunting,Cardinalidae,,Shrub-dependent,Shrub,Ground forager,Omnivore,Short-distance migrant,Native,APPA compiled,
+Clangula hyemalis,,Long-tailed Duck,Anatidae,,Waterbird,Ground,Diver,Omnivore,Winter visitor,Native,APPA compiled,
+Aramus guarauna,,Limpkin,Aramidae,,Wetland,Emergent vegetation,Prober,Carnivore,Resident,Native,APPA compiled,
+Cygnus buccinator,,Trumpeter Swan,Anatidae,,Waterbird,Ground,Dabbler/grazer,Herbivore,Resident,Native,APPA compiled,
+Anas fulvigula,,Mottled Duck,Anatidae,,Wetland,Ground,Dabbler/grazer,Omnivore,Resident,Native,APPA compiled,
+Myadestes townsendi,,Townsend's Solitaire,Turdidae,,High-elevation Conifer,Ground,Foliage gleaner,Frugivore,Winter visitor,Native,APPA compiled,
+Podiceps grisegena,,Red-necked Grebe,Podicipedidae,,Waterbird,Floating/water,Diver,Piscivore,Winter visitor,Native,APPA compiled,
+Leiothlypis celata,,Orange-crowned Warbler,Parulidae,,Shrub-dependent,Ground,Foliage gleaner,Insectivore,Winter visitor,Native,APPA compiled,
+Egretta thula,,Snowy Egret,Ardeidae,,Wetland,Tree/canopy,Wading stalker,Piscivore,Short-distance migrant,Native,APPA compiled,
+Oporornis agilis,,Connecticut Warbler,Parulidae,,Shrub-dependent,Ground,Ground forager,Insectivore,Transient,Native,APPA compiled,
+Branta hutchinsii,,Cackling Goose,Anatidae,,Waterbird,Ground,Dabbler/grazer,Herbivore,Winter visitor,Native,APPA compiled,
+Platalea ajaja,,Roseate Spoonbill,Threskiornithidae,,Wetland,Tree/canopy,Prober,Carnivore,Transient,Native,APPA compiled,
+Branta bernicla,,Brant,Anatidae,,Seabirds,Ground,Dabbler/grazer,Herbivore,Winter visitor,Native,APPA compiled,
+Eudocimus albus,,White Ibis,Threskiornithidae,,Wetland,Tree/canopy,Prober,Carnivore,Transient,Native,APPA compiled,
+Leucosticte tephrocotis,,Gray-crowned Rosy-Finch,Fringillidae,,Grassland Obligate,Cliff/structure,Seed eater,Granivore,Winter visitor,Native,APPA compiled,
+Melanitta deglandi,,White-winged Scoter,Anatidae,,Waterbird,Ground,Diver,Omnivore,Winter visitor,Native,APPA compiled,
+Anser albifrons,,Greater White-fronted Goose,Anatidae,,Waterbird,Ground,Dabbler/grazer,Herbivore,Winter visitor,Native,APPA compiled,
+Chlidonias niger,,Black Tern,Laridae,,Wetland,Floating/water,Aerial insectivore,Insectivore,Transient,Native,APPA compiled,
+Bombycilla garrulus,,Bohemian Waxwing,Bombycillidae,,Edge Generalist,Tree/canopy,Foliage gleaner,Frugivore,Winter visitor,Native,APPA compiled,
+Melanitta americana,,Black Scoter,Anatidae,,Waterbird,Ground,Diver,Omnivore,Winter visitor,Native,APPA compiled,
+Sayornis saya,,Say's Phoebe,Tyrannidae,,Edge Generalist,Cliff/structure,Aerial insectivore,Insectivore,Winter visitor,Native,APPA compiled,
+Cairina moschata,,Muscovy Duck,Anatidae,,Wetland,Secondary cavity,Dabbler/grazer,Omnivore,Resident,Exotic,APPA compiled,
+Melanitta perspicillata,,Surf Scoter,Anatidae,,Waterbird,Ground,Diver,Omnivore,Winter visitor,Native,APPA compiled,
