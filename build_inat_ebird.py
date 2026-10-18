@@ -297,7 +297,7 @@ def vernacular(spp, keys, budget=25 * 60):
 def new_cell(kind):
     return {'n': 0, 'users': set(), 'units': set(), 'spp': defaultdict(int), 'inc': defaultdict(set) if kind == 'inat' else defaultdict(int),
             'last': '', 'recent': 0, 'grp': defaultdict(set), 'gobs': defaultdict(int), 'inv': defaultdict(int), 'pest': defaultdict(int),
-            'nonnat': set(), 'breed': set()}
+            'nonnat': set(), 'nnplant': set(), 'breed': set()}
 
 
 def summarize(kind, zpath, grids, names):
@@ -362,6 +362,7 @@ def summarize(kind, zpath, grids, names):
                     if pest: s['pest'][sp] += 1
                     if iv:
                         s['nonnat'].add(sp)
+                        if 'PLANT_SPP' in grp: s['nnplant'].add(sp)
                         if iv[0] == 'Priority': s['inv'][sp] += 1
                 else:
                     if unit is not None: s['inc'][sp] += 1    # one record per species per checklist
@@ -393,7 +394,7 @@ def summarize(kind, zpath, grids, names):
                 if kind == 'inat':
                     n = s['n']; ed = sorted(sp for sp in s['inv'] if inv.get(norm(sp), (0, False))[1])
                     v.update(DATA_STATUS='Adequate' if n >= LOW_SAMPLE['inat'] else 'Low sample', N_OBS=n, N_OBS_RECENT=s['recent'], N_VISITS=T,
-                             N_NONNATIVE_SPP=len(s['nonnat']), N_INV_SPP=len(s['inv']), N_INV_OBS=sum(s['inv'].values()),
+                             N_NONNATIVE_SPP=len(s['nonnat']), N_NONNATIVE_PLANT_SPP=len(s['nnplant']), N_INV_SPP=len(s['inv']), N_INV_OBS=sum(s['inv'].values()),
                              PCT_INV_OBS=round(100 * sum(s['inv'].values()) / n, 1) if n else 0, N_EDRR_SPP=len(ed), N_PEST_OBS=sum(s['pest'].values()),
                              INVASIVE_LIST=sorted((nm(x) for x in s['inv']), key=str.lower), EDRR_LIST=sorted((nm(x) for x in ed), key=str.lower),
                              PEST_LIST=sorted((nm(x) for x in s['pest']), key=str.lower), TOP10_SPECIES=[nm(x) for x, _ in top], TOP10_COUNTS=[k for _, k in top])
