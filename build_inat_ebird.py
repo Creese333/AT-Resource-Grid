@@ -3,12 +3,13 @@ Quarterly iNaturalist and eBird summaries for the A.T. Resource Grid, without Ar
 
   1. Requests GBIF downloads (iNaturalist research-grade observations; eBird Observation Dataset) for the corridor,
      waits for GBIF to prepare them and downloads them. Each download has its own DOI, logged in the output.
-  2. Places every record in its 1, 7 and 49 sq mi corridor cells (the grid read from index.html).
+  2. Places every record in its 1, 7 and 49 sq mi cells, twice: the A.T. corridor grid (read from index.html) and the HUC10 shell
+     grid (read from soils_wetlands_huc10.json).
   3. Summarizes each cell the way the ArcGIS notebooks did: counts, observers, species, coverage-based richness,
      taxon groups, invasive / priority (EDRR) / forest pest lists from invasive_lookup.csv, the ten most-recorded
      species; for birds, checklists, habitat guild counts and lists (bird_guilds.csv) and species of concern
      (bird_lookup.csv: federal listing, Birds of Conservation Concern, Partners in Flight for A.T. BCRs).
-  4. Writes inat_ebird.json, which the dashboard loads in place of the summaries built into index.html,
+  4. Writes inat_ebird.json (corridor) and inat_ebird_huc10.json (HUC10 shell), which the dashboard loads in place of the summaries built into index.html,
      and prints a comparison with those built-in summaries.
 
 Usage: python build_inat_ebird.py [inat|ebird|both]      (GBIF_USER and GBIF_PWD in the environment)
@@ -21,7 +22,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, 'inat_ebird.json')
+OUT = os.path.join(HERE, 'inat_ebird.json')                 # A.T. corridor cells
+OUT_HUC = os.path.join(HERE, 'inat_ebird_huc10.json')       # HUC10 shell cells
+HUCFILE = os.path.join(HERE, 'soils_wetlands_huc10.json')
 NAMES = os.path.join(HERE, 'common_names.json')    # cache of common names looked up on GBIF, kept between runs
 INDEX = os.path.join(HERE, 'index.html')
 API = 'https://api.gbif.org/v1'
@@ -40,7 +43,8 @@ GUILDS = {'Forest Interior': 'FOREST_INT', 'Forest Generalist': 'FOREST_GEN', 'H
           'Shorebirds': 'SHORE', 'Seabirds': 'SEABIRD'}
 GROUPS = [('PLANT_SPP', lambda r: r['kingdom'] == 'Plantae'), ('BIRD_SPP', lambda r: r['class'] == 'Aves'), ('INSECT_SPP', lambda r: r['class'] == 'Insecta'),
           ('FUNGI_SPP', lambda r: r['kingdom'] == 'Fungi'), ('MAMMAL_SPP', lambda r: r['class'] == 'Mammalia'), ('AMPHIB_SPP', lambda r: r['class'] == 'Amphibia'),
-          ('REPTILE_SPP', lambda r: r['class'] in ('Reptilia', 'Squamata', 'Testudines', 'Crocodylia'))]
+          ('REPTILE_SPP', lambda r: r['class'] in ('Reptilia', 'Squamata', 'Testudines', 'Crocodylia')), ('ARACHNID_SPP', lambda r: r['class'] == 'Arachnida'),
+          ('MOLLUSK_SPP', lambda r: r['phylum'] == 'Mollusca')]
 csv.field_size_limit(10 ** 8)
 
 
@@ -290,17 +294,20 @@ def vernacular(spp, keys, budget=25 * 60):
 
 
 # ---------------------------------------------------------------- summaries
-def new_cell():
-    return {'n': 0, 'users': set(), 'units': set(), 'spp': defaultdict(int), 'inc': defaultdict(set), 'last': '', 'recent': 0, 'grp': defaultdict(set),
-            'inv': defaultdict(int), 'pest': defaultdict(int), 'nonnat': set(), 'breed': set()}
+def new_cell(kind):
+    return {'n': 0, 'users': set(), 'units': set(), 'spp': defaultdict(int), 'inc': defaultdict(set) if kind == 'inat' else defaultdict(int),
+            'last': '', 'recent': 0, 'grp': defaultdict(set), 'gobs': defaultdict(int), 'inv': defaultdict(int), 'pest': defaultdict(int),
+            'nonnat': set(), 'breed': set()}
 
 
-def summarize(kind, zpath, levels, names):
+def summarize(kind, zpath, grids, names):
+    """grids: {'corr': corridor levels, 'huc': HUC10 shell levels}. A record counts in a grid when it falls in one of that grid's
+    1 sq mi cells; its 7 and 49 sq mi cells then add up those square miles (as the ArcGIS summaries did)."""
     inv = load_invasive() if kind == 'inat' else None
     look, guild, common = load_birds() if kind == 'ebird' else (None, None, None)
-    cells = {lv: defaultdict(new_cell) for lv in levels}
+    cells = {g: {lv: defaultdict(lambda: new_cell(kind)) for lv in L} for g, L in grids.items()}
     cutoff = str(date.today().year - RECENT_YEARS)
-    n_in = n_all = 0; t0 = time.time(); keys = {}
+    n_in = {g: 0 for g in grids}; n_all = 0; t0 = time.time(); keys = {}; uid = {}; wid = {}
     for r in rows(zpath):
         n_all += 1
         try:
@@ -311,52 +318,60 @@ def summarize(kind, zpath, levels, names):
             u = r.get('coordinateUncertaintyInMeters')
             if u and u.replace('.', '', 1).isdigit() and float(u) > MAX_UNCERTAINTY_M:
                 continue
-        # only records in a corridor 1 sq mi cell count, at every size: the 7 and 49 sq mi summaries add up their corridor
-        # square miles (as the ArcGIS summaries did), not everything inside the larger hexagons
-        hx = cell_of(levels['hex'], la, lo)
-        if hx < 0:
+        hits = {}
+        for g, L in grids.items():
+            hx = cell_of(L['hex'], la, lo)
+            if hx >= 0:
+                hits[g] = {'hex': hx, 'cog': cell_of(L['cog'], la, lo), 'wheel': cell_of(L['wheel'], la, lo)}
+                n_in[g] += 1
+        if not hits:
             continue
-        hit = {'hex': hx, 'cog': cell_of(levels['cog'], la, lo), 'wheel': cell_of(levels['wheel'], la, lo)}
-        n_in += 1
         d = (r.get('eventDate') or '')[:10]; who = (r.get('recordedBy') or '').strip().lower()
         if kind == 'ebird':
             sp = binomial(r.get('verbatimScientificName') or r.get('species'))
             if not sp or '/' in sp or ' sp.' in sp or ' x ' in sp.lower() or len(sp.split()) < 2:
                 sp = None
-            unit = f'{who}|{d}|{la:.3f}|{lo:.3f}'     # checklist: observer, date and place
+            ukey = f'{who}|{d}|{la:.3f}|{lo:.3f}'     # checklist: observer, date and place
         else:
             sp = (r.get('species') or '').strip() or None
-            unit = f'{who}|{d}'                        # visit: observer and date
-        for lv, c in hit.items():
-            if c < 0:
-                continue
-            s = cells[lv][c]; s['n'] += 1
-            if who: s['users'].add(who)
-            if d: s['units'].add(unit); s['last'] = max(s['last'], d)
-            if d[:4] >= cutoff: s['recent'] += 1
-            if not sp:
-                continue
-            s['spp'][sp] += 1
-            if d: s['inc'][sp].add(unit)
-            if sp not in keys and r.get('speciesKey'): keys[sp] = r['speciesKey']
-            if kind == 'inat':
-                for g, test in GROUPS:
-                    if test(r): s['grp'][g].add(sp)
-                if sp in PESTS or binomial(r.get('verbatimScientificName')) in PESTS:
-                    s['pest'][sp] += 1
-                v = inv.get(norm(r.get('verbatimScientificName'))) or inv.get(norm(sp))
-                if v and r['kingdom'] == 'Plantae':
-                    s['nonnat'].add(sp)
-                    if v[0] == 'Priority':
-                        s['inv'][sp] += 1
-            elif d[5:7] in ('06', '07'):
-                s['breed'].add(sp)
+            ukey = f'{who}|{d}'                        # visit: observer and date
+        unit = uid.setdefault(ukey, len(uid)) if d else None
+        w = wid.setdefault(who, len(wid)) if who else None
+        if sp and sp not in keys and r.get('speciesKey'):
+            keys[sp] = r['speciesKey']
+        if kind == 'inat':
+            grp = [g for g, test in GROUPS if test(r)]
+            pest = sp and (sp in PESTS or binomial(r.get('verbatimScientificName')) in PESTS)
+            iv = sp and r['kingdom'] == 'Plantae' and (inv.get(norm(r.get('verbatimScientificName'))) or inv.get(norm(sp)))
+        for g, hit in hits.items():
+            for lv, c in hit.items():
+                if c < 0:
+                    continue
+                s = cells[g][lv][c]; s['n'] += 1
+                if w is not None: s['users'].add(w)
+                if unit is not None: s['units'].add(unit); s['last'] = max(s['last'], d)
+                if d[:4] >= cutoff: s['recent'] += 1
+                if kind == 'inat':
+                    for gg in grp: s['gobs'][gg] += 1
+                if not sp:
+                    continue
+                s['spp'][sp] += 1
+                if kind == 'inat':
+                    if unit is not None: s['inc'][sp].add(unit)
+                    for gg in grp: s['grp'][gg].add(sp)
+                    if pest: s['pest'][sp] += 1
+                    if iv:
+                        s['nonnat'].add(sp)
+                        if iv[0] == 'Priority': s['inv'][sp] += 1
+                else:
+                    if unit is not None: s['inc'][sp] += 1    # one record per species per checklist
+                    if d[5:7] in ('06', '07'): s['breed'].add(sp)
         if n_all % 500000 == 0:
-            print(f'   {kind}: {n_all:,} rows read, {n_in:,} in corridor cells ({time.time() - t0:.0f} s)', flush=True)
-    print(f'{kind}: {n_all:,} rows, {n_in:,} in corridor cells', flush=True)
+            print(f'   {kind}: {n_all:,} rows read, {n_in["corr"]:,} in corridor cells, {n_in.get("huc", 0):,} in HUC10 cells ({time.time() - t0:.0f} s)', flush=True)
+    print(f'{kind}: {n_all:,} rows, {n_in["corr"]:,} in corridor cells, {n_in.get("huc", 0):,} in HUC10 cells', flush=True)
     # every species gets a common name: dashboard and lookup names first, then GBIF's English vernacular names (cached)
     have = lambda x: names.get(norm(x)) or (common or {}).get(norm(x)) or (inv.get(norm(x), (0, 0, ''))[2] if inv else '') or PESTS.get(x)
-    missing = sorted({sp for lv in cells for c in cells[lv].values() for sp in c['spp'] if not have(sp)})
+    missing = sorted({sp for g in cells for lv in cells[g] for c in cells[g][lv].values() for sp in c['spp'] if not have(sp)})
     names.update(vernacular(missing, keys))
 
     def nm(sp, tags=None):
@@ -364,38 +379,42 @@ def summarize(kind, zpath, levels, names):
         c = c[:1].upper() + c[1:] if c else ''
         return (f'{c} ({sp})' if c else sp) + (f' [{", ".join(tags)}]' if tags else '')
     out = {}
-    for lv in levels:
-        ids, F = [], defaultdict(list)
-        for c in sorted(cells[lv]):
-            s = cells[lv][c]; T = len(s['units']); inc = {k: len(v) for k, v in s['inc'].items()}
-            cr, sc = cov_richness(inc, T)
-            v = {'N_OBSERVERS': len(s['users']), 'N_SPP': len(s['spp']), 'COV_RICHNESS': None if cr is None else int(round(cr)),
-                 'SAMPLE_COVERAGE': None if sc is None else int(round(sc)), 'LAST_OBS': s['last'] or None}
-            top = sorted(s['spp'].items(), key=lambda kv: (-kv[1], kv[0]))[:10]
-            if kind == 'inat':
-                n = s['n']; ed = sorted(sp for sp in s['inv'] if inv.get(norm(sp), (0, False))[1])
-                v.update(DATA_STATUS='Adequate' if n >= LOW_SAMPLE['inat'] else 'Low sample', N_OBS=n, N_OBS_RECENT=s['recent'],
-                         N_NONNATIVE_SPP=len(s['nonnat']), N_INV_SPP=len(s['inv']), N_INV_OBS=sum(s['inv'].values()),
-                         PCT_INV_OBS=round(100 * sum(s['inv'].values()) / n, 1) if n else 0, N_EDRR_SPP=len(ed), N_PEST_OBS=sum(s['pest'].values()),
-                         INVASIVE_LIST=sorted((nm(x) for x in s['inv']), key=str.lower), EDRR_LIST=sorted((nm(x) for x in ed), key=str.lower),
-                         PEST_LIST=sorted((nm(x) for x in s['pest']), key=str.lower), TOP10_SPECIES=[nm(x) for x, _ in top], TOP10_COUNTS=[k for _, k in top])
-                for g, _ in GROUPS:
-                    v[g] = len(s['grp'][g])
-            else:
-                spp = list(s['spp']); info = {x: (look.get(norm(x)), guild.get(norm(x))) for x in spp}
-                soc = [(x, soc_tags(info[x][0])) for x in spp]; soc = [(x, t) for x, t in soc if t]
-                v.update(DATA_STATUS='Adequate' if T >= LOW_SAMPLE['ebird'] else 'Low sample', N_CHECKLISTS=T, N_RECORDS=s['n'],
-                         BREED_SEASON_SPP=len(s['breed']), N_SOC_SPP=len(soc), N_BCC_SPP=sum(1 for _, t in soc if any(x.startswith('BCC') for x in t)),
-                         N_PIF_SPP=sum(1 for _, t in soc if 'PIF' in t), SOC_LIST=sorted((nm(x, t) for x, t in soc), key=str.lower),
-                         N_NEOTROP_SPP=sum(1 for x in spp if (info[x][1] or info[x][0] or {}).get('MIGRATION') == 'Neotropical migrant'))
-                for gname, g in GUILDS.items():
-                    L = [x for x in spp if ((info[x][1] or info[x][0] or {}).get('HABITAT_GUILD') or '') == gname]
-                    v[g + '_SPP'] = len(L); v[g + '_LIST'] = sorted((nm(x) for x in L), key=str.lower)
-            ids.append(levels[lv]['id'][c])
-            for k, x in v.items():
-                F[k].append(x)
-        out[lv] = {'ids': ids, 'f': dict(F)}
-        print(f'   {kind} {lv}: {len(ids)} cells with records', flush=True)
+    for g, L in grids.items():
+        out[g] = {}
+        for lv in L:
+            ids, F = [], defaultdict(list)
+            for c in sorted(cells[g][lv]):
+                s = cells[g][lv][c]; T = len(s['units'])
+                inc = {k: (len(v) if kind == 'inat' else v) for k, v in s['inc'].items()}
+                cr, sc = cov_richness(inc, T)
+                v = {'N_OBSERVERS': len(s['users']), 'N_SPP': len(s['spp']), 'COV_RICHNESS': None if cr is None else int(round(cr)),
+                     'SAMPLE_COVERAGE': None if sc is None else int(round(sc)), 'LAST_OBS': s['last'] or None}
+                top = sorted(s['spp'].items(), key=lambda kv: (-kv[1], kv[0]))[:10]
+                if kind == 'inat':
+                    n = s['n']; ed = sorted(sp for sp in s['inv'] if inv.get(norm(sp), (0, False))[1])
+                    v.update(DATA_STATUS='Adequate' if n >= LOW_SAMPLE['inat'] else 'Low sample', N_OBS=n, N_OBS_RECENT=s['recent'], N_VISITS=T,
+                             N_NONNATIVE_SPP=len(s['nonnat']), N_INV_SPP=len(s['inv']), N_INV_OBS=sum(s['inv'].values()),
+                             PCT_INV_OBS=round(100 * sum(s['inv'].values()) / n, 1) if n else 0, N_EDRR_SPP=len(ed), N_PEST_OBS=sum(s['pest'].values()),
+                             INVASIVE_LIST=sorted((nm(x) for x in s['inv']), key=str.lower), EDRR_LIST=sorted((nm(x) for x in ed), key=str.lower),
+                             PEST_LIST=sorted((nm(x) for x in s['pest']), key=str.lower), TOP10_SPECIES=[nm(x) for x, _ in top], TOP10_COUNTS=[k for _, k in top])
+                    for gg, _ in GROUPS:
+                        v[gg] = len(s['grp'][gg]); v[gg.replace('_SPP', '_OBS')] = s['gobs'][gg]
+                else:
+                    spp = list(s['spp']); info = {x: (look.get(norm(x)), guild.get(norm(x))) for x in spp}
+                    soc = [(x, soc_tags(info[x][0])) for x in spp]; soc = [(x, t) for x, t in soc if t]
+                    v.update(DATA_STATUS='Adequate' if T >= LOW_SAMPLE['ebird'] else 'Low sample', N_CHECKLISTS=T, N_RECORDS=s['n'],
+                             BREED_SEASON_SPP=len(s['breed']), N_SOC_SPP=len(soc), N_BCC_SPP=sum(1 for _, t in soc if any(x.startswith('BCC') for x in t)),
+                             N_PIF_SPP=sum(1 for _, t in soc if 'PIF' in t), SOC_LIST=sorted((nm(x, t) for x, t in soc), key=str.lower),
+                             N_NEOTROP_SPP=sum(1 for x in spp if (info[x][1] or info[x][0] or {}).get('MIGRATION') == 'Neotropical migrant'))
+                    for gname, gg in GUILDS.items():
+                        Ls = [x for x in spp if ((info[x][1] or info[x][0] or {}).get('HABITAT_GUILD') or '') == gname]
+                        v[gg + '_SPP'] = len(Ls); v[gg + '_LIST'] = sorted((nm(x) for x in Ls), key=str.lower)
+                ids.append(L[lv]['id'][c])
+                for k, x in v.items():
+                    F[k].append(x)
+            out[g][lv] = {'ids': ids, 'f': dict(F)}
+            print(f'   {kind} {g} {lv}: {len(ids)} cells with records', flush=True)
+        cells[g] = None    # free memory before the next grid
     return out
 
 
@@ -416,12 +435,28 @@ def pack(themes):
     return spp, {'DATA_STATUS': cats}
 
 
+def unpack(prev, keep):
+    """the datasets not being rebuilt, from the previous file, with species back to strings"""
+    out = {}
+    for th, t in (prev.get('themes') or {}).items():
+        if th not in keep:
+            continue
+        for lv in t.values():
+            for k, col in lv['f'].items():
+                if k == 'DATA_STATUS':
+                    lv['f'][k] = [prev['cats']['DATA_STATUS'][x] for x in col]
+                elif k.endswith('_LIST') or k == 'TOP10_SPECIES':
+                    lv['f'][k] = [[prev['spp'][i] for i in L] if L else [] for L in col]
+        out[th] = t
+    return out
+
+
 def compare(D, themes):
     """how the new summaries line up with the ones built into index.html"""
     for th, t in themes.items():
         for lv in ('hex', 'wheel'):
             old = D['themes'].get(th, {}).get(lv)
-            if not old:
+            if not old or lv not in t:
                 continue
             oid = {D['levels'][lv]['id'][c]: k for k, c in enumerate(old['ix'])}
             f = 'N_OBS' if th == 'inat' else 'N_CHECKLISTS'
@@ -431,42 +466,61 @@ def compare(D, themes):
                 print(f'compare {th} {lv}: {len(t[lv]["ids"])} cells now, {len(old["ix"])} before, {len(pairs)} in both; {f} total {b:,} now vs {a:,} before', flush=True)
 
 
+def load_huc():
+    """the HUC10 shell's cells, from soils_wetlands_huc10.json (same layout as the payload in index.html)"""
+    try:
+        Hj = json.load(open(HUCFILE))['levels']
+    except Exception as e:
+        print('HUC10 cells not read:', e, flush=True); return None
+    levels = {}
+    for lv in ('hex', 'cog', 'wheel'):
+        L = Hj[lv]; rings = []
+        for g in L['g']:
+            la, lo = g[0], g[1]; r = [(la / 1e5, lo / 1e5)]
+            for k in range(2, len(g), 2):
+                la += g[k]; lo += g[k + 1]; r.append((la / 1e5, lo / 1e5))
+            rings.append(r)
+        levels[lv] = {'id': L['id'], 'mi': L['mi'], 'rings': rings, 'bins': bins(rings)}
+    print(f'HUC10 shell: {len(levels["hex"]["id"]):,} / {len(levels["cog"]["id"]):,} / {len(levels["wheel"]["id"]):,} cells', flush=True)
+    return levels
+
+
 def main():
     which = (sys.argv[1] if len(sys.argv) > 1 else 'inat').lower()
     kinds = ['inat', 'ebird'] if which == 'both' else [which]
-    D, levels = load_grid()
+    D, levels = load_grid(); huc = load_huc()
+    grids = {'corr': levels}
+    if huc:
+        grids['huc'] = huc
     names = {}
     for s in D['spp']:
         m = re.match(r'^(.*?)\s*\(([^)]*)\)', s)
         if m: names.setdefault(norm(m.group(2)), m.group(1))
     prev = {}
-    try:
-        prev = json.load(open(OUT))
-    except Exception:
-        pass
-    themes, meta = {}, prev.get('meta', {})
-    # keep the other dataset from the previous file (unpacked back to strings)
-    for th, t in (prev.get('themes') or {}).items():
-        if th in kinds:
-            continue
-        for lv in t.values():
-            for k, col in lv['f'].items():
-                if k == 'DATA_STATUS':
-                    lv['f'][k] = [prev['cats']['DATA_STATUS'][x] for x in col]
-                elif k.endswith('_LIST') or k == 'TOP10_SPECIES':
-                    lv['f'][k] = [[prev['spp'][i] for i in L] if L else [] for L in col]
-        themes[th] = t
+    for g, path in (('corr', OUT), ('huc', OUT_HUC)):
+        try:
+            prev[g] = json.load(open(path))
+        except Exception:
+            prev[g] = {}
+    keep = [k for k in ('inat', 'ebird') if k not in kinds]
+    themes = {g: unpack(prev[g], keep) for g in grids}
+    meta = prev['corr'].get('meta', {})
     for k in kinds:
-        path, info = download(k, levels)
-        themes[k] = summarize(k, path, levels, names)
+        path, info = download(k, huc or levels)        # one download covers both grids
+        res = summarize(k, path, grids, names)
+        for g in grids:
+            themes[g][k] = res[g]
         meta[k] = dict(info, built=datetime.now(timezone.utc).strftime('%Y-%m-%d'))
         os.remove(path)
-    compare(D, themes)
-    spp, cats = pack(themes)
+    compare(D, themes['corr'])
     q = (date.today().month - 1) // 3 + 1
-    json.dump({'run': f'{date.today().year} Q{q}', 'meta': meta, 'spp': spp, 'cats': cats, 'themes': themes},
-              open(OUT, 'w'), separators=(',', ':'), ensure_ascii=False)
-    print('wrote', OUT, os.path.getsize(OUT) // 1024, 'KB')
+    for g, path in (('corr', OUT), ('huc', OUT_HUC)):
+        if g not in grids:
+            continue
+        spp, cats = pack(themes[g])
+        json.dump({'run': f'{date.today().year} Q{q}', 'extent': g, 'meta': meta, 'spp': spp, 'cats': cats, 'themes': themes[g]},
+                  open(path, 'w'), separators=(',', ':'), ensure_ascii=False)
+        print('wrote', path, os.path.getsize(path) // 1024, 'KB')
 
 
 if __name__ == '__main__':
