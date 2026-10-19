@@ -1607,7 +1607,7 @@ const Q = [
   m:[{id:'hany', label:'All historic resources', fn:(lv, c) => hCount(lv, c, 'any'), int:1, hollow0:1, none:'None recorded', noun:['resource','resources'], hasTxt:() => 'have a recorded historic resource'},
      {id:'hnr', label:'National Register properties', fn:(lv, c) => hCount(lv, c, 'nr'), int:1, hollow0:1, none:'None recorded', noun:['property','properties'], hasTxt:() => 'have a National Register property'},
      {id:'hcem', label:'Cemeteries (OpenStreetMap)', fn:(lv, c) => hCount(lv, c, 'cem'), int:1, hollow0:1, none:'None recorded', noun:['cemetery','cemeteries'], hasTxt:() => 'have a recorded cemetery'}]},
- {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s built and maintained along the trail here?',
+ {id:'feat', th:'feat', hue:HUE.feat, ramp:'feat', title:'What\u2019s built and maintained along the trail?',
   use:'Trail facilities and features from the A.T. facilities inventory: shelters, campsites, privies, parking, bridges, vistas, side trails and maintained landscapes, with miles of A.T. in each cell. Trail structures such as waterbars and steps are recorded by maintainer section, so they are estimated for each cell from its share of the section\u2019s trail miles.',
   m:[{id:'fac', label:'Trail facilities', f:'N_FAC', int:1, hollow0:1, none:'None in this cell', noun:['facility','facilities'], note:'Shelters, campsites, privies, parking areas, bridges, buildings, dams and tunnels.'},
      {id:'atmi', label:'A.T. miles', f:'AT_MI', d:1, hollow0:1, none:'None in this cell', showFn:v => fmt(v, 1) + ' mi'},
