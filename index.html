@@ -1030,7 +1030,8 @@ function phAgg(lv){ const sp = phSp(), st = PHD[sp.key]; if (!st || st.st !== 'd
    The spread view picks a single year in S.ph.yr. */
 function phSel(lv){ const A = phAgg(lv || dispLevel()); return A ? (S.ph.sel || []).filter(y => A.years.includes(y)).sort((a, b) => a - b) : []; }
 function phYear(lv){ const A = phAgg(lv || dispLevel()); if (!A || !A.years.length) return 0;
-  if (S.m.yr === 'wk'){ const sel = phSel(lv); if (S.ph.yr && A.years.includes(S.ph.yr) && (!sel.length || sel.includes(S.ph.yr))) return S.ph.yr; return sel.length === 1 ? sel[0] : 0; }
+  if (S.m.yr === 'wk'){ const sel = phSel(lv); if (S.ph.allPlay && A.years.includes(S.ph.yr)) return S.ph.yr;
+    if (S.ph.yr && A.years.includes(S.ph.yr) && sel.length && sel.includes(S.ph.yr)) return S.ph.yr; return sel.length === 1 ? sel[0] : 0; }
   if (S.ph.yr && A.years.includes(S.ph.yr)) return S.ph.yr; return S.m.yrNeed ? A.years[A.years.length - 1] : 0; }
 /* the weekly counts for what is on show: one year, the picked years added together, or every year */
 function phArr(lv, s){ const A = phAgg(lv); if (!A) return null; const y = phYear(lv); if (y) return A.y[y] && A.y[y][s] || null;
@@ -1074,10 +1075,13 @@ function phYrBlock(ys, y, multi){ const A = phAgg(dispLevel()); if (!A) return '
     ys.map(v => { const n = A.yn[v] || 0, thin = n < PHYMIN;
       return `<button type="button" data-phyr="${v}" aria-pressed="${sel.includes(v)}" class="${thin ? 'thin' : ''}${multi && v === y && sel.length > 1 ? ' now' : ''}" title="${v}: ${fmt(n, 0)} ${PHWORD[phMain()]} ${n === 1 ? 'record' : 'records'}${thin ? ' (few records)' : ''}"><b>’${String(v).slice(2)}</b><i style="height:${Math.max(1, Math.round(14 * n / mx))}px"></i><span>${n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n}</span></button>`; }).join('') + '</div>'; }
 function phPlay(on){ if (phTimer){ clearInterval(phTimer); phTimer = null; }
+  if (!on && S.ph.allPlay){ S.ph.allPlay = false; S.ph.yr = 0; if (PHQ() && S.m.yr === 'wk') setTimeout(phFrame); }
   if (on && S.m.yr === 'y'){ phTimer = setInterval(() => { const A = phAgg(dispLevel()); if (!A || !A.years.length) return; const ys = A.years, y = phYear();
       S.ph.yr = !y || y >= ys[ys.length - 1] ? ys[0] : y + 1; phFrame(); }, 1000); }
-  else if (on){ const sel = phSel(); if (sel.length > 1 && !sel.includes(S.ph.yr)) S.ph.yr = sel[0]; const yrs = phSelText() ? 1 : 0, [sw0, sw1] = phSeason(); if (S.ph.wk < sw0 || S.ph.wk > sw1){ S.ph.wk = sw0; phFrame(); } phTimer = setInterval(() => { if (S.ph.wk < sw1) S.ph.wk++; else { S.ph.wk = sw0;
-        const sel = phSel(); if (sel.length > 1){ const i = sel.indexOf(S.ph.yr); S.ph.yr = sel[(i + 1) % sel.length]; } }
+  else if (on){ let sel = phSel(); const A0 = phAgg(dispLevel());
+    if (!sel.length && A0 && A0.years.length > 1){ const ok = A0.years.filter(y => (A0.yn[y] || 0) >= 20); sel = ok.length > 1 ? ok : A0.years; S.ph.allPlay = sel; }
+    if (sel.length > 1 && !sel.includes(S.ph.yr)) S.ph.yr = sel[0]; const yrs = phSelText() ? 1 : 0, [sw0, sw1] = phSeason(); if (S.ph.wk < sw0 || S.ph.wk > sw1){ S.ph.wk = sw0; phFrame(); } phTimer = setInterval(() => { if (S.ph.wk < sw1) S.ph.wk++; else { S.ph.wk = sw0;
+        const sel = S.ph.allPlay || phSel(); if (sel.length > 1){ const i = sel.indexOf(S.ph.yr); S.ph.yr = sel[(i + 1) % sel.length]; } }
       phFrame(); }, yrs ? 380 : 550); }
   phCtl(); }
 function phFrame(){ BRK.clear(); restyle(); strip(); legend(); phCtl(); const t = $('#phtrend'); if (t){ t.innerHTML = phTrendBlock(); phWireTrend(); } }
@@ -1145,10 +1149,10 @@ function phWireTrend(){
 const PHBAND = 200;   /* trail miles per row of the season calendar */
 /* Season calendar: rows of 200 trail miles, north at the top, by week; each box is that week's flowering (or adult) records
    against the stretch's busiest week, so every stretch shows its own season from start to peak to end. */
-function phCalendar(){ const sp = phSp(), A = phAgg('wheel'); if (!A) return ''; const L_ = D.levels.wheel, rng = secRange();
+function phCalendar(){ const sp = phSp(), A = phAgg('wheel'); if (!A) return ''; const yy = S.m.yr === 'wk' ? phYear('wheel') : 0; const L_ = D.levels.wheel, rng = secRange();
   const nb = Math.ceil(D.totalMi / PHBAND), plant = sp.kind === 'plant', ms = plant ? 1 : sp.kind === 'spread' ? 5 : 4, stg = [ms], B = Array.from({length:nb}, () => ({}));
   for (const s of stg) for (const [c, L] of A.d[s]){ const mi = L_.mi[c]; if (rng && (mi < rng[0] || mi > rng[1])) continue; const b = B[Math.min(nb - 1, Math.floor(mi / PHBAND))];
-    for (const [d] of L){ const w = wkOf(d), e = b[w] || (b[w] = {3:0, 1:0, 2:0, 4:0, 5:0}); e[s]++; } }
+    for (const [d, y] of L){ if (yy && y !== yy) continue; const w = wkOf(d), e = b[w] || (b[w] = {3:0, 1:0, 2:0, 4:0, 5:0}); e[s]++; } }
   let w0 = 52, w1 = 1; B.forEach(b => Object.keys(b).forEach(w => { w0 = Math.min(w0, +w); w1 = Math.max(w1, +w); })); if (w1 < w0) return '';
   w0 = Math.max(1, w0 - 1); w1 = Math.min(52, w1 + 1);
   const rows = B.map((b, i) => ({i, b, n:Object.values(b).reduce((t, e) => t + stg.reduce((u, s) => u + e[s], 0), 0)})).filter(r => r.n).reverse();
@@ -1186,7 +1190,7 @@ function phSpreadSvg(lv, cells){ const A = phAgg(lv); if (!A || !A.years.length)
 function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) return ''; const where = S.sec === 'all' ? 'the whole trail' : secName(), noun = phNoun();
   let h = '';
   {
-    h += `<h4 class="phh">When it is ${sp.kind === 'plant' ? 'in flower' : sp.kind === 'adult' ? 'out as adults' : 'recorded'} along the trail</h4>` + phCalendar() +
+    h += `<h4 class="phh">When it is ${sp.kind === 'plant' ? 'in flower' : sp.kind === 'adult' ? 'out as adults' : 'recorded'} along the trail${S.m.yr === 'wk' && phYear('wheel') ? ', ' + phYear('wheel') : S.m.yr === 'wk' && phSelText() ? ', ' + esc(phSelText()) : ', all years'}</h4>` + phCalendar() +
       `<details class="phabout" data-phab="cal"${S.ph.ab && S.ph.ab.cal ? ' open' : ''}><summary>About this graph</summary><p class="phnote">${sp.kind === 'plant' ? 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks. Brighter boxes: more flowering records that week, against the stretch’s busiest week, so each stretch shows its season start, peak and end, and the peak moves north.' : 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks.'} Click a week to map it.</p></details>`;
    }
   if (sp.kind !== 'plant'){ const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
