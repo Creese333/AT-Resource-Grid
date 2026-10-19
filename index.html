@@ -1178,7 +1178,7 @@ function phSpreadSvg(lv, cells){ const A = phAgg(lv); if (!A || !A.years.length)
     if (bw >= 12) g += `<text x="${f(X(i))}" y="${f(y0 - 2.5)}" text-anchor="middle" font-size="8" fill="#E3EAF2">${r.n}</text>`; });
   const every = ys.length > 12 ? 2 : 1;
   rows.forEach((r, i) => { if (i % every === 0 || i === ys.length - 1) g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${r.y === sel ? '#FFE014' : '#A8B8CA'}"${r.y === sel ? ' font-weight="700"' : ''}>’${String(r.y).slice(2)}</text>`;
-    g += `<rect data-phy="${r.y}" x="${f(pl + bw * i)}" y="${pt}" width="${f(bw)}" height="${ph + pb}" fill="transparent" style="cursor:pointer"><title>${r.y}: ${r.n} ${r.n === 1 ? 'cell' : 'cells'} first recorded, ${r.t} in all by then</title></rect>`; });
+    g += `<rect x="${f(pl + bw * i)}" y="${pt}" width="${f(bw)}" height="${ph + pb}" fill="transparent" pointer-events="none"><title>${r.y}: ${r.n} ${r.n === 1 ? 'cell' : 'cells'} first recorded, ${r.t} in all by then</title></rect>`; });
   return `<p class="phflow">${fmt(cum, 0)} cells (${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} each) have records, ${fmt(rows[rows.length - 1].n, 0)} of them first recorded in ${rows[rows.length - 1].y}.</p>` + g + '</svg><div class="phkey"><span class="thin">cells first recorded each year · <i style="background:linear-gradient(90deg,#33817B,#2E7370,#296566,#25565B,#204851,#1B3A46)"></i>earlier to recent</span></div>'; }
 function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) return ''; const where = S.sec === 'all' ? 'the whole trail' : secName(), noun = phNoun();
   let h = '';
@@ -1188,7 +1188,7 @@ function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) retu
    }
   if (sp.kind !== 'plant'){ const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
     h += `<h4 class="phh">Spread: cells first recorded each year, ${esc(where)}</h4>` + phSpreadSvg(lv, cells) +
-      `<p class="phnote">Records follow hikers and observers, so a first record marks when it was noticed here, not when it arrived. Click a year to map it.</p>`; }
+      `<p class="phnote">Records follow hikers and observers, so a first record marks when it was noticed here, not when it arrived.</p>`; }
   return h; }
 /* the cell panel: records by week by stage, and the cell's season */
 function phSection(lv, c){ const sp = phSp(), A = phAgg(lv), k = sp.kind;
@@ -1226,12 +1226,21 @@ function phSection(lv, c){ const sp = phSp(), A = phAgg(lv), k = sp.kind;
     : 'Research-grade iNaturalist records of the nematode that causes beech leaf disease, usually photos of the leaf symptoms. Records follow observers, so the first year marks when it was noticed here.';
   return b + `<p class="none" style="font-size:13.5px;margin-top:8px">${many ? 'Combined from the selected cells: weekly records are added, and the dates pool all their records. ' : ''}${note}</p></div>`; }
 /* the Results list for these measures: ranked the way each one reads (earliest dates first, longest seasons, most records that week) */
-function phSum(lv, rows, where){ const m = S.m, n0 = rows.length; if (m.yr === 'wk') rows = rows.filter(r => r[1] > 0);
-  if (!rows.length) return `<p class="statline">None of the ${fmt(n0, 0)} cells with records had any in the three weeks around ${esc(wkDate(S.ph.wk))}${phYear() ? ' in ' + phYear() : ''}. Press Play or pick another week.</p>`;
-  rows.sort((a, b) => m.asc ? a[1] - b[1] || L(a) - L(b) : b[1] - a[1]); function L(r){ return D.levels[lv].mi[r[0]]; }
-  const n = Math.min(50, rows.length), t = typeof m.sumTitle === 'function' ? m.sumTitle() : m.sumTitle;
-  return `<div class="rank"><h3>${esc(t)}${where}<span class="cnt">${rows.length > n ? 'top ' + n : 'all ' + n}</span></h3><ol class="scroll" tabindex="0" aria-label="${esc(t)}, scrollable list">` +
-    rows.slice(0, n).map(r => cellItem(lv, r[0], `<span class="val">${esc(m.showFn(r[1]))}</span>`)).join('') + '</ol></div>'; }
+function phSum(lv, rows, where){ const m = S.m, n0 = rows.length, A = phAgg(lv), sp = phSp(); let h = '';
+  const rank = (title, rs, show, note) => { const n = Math.min(50, rs.length);
+    return `<div class="rank"><h3>${esc(title)}${where}<span class="cnt">${rs.length > n ? 'top ' + n : 'all ' + n}</span></h3><ol class="scroll" tabindex="0" aria-label="${esc(title)}, scrollable list">` +
+      rs.slice(0, n).map(r => cellItem(lv, r[0], `<span class="val">${esc(show(r[1]))}</span>`)).join('') + '</ol></div>' + (note || ''); };
+  const recs = v => `${fmt(v, 0)} ${v === 1 ? 'record' : 'records'}`, L = r => D.levels[lv].mi[r[0]];
+  /* forest pests: every cell with records, ranked by all its records over all weeks and years */
+  if (sp.pest && A){ const all = rows.map(r => [r[0], A.any[r[0]]]).filter(r => r[1] > 0).sort((a, b) => b[1] - a[1] || L(a) - L(b));
+    h += selAllBtn(lv, all.map(r => r[0]), sp.common) + rank('Most records, all weeks and years', all, recs); }
+  if (m.yr === 'wk'){ const wk = rows.filter(r => r[1] > 0).sort((a, b) => b[1] - a[1] || L(a) - L(b));
+    if (!wk.length) return h + `<p class="statline">None of the ${fmt(n0, 0)} cells with records had any in the three weeks around ${esc(wkDate(S.ph.wk))}${phYear() ? ' in ' + phYear() : ''}. Press Play or pick another week.</p>`;
+    if (!sp.pest) h += selAllBtn(lv, wk.map(r => r[0]), `${sp.common}, ${wkDate(S.ph.wk)}`);
+    return h + rank(typeof m.sumTitle === 'function' ? m.sumTitle() : m.sumTitle, wk, m.showFn); }
+  rows.sort((a, b) => m.asc ? a[1] - b[1] || L(a) - L(b) : b[1] - a[1] || L(a) - L(b));
+  if (!sp.pest) h += selAllBtn(lv, rows.map(r => r[0]), m.label);
+  return h + rank(typeof m.sumTitle === 'function' ? m.sumTitle() : m.sumTitle, rows, m.showFn); }
 /* ---------- historic resources: National Register (NPS) and cemeteries (OpenStreetMap) ----------
    Normally read from historic_resources.json (built monthly on GitHub, out to the HUC10 shell, with each record's A.T. land tract).
    Three scales: HUC10 shell (every record, on the watershed cells), A.T. corridor (records inside an A.T. administrative area)
@@ -1571,7 +1580,7 @@ const Q = [
  {id:'phen', th:'inat', hue:HUE.phen, ramp:'phen', title:'When does it flower here?',
   use:'When twenty plants flower along the trail, from research-grade iNaturalist records. Measures follow the USA National Phenology Network: first, peak and season length, and flowering by week. Press Play to watch the season move north. Records follow hikers, so a blank cell means too few records, not absence.',
   m:[{id:'wave', get label(){ const k = phSp().kind; return k === 'plant' ? 'Flowering, week by week' : k === 'adult' ? 'Adults, week by week' : 'Records, week by week'; },
-      yr:'wk', st:() => phMain(), hasTxt:() => 'have records of this species', sumFn:phSum, sumTitle:() => `Most ${PHWORD[S.m.st()]} records around ${wkDate(S.ph.wk)}${phYear() ? ', ' + phYear() : ''}`, showFn:v => `${v} ${v === 1 ? 'record' : 'records'}`, int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'], fn:(lv, c) => phWin(lv, c, phMain()),
+      yr:'wk', st:() => phMain(), hasTxt:() => 'have records of this species', sumFn:phSum, sumTitle:() => `Most ${PHWORD[S.m.st()] === 'records' ? '' : PHWORD[S.m.st()] + ' '}records around ${wkDate(S.ph.wk)}${phYear() ? ', ' + phYear() : ''}`, showFn:v => `${v} ${v === 1 ? 'record' : 'records'}`, int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'], fn:(lv, c) => phWin(lv, c, phMain()),
       colorFn:phWaveCol, legendFn:phWaveLegend, stripTop:lv => phTop(lv, phMain())},
      {id:'onset', get label(){ return `First ${phNoun()} date`; }, hasTxt:() => `have 5 or more ${phNoun()} records, enough to date`, sumFn:phSum, asc:1, sumTitle:() => `Earliest first ${phNoun()} dates`, hideFn:() => phSp().kind === 'spread', d:0, none:'Fewer than 5 records', showFn:v => doyDate(v),
       fn:(lv, c) => { const A = phAgg(lv); return A ? A.on[c] : null; }, colorFn:phDateCol, stripH:v => Math.max(1, v - 60), stripTop:() => 180,
@@ -2111,13 +2120,19 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.hideFn || !m.hideFn()).map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m}">${esc(m.label)}</button>`).join('') + '</div>') +
     blk('results', 'Results', summary(lv), 'res') + '</div>';
   el.innerHTML = h; phWire(); }
-function summary(lv){ const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows = [];
+/* the cells behind the results on show, for the Select all button */
+let SUMSEL = null; const SELMAX = 2000;
+function selAllBtn(lv, cells, label){ SUMSEL = {lv, cells, label}; if (!cells.length) return '';
+  return cells.length > SELMAX ? `<p class="statline">${fmt(cells.length, 0)} cells: too many to select at once. Pick a larger cell size or a section of trail.</p>`
+    : `<button type="button" class="selall" data-selsum="1">Select all ${nCells(cells.length)}</button>`; }
+function summary(lv){ SUMSEL = null; const m = S.m, L_ = D.levels[lv], n = L_.id.length, rows = [];
   let total = 0;
   for (let c = 0; c < n; c++){ if (!inSec(lv, c)) continue; total++; const v = m.get(lv, c); if (v != null) rows.push([c, v]); }
   const where = S.sec === 'all' ? '' : ' in ' + esc(secName());
   let h = `<p class="statline">${fmt(rows.length,0)} of ${fmt(total,0)} cells${where} ${m.hasTxt ? m.hasTxt() : m.yn ? 'have ' + esc(m.yn) : 'have data for this measure'}.</p>`;
   if (!rows.length) return h + '<p class="statline">Nothing to show for this measure here. Try a larger cell size or another section.</p>';
   if (m.sumFn) return h + m.sumFn(lv, rows, where);
+  h += selAllBtn(lv, rows.filter(r => m.kind === 'cat' || m.yn || r[1] !== 0).map(r => r[0]), m.yn || m.label);   /* zero counts (none reported) are not selected */
   if (m.yn){ rows.sort((a,b) => L_.mi[a[0]] - L_.mi[b[0]]);
     h += `<div class="rank"><h3>Cells with ${esc(m.yn)}<span class="cnt">${rows.length > 400 ? 'first 400, ' : ''}south to north</span></h3><ol class="scroll" tabindex="0" aria-label="Cells with ${esc(m.yn)}, scrollable list">`;
     rows.slice(0, 400).forEach(r => { h += cellItem(lv, r[0]); });
@@ -2152,6 +2167,7 @@ $('#side').addEventListener('click', e => { const b = e.target.closest('button')
   if (b.dataset.blk){ S.side[b.dataset.blk] = !S.side[b.dataset.blk]; side(); return; }
   if (b.dataset.selall && S.m.find){ const lv = dispLevel(), e = S.m.find, L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c) && e.cells[lv].has(c)) cells.push(c);
     if (cells.length) selectMany(lv, cells, null, e.common || e.sci); return; }
+  if (b.dataset.selsum && SUMSEL && SUMSEL.cells.length){ selectMany(SUMSEL.lv, SUMSEL.cells.slice(), null, SUMSEL.label); return; }
   if (b.dataset.clearfind){ clearFind(); return; }
   if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q || S.m.find){ S.q = q; S.m = q.m[0]; S.secOpen = {}; redraw(); } }
   else if (b.dataset.m){ const m0 = S.m; S.m = S.q.m.find(x => x.id === b.dataset.m); if (S.m.th !== m0.th) S.secOpen = {}; redraw(); }
