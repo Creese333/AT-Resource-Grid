@@ -38,10 +38,10 @@
 <body>
 <main>
   <h1>AMC Phenology</h1>
-  <p>Checks how much phenology data the iNaturalist project <a href="https://www.inaturalist.org/projects/flowers-and-fauna-along-the-appalachian-trail-corridor" target="_blank" rel="noopener" style="color:var(--accent)">Flowers and Fauna along the Appalachian Trail Corridor</a> holds (the Appalachian Mountain Club&rsquo;s A.T. Seasons project). For each of the 34 AMC focal wildflower species (spring ephemerals, summer-green and evergreen species) it counts records, flowering, fruiting and bud annotations, how many records are annotated at all, where flowering records fall along the trail and in which years and months. <b>Find trail-wide species</b> ranks every plant or animal in the project by how evenly its records cover the trail. Counts come live from iNaturalist (research grade and needs ID, the &ldquo;verifiable&rdquo; records), one species at a time, so a full run takes a few minutes.</p>
-  <div class="bar"><button id="run">Run the check</button><button id="wide">Find trail-wide species</button><select id="widek" aria-label="Which species" style="font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 8px"><option value="pl">Plants, flowering records</option><option value="an">Animals, all records</option><option value="ad">Animals, adult records</option><option value="bi">Birds</option><option value="in">Insects</option></select><button id="csv" class="sec" disabled>Download CSV</button><span id="status" role="status"></span></div>
+  <p>Checks how much phenology data the iNaturalist project <a href="https://www.inaturalist.org/projects/flowers-and-fauna-along-the-appalachian-trail-corridor" target="_blank" rel="noopener" style="color:var(--accent)">Flowers and Fauna along the Appalachian Trail Corridor</a> holds (the Appalachian Mountain Club&rsquo;s A.T. Seasons project). For each of the 34 AMC focal wildflower species (spring ephemerals, summer-green and evergreen species) it counts records, flowering, fruiting and bud annotations, how many records are annotated at all, where flowering records fall along the trail and in which years and months. Counts come live from iNaturalist (research grade and needs ID, the &ldquo;verifiable&rdquo; records), one species at a time, so a full run takes a few minutes.</p>
+  <div class="bar"><button id="run">Run the check</button><button id="csv" class="sec" disabled>Download CSV</button><span id="status" role="status"></span></div>
   <div class="wrap"><table id="t"></table></div>
-  <p class="note"><b>Find trail-wide species</b> ranks every species of the kind you pick (plants by flowering records; animals, birds or insects by all records; or animals by records annotated adult) by its records in its weakest third of the trail (south of 38&deg;N, 38&ndash;42&deg;N, north of 42&deg;N): the higher, the more continuously it is recorded along the whole trail. Four requests, a few seconds. <b>Flowering south</b>: flowering records south of 38&deg;N (Georgia to southern Virginia). <b>Flowering north</b>: north of 42&deg;N (Massachusetts to Maine). Month bars show flowering records, January to December.</p>
+  <p class="note"><b>Flowering south</b>: flowering records south of 38&deg;N (Georgia to southern Virginia). <b>Flowering north</b>: north of 42&deg;N (Massachusetts to Maine). Month bars show flowering records, January to December.</p>
   <section class="dl">
     <h2>Download records</h2>
     <p><b>Export all AMC focal species</b> downloads every record of all 34 focal species in one file, each row tagged with the species&rsquo; functional group, A.T.-wide and rich-woods flags and family, with a Species sheet of totals (Excel). <b>Download records</b> does the same for one species you type. Each record comes with all of its attributes: date and time, location and accuracy, quality grade, identifications, observer, annotations (flowers and fruits, leaves, life stage and others), observation fields, photos and the link to the record.</p>
@@ -120,7 +120,7 @@ async function run(){ $('#run').disabled = true; $('#csv').disabled = true; rows
   } catch (e){ $('#status').textContent = 'Stopped: ' + e.message + '. Check the internet connection and try again.'; }
   $('#run').disabled = false; }
 
-async function csv(){ if (WROWS) return csvWide(); rows.forEach(r => { const a = AMC[r.sci.replace(/ \(now .*\)$/, '')] || {}; r.at_wide = a.at_wide || ''; r.rich_woods_specialist = a.rich_woods || ''; r.clade = a.clade || ''; r.order = a.order || ''; r.family = a.family || ''; });
+async function csv(){ rows.forEach(r => { const a = AMC[r.sci.replace(/ \(now .*\)$/, '')] || {}; r.at_wide = a.at_wide || ''; r.rich_woods_specialist = a.rich_woods || ''; r.clade = a.clade || ''; r.order = a.order || ''; r.family = a.family || ''; });
   const cols = ['group','species','sci','at_wide','rich_woods_specialist','clade','order','family','taxon_id','records','budding','flowering','fruiting','no_flowers','annotated_pct','fl_south','fl_north','wave_ready','shift_ready','early','late', ...YEARS.map(y => 'fl_' + y), ...MON.map(m => 'fl_' + m), 'note'];
   const q = v => { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
   const text = [cols.join(','), ...rows.map(r => cols.map(c => q(r[c])).join(','))].join('\r\n');
@@ -128,26 +128,6 @@ async function csv(){ if (WROWS) return csvWide(); rows.forEach(r => { const a =
   if (dl){ try { await dl.save({filename:'amc_phenology_check.csv', data:'﻿' + text}); } catch (e){ if (e && e.code !== 'declined') $('#status').textContent = 'The CSV could not be saved here.'; } return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + text], {type:'text/csv'})); a.download = 'amc_phenology_check.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
 
-/* every plant species in the project with flowering records, by thirds of the trail: four species_counts requests in all */
-async function wide(){ $('#run').disabled = $('#wide').disabled = true; $('#csv').disabled = true; rows = [];
-  const k0 = $('#widek').value, KIND = {pl:{term_id:12, term_value_id:13, iconic_taxa:'Plantae'}, an:{iconic_taxa:'Animalia,Aves,Amphibia,Reptilia,Mammalia,Insecta,Arachnida,Mollusca,Actinopterygii'},
-    ad:{term_id:1, term_value_id:2, iconic_taxa:'Animalia,Aves,Amphibia,Reptilia,Mammalia,Insecta,Arachnida,Mollusca,Actinopterygii'}, bi:{iconic_taxa:'Aves'}, in:{iconic_taxa:'Insecta'}}[k0];
-  WKIND = {pl:'flowering records', an:'records', ad:'adult records', bi:'records', in:'records'}[k0];
-  try { const base = {project_id:PROJECT, verifiable:true, rank:'species', per_page:500, ...KIND};
-    const bands = [['all', {}], ['south', {swlat:30, swlng:-90, nelat:38, nelng:-60}], ['mid', {swlat:38, swlng:-90, nelat:42, nelng:-60}], ['north', {swlat:42, swlng:-90, nelat:48, nelng:-60}]];
-    const by = new Map();
-    for (const [k, b] of bands){ $('#status').textContent = 'Counting ' + WKIND + ': ' + (k === 'all' ? 'whole trail' : k) + '…';
-      for (const r of (await get('observations/species_counts', {...base, ...b})).results || []){ const t = r.taxon || {};
-        const e = by.get(t.id) || by.set(t.id, {species:t.preferred_common_name || '', sci:t.name, taxon_id:t.id, all:0, south:0, mid:0, north:0}).get(t.id); e[k] = r.count; } }
-    WROWS = [...by.values()].filter(e => e.all >= 100).map(e => ({...e, weakest:Math.min(e.south, e.mid, e.north)})).sort((a, b) => b.weakest - a.weakest);
-    drawWide(); $('#status').textContent = `Done: ${WROWS.length} species with 100 or more ${WKIND}, ranked by their weakest third. ` + new Date().toLocaleString(); $('#csv').disabled = false;
-  } catch (e){ $('#status').textContent = 'Stopped: ' + e.message + '. Check the internet connection and try again.'; }
-  $('#run').disabled = $('#wide').disabled = false; }
-let WROWS = null, WKIND = 'flowering records';
-function drawWide(){ const f = n => n.toLocaleString('en-US'), pc = (a, b) => b ? Math.round(100 * a / b) + '%' : '–';
-  $('#t').innerHTML = '<tr>' + ['Rank','Species',WKIND.charAt(0).toUpperCase() + WKIND.slice(1),'South (GA–s. VA)','Middle (VA–NY)','North (MA–ME)','Weakest third'].map(h => `<th>${h}</th>`).join('') + '</tr>' +
-    WROWS.slice(0, 60).map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.species)} <i>${esc(r.sci)}</i></td><td>${f(r.all)}</td><td>${f(r.south)} <i>${pc(r.south, r.all)}</i></td><td>${f(r.mid)} <i>${pc(r.mid, r.all)}</i></td><td>${f(r.north)} <i>${pc(r.north, r.all)}</i></td><td><b>${f(r.weakest)}</b></td></tr>`).join(''); }
-$('#wide').onclick = wide;
 /* ---------- one species, every record, every attribute ---------- */
 $('#dllist').innerHTML = SPECIES.map(([, c, sci]) => `<option value="${esc(sci)}">${esc(c)}</option>`).join('');
 let DLSTOP = false, TERMS = null;
@@ -232,10 +212,7 @@ async function dlAll(){ DLSTOP = false; $('#dlgo').disabled = $('#dlall').disabl
     say(`Done: ${out.length.toLocaleString('en-US')} records of ${sum.filter(x => x.records).length} species${DLSTOP ? ' (stopped early)' : ''}.`);
   } catch (e){ say('Stopped: ' + e.message + '. Check the internet connection and try again.'); }
   finally { $('#dlgo').disabled = $('#dlall').disabled = false; $('#dlstop').disabled = true; } } $('#dlstop').onclick = () => { DLSTOP = true; $('#dlstat').textContent = 'Stopping after this page…'; };
-async function csvWide(){ const cols = ['species','sci','taxon_id','all','south','mid','north','weakest'];
-  const text = [cols.join(','), ...WROWS.map(r => cols.map(c => { const v = String(r[c] ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(','))].join('\r\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + text], {type:'text/csv'})); a.download = 'inat_trailwide_' + WKIND.replace(/ /g, '_') + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
-$('#run').onclick = () => { WROWS = null; run(); }; $('#csv').onclick = csv; draw();
+$('#run').onclick = run; $('#csv').onclick = csv; draw();
 </script>
 </body>
 </html>
