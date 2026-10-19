@@ -1030,8 +1030,7 @@ function phAgg(lv){ const sp = phSp(), st = PHD[sp.key]; if (!st || st.st !== 'd
    The spread view picks a single year in S.ph.yr. */
 function phSel(lv){ const A = phAgg(lv || dispLevel()); return A ? (S.ph.sel || []).filter(y => A.years.includes(y)).sort((a, b) => a - b) : []; }
 function phYear(lv){ const A = phAgg(lv || dispLevel()); if (!A || !A.years.length) return 0;
-  if (S.m.yr === 'wk'){ const sel = phSel(lv); if (S.ph.allPlay && A.years.includes(S.ph.yr)) return S.ph.yr;
-    if (S.ph.yr && A.years.includes(S.ph.yr) && sel.length && sel.includes(S.ph.yr)) return S.ph.yr; return sel.length === 1 ? sel[0] : 0; }
+  if (S.m.yr === 'wk'){ const sel = phSel(lv); if (S.ph.yr && A.years.includes(S.ph.yr) && (!sel.length || sel.includes(S.ph.yr))) return S.ph.yr; return sel.length === 1 ? sel[0] : 0; }
   if (S.ph.yr && A.years.includes(S.ph.yr)) return S.ph.yr; return S.m.yrNeed ? A.years[A.years.length - 1] : 0; }
 /* the weekly counts for what is on show: one year, the picked years added together, or every year */
 function phArr(lv, s){ const A = phAgg(lv); if (!A) return null; const y = phYear(lv); if (y) return A.y[y] && A.y[y][s] || null;
@@ -1075,18 +1074,16 @@ function phYrBlock(ys, y, multi){ const A = phAgg(dispLevel()); if (!A) return '
     ys.map(v => { const n = A.yn[v] || 0, thin = n < PHYMIN;
       return `<button type="button" data-phyr="${v}" aria-pressed="${sel.includes(v)}" class="${thin ? 'thin' : ''}${multi && v === y && sel.length > 1 ? ' now' : ''}" title="${v}: ${fmt(n, 0)} ${PHWORD[phMain()]} ${n === 1 ? 'record' : 'records'}${thin ? ' (few records)' : ''}"><b>’${String(v).slice(2)}</b><i style="height:${Math.max(1, Math.round(14 * n / mx))}px"></i><span>${n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n}</span></button>`; }).join('') + '</div>'; }
 function phPlay(on){ if (phTimer){ clearInterval(phTimer); phTimer = null; }
-  if (!on && S.ph.allPlay){ S.ph.allPlay = false; S.ph.yr = 0; if (PHQ() && S.m.yr === 'wk') setTimeout(phFrame); }
   if (on && S.m.yr === 'y'){ phTimer = setInterval(() => { const A = phAgg(dispLevel()); if (!A || !A.years.length) return; const ys = A.years, y = phYear();
       S.ph.yr = !y || y >= ys[ys.length - 1] ? ys[0] : y + 1; phFrame(); }, 1000); }
-  else if (on){ let sel = phSel(); const A0 = phAgg(dispLevel());
-    if (!sel.length && A0 && A0.years.length > 1){ const ok = A0.years.filter(y => (A0.yn[y] || 0) >= 20); sel = ok.length > 1 ? ok : A0.years; S.ph.allPlay = sel; }
-    if (sel.length > 1 && !sel.includes(S.ph.yr)) S.ph.yr = sel[0]; const yrs = phSelText() ? 1 : 0, [sw0, sw1] = phSeason(); if (S.ph.wk < sw0 || S.ph.wk > sw1){ S.ph.wk = sw0; phFrame(); } phTimer = setInterval(() => { if (S.ph.wk < sw1) S.ph.wk++; else { S.ph.wk = sw0;
-        const sel = S.ph.allPlay || phSel(); if (sel.length > 1){ const i = sel.indexOf(S.ph.yr); S.ph.yr = sel[(i + 1) % sel.length]; } }
+  else if (on){ const sel = phSel(); if (sel.length > 1 && !sel.includes(S.ph.yr)) S.ph.yr = sel[0]; const yrs = phSelText() ? 1 : 0, [sw0, sw1] = phSeason(); if (S.ph.wk < sw0 || S.ph.wk > sw1){ S.ph.wk = sw0; phFrame(); } phTimer = setInterval(() => { if (S.ph.wk < sw1) S.ph.wk++; else { S.ph.wk = sw0;
+        const sel = phSel(); if (sel.length > 1){ const i = sel.indexOf(S.ph.yr); S.ph.yr = sel[(i + 1) % sel.length]; } }
       phFrame(); }, yrs ? 380 : 550); }
   phCtl(); }
 function phFrame(){ BRK.clear(); restyle(); strip(); legend(); phCtl(); const t = $('#phtrend'); if (t){ t.innerHTML = phTrendBlock(); phWireTrend(); } }
+function phYrsText(){ const y = phYear(), A = phAgg(dispLevel()), ys = A ? A.years : []; return y ? String(y) : phSelText() ? phSelText() : ys.length ? `all years, ${ys[0]}–${ys[ys.length - 1]}` : 'all years'; }
 function phCtl(){ const r = $('#phwk'), l = $('#phwkl'), b = $('#phplay'), y = phYear(), A = phAgg(dispLevel());
-  if (r) r.value = S.ph.wk; if (l) l.textContent = wkLabel(S.ph.wk); if (b) b.textContent = phTimer ? 'Pause' : 'Play';
+  if (r) r.value = S.ph.wk; if (l) l.textContent = wkLabel(S.ph.wk) + ' · ' + phYrsText(); if (b) b.textContent = phTimer ? 'Pause' : 'Play';
   const multi = S.m.yr === 'wk', sel = multi ? phSel() : (y ? [y] : []);
   document.querySelectorAll('[data-phyr]').forEach(x => { const v = +x.dataset.phyr; x.setAttribute('aria-pressed', v ? sel.includes(v) : !sel.length); x.classList.toggle('now', multi && sel.length > 1 && v === y); });
   phTick(); }
@@ -1119,7 +1116,7 @@ function phFixM(){ if (!PHQ() || S.m.find || !S.m.hideFn || !S.m.hideFn()) retur
 function phBlock(){ const sp = phSp(), m = S.m, A = phAgg(dispLevel()), ys = A ? A.years : [], y = phYear();
   const L = phListShown(), grp = [...new Set(L.map(s => s.group))];
   let h = `<div class="phctl"><select id="phsp" aria-label="Species">` + grp.map(g => `<optgroup label="${esc(g)}">` + L.filter(s => s.group === g).map(s => `<option value="${s.key}"${s.key === sp.key ? ' selected' : ''}>${esc(s.common)} (${esc(s.sci)})${s.pest && PHCNT[s.key] != null ? ' · ' + fmt(PHCNT[s.key], 0) + ' records' : ''}</option>`).join('') + '</optgroup>').join('') + '</select>';
-  if (m.yr === 'wk'){ h += `<div class="wk"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button><input type="range" id="phwk" min="1" max="52" step="1" value="${S.ph.wk}" aria-label="Week of the year"></div><div class="wkl" id="phwkl">${wkLabel(S.ph.wk)}</div>`;
+  if (m.yr === 'wk'){ h += `<div class="wk"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button><input type="range" id="phwk" min="1" max="52" step="1" value="${S.ph.wk}" aria-label="Week of the year"></div><div class="wkl" id="phwkl">${wkLabel(S.ph.wk) + ' · ' + phYrsText()}</div>`;
     /* years before the first one with enough records are left off, so the row stays short */
     const ok = phYearsOk(A || {years:[], yn:{}}), ys2 = ok.length ? ys.filter(v => v >= ok[0]) : ys;
     if (ys2.length >= 2) h += phYrBlock(ys2, y, true) +
