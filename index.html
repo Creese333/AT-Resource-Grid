@@ -20,7 +20,7 @@
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{font-family:var(--body);font-size:15px;line-height:1.5;color:var(--ink);background:var(--panel);
-  display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:350px 1fr;grid-template-areas:"head head" "side map" "side strip";
+  display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:clamp(360px,30vw,460px) 1fr;grid-template-areas:"head head" "side map" "side strip";
 }
 button,select{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -1122,7 +1122,7 @@ function phBlock(){ const sp = phSp(), m = S.m, A = phAgg(dispLevel()), ys = A ?
     /* years before the first one with enough records are left off, so the row stays short */
     const ok = phYearsOk(A || {years:[], yn:{}}), ys2 = ok.length ? ys.filter(v => v >= ok[0]) : ys;
     if (ys2.length >= 2) h += phYrBlock(ys2, y, true) +
-      `<p class="phstat" style="margin-top:-3px">Tap years to add or remove them (numbers are each year’s records; dimmed years have fewer than ${PHYMIN}). Picked years show together; with two or more, Play runs each selected year in order. <button type="button" data-phgood="1">Pick years with ${PHYMIN}+ records</button></p>`; }
+      `<p class="phstat" style="margin-top:-3px">Tap years to add or remove them (numbers are each year’s records; dimmed years have fewer than ${PHYMIN}). Picked years show together; with two or more, Play runs each selected year in order. With All, every year is pooled, so Play shows the season for all years together. To play the years one at a time, with each year highlighted on the spread chart: <button type="button" data-phgood="1">Pick years with ${PHYMIN}+ records</button></p>`; }
   else if (m.yr === 'y' && ys.length >= 2){ const lo = ys[0] - 1;
     h += `<div class="wk yr"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button></div>` + phYrBlock(ys, y, false) +
       `<p class="phstat" style="margin-top:-3px">Pick All, or a year to see where it had been recorded by then; Play steps through the years.</p>`; }
