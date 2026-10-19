@@ -1017,9 +1017,10 @@ function phWin(lv, c, s){ const A = phAgg(lv); if (!A || !A.any[c]) return null;
 const phTop = (lv, s) => { const A = phAgg(lv); return A ? Math.max(1, (phYear(lv) ? A.ymx[s] : A.mx[s]) / 3) : 1; };
 function phFirst(lv, c){ const A = phAgg(lv); if (!A || A.first[c] == null) return null; const y = phYear(lv); return y && A.first[c] > y ? null : A.first[c]; }
 const PHWAVE = [[0, ZERO, 'Recorded here, not these weeks'], [1, null, '1 record'], [2, null, '2 records'], [5, null, '3 to 5 records'], [10, null, '6 to 10 records'], [Infinity, null, 'over 10 records']];
-const phWaveCol = v => { if (v == null) return null; if (v === 0) return ZERO; const i = PHWAVE.findIndex(e => v <= e[0]); return RAMP.phen[Math.max(0, Math.min(4, i - 1))]; };
-const phWaveLegend = () => PHWAVE.map((e, i) => `<div class="row"><i style="background:${i ? RAMP.phen[i - 1] : ZERO}"></i><span>${e[2]}</span></div>`).join('') +
-  (phSelText() ? `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, ${phYear() ? phYear() + ' only' : 'years ' + esc(phSelText()) + ' together'}. Gray cells had records in other years or weeks.</p>`
+const PHWAVECOL = ['#FFE600','#FFC400','#FF9900','#F56A00','#D6430A'];   /* saturated, so the wave reads on topo maps and imagery alike */
+const phWaveCol = v => { if (v == null) return null; if (v === 0) return ZERO; const i = PHWAVE.findIndex(e => v <= e[0]); return PHWAVECOL[Math.max(0, Math.min(4, i - 1))]; };
+const phWaveLegend = () => PHWAVE.slice(1).map((e, i) => `<div class="row"><i style="background:${PHWAVECOL[i]}"></i><span>${e[2]}</span></div>`).join('') +
+  (phSelText() ? `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, ${phYear() ? phYear() + ' only' : 'years ' + esc(phSelText()) + ' together'}. Cells without records in these weeks are left blank.</p>`
     : `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, all years together.</p>`);
 /* dates by half month, early spring to late summer */
 const PHDATE = [[90, '#FDE725', 'March or earlier'], [105, '#B5DE2B', 'Early April'], [120, '#6ECE58', 'Late April'], [135, '#35B779', 'Early May'], [151, '#1F9E89', 'Late May'],
@@ -1033,6 +1034,10 @@ const phFirstCol = v => v == null ? null : PHFIRST.find(e => v <= e[0])[1];
 /* the bars under the map: values as drawn (dates: later stands taller; spread: years since first recorded, so the oldest stand tallest) */
 function stripV(m, v){ return m.stripH ? m.stripH(v) : m.stripAbs ? Math.abs(v) : v; }
 let phTimer = null;
+function phSeason(){ const A = phAgg(dispLevel()), a = A && A.w[phMain()]; if (!a) return [8, 44]; const tot = new Array(53).fill(0);
+  for (let i = 0; i < a.length; i++) if (a[i]) tot[i % 53] += a[i];
+  const mx = Math.max(...tot); if (!mx) return [8, 44]; let w0 = 1, w1 = 52; while (w0 < 52 && tot[w0] < mx * .02) w0++; while (w1 > w0 && tot[w1] < mx * .02) w1--;
+  return [Math.max(1, w0 - 1), Math.min(52, w1 + 1)]; }
 /* Play: week views run the weeks of the season (with a year picked, each year's season in turn); the spread view steps the years */
 /* years with enough records to be worth a look (20 or more of the main stage in corridor cells); Play skips the rest */
 const PHYMIN = 20, phYearsOk = A => A.years.filter(y => (A.yn[y] || 0) >= PHYMIN);
@@ -1044,7 +1049,7 @@ function phYrBlock(ys, y, multi){ const A = phAgg(dispLevel()); if (!A) return '
 function phPlay(on){ if (phTimer){ clearInterval(phTimer); phTimer = null; }
   if (on && S.m.yr === 'y'){ phTimer = setInterval(() => { const A = phAgg(dispLevel()); if (!A || !A.years.length) return; const ys = A.years, y = phYear();
       S.ph.yr = !y || y >= ys[ys.length - 1] ? ys[0] : y + 1; phFrame(); }, 1000); }
-  else if (on){ const sel = phSel(); if (sel.length > 1 && !sel.includes(S.ph.yr)) S.ph.yr = sel[0]; const yrs = phSelText() ? 1 : 0; phTimer = setInterval(() => { if (S.ph.wk < 44) S.ph.wk++; else { S.ph.wk = 8;
+  else if (on){ const sel = phSel(); if (sel.length > 1 && !sel.includes(S.ph.yr)) S.ph.yr = sel[0]; const yrs = phSelText() ? 1 : 0, [sw0, sw1] = phSeason(); if (S.ph.wk < sw0 || S.ph.wk > sw1){ S.ph.wk = sw0; phFrame(); } phTimer = setInterval(() => { if (S.ph.wk < sw1) S.ph.wk++; else { S.ph.wk = sw0;
         const sel = phSel(); if (sel.length > 1){ const i = sel.indexOf(S.ph.yr); S.ph.yr = sel[(i + 1) % sel.length]; } }
       phFrame(); }, yrs ? 380 : 550); }
   phCtl(); }
@@ -1744,6 +1749,9 @@ function zoomFade(){ const k = Math.max(0, Math.min(1, (map.getZoom() - FADE_FRO
 function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, strong = m.th === 'feat';
   const px = {hex:1700, cog:4500, wheel:12000}[lv] * Math.pow(2, map.getZoom()) / (156543 * Math.cos(map.getCenter().lat * Math.PI / 180)), tiny = px < 10, w = tiny ? 1 : lv === 'hex' ? .4 : .7; /* trail features: solid fill and a dark outline at every zoom, so any cell with a feature stands out */
   for (let c = 0; c < ps.length; c++){ const v = m.get(lv, c), ins = inSec(lv, c);
+    if (m.colorFn === phWaveCol){ const on = v != null && v > 0, col = on ? phWaveCol(v) : null;
+      ps[c].setStyle(on ? {fill:true, fillColor:col, fillOpacity:ins ? .95 : .15, stroke:true, color:tiny ? col : '#3A2600', weight:tiny ? 1.2 : lv === 'hex' ? .8 : 1.1, opacity:ins ? .95 : .2}
+        : {fill:true, fillOpacity:0, stroke:false}); continue; }
     if (v == null) ps[c].setStyle({fill:true, fillOpacity:0, stroke:!tiny, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
     else if (strong) ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : .9) * Math.max(zf, .85), stroke:true, color:'#0B2410', weight:lv === 'hex' ? 1.6 : 2, opacity:ins ? 1 : .2});
     else ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf, stroke:true, color:tiny ? colorOf(m, lv, v) : '#fff', weight:w, opacity:tiny ? (!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf : ins ? .9 : .2}); } }
