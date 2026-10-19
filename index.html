@@ -509,7 +509,8 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Soils</td><td>NRCS soil survey (gSSURGO), all 14 trail states</td><td>Area-weighted soil ratings. The trail vulnerability index averages three NRCS trail ratings, from 0 (best) to 1 (worst). It rates the soil, not the trail.</td></tr>
       <tr><td>Wetlands</td><td>USFWS National Wetlands Inventory, all 14 trail states</td><td>Wetland acres in each cell by type, and the part on A.T. lands. Small, forested and seasonal wetlands are often missed. “Possibly sensitive” flags likely bogs, fens, seeps and vernal pools for a field check. Not a delineation.</td></tr>
       <tr><td>Restoration targets</td><td>Built in this page from the layers above</td><td>Two 0 to 100 scores for grasslands and forests. How they are scored is set out under Restoration targets below.</td></tr>
-      <tr><td>Flowering and beech leaf disease</td><td>iNaturalist research-grade records, loaded live</td><td>Twenty plants: trail-wide, A.T. Seasons, northern and southern indicators. First, peak and season length follow USA National Phenology Network measures, pooled across years. Records follow hikers, so compare years by eye as leads for field checks; for measured change see A.T. Seasons (Nature’s Notebook).</td></tr>
+      <tr><td>Flowering</td><td>iNaturalist research-grade records, loaded live</td><td>Twenty plants: trail-wide, A.T. Seasons, northern and southern indicators. First, peak and season length follow USA National Phenology Network measures, pooled across years. Records follow hikers, so compare years by eye as leads for field checks; for measured change see A.T. Seasons (Nature’s Notebook).</td></tr>
+      <tr><td>Forest pests</td><td>iNaturalist research-grade records, all life stages, loaded live</td><td>Spotted lanternfly, emerald ash borer, hemlock woolly adelgid, elongate hemlock scale, spongy moth and beech leaf disease; other pests (beech scale, chestnut blight, browntail moth, winter moth, Asian longhorned beetle, southern pine beetle, oak wilt, dogwood anthracnose, Sirex woodwasp) appear once the project has 30 or more records of them. Records by week and the year each cell was first recorded. Records follow hikers; a blank cell means nothing reported, not absence.</td></tr>
       <tr><td>Historic resources</td><td>National Register of Historic Places (NPS) and OpenStreetMap cemeteries, rebuilt monthly</td><td>Two extents: A.T. corridor (records inside an A.T. administrative area) and HUC10 watershed. Recorded sites only: small family cemeteries are often missing and some National Register locations are generalized. Find a Grave links open the cemetery’s page when its ID is known, otherwise a search.</td></tr>
       <tr><td>Unique species</td><td>Rare species priority zones</td><td>Rates how vulnerable the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
     </table>
@@ -847,7 +848,7 @@ const FINDCOL = '#FFC233'; CATCOL.FIND = [['Recorded here', FINDCOL]]; D.cats.FI
 CATCOL.APPA_YN = [['NPS - APPA land', '#1C58A8']]; D.cats.APPA_YN = ['NPS - APPA land'];
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 /* Blue Ridge color scheme */
-const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B'};
+const HUE = {lands:'#D65A92', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -910,12 +911,33 @@ const PHEN = [
     ['Mountain wood-sorrel','Oxalis montana'],['Three-toothed cinquefoil','Sibbaldiopsis tridentata']]],
   ['Southern indicators', [['Flame azalea','Rhododendron calendulaceum'],['Great rhododendron','Rhododendron maximum'],['Crested dwarf iris','Iris cristata'],
     ['Fire pink','Silene virginica'],['Catawba rhododendron','Rhododendron catawbiense']]],
-  ['Forest pests', [['Beech leaf disease','Litylenchus crenatae','spread']]]];
-const PHSP = PHEN.flatMap(g => g[1].map(([common, sci, kind]) => ({common, sci, key:sci.toLowerCase().replace(/[^a-z]+/g, '-'), group:g[0], kind:kind || 'plant'})));
+  ['Forest pests', [['Spotted lanternfly','Lycorma delicatula','spread'],['Emerald ash borer','Agrilus planipennis','spread'],['Hemlock woolly adelgid','Adelges tsugae','spread'],
+    ['Elongate hemlock scale','Fiorinia externa','spread'],['Spongy moth','Lymantria dispar','spread'],['Beech leaf disease','Litylenchus crenatae','spread'],
+    /* shown only once the project has enough records of them (PHPESTMIN) */
+    ['Beech scale (beech bark disease)','Cryptococcus fagisuga','spread',1],['Chestnut blight','Cryphonectria parasitica','spread',1],['Browntail moth','Euproctis chrysorrhoea','spread',1],
+    ['Winter moth','Operophtera brumata','spread',1],['Asian longhorned beetle','Anoplophora glabripennis','spread',1],['Southern pine beetle','Dendroctonus frontalis','spread',1],
+    ['Oak wilt','Bretziella fagacearum','spread',1],['Dogwood anthracnose','Discula destructiva','spread',1],['Sirex woodwasp','Sirex noctilio','spread',1]]]];
+const PHSP = PHEN.flatMap(g => g[1].map(([common, sci, kind, cand]) => ({common, sci, key:sci.toLowerCase().replace(/[^a-z]+/g, '-'), group:g[0], kind:kind || 'plant', cand:!!cand, pest:g[0] === 'Forest pests'})));
+/* two questions share this engine: flowering (plants) and forest pests */
+function PHQ(){ return ['phen', 'pest'].includes(S.q.id); }
+const phList = () => PHSP.filter(s => s.pest === (S.q.id === 'pest'));
+/* record counts of the forest pests in the project, looked up once and kept 30 days; the extra candidates show at PHPESTMIN or more */
+const PHPESTMIN = 30, PHCNT = {}; let phCntRun = false;
+function phPestCounts(){ if (phCntRun) return; phCntRun = true; const k = 'atgrid-pestcount-v1:' + (ATiNat.config.project || '');
+  try { const x = JSON.parse(localStorage.getItem(k)); if (x && Date.now() - x.at < PHKEEP){ Object.assign(PHCNT, x.c); return; } } catch (e) {}
+  (async () => { for (const sp of PHSP.filter(s => s.pest)){ try { const t = await prioTaxon({sci:sp.sci});
+        const r = await fetch('https://api.inaturalist.org/v1/observations?' + (ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : '') + 'quality_grade=research&per_page=0&taxon_id=' + t);
+        if (r.ok) PHCNT[sp.key] = (await r.json()).total_results || 0; } catch (e) {} }
+    try { localStorage.setItem(k, JSON.stringify({at:Date.now(), c:PHCNT})); } catch (e) {}
+    if (S.q.id === 'pest') side(); })(); }
+const phShown = sp => !sp.cand || (PHCNT[sp.key] || 0) >= PHPESTMIN;
+/* each question keeps its own species */
+function phQSync(){ if (!PHQ()) return; S.ph.by = S.ph.by || {}; if (S.ph.q === S.q.id) return;
+  if (S.ph.q) S.ph.by[S.ph.q] = S.ph.sp; S.ph.q = S.q.id; const L = phList(); if (!L.some(s => s.key === S.ph.sp)) S.ph.sp = S.ph.by[S.q.id] || L[0].key; }
 const PHD = {};   /* by key: {st:'loading'|'done'|'error', pts:[[day of year, year, stage, lat, lon, id]], n, msg, at} */
 const PHKEEP = 30 * 864e5, phKey = sp => 'atgrid-phen-v3:' + (ATiNat.config.project || '') + ':' + sp.key;
 const PHFIELDS = '(id:!t,observed_on:!t,quality_grade:!t,obscured:!t,geoprivacy:!t,taxon_geoprivacy:!t,geojson:all)';
-const phSp = () => PHSP.find(s => s.key === S.ph.sp) || PHSP[0];
+const phSp = () => { const L = PHQ() ? phList() : PHSP; return L.find(s => s.key === S.ph.sp) || PHSP.find(s => s.key === S.ph.sp) || L[0]; };
 const phMain = (sp = phSp()) => sp.kind === 'plant' ? 1 : sp.kind === 'adult' ? 4 : 5;
 const PHWORD = {1:'flowering', 2:'fruiting', 3:'in bud', 4:'adults', 5:'records'};
 const phNoun = () => phSp().kind === 'adult' ? 'adult' : 'flowering';
@@ -958,8 +980,8 @@ function phLoad(sp){ let st = PHD[sp.key]; if (st && (st.st === 'done' || st.st 
     st.st = 'done'; st.at = Date.now();
     try { localStorage.setItem(phKey(sp), JSON.stringify({at:st.at, pts:st.pts})); } catch (e) {}
     for (const k in PHAGG) if (k.startsWith(sp.key + '|')) delete PHAGG[k];
-    if (S.q.id === 'phen' && phSp() === sp){ BRK.clear(); redraw(); } })()
-  .catch(e => { st.st = 'error'; st.msg = e.message; if (S.q.id === 'phen') side(); }); }
+    if (PHQ() && phSp() === sp){ BRK.clear(); redraw(); } })()
+  .catch(e => { st.st = 'error'; st.msg = e.message; if (PHQ()) side(); }); }
 function phRefresh(){ const sp = phSp(); try { localStorage.removeItem(phKey(sp)); } catch (e) {} delete PHD[sp.key]; for (const k in PHAGG) if (k.startsWith(sp.key + '|')) delete PHAGG[k]; phLoad(sp); side(); }
 /* which cell of a size each record falls in (nearest few cell centers, tested against the outline) */
 const PHBK = new WeakMap();
@@ -1060,7 +1082,7 @@ function phCtl(){ const r = $('#phwk'), l = $('#phwkl'), b = $('#phplay'), y = p
   document.querySelectorAll('[data-phyr]').forEach(x => { const v = +x.dataset.phyr; x.setAttribute('aria-pressed', v ? sel.includes(v) : !sel.length); x.classList.toggle('now', multi && sel.length > 1 && v === y); });
   phTick(); }
 /* the year ticker on the map while a week or year view is showing */
-function phTick(){ let t = document.getElementById('phtick'); const on = S.q.id === 'phen' && S.m.yr && !S.m.find && phAgg(dispLevel());
+function phTick(){ let t = document.getElementById('phtick'); const on = PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
   if (!t){ if (!on) return; t = document.createElement('div'); t.id = 'phtick'; t.setAttribute('aria-live', 'off'); document.getElementById('map').appendChild(t); }
   if (!on){ t.style.display = 'none'; return; } const y = phYear(), A = phAgg(dispLevel()), ys = A.years, span = ys.length ? ys[0] + '–' + String(ys[ys.length - 1]).slice(2) : 'All years';
   let big, small;
@@ -1073,8 +1095,8 @@ function phTick(){ let t = document.getElementById('phtick'); const on = S.q.id 
 /* top left of the map, just below the map controls (which wrap to more rows on a phone or when Map tools opens) */
 function phTickPos(){ const t = document.getElementById('phtick'), c = document.getElementById('ctls'), m = document.getElementById('map'); if (!t || !m) return;
   const top = c ? c.getBoundingClientRect().bottom - m.getBoundingClientRect().top + 8 : 10; t.style.top = Math.max(10, Math.round(top)) + 'px'; }
-addEventListener('resize', () => { if (S.q.id === 'phen') phTickPos(); });
-if (window.ResizeObserver && document.getElementById('ctls')) new ResizeObserver(() => { if (S.q.id === 'phen') phTickPos(); }).observe(document.getElementById('ctls'));
+addEventListener('resize', () => { if (PHQ()) phTickPos(); });
+if (window.ResizeObserver && document.getElementById('ctls')) new ResizeObserver(() => { if (PHQ()) phTickPos(); }).observe(document.getElementById('ctls'));
 function phStatus(){ const sp = phSp(), st = PHD[sp.key];
   if (!st || st.st === 'loading') return `Loading research-grade records of ${esc(sp.common.toLowerCase())} from iNaturalist…` + (st && st.n ? ` ${fmt(st.n, 0)} so far` : '');
   if (st.st === 'error') return `Could not load from iNaturalist (${esc(st.msg || 'error')}). <button type="button" data-phref="1">Try again</button>`;
@@ -1083,10 +1105,11 @@ function phStatus(){ const sp = phSp(), st = PHD[sp.key];
   return `${what}; ${fmt(A ? A.placed : 0, 0)} fall in corridor cells. Loaded ${new Date(st.at).toLocaleDateString('en-US')}. <button type="button" data-phref="1">Refresh</button>`; }
 function phStatusOnly(){ const e = $('#phstat'); if (e) e.innerHTML = phStatus(); }
 /* a measure that does not apply to the species picked gives way to the first one that does */
-function phFixM(){ if (S.q.id !== 'phen' || S.m.find || !S.m.hideFn || !S.m.hideFn()) return; S.m = S.q.m.find(m => m.id === (phSp().kind === 'spread' ? 'spread' : 'wave')); }
+function phFixM(){ if (!PHQ() || S.m.find || !S.m.hideFn || !S.m.hideFn()) return; S.m = S.q.m.find(m => m.id === 'wave'); }
 function phBlock(){ const sp = phSp(), m = S.m, A = phAgg(dispLevel()), ys = A ? A.years : [], y = phYear();
-  let h = `<div class="phctl"><select id="phsp" aria-label="Species">` + PHEN.map(g => `<optgroup label="${esc(g[0])}">` + g[1].map(([c, s]) => { const k = s.toLowerCase().replace(/[^a-z]+/g, '-'); return `<option value="${k}"${k === sp.key ? ' selected' : ''}>${esc(c)} (${esc(s)})</option>`; }).join('') + '</optgroup>').join('') + '</select>';
-  if (m.yr === 'wk'){ h += `<div class="wk"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button><input type="range" id="phwk" min="8" max="44" step="1" value="${S.ph.wk}" aria-label="Week of the year"></div><div class="wkl" id="phwkl">${wkLabel(S.ph.wk)}</div>`;
+  const L = phList(), grp = [...new Set(L.map(s => s.group))];
+  let h = `<div class="phctl"><select id="phsp" aria-label="Species">` + grp.map(g => `<optgroup label="${esc(g)}">` + L.filter(s => s.group === g && (phShown(s) || s.key === sp.key)).map(s => `<option value="${s.key}"${s.key === sp.key ? ' selected' : ''}>${esc(s.common)} (${esc(s.sci)})${s.pest && PHCNT[s.key] != null ? ' · ' + fmt(PHCNT[s.key], 0) + ' records' : ''}</option>`).join('') + '</optgroup>').join('') + '</select>';
+  if (m.yr === 'wk'){ h += `<div class="wk"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button><input type="range" id="phwk" min="1" max="52" step="1" value="${S.ph.wk}" aria-label="Week of the year"></div><div class="wkl" id="phwkl">${wkLabel(S.ph.wk)}</div>`;
     /* years before the first one with enough records are left off, so the row stays short */
     const ok = phYearsOk(A || {years:[], yn:{}}), ys2 = ok.length ? ys.filter(v => v >= ok[0]) : ys;
     if (ys2.length >= 2) h += phYrBlock(ys2, y, true) +
@@ -1109,34 +1132,34 @@ function phWire(){ const s = $('#phsp'); if (!s) return;
 function phWireTrend(){
   document.querySelectorAll('[data-phab]').forEach(x => x.ontoggle = () => { S.ph.ab = S.ph.ab || {}; S.ph.ab[x.dataset.phab] = x.open; });
   document.querySelectorAll('[data-phy]').forEach(x => x.onclick = () => { phPlay(false); S.ph.yr = +x.dataset.phy; S.ph.sel = [+x.dataset.phy];
-    if (!S.m.yr) S.m = S.q.m.find(m => m.id === (phSp().kind === 'spread' ? 'spread' : 'wave')); BRK.clear(); redraw(); });
+    if (!S.m.yr) S.m = S.q.m.find(m => m.id === 'wave'); BRK.clear(); redraw(); });
   document.querySelectorAll('[data-phw]').forEach(x => x.onclick = () => { phPlay(false); S.ph.wk = Math.max(8, Math.min(44, +x.dataset.phw));
     if (S.m.yr !== 'wk') S.m = S.q.m.find(m => m.id === 'wave'); BRK.clear(); redraw(); }); }
 /* ---------- charts ---------- */
 const PHBAND = 200;   /* trail miles per row of the season calendar */
 /* Season calendar: rows of 200 trail miles, north at the top, by week; each box is that week's flowering (or adult) records
    against the stretch's busiest week, so every stretch shows its own season from start to peak to end. */
-function phCalendar(){ const sp = phSp(), A = phAgg('wheel'); if (!A || sp.kind === 'spread') return ''; const L_ = D.levels.wheel, rng = secRange();
-  const nb = Math.ceil(D.totalMi / PHBAND), plant = sp.kind === 'plant', stg = plant ? [1] : [4], B = Array.from({length:nb}, () => ({}));
+function phCalendar(){ const sp = phSp(), A = phAgg('wheel'); if (!A) return ''; const L_ = D.levels.wheel, rng = secRange();
+  const nb = Math.ceil(D.totalMi / PHBAND), plant = sp.kind === 'plant', ms = plant ? 1 : sp.kind === 'spread' ? 5 : 4, stg = [ms], B = Array.from({length:nb}, () => ({}));
   for (const s of stg) for (const [c, L] of A.d[s]){ const mi = L_.mi[c]; if (rng && (mi < rng[0] || mi > rng[1])) continue; const b = B[Math.min(nb - 1, Math.floor(mi / PHBAND))];
-    for (const [d] of L){ const w = wkOf(d), e = b[w] || (b[w] = {3:0, 1:0, 2:0, 4:0}); e[s]++; } }
+    for (const [d] of L){ const w = wkOf(d), e = b[w] || (b[w] = {3:0, 1:0, 2:0, 4:0, 5:0}); e[s]++; } }
   let w0 = 52, w1 = 1; B.forEach(b => Object.keys(b).forEach(w => { w0 = Math.min(w0, +w); w1 = Math.max(w1, +w); })); if (w1 < w0) return '';
   w0 = Math.max(1, w0 - 1); w1 = Math.min(52, w1 + 1);
   const rows = B.map((b, i) => ({i, b, n:Object.values(b).reduce((t, e) => t + stg.reduce((u, s) => u + e[s], 0), 0)})).filter(r => r.n).reverse();
   const W = 320, lab = 44, rh = Math.max(11, Math.min(18, 150 / rows.length)), H = rows.length * rh + 18, cw = (W - lab - 4) / (w1 - w0 + 1), f = v => v.toFixed(1);
   const ramp = ['#3A3420', '#6B5A12', '#A8860A', '#E0B400', '#FFE014'];
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Season calendar along the trail">`;
-  rows.forEach((r, k) => { const y = k * rh, ms = plant ? 1 : 4, mx = Math.max(1, ...Object.values(r.b).map(e => e[ms]));
+  rows.forEach((r, k) => { const y = k * rh, mx = Math.max(1, ...Object.values(r.b).map(e => e[ms]));
     g += `<text x="${lab - 4}" y="${f(y + rh * .72)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">mi ${fmt(r.i * PHBAND, 0)}</text>`;
     for (let w = w0; w <= w1; w++){ const e = r.b[w]; if (!e) continue; 
-      const v = e[ms] / mx, tip = `${e[ms]} ${plant ? 'flowering' : 'adult'} ${e[ms] === 1 ? 'record' : 'records'}`;
+      const v = e[ms] / mx, tip = `${e[ms]} ${plant ? 'flowering ' : ms === 4 ? 'adult ' : ''}${e[ms] === 1 ? 'record' : 'records'}`;
       const x = lab + (w - w0) * cw, col = v == null ? '#2E4460' : ramp[Math.min(4, Math.floor(v * 4.999))];
       g += `<rect data-phw="${w}" x="${f(x + .4)}" y="${f(y + .5)}" width="${f(cw - .8)}" height="${f(rh - 1)}" fill="${col}" style="cursor:pointer"><title>Miles ${fmt(r.i * PHBAND, 0)}–${fmt(Math.min(D.totalMi, (r.i + 1) * PHBAND), 0)}, ${wkLabel(w)}: ${tip}</title></rect>`; } });
   const yb = rows.length * rh;
-  [['Mar', 9], ['Apr', 14], ['May', 18], ['Jun', 22], ['Jul', 27], ['Aug', 31], ['Sep', 35], ['Oct', 40], ['Nov', 44]].forEach(([m, w]) => { if (w >= w0 && w <= w1) g += `<text x="${f(lab + (w - w0) * cw)}" y="${yb + 12}" font-size="8.5" fill="#A8B8CA">${m}</text>`; });
+  [['Jan', 1], ['Feb', 5], ['Mar', 9], ['Apr', 14], ['May', 18], ['Jun', 22], ['Jul', 27], ['Aug', 31], ['Sep', 35], ['Oct', 40], ['Nov', 44], ['Dec', 48]].forEach(([m, w]) => { if (w >= w0 && w <= w1) g += `<text x="${f(lab + (w - w0) * cw)}" y="${yb + 12}" font-size="8.5" fill="#A8B8CA">${m}</text>`; });
   if (S.m.yr === 'wk' && S.ph.wk >= w0 && S.ph.wk <= w1) g += `<rect x="${f(lab + (S.ph.wk - w0) * cw)}" y="0" width="${f(cw)}" height="${yb}" fill="none" stroke="#fff" stroke-width="1"/>`;
   g += '</svg>';
-  const key = `<div class="phkey"><span><i style="background:linear-gradient(90deg,${ramp.join(',')})"></i>${plant ? 'flowering' : 'adult'} records, few to most in that stretch</span></div>`;
+  const key = `<div class="phkey"><span><i style="background:linear-gradient(90deg,${ramp.join(',')})"></i>${plant ? 'flowering' : ms === 4 ? 'adult' : 'all'} records, few to most in that stretch</span></div>`;
   return g + key; }
 function phSpreadSvg(lv, cells){ const A = phAgg(lv); if (!A || !A.years.length) return ''; const ys = A.years, nw = new Map();
   for (const c of cells){ let y = A.first[c]; if (y == null) continue; if (y < ys[0]) y = ys[0]; nw.set(y, (nw.get(y) || 0) + 1); }
@@ -1154,8 +1177,8 @@ function phSpreadSvg(lv, cells){ const A = phAgg(lv); if (!A || !A.years.length)
   return g + '</svg><div class="phkey"><span class="thin">bars: cells first recorded that year (left scale) · line: all cells recorded so far (right scale)</span></div>'; }
 function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) return ''; const where = S.sec === 'all' ? 'the whole trail' : secName(), noun = phNoun();
   let h = '';
-  if (sp.kind !== 'spread'){
-    h += `<h4 class="phh">When it is ${sp.kind === 'plant' ? 'in flower' : 'out as adults'} along the trail</h4>` + phCalendar() +
+  {
+    h += `<h4 class="phh">When it is ${sp.kind === 'plant' ? 'in flower' : sp.kind === 'adult' ? 'out as adults' : 'recorded'} along the trail</h4>` + phCalendar() +
       `<details class="phabout" data-phab="cal"${S.ph.ab && S.ph.ab.cal ? ' open' : ''}><summary>About this graph</summary><p class="phnote">${sp.kind === 'plant' ? 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks. Brighter boxes: more flowering records that week, against the stretch’s busiest week, so each stretch shows its season start, peak and end, and the peak moves north.' : 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks.'} Click a week to map it.</p></details>`;
    }
   if (sp.kind !== 'plant'){ const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
@@ -1165,8 +1188,8 @@ function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) retu
 /* the cell panel: records by week by stage, and the cell's season */
 function phSection(lv, c){ const sp = phSp(), A = phAgg(lv), k = sp.kind;
   /* outside the flowering question the records are not fetched just for the panel; the section says how to see them */
-  if (!A && S.q.id !== 'phen') return `<div class="sec" style="--hue:${HUE.phen}"><h3>Flowering</h3><p class="none">Open “When does it flower here?” and pick a species to load its flowering records; this section then shows them for any cell.</p></div>`;
-  let b = `<div class="sec" style="--hue:${HUE.phen}"><h3>Flowering</h3><p style="margin:0 0 6px"><b>${esc(sp.common)}</b> <i style="color:var(--muted)">${esc(sp.sci)}</i></p>`;
+  if (!A && !PHQ()) return `<div class="sec" style="--hue:${HUE.phen}"><h3>Flowering</h3><p class="none">Open “When does it flower here?” or “Where are forest pests turning up?” and pick a species to load its records; this section then shows them for any cell.</p></div>`;
+  let b = `<div class="sec" style="--hue:${sp.pest ? HUE.pest : HUE.phen}"><h3>${sp.pest ? 'Forest pests' : 'Flowering'}</h3><p style="margin:0 0 6px"><b>${esc(sp.common)}</b> <i style="color:var(--muted)">${esc(sp.sci)}</i></p>`;
   if (!A) return b + `<p class="none">${phStatus()}</p></div>`;
   /* c is one cell, or an array of cells for a box or multi-cell selection: weekly counts are added, dates pool the cells' records */
   const cs = Array.isArray(c) ? c : [c], many = cs.length > 1;
@@ -1541,7 +1564,7 @@ const Q = [
   m:[{id:'grass', label:'Grasslands and early successional', int:1, brkP:[.4,.7,.85,.95], none:'No open habitat mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('grass'), fn:(lv,c) => restScore('grass', lv, c)},
      {id:'forest', label:'Forests', int:1, brkP:[.4,.7,.85,.95], none:'No forest mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
  {id:'phen', th:'inat', hue:HUE.phen, ramp:'phen', title:'When does it flower here?',
-  use:'When twenty plants flower along the trail, and where beech leaf disease has turned up, from research-grade iNaturalist records. Measures follow the USA National Phenology Network: first, peak and season length, and flowering by week. Press Play to watch the season move north. Records follow hikers, so a blank cell means too few records, not absence.',
+  use:'When twenty plants flower along the trail, from research-grade iNaturalist records. Measures follow the USA National Phenology Network: first, peak and season length, and flowering by week. Press Play to watch the season move north. Records follow hikers, so a blank cell means too few records, not absence.',
   m:[{id:'wave', get label(){ const k = phSp().kind; return k === 'plant' ? 'Flowering, week by week' : k === 'adult' ? 'Adults, week by week' : 'Records, week by week'; },
       yr:'wk', st:() => phMain(), hasTxt:() => 'have records of this species', sumFn:phSum, sumTitle:() => `Most ${PHWORD[S.m.st()]} records around ${wkDate(S.ph.wk)}${phYear() ? ', ' + phYear() : ''}`, showFn:v => `${v} ${v === 1 ? 'record' : 'records'}`, int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'], fn:(lv, c) => phWin(lv, c, phMain()),
       colorFn:phWaveCol, legendFn:phWaveLegend, stripTop:lv => phTop(lv, phMain())},
@@ -1585,7 +1608,9 @@ const Q = [
   m:[{id:'tier', label:'Unique Species', kind:'cat', f:'review_tie'}]}
 ];
 for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
-{ const ord = ['rest','veg','inv','rec','phen','bird','pri','soil','wet','feat','hist','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const p = Q.find(q => q.id === 'phen'); Q.push(Object.assign({}, p, {id:'pest', hue:HUE.pest, title:'Where are forest pests turning up?',
+    use:'Where forest pests have been recorded along the trail and in which weeks, from research-grade iNaturalist records: spotted lanternfly, emerald ash borer, hemlock woolly adelgid, elongate hemlock scale, spongy moth, beech leaf disease, and others once there are enough records. Press Play to watch the year; Year first recorded shows the spread. Records follow hikers, so a blank cell means nothing reported, not absence.'})); }
+{ const ord = ['rest','veg','inv','rec','pest','phen','bird','pri','soil','wet','feat','hist','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
@@ -1607,7 +1632,7 @@ function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   if (h.get('lands') === 'appa') S.appa = true;
   if (['adm', 'huc'].includes(h.get('hadm'))) S.hadm = h.get('hadm');
   if (h.get('sp') && PHSP.some(s => s.key === h.get('sp'))) S.ph.sp = h.get('sp');
-  if (+h.get('wk') >= 8 && +h.get('wk') <= 44) S.ph.wk = +h.get('wk');
+  if (+h.get('wk') >= 1 && +h.get('wk') <= 52) S.ph.wk = +h.get('wk');
   if (h.get('yr')){ const ys = h.get('yr').split(',').map(Number).filter(v => v >= 2010 && v <= 2100); S.ph.sel = ys; if (ys.length === 1) S.ph.yr = ys[0]; }
   if (h.get('cell')){ for (const lv of ['hex','cog','wheel']) if (IDX[lv].has(h.get('cell'))){ S.cell = IDX[lv].get(h.get('cell')); S.cellLv = lv; }
     if (S.cell == null) S.pendingCell = h.get('cell'); } }   /* a watershed cell: found once the watershed cells load */
@@ -1618,7 +1643,7 @@ function writeHash(){ const p = new URLSearchParams({q:S.q.id, m:S.m.id, size:S.
   if (S.herb && S.q.id === 'rest') p.set('herb', '1');
   if (S.appa && S.q.id === 'rest') p.set('lands', 'appa');
   if (S.hadm && S.hadm !== 'all' && S.q.id === 'hist') p.set('hadm', S.hadm);
-  if (S.q.id === 'phen'){ p.set('sp', S.ph.sp); if (S.m.yr === 'wk') p.set('wk', S.ph.wk); if (S.m.yr === 'wk' && phSel().length) p.set('yr', phSel().join(',')); else if (S.m.yr && phYear()) p.set('yr', phYear()); }
+  if (PHQ()){ p.set('sp', S.ph.sp); if (S.m.yr === 'wk') p.set('wk', S.ph.wk); if (S.m.yr === 'wk' && phSel().length) p.set('yr', phSel().join(',')); else if (S.m.yr && phYear()) p.set('yr', phYear()); }
   if (S.sec !== 'all') p.set('sec', S.sec); if (S.base !== DEFBASE) p.set('base', S.base); if (S.cell != null) p.set('cell', D.levels[S.cellLv].id[S.cell]);
   history.replaceState(null, '', '#' + p.toString()); }
 readHash();
@@ -1759,7 +1784,7 @@ function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
     if (sc === 'huc' && S.ext !== 'huc' && !S.histHucFail) setExt('huc', true).then(() => { if (S.ext !== 'huc'){ S.histHucFail = true; S.extMsg = ''; redraw(); } });
     else if (sc !== 'huc' && S.ext === 'huc') setExt('corr', true); }
   else if (S.ext === 'huc' && (!EXTQ.includes(S.q.id) || S.m.find)) setExt('corr', true);
-  if (S.q.id === 'phen'){ phFixM(); phLoad(phSp()); } else if (phTimer) phPlay(false);
+  phQSync(); if (PHQ()){ if (S.q.id === 'pest') phPestCounts(); phFixM(); phLoad(phSp()); } else if (phTimer) phPlay(false);
   if (S.q.id === 'hist') histLoad();
   phTick();
   if (BIO && !BIO.done && S.ext === 'corr') bioApply();
@@ -1778,7 +1803,7 @@ function redraw(){ draw(); strip(); writeHash(); }
    for soils and wetlands only. Those cells are in soils_wetlands_huc10.json beside this page and load the first time they are asked for.
    Switching swaps the grid and the soils data under the page, so the map, rankings, strip, selection and export all follow.
    Choosing another question, or searching for a species, switches back to the corridor. */
-const EXTFILE = 'soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen'];
+const EXTFILE = 'soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest'];
 const SOILCATS = ['VULN_DOM','SOIL_SERIES','SOIL_TEXTURE','SOIL_ORDER','SOIL_DRAIN','SOIL_HSG','SOIL_FARM','SOIL_ECOSITE','SOIL_MAPUNIT','WET_DOM','WET_LDOM'];
 let extLoading = null;
 function extSnapshot(){ const cats = {}; SOILCATS.forEach(k => { if (D.cats[k]) cats[k] = D.cats[k]; });
@@ -2077,7 +2102,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
     (S.herb ? '<p class="extnote">Cells are marked down by up to 10 points for the share of their A.T. lands in wetland, where herbicide use may be limited.</p>' : '') +
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
       (S.appa ? '<p class="extnote">Only NPS – APPA land counts: scores are scaled by the share of the cell’s corridor land that APPA administers. Cells without APPA land score 0.</p>' : ''));
-  h += `<div class="qbody" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + (q.id === 'phen' && !S.m.find ? phBlock() : '') + (q.id === 'hist' && !S.m.find ? histAdmBlock() + histBlock() : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
+  h += `<div class="qbody" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + ((q.id === 'phen' || q.id === 'pest') && !S.m.find ? phBlock() : '') + (q.id === 'hist' && !S.m.find ? histAdmBlock() + histBlock() : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.hideFn || !m.hideFn()).map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m}">${esc(m.label)}</button>`).join('') + '</div>') +
     blk('results', 'Results', summary(lv), 'res') + '</div>';
   el.innerHTML = h; phWire(); }
@@ -2635,14 +2660,14 @@ function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerC
 function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'done' ? st.counts[lv].get(c) || 0 : null; }
 /* panel sections follow the order of the questions; each question opens its own sections (survey effort has none of its own) */
 const SECORDER = ['rest','veg','inat','live','phen','ebird','nrpz','soil','wet','feat','hist','lands'];
-const QSEC = {rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:[], land:['lands'], phen:['phen']};
+const QSEC = {rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:[], land:['lands'], phen:['phen'], pest:['phen']};
 function finishProfile(html){ $('#pbody').innerHTML = html;
-  { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Land administrators':'lands'};
+  { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Land administrators':'lands'};
     const secs = [...document.querySelectorAll('#pbody .sec')]; if (secs.length > 1){ const par = secs[0].parentNode, anchor = document.createComment('secs'); par.insertBefore(anchor, secs[0]);
       const rank = el => { const i = SECORDER.indexOf(KEY[(el.querySelector('h3') || {}).textContent]); return i < 0 ? 99 : i; };
       secs.map((el, i) => [rank(el), i, el]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([, , el]) => par.insertBefore(el, anchor)); anchor.remove(); } }
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
-  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Historic resources':'hist', 'Land administrators':'lands'};
+  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Historic resources':'hist', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
     const open = key in S.secOpen ? S.secOpen[key] : S.m.find ? key === S.m.th : (QSEC[S.q.id] || []).includes(key);
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
