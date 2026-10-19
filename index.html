@@ -94,6 +94,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .findbar+.blk{border-top:0}
 .use{margin:0;color:#D0DAE5;max-width:40em;font-size:14px;line-height:1.5}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin:0}
+.ctab{overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--line,#2E4460);border-radius:4px}.ctab table{border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}.ctab th,.ctab td{padding:4px 7px;border-bottom:1px solid #22344C;white-space:nowrap;text-align:right}.ctab th{position:sticky;top:0;background:#1B2D44;color:#A8B8CA;font-weight:600;white-space:normal;min-width:70px;vertical-align:bottom}.ctab td:first-child,.ctab th:first-child{position:sticky;left:0;background:#1B2D44;text-align:left;z-index:1}.ctab th:first-child{z-index:2}.ctab td:nth-child(2){text-align:left;color:#A8B8CA}
 .chips.phrk{margin:6px 0 8px}
 .flist{list-style:none;margin:2px 0 6px;padding:0}
 .flist li{display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:14px;line-height:1.35}
@@ -177,7 +178,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 #cellsbtn[aria-pressed=false]{color:var(--muted)}
 #cellsbtn[aria-pressed=false] i{background:none;border-color:#8194AA}
 #boxbtn i{width:12px;height:10px;border:1.5px dashed #C2CEDB;border-radius:1px;flex:none}
-#toolsbody #boxbtn[aria-pressed=true]{background:var(--ink);color:var(--onlight);font-weight:500}
+#toolsbody #pickbtn[aria-pressed=true],#toolsbody #boxbtn[aria-pressed=true]{background:var(--ink);color:var(--onlight);font-weight:500}
 #boxbtn[aria-pressed=true] i{border-color:var(--onlight)}
 #toolsbody #clearbtn{color:#F4B08E}
 #clearbtn[hidden]{display:none !important}
@@ -468,7 +469,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
         <button id="toolstog" type="button" aria-expanded="true" aria-controls="toolsbody"><span>Map tools</span><i aria-hidden="true"></i></button>
         <div id="toolsbody" role="group" aria-label="Map tools">
           <button id="cellsbtn" type="button" aria-pressed="true" title="Turn the colored cells on or off to see the basemap"><i aria-hidden="true"></i><span>Cells on</span></button>
-          <button id="boxbtn" type="button" aria-pressed="false" title="Draw a box on the map to select every cell inside it"><i aria-hidden="true"></i><span>Select area</span></button>
+          <button id="boxbtn" type="button" aria-pressed="false" title="Draw a box on the map to select every cell inside it"><i aria-hidden="true"></i><span>Select area</span></button><button id="pickbtn" type="button" aria-pressed="false" title="Tap cells to add or remove them from the selection (on a computer, Shift-click works any time)"><i aria-hidden="true"></i><span>Pick cells</span></button>
           <button id="clearbtn" type="button" hidden>Clear selection</button>
         </div>
       </div>
@@ -1772,7 +1773,9 @@ function group(lv){ if (GROUP[lv]) return GROUP[lv];
   const n = D.levels[lv].id.length, ps = new Array(n);
   for (let c = 0; c < n; c++){ const p = L.polygon(ring(lv, c), {renderer:cellRenderer, pane:'cells', bubblingMouseEvents:false}); p._c = c; ps[c] = p; }
   POLY[lv] = ps; const g = L.featureGroup(ps);
-  g.on('click', e => { if (S.drawing || Date.now() - S.boxAt < 450) return; if (liveHit(e.latlng)) return; select(lv, e.propagatedFrom._c, false); });
+  g.on('click', e => { if (S.drawing || Date.now() - S.boxAt < 450) return; const oe = e.originalEvent || {};
+    if (S.picking || oe.shiftKey || oe.ctrlKey || oe.metaKey){ pickToggle(lv, e.propagatedFrom._c); return; }
+    if (liveHit(e.latlng)) return; select(lv, e.propagatedFrom._c, false); });
   g.on('mouseover', e => { const c = e.propagatedFrom._c, L_ = D.levels[lv]; if (S.drawing || (TOUCHDEV && isPhone()) || (c === S.cell && lv === S.cellLv)) return;
     tip.setLatLng(e.latlng).setContent(`<b>${esc(show(S.m, S.m.get(lv, c)))}</b><br>${S.m.label}<br>Near mile ${fmt(L_.mi[c],0)}`); tip.addTo(map); });
   g.on('mousemove', e => tip.setLatLng(e.latlng));
@@ -2692,15 +2695,15 @@ function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerC
 /* records of a species in one cell once its full load is done; null before that */
 function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'done' ? st.counts[lv].get(c) || 0 : null; }
 /* panel sections follow the order of the questions; each question opens its own sections (survey effort has none of its own) */
-const SECORDER = ['rest','veg','inat','live','phen','ebird','nrpz','soil','wet','feat','hist','lands'];
+const SECORDER = ['cells','rest','veg','inat','live','phen','ebird','nrpz','soil','wet','feat','hist','lands'];
 const QSEC = {rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:[], land:['lands'], phen:['phen'], pest:['phen']};
 function finishProfile(html){ $('#pbody').innerHTML = html;
-  { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Land administrators':'lands'};
+  { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Cell by cell':'cells', 'Land administrators':'lands'};
     const secs = [...document.querySelectorAll('#pbody .sec')]; if (secs.length > 1){ const par = secs[0].parentNode, anchor = document.createComment('secs'); par.insertBefore(anchor, secs[0]);
       const rank = el => { const i = SECORDER.indexOf(KEY[(el.querySelector('h3') || {}).textContent]); return i < 0 ? 99 : i; };
       secs.map((el, i) => [rank(el), i, el]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([, , el]) => par.insertBefore(el, anchor)); anchor.remove(); } }
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
-  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Historic resources':'hist', 'Land administrators':'lands'};
+  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Cell by cell':'cells', 'Historic resources':'hist', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
     const open = key in S.secOpen ? S.secOpen[key] : S.m.find ? key === S.m.th : (QSEC[S.q.id] || []).includes(key);
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
@@ -2901,10 +2904,16 @@ function boxMeasure(m, lv, cells){ const vals = []; cells.forEach(c => { const v
   if (m.unit === '%') return `${fmt(sum / vals.length, 1)}% on average, up to ${fmt(mx, m.d)}%`;
   if (['acres','records','checklists'].includes(noun)) return `${fmt(sum, 0)} ${noun} in total`;
   return `${fmt(sum / vals.length, 1)} ${noun} per cell on average, up to ${fmt(mx, 0)}`.replace('  ', ' '); }
+/* one row per selected cell (south to north), one column per measure of the question on show */
+function cellTable(lv, cells){ const L_ = D.levels[lv], ms = S.q.m.filter(m => !m.hideFn || !m.hideFn()), rows = cells.slice().sort((a, b) => L_.mi[a] - L_.mi[b]), n = Math.min(300, rows.length);
+  const cellv = (m, c) => { let v; try { v = m.get(lv, c); } catch (e) { v = null; } return v == null ? '–' : show(m, v); };
+  return `<div class="sec" style="--hue:${S.q.hue}"><h3>Cell by cell</h3><p class="none" style="font-size:13.5px;margin:0 0 6px">${esc(S.q.title)} Each selected cell, south to north${rows.length > n ? `; the first ${n} of ${rows.length}` : ''}. Export adds every layer for every cell.</p>` +
+    `<div class="ctab"><table><thead><tr><th>Mile</th><th>Grid ID</th>${ms.map(m => `<th>${esc(m.label)}</th>`).join('')}</tr></thead><tbody>` +
+    rows.slice(0, n).map(c => `<tr><td>${fmt(L_.mi[c], 0)}</td><td>${esc(L_.id[c])}</td>${ms.map(m => `<td>${esc(cellv(m, c))}</td>`).join('')}</tr>`).join('') + '</tbody></table></div></div>'; }
 function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[lv], N = cells.length; setSppBox(cells.map(c => ring(lv, c)));
   const mis = cells.map(c => L_.mi[c]), lo = Math.min(...mis), hi = Math.max(...mis);
   const w = S.box.within, wName = w && `${LV[w[0]].name} cell near mile ${fmt(D.levels[w[0]].mi[w[1]], 0)}`;
-  let h = `<h2>${nCells(N)} selected</h2><p>${w ? `Every ${LV[lv].name} cell inside the ${wName}` : `${S.box.label ? 'Every cell with ' + esc(S.box.label) + '. ' : ''}${LV[lv].name} cells, trail miles ${fmt(lo,0)} to ${fmt(hi,0)}`}</p>`;
+  let h = `<h2>${nCells(N)} selected</h2><p>${w ? `Every ${LV[lv].name} cell inside the ${wName}` : `${S.box.picked ? 'Picked one by one. ' : ''}${S.box.label ? 'Every cell with ' + esc(S.box.label) + '. ' : ''}${LV[lv].name} cells, trail miles ${fmt(lo,0)} to ${fmt(hi,0)}`}</p>`;
   h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p>`;
   const sr = w ? scaleRow(w, lv) : null;
   h += (sr ? sr[0] : '') + `<div class="pnav"><button type="button" id="pclearbox">Clear selection</button>${EXPORTBTNS}</div>`;
@@ -2913,7 +2922,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
   const ctag = n => `<span class="tag">${nCells(n)}</span>`;
   const item = (i, n, ed) => sppItem(i, ed, ed !== undefined).replace('</li>', ctag(n) + '</li>');
   const union = (th, f, cs) => { const m = new Map(); cs.forEach(c => (val(th, f, lv, c) || []).forEach(i => m.set(i, (m.get(i) || 0) + 1))); return [...m].sort((a,b) => b[1] - a[1] || D.spp[a[0]].localeCompare(D.spp[b[0]])); };
-  let b = `<p class="boxm"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p><p class="none" style="font-size:13.5px;margin:6px 0 0">Combined from the ${nCells(N)}${S.box.label || w ? '' : ' whose centers fall inside the box'}. Records and acres are added up. Species and types are counted once, however many cells they occur in.</p>`;
+  let b = `<p class="boxm"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p><p class="none" style="font-size:13.5px;margin:6px 0 0">Combined from the ${nCells(N)}${S.box.label || w || S.box.picked ? '' : ' whose centers fall inside the box'}. Records and acres are added up. Species and types are counted once, however many cells they occur in.</p>`;
 
   const huc = S.ext === 'huc'; if (huc) b += `<p class="none" style="font-size:13.5px;margin:8px 0 0">${HUCONLY}</p>`;
 
@@ -2973,7 +2982,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
       b += '<p class="none" style="font-size:13.5px;margin-top:8px">Generalized to the cells from tract records. Not a boundary determination, and not a record of who administers any given spot.</p>';
     } else b += '<p class="none">No land records summarized for the selected cells.</p>';
     b += '</div>'; }
-  b += phSection(lv, cells) + histSection(lv, cells);
+  b += phSection(lv, cells) + histSection(lv, cells) + cellTable(lv, cells);
   finishProfile(b); inatLive(cells.map(c => ring(lv, c)), liveKey()); }
 
 /* Wetlands (USFWS National Wetlands Inventory): acres in the whole cell, by NWI type and Cowardin class, and on A.T. lands. */
@@ -3027,11 +3036,20 @@ function soilBox(lv, cells){ const N = cells.length, withTh = th => D.themes[th]
 function drawMode(on){ S.drawing = on; $('#mapwrap').classList.toggle('drawing', on); $('#boxbtn').setAttribute('aria-pressed', on); $('#boxdraw').hidden = true;
   const hint = $('#maphint'); if (on){ map.dragging.disable(); tip.remove(); hint.textContent = 'Drag on the map to draw a box'; hint.classList.add('on'); }
   else { mapGestures(); hint.classList.remove('on'); setTimeout(() => { hint.textContent = 'Use two fingers to move the map'; }, 250); } }
-$('#boxbtn').onclick = () => drawMode(!S.drawing);
+$('#boxbtn').onclick = () => { if (S.picking) pickMode(false); drawMode(!S.drawing); };
+/* Pick cells: each tap adds a cell to the selection or takes it out; one cell left is shown as a single cell */
+function pickMode(on){ S.picking = on; $('#pickbtn').setAttribute('aria-pressed', on); if (on && S.drawing) drawMode(false);
+  const hint = $('#maphint'); if (on){ hint.textContent = 'Tap cells to add or remove them'; hint.classList.add('on'); setTimeout(() => { if (S.picking) hint.classList.remove('on'); }, 1800); }
+  else { hint.classList.remove('on'); setTimeout(() => { hint.textContent = 'Use two fingers to move the map'; }, 250); } }
+$('#pickbtn').onclick = () => pickMode(!S.picking);
+function pickToggle(lv, c){ let cells = S.box && S.box.lv === lv ? S.box.cells.slice() : S.cell != null && S.cellLv === lv ? [S.cell] : [];
+  const k = cells.indexOf(c); if (k >= 0) cells.splice(k, 1); else cells.push(c);
+  if (!cells.length){ clearSel(); return; } if (cells.length === 1){ select(lv, cells[0], false); return; }
+  cells.sort((a, b) => D.levels[lv].mi[a] - D.levels[lv].mi[b]); selectMany(lv, cells, null, null, null, true); }
 function toolsOpen(on){ S.tools = on; $('#toolsbody').hidden = !on; $('#toolstog').setAttribute('aria-expanded', on); }
 $('#toolstog').onclick = () => toolsOpen(!S.tools);
 toolsOpen(VW() > 860);
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.drawing) drawMode(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.drawing) drawMode(false); if (e.key === 'Escape' && S.picking) pickMode(false); });
 { const mc = map.getContainer(), bd = $('#boxdraw'); let st = null;
   const pt = e => { const r = $('#mapwrap').getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
   mc.addEventListener('pointerdown', e => { if (!S.drawing || !e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return; e.preventDefault(); e.stopPropagation();
@@ -3048,7 +3066,7 @@ function finishBox(bounds){ const lv = shown, L_ = D.levels[lv], cells = [];
   const hint = $('#maphint');
   if (!cells.length){ hint.textContent = 'No cells in that box. Try again.'; hint.classList.add('on'); return; }
   drawMode(false); selectMany(lv, cells, bounds, null); }
-function selectMany(lv, cells, bounds, label, within){ S.cell = null; pin.remove(); S.box = {lv, cells, label, within}; $('#clearbtn').hidden = false;
+function selectMany(lv, cells, bounds, label, within, picked){ S.cell = null; pin.remove(); S.box = {lv, cells, label, within, picked}; $('#clearbtn').hidden = false;
   const rings = cells.map(c => [ring(lv, c)]); selOuter.setLatLngs(rings); selInner.setLatLngs(rings);
   if (bounds) boxRect.setBounds(bounds).addTo(map); else boxRect.remove();
   profile(); writeHash();
