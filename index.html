@@ -3010,28 +3010,68 @@ function wetSection(lv, c){ if (!D.themes.wet || !D.themes.wet[lv]) return '';
     : '<p class="none" style="font-size:13.5px;margin-top:8px">No A.T. lands mapped in this cell.</p>';
   return b + WETNOTE + '</div>'; }
 function wetBox(lv, cells){ if (!D.themes.wet || !D.themes.wet[lv]) return '';
-  const cs = cells.filter(c => has('wet', lv, c)), sum = f => cs.reduce((s, c) => s + (val('wet', f, lv, c) || 0), 0), withW = cs.filter(c => val('wet','WET_AC',lv,c) > 0).length;
+  const cs = cells.filter(c => has('wet', lv, c)), sum = f => cs.reduce((s, c) => s + (val('wet', f, lv, c) || 0), 0), withW = cs.filter(c => val('wet','WET_AC',lv,c) > 0);
   let b = `<div class="sec" style="--hue:${HUE.wet}"><h3>Wetlands</h3>`;
-  if (!withW) return b + '<p class="none">No wetlands mapped in the selected cells.</p>' + WETNOTE + '</div>';
-  b += `<div class="facts"><div><b>${wetAc(sum('WET_AC'))}</b>of wetland</div><div><b>${wetAc(sum('SENS_AC'))}</b>possibly sensitive</div><div><b>${withW}</b>of ${cells.length} cells with wetland</div></div>`;
-  b += '<p style="margin-top:8px">By type, added across the cells:</p>' + wetKeys(sum);
+  if (!cs.length) return b + '<p class="none">No wetland data for the selected cells.</p></div>';
+  if (!withW.length) return b + '<p class="none">No wetlands mapped in the selected cells.</p>' + WETNOTE + '</div>';
+  const ac = sum('WET_AC'), ref = withW.find(c => val('wet','WET_PCT',lv,c) > 0), cellAc = ref ? val('wet','WET_AC',lv,ref) / val('wet','WET_PCT',lv,ref) * 100 : null;
+  const pct = cellAc ? 100 * ac / (cellAc * cs.length) : null, nw = sum('N_WET');
+  b += `<div class="facts"><div><b>${wetAc(ac)}</b>of wetland</div><div><b>${pct == null ? '–' : pct < 1 ? '<1%' : fmt(pct, 0) + '%'}</b>of the selected cells</div><div><b>${fmt(nw, 0)}</b>${nw === 1 ? 'wetland' : 'wetlands'}</div></div>`;
+  b += `<p class="none" style="font-size:13.5px;margin-top:4px">${withW.length} of the ${nCells(cells.length)} have wetland mapped. Acres and counts are added across the cells; a wetland crossing a cell edge is counted in each cell.</p>`;
+  const ty = WETTYPES.map(([f, lab]) => [lab, sum(f)]).sort((a, b) => b[1] - a[1]);
+  b += `<p style="margin-top:8px">Mostly ${esc(ty[0][0])} (${fmt(ac ? 100 * ty[0][1] / ac : 0, 0)}%). By type:</p>` + wetKeys(sum);
   b += '<div class="keys nosw" style="margin-top:6px">' + soilRow('Vegetated wetland', wetAc(sum('VEGW_AC'))) + soilRow('Open water', wetAc(sum('WATER_AC'))) +
-    soilRow('Wetland on A.T. lands', wetAc(sum('L_WET_AC'))) + soilRow('Possibly sensitive, on A.T. lands', wetAc(sum('L_SENS_AC'))) + '</div>';
+    soilRow('Possibly sensitive', wetAc(sum('SENS_AC'))) + '</div>';
+  const cls = WETCLASS.filter(([f]) => sum(f) > 0);
+  if (cls.length) b += '<details><summary>Cowardin class</summary><div class="keys nosw">' + cls.map(([f, lab]) => soilRow(lab, wetAc(sum(f)))).join('') + '</div></details>';
+  const la = sum('LANDS_AC');
+  if (la > 0){ const lw = sum('L_WET_AC'), ld = new Map(); cs.forEach(c => { const d = val('wet','WET_LDOM',lv,c), a = val('wet','L_WET_AC',lv,c) || 0; if (d != null && a > 0) ld.set(d, (ld.get(d) || 0) + a); });
+    const top = [...ld].sort((a, b) => b[1] - a[1])[0];
+    b += `<p style="margin-top:8px">On A.T. lands (${wetAc(la)} in the selected cells):</p><div class="keys nosw">` + soilRow('Wetland', wetAc(lw)) +
+      (lw > 0 ? soilRow('Main type', esc(top ? cat('WET_LDOM', top[0]) || '–' : '–')) + soilRow('Wetlands', fmt(sum('L_N_WET'), 0)) + soilRow('Possibly sensitive', wetAc(sum('L_SENS_AC'))) : '') + '</div>';
+  } else b += '<p class="none" style="font-size:13.5px;margin-top:8px">No A.T. lands mapped in the selected cells.</p>';
   return b + WETNOTE + '</div>'; }
-function soilBox(lv, cells){ const N = cells.length, withTh = th => D.themes[th] && D.themes[th][lv] ? cells.filter(c => has(th, lv, c)) : []; let b = '';
-  if (D.themes.soil){ const cs = withTh('soil'), rated = cs.filter(c => val('soil','VULN',lv,c) != null); b += `<div class="sec" style="--hue:${HUE.soil}"><h3>Soils</h3>`;
-    if (cs.length){ const avg = (f, from) => { const a = (from || cs).map(c => val('soil', f, lv, c)).filter(x => x != null); return a.length ? a.reduce((s,x) => s + x, 0) / a.length : null; };
-      const vi = avg('VULN', rated), cnt = {Low:0, Moderate:0, High:0}; rated.forEach(c => cnt[vulnClass(val('soil','VULN',lv,c))]++);
-      b += vi != null ? `<div class="facts"><div><b>${fmt(vi, 2)}</b>average trail vulnerability</div><div><b>${soilPct(avg('VULN_HIGH', rated))}</b>of soils rated high</div><div><b>${rated.length}</b>of ${N} cells rated</div></div>`
-        : '<p class="none">The trail ratings are not available for the soils in the selected cells.</p>';
-      if (rated.length) b += '<p style="margin-top:8px">Cells by trail vulnerability:</p><div class="keys">' + CATCOL.VULN_DOM.slice().reverse().map(e => cnt[e[0]] ? `<div><i style="background:${e[1]}"></i><span>${e[0]}</span><span>${nCells(cnt[e[0]])}</span></div>` : '').join('') + '</div>';
-      b += '<p style="margin-top:8px">Averaged across the cells:</p><div class="keys nosw">' + soilRow('Very limited for paths and trails', soilPct(avg('PATHS_VLIM', rated))) + soilRow('Severe rutting hazard', soilPct(avg('RUT_SEV', rated))) +
-        soilRow('Slopes over 25%', soilPct(avg('STEEP'))) + soilRow('Highly erodible (K over 0.32)', soilPct(avg('K_HIGH'))) + soilRow('Shallow to bedrock', soilPct(avg('SHALLOW_ROCK'))) +
-        soilRow('Hydric (wet) soils', soilPct(avg('HYDRIC'))) + soilRow('Prime farmland', soilPct(avg('PRIME'))) + '</div>';
-      b += '<p class="none" style="font-size:13.5px;margin-top:8px">Each cell counts equally. Cells with unrated soils are left out of the trail figures.</p>';
-    } else b += '<p class="none">No soil survey data for the selected cells.</p>';
-    b += '</div>'; }
-  return b; }
+function soilBox(lv, cells){ if (!D.themes.soil) return '';
+  const N = cells.length, cs = D.themes.soil[lv] ? cells.filter(c => has('soil', lv, c)) : [], rated = cs.filter(c => val('soil','VULN',lv,c) != null);
+  let b = `<div class="sec" style="--hue:${HUE.soil}"><h3>Soils</h3>`;
+  if (!cs.length) return b + '<p class="none">No soil survey data for the selected cells.</p></div>';
+  const avgOf = (f, from) => { const a = (from || cs).map(c => val('soil', f, lv, c)).filter(x => x != null); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : null; };
+  const v = f => avgOf(f, ['VULN','VULN_HIGH','PATHS_VLIM','WORST1','NRCS_IDX','EROS_HR','PATHS_HR','RUT_HR','RUT_SEV'].includes(f) ? rated : null);
+  const t = (x, u) => x == null ? '–' : fmt(x, 0) + (u || '');
+  /* the most common value across the cells, with how many cells have it */
+  const mode = (f, lab) => { const m = new Map(); cs.forEach(c => { const x = val('soil', f, lv, c); if (x != null && x !== '') m.set(x, (m.get(x) || 0) + 1); });
+    const top = [...m].sort((a, b) => b[1] - a[1])[0]; if (!top) return '–'; const s = lab ? lab(top[0]) : cat(f, top[0]);
+    return s ? `${esc(s)} <span style="color:var(--muted)">(${top[1]} of ${cs.length})</span>` : '–'; };
+  const list = (f, lab) => { const m = new Map(); cs.forEach(c => { const x = val('soil', f, lv, c); if (x != null && x !== '') m.set(x, (m.get(x) || 0) + 1); });
+    return [...m].sort((a, b) => b[1] - a[1]).map(([x, n]) => [lab ? lab(x) : cat(f, x), n]).filter(x => x[0]); };
+  const vi = v('VULN'), cnt = {Low:0, Moderate:0, High:0}; rated.forEach(c => cnt[vulnClass(val('soil','VULN',lv,c))]++);
+  b += vi != null
+    ? `<div class="facts"><div><b>${fmt(vi, 2)}</b>trail vulnerability, ${vulnClass(vi).toLowerCase()} on average</div><div><b>${soilPct(v('VULN_HIGH'))}</b>of soils rated high</div><div><b>${soilPct(v('PATHS_VLIM'))}</b>very limited for paths</div></div>`
+    : '<p class="none">The trail ratings are not available for the soils in the selected cells.</p>';
+  if (rated.length) b += `<p style="margin-top:8px">Cells by trail vulnerability (${rated.length} of ${N} rated):</p><div class="keys">` + CATCOL.VULN_DOM.slice().reverse().map(e => cnt[e[0]] ? `<div><i style="background:${e[1]}"></i><span>${e[0]}</span><span>${nCells(cnt[e[0]])}</span></div>` : '').join('') + '</div>';
+  b += '<div class="keys nosw" style="margin-top:8px">' + soilRow('At least one rating at its worst', soilPct(v('WORST1'))) + '</div>';
+  b += `<p style="margin-top:8px">NRCS rating scores, 0 to 1, higher is more limiting (average ${soilScore(v('NRCS_IDX'))}):</p><div class="keys nosw">` +
+    soilRow('Erosion hazard, unsurfaced trails', soilScore(v('EROS_HR'))) + soilRow('Paths and trails', soilScore(v('PATHS_HR'))) + soilRow('Rutting hazard', soilScore(v('RUT_HR'))) + '</div>';
+  b += '<div class="keys nosw" style="margin-top:6px">' + soilRow('Severe rutting hazard', soilPct(v('RUT_SEV'))) + soilRow('Slopes over 25%', soilPct(v('STEEP'))) +
+    soilRow('Average slope', t(v('SLOPE'), '%')) + soilRow('Highly erodible (K over 0.32)', soilPct(v('K_HIGH'))) + soilRow('Already eroded', soilPct(v('ERODED'))) +
+    soilRow('Shallow to bedrock (under 50 cm)', soilPct(v('SHALLOW_ROCK'))) + soilRow('High frost action', soilPct(v('FROST_HIGH'))) + soilRow('Subject to flooding', soilPct(v('FLOOD'))) + '</div>';
+  const ser = list('SOIL_SERIES'), mus0 = list('DOM_MAPUNIT', x => x), mus = mus0.length ? mus0 : list('SOIL_MAPUNIT');
+  const lst = (a, more) => a.length ? `<ul class="flist">${a.slice(0, 12).map(x => `<li><span>${esc(x[0])}</span><em>${nCells(x[1])}</em></li>`).join('')}</ul>` + (a.length > 12 ? `<p class="none" style="font-size:13.5px">and ${a.length - 12} ${more}</p>` : '') : '';
+  b += '<details><summary>Soil type</summary><div class="keys nosw">' + soilRow('Most common main series', mode('SOIL_SERIES')) +
+    soilRow('Soil series per cell, average', t(v('N_SERIES'))) + soilRow('Surface texture', mode('SOIL_TEXTURE')) + soilRow('Soil order', mode('SOIL_ORDER')) +
+    soilRow('Drainage', mode('SOIL_DRAIN')) + soilRow('Hydrologic group', mode('SOIL_HSG')) + soilRow('Ecological site', mode('SOIL_ECOSITE')) + '</div>' +
+    (ser.length ? '<p style="margin-top:8px">Main soil series of each cell:</p>' + lst(ser, 'more series') : '') +
+    (mus.length ? '<p style="margin-top:8px">Main map unit of each cell:</p>' + lst(mus, 'more map units') : '') +
+    '<p class="none" style="font-size:13.5px;margin-top:6px">Counts in brackets are how many of the cells with soil data share that value.</p></details>';
+  b += '<details><summary>Restoration</summary><div class="keys nosw">' + soilRow('Hydric (wet) soils', soilPct(v('HYDRIC'))) + soilRow('Poorly drained', soilPct(v('POOR_DRAIN'))) +
+    soilRow('Droughty', soilPct(v('DROUGHTY'))) + soilRow('Depth to water table', t(v('WTDEP'), ' cm')) + soilRow('Depth to bedrock', t(v('ROCKDEP'), ' cm')) +
+    soilRow('Surface pH', v('PH') == null ? '–' : fmt(v('PH'), 1)) + soilRow('Organic matter', v('OM') == null ? '–' : fmt(v('OM'), 1) + '%') + '</div></details>';
+  b += '<details><summary>Agriculture</summary><div class="keys nosw">' + soilRow('Prime farmland', soilPct(v('PRIME'))) + soilRow('Prime if drained or irrigated', soilPct(v('PRIME_COND'))) +
+    soilRow('Farmland of statewide importance', soilPct(v('STATEWIDE'))) + soilRow('Most common farmland class', mode('SOIL_FARM')) +
+    soilRow('Land capability class 1 to 2', soilPct(v('LCC12'))) + soilRow('Land capability class 1 to 4', soilPct(v('LCC14'))) +
+    soilRow('Crop productivity index (NCCPI)', v('NCCPI') == null ? '–' : fmt(v('NCCPI'), 2)) + '</div></details>';
+  b += `<p class="none" style="font-size:13.5px;margin-top:8px">From the NRCS soil survey (gSSURGO). Figures are averages of the ${nCells(cs.length)} with soil data, each cell counting equally; trail ratings use the ${nCells(rated.length)} with rated soils. Soil data covers ${soilPct(v('SOIL_COV'))} of the cells on average. The Cell by cell table lists each cell's values for the question you're on.</p>`;
+  return b + '</div>'; }
 /* drawing the box */
 function drawMode(on){ S.drawing = on; $('#mapwrap').classList.toggle('drawing', on); $('#boxbtn').setAttribute('aria-pressed', on); $('#boxdraw').hidden = true;
   const hint = $('#maphint'); if (on){ map.dragging.disable(); tip.remove(); hint.textContent = 'Drag on the map to draw a box'; hint.classList.add('on'); }
