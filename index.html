@@ -509,7 +509,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Soils</td><td>NRCS soil survey (gSSURGO), all 14 trail states</td><td>Area-weighted soil ratings. The trail vulnerability index averages three NRCS trail ratings, from 0 (best) to 1 (worst). It rates the soil, not the trail.</td></tr>
       <tr><td>Wetlands</td><td>USFWS National Wetlands Inventory, all 14 trail states</td><td>Wetland acres in each cell by type, and the part on A.T. lands. Small, forested and seasonal wetlands are often missed. “Possibly sensitive” flags likely bogs, fens, seeps and vernal pools for a field check. Not a delineation.</td></tr>
       <tr><td>Restoration targets</td><td>Built in this page from the layers above</td><td>Two 0 to 100 scores for grasslands and forests. How they are scored is set out under Restoration targets below.</td></tr>
-      <tr><td>Flowering and beech leaf disease</td><td>iNaturalist research-grade records, loaded live</td><td>Twenty plants: trail-wide, A.T. Seasons, northern and southern indicators. First, peak and season length follow USA National Phenology Network measures, pooled across years. Earlier or later compares each record with its cell’s usual date. Records follow hikers, so read changes as leads, not measured trends.</td></tr>
+      <tr><td>Flowering and beech leaf disease</td><td>iNaturalist research-grade records, loaded live</td><td>Twenty plants: trail-wide, A.T. Seasons, northern and southern indicators. First, peak and season length follow USA National Phenology Network measures, pooled across years. Records follow hikers, so compare years by eye as leads for field checks; for measured change see A.T. Seasons (Nature’s Notebook).</td></tr>
       <tr><td>Historic resources</td><td>National Register of Historic Places (NPS) and OpenStreetMap cemeteries, rebuilt monthly</td><td>Two extents: A.T. corridor (records inside an A.T. administrative area) and HUC10 watershed. Recorded sites only: small family cemeteries are often missing and some National Register locations are generalized. Find a Grave links open the cemetery’s page when its ID is known, otherwise a search.</td></tr>
       <tr><td>Unique species</td><td>Rare species priority zones</td><td>Rates how vulnerable the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
     </table>
@@ -998,9 +998,6 @@ function phAgg(lv){ const sp = phSp(), st = PHD[sp.key]; if (!st || st.st !== 'd
   return A; }
 /* records along the trail with each one's distance in days from its 49 sq mi cell's usual (median) date: [year, days, cell, mile].
    Cells need 5 or more records of the main stage to set a usual date. */
-function phResid(){ const A = phAgg('wheel'); if (!A) return null; if (A.res) return A.res; const L_ = D.levels.wheel, out = [];
-  for (const [c, L] of A.d[phMain()]){ if (L.length < PHMIN) continue; const m = phMed(L.map(p => p[0])); for (const [d, y] of L) out.push([y, d - m, c, L_.mi[c]]); }
-  return A.res = out; }
 /* the year on show: 0 for all years together, otherwise a year with records */
 /* Week views: S.ph.sel holds the years picked (none = all years); S.ph.yr is the one year on show while Play steps through them.
    The spread view picks a single year in S.ph.yr. */
@@ -1136,59 +1133,6 @@ function phCalendar(){ const sp = phSp(), A = phAgg('wheel'); if (!A || sp.kind 
   g += '</svg>';
   const key = `<div class="phkey"><span><i style="background:linear-gradient(90deg,${ramp.join(',')})"></i>${plant ? 'flowering' : 'adult'} records, few to most in that stretch</span></div>`;
   return g + key; }
-/* Earlier or later than usual, by year: each record's days from its cell's usual date; a year's value is the median of those
-   (10 or more records), with a centered 3-year average; plus 2021–25 against 2016–20 (20 or more records in each) */
-/* Earlier or later than usual: a trend across every year, in days per decade.
-   Each record is measured against its own 49 sq mi cell's usual date in 2016–20 (the median of the main stage, cells with 5 or more
-   records in those years), so 0 is a fixed reference and years with more northern or higher records do not look late.
-   Each year is the median of its records; years with 10+ records are drawn, those under 20 hollow. The trend is a straight line fitted
-   to the years with 20+ records (weighted by the square root of their records); 5 such years are needed. The shaded band and each
-   year's bar come from resampling whole cells (records from one cell move together), seeded so they are the same on every visit. */
-function phTrend(){ const A = phAgg('wheel'); if (!A || A.years.length < 2) return ''; const rng = secRange(), L_ = D.levels.wheel, ms = phMain();
-  const word = phNoun() === 'adult' ? 'adult' : 'flowering', ext = S.ext === 'huc' ? 'watershed' : 'corridor';
-  /* records by cell, with the cell's usual date in 2016-20 */
-  const cells = []; let nAll = 0;
-  for (const [c, L] of A.d[ms]){ const mi = L_.mi[c]; if (rng && (mi < rng[0] || mi > rng[1])) continue; nAll += L.length;
-    const b = L.filter(p => p[1] >= 2016 && p[1] <= 2020).map(p => p[0]); if (b.length < PHMIN) continue; const m = phMed(b);
-    cells.push(L.map(p => [p[1], p[0] - m])); }
-  const nUse = cells.reduce((t, L) => t + L.length, 0);
-  const flow = `<p class="phflow">${fmt(nAll, 0)} ${word} records in ${ext} cells → ${fmt(nUse, 0)} in ${cells.length} ${cells.length === 1 ? 'cell' : 'cells'} with a usual date for 2016–20 (5+ records then).</p>`;
-  const yearly = cs => { const by = new Map(); cs.forEach(L => L.forEach(([y, v]) => { let a = by.get(y); if (!a) by.set(y, a = []); a.push(v); })); return by; };
-  const fit = by => { const P = []; by.forEach((a, y) => { if (a.length >= 20) P.push([y, phMed(a), Math.sqrt(a.length)]); }); if (P.length < 5) return null;
-    let sw = 0, sx = 0, sy = 0; P.forEach(([x, y, w]) => { sw += w; sx += w * x; sy += w * y; }); const mx_ = sx / sw, my = sy / sw; let num = 0, den = 0;
-    P.forEach(([x, y, w]) => { num += w * (x - mx_) * (y - my); den += w * (x - mx_) * (x - mx_); }); if (!den) return null; const b = num / den; return [b, my - b * mx_]; };
-  const by = yearly(cells), main = fit(by);
-  const ann = [...by].map(([y, a]) => ({y, k:a.length, v:a.length >= 10 ? phMed(a) : null})).filter(p => p.v != null).sort((p, q) => p.y - q.y);
-  if (!main) return `<p class="phbig">Too few years to show a trend here: it needs 5 or more years with 20+ ${word} records in cells with a usual date for 2016–20.</p>` + flow;
-  /* resampling whole cells */
-  let s = 20261018; const rnd = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296, n = cells.length, fits = [], yb = new Map();
-  for (let k = 0; k < 300; k++){ const pick = []; for (let i = 0; i < n; i++) pick.push(cells[Math.floor(rnd() * n)]); const bb = yearly(pick), f = fit(bb); if (f) fits.push(f);
-    bb.forEach((a, y) => { if (a.length >= 10){ let t = yb.get(y); if (!t) yb.set(y, t = []); t.push(phMed(a)); } }); }
-  const pct = (a, q) => { const b = a.slice().sort((p, r) => p - r); return b[Math.min(b.length - 1, Math.max(0, Math.round(q * (b.length - 1))))]; };
-  const dec = Math.round(main[0] * 10), y0 = ann[0].y, y1 = ann[ann.length - 1].y;
-  const lab = phNoun() === 'adult' ? 'out as adults' : 'flowering';
-  let head = `<p class="phbig">${esc(phSp().common)} is ${lab} <b>${dec === 0 ? 'at about the same time' : 'approximately ' + Math.abs(dec) + (Math.abs(dec) === 1 ? ' day ' : ' days ') + (dec < 0 ? 'earlier' : 'later') + ' per decade'}</b>${S.sec === 'all' ? '' : ' in ' + esc(secName())} <span>(${y0}–${y1}, ${fmt(nUse, 0)} records)</span>.</p>` + flow;
-  /* chart */
-  const ys = []; for (let y = y0; y <= y1; y++) ys.push(y);
-  const line = x => main[0] * x + main[1], band = ys.map(x => { const v = fits.map(f => f[0] * x + f[1]); return [x, pct(v, .025), pct(v, .975)]; });
-  let mx = 6; ann.forEach(p => { mx = Math.max(mx, Math.abs(p.v)); const t = yb.get(p.y); if (t) mx = Math.max(mx, Math.abs(pct(t, .025)), Math.abs(pct(t, .975))); });
-  band.forEach(b => { mx = Math.max(mx, Math.abs(b[1]), Math.abs(b[2])); }); mx = Math.min(42, Math.ceil(mx / 6) * 6);
-  const W = 320, H = 150, pl = 26, pr = 8, pt = 14, pb = 18, pw = W - pl - pr, ph = H - pt - pb, step = pw / Math.max(1, ys.length - 1);
-  const X = y => pl + step * (y - y0), Y = v => pt + ph / 2 - (ph / 2) * Math.max(-mx, Math.min(mx, v)) / mx, f = v => v.toFixed(1), sel = S.m.yr ? phYear() : 0, col = phSp().kind === 'adult' ? '#F08A5D' : '#F2C200';
-  const kmax = Math.max(...ann.map(p => p.k));
-  let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Days earlier or later than 2016–20 by year, with the trend">`;
-  if (sel && ys.includes(sel)) g += `<rect x="${f(X(sel) - step / 2)}" y="${pt}" width="${f(step)}" height="${ph}" fill="#fff" opacity=".1"/>`;
-  [mx, mx / 2, -mx / 2, -mx].forEach(v => { g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${v > 0 ? '+' : '−'}${Math.abs(Math.round(v))}</text>`; });
-  g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(0))}" y2="${f(Y(0))}" stroke="#E3EAF2" stroke-dasharray="3 3" stroke-width=".8"/><text x="${pl - 3}" y="${f(Y(0) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">0</text>`;
-  g += `<text x="${pl + 3}" y="${pt - 4}" font-size="9" fill="#A8B8CA">▲ Later than 2016–20</text><text x="${pl + 3}" y="${pt + ph - 3}" font-size="9" fill="#A8B8CA">▼ Earlier</text>`;
-  if (fits.length >= 50) g += `<polygon points="${band.map(b => f(X(b[0])) + ',' + f(Y(b[2]))).join(' ')} ${band.slice().reverse().map(b => f(X(b[0])) + ',' + f(Y(b[1]))).join(' ')}" fill="${col}" opacity=".18"/>`;
-  g += `<line x1="${f(X(y0))}" y1="${f(Y(line(y0)))}" x2="${f(X(y1))}" y2="${f(Y(line(y1)))}" stroke="${col}" stroke-width="2.6" stroke-linecap="round"/>`;
-  ann.forEach(p => { const t = yb.get(p.y); if (t && t.length >= 50) g += `<line x1="${f(X(p.y))}" x2="${f(X(p.y))}" y1="${f(Y(pct(t, .975)))}" y2="${f(Y(pct(t, .025)))}" stroke="${col}" stroke-width="1" opacity=".7"/>`;
-    const r = 1.8 + 3.6 * Math.sqrt(p.k / kmax); g += `<circle cx="${f(X(p.y))}" cy="${f(Y(p.v))}" r="${f(r)}" fill="${p.k >= 20 ? col : '#142235'}" stroke="${col}" stroke-width="1.2"/>`; });
-  const byY = new Map(ann.map(p => [p.y, p])), every = ys.length > 12 ? 2 : 1;
-  ys.forEach((y, i) => { const p = byY.get(y); if (i % every === 0 || i === ys.length - 1) g += `<text x="${f(X(y))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${y === sel ? '#FFE014' : '#A8B8CA'}"${y === sel ? ' font-weight="700"' : ''}>’${String(y).slice(2)}</text>`;
-    g += `<rect data-phy="${y}" x="${f(X(y) - step / 2)}" y="${pt}" width="${f(step)}" height="${ph + pb}" fill="transparent" style="cursor:pointer"><title>${y}: ${!p ? 'too few records' : phDays(Math.round(p.v)) + ` than 2016–20 (${p.k} records)`}</title></rect>`; });
-  return head + g + `</svg><div class="phkey"><span><i style="background:${col}"></i>trend, likely range shaded</span><span class="thin">dots: each year, sized by records (hollow under 20) · bars: each year’s likely range</span></div>`; }
 function phSpreadSvg(lv, cells){ const A = phAgg(lv); if (!A || !A.years.length) return ''; const ys = A.years, nw = new Map();
   for (const c of cells){ let y = A.first[c]; if (y == null) continue; if (y < ys[0]) y = ys[0]; nw.set(y, (nw.get(y) || 0) + 1); }
   let cum = 0; const rows = ys.map(y => ({y, n:nw.get(y) || 0, t:(cum += nw.get(y) || 0)}));
@@ -1208,8 +1152,7 @@ function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) retu
   if (sp.kind !== 'spread'){
     h += `<h4 class="phh">When it is ${sp.kind === 'plant' ? 'in flower' : 'out as adults'} along the trail</h4>` + phCalendar() +
       `<details class="phabout" data-phab="cal"${S.ph.ab && S.ph.ab.cal ? ' open' : ''}><summary>About this graph</summary><p class="phnote">${sp.kind === 'plant' ? 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks. Brighter boxes: more flowering records that week, against the stretch’s busiest week, so each stretch shows its season start, peak and end, and the peak moves north.' : 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks.'} Click a week to map it.</p></details>`;
-    h += `<h4 class="phh">Is ${noun === 'adult' ? 'adult season' : 'flowering'} earlier or later than usual?</h4>` + phTrend() +
-      `<details class="phabout" data-phab="trend"${S.ph.ab && S.ph.ab.trend ? ' open' : ''}><summary>About this graph</summary><p class="phnote">Each record is measured against its own 49 sq mi cell’s usual ${noun} date in 2016–20 (cells with 5 or more records in those years), so 0 is a fixed reference and years with more northern or higher records do not look late. Dots are each year’s median, sized by records; hollow dots have under 20 records. The line is the trend across years with 20 or more records (5 such years needed), given in days per decade. The shaded band and the bars show the likely range from resampling the cells; a wide band means the direction is not settled. Records follow hikers and have grown fast since 2020, so treat this as a lead for field checks, not a measured trend. Click a year to map it.</p></details>`; }
+   }
   if (sp.kind !== 'plant'){ const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
     h += `<h4 class="phh">Spread: cells with records by year, ${esc(where)}</h4>` + phSpreadSvg(lv, cells) +
       `<p class="phnote">${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} cells. Records follow hikers and observers, so a first record marks when it was noticed here, not when it arrived. Click a year to map it.</p>`; }
@@ -1593,7 +1536,7 @@ const Q = [
   m:[{id:'grass', label:'Grasslands and early successional', int:1, brkP:[.4,.7,.85,.95], none:'No open habitat mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('grass'), fn:(lv,c) => restScore('grass', lv, c)},
      {id:'forest', label:'Forests', int:1, brkP:[.4,.7,.85,.95], none:'No forest mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
  {id:'phen', th:'inat', hue:HUE.phen, ramp:'phen', title:'When does it flower here?',
-  use:'When twenty plants flower along the trail, and where beech leaf disease has turned up, from research-grade iNaturalist records. Measures follow the USA National Phenology Network: first, peak and season length, flowering by week, and earlier or later than usual. Press Play to watch the season move north. Records follow hikers, so a blank cell means too few records, not absence.',
+  use:'When twenty plants flower along the trail, and where beech leaf disease has turned up, from research-grade iNaturalist records. Measures follow the USA National Phenology Network: first, peak and season length, and flowering by week. Press Play to watch the season move north. Records follow hikers, so a blank cell means too few records, not absence.',
   m:[{id:'wave', get label(){ const k = phSp().kind; return k === 'plant' ? 'Flowering, week by week' : k === 'adult' ? 'Adults, week by week' : 'Records, week by week'; },
       yr:'wk', st:() => phMain(), hasTxt:() => 'have records of this species', sumFn:phSum, sumTitle:() => `Most ${PHWORD[S.m.st()]} records around ${wkDate(S.ph.wk)}${phYear() ? ', ' + phYear() : ''}`, showFn:v => `${v} ${v === 1 ? 'record' : 'records'}`, int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'], fn:(lv, c) => phWin(lv, c, phMain()),
       colorFn:phWaveCol, legendFn:phWaveLegend, stripTop:lv => phTop(lv, phMain())},
