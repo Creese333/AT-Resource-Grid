@@ -1,5 +1,6 @@
-"""Pre-builds the iNaturalist records behind two questions on the A.T. Resource Grid:
-"When does it flower here?" and "Where are forest pests turning up?".
+"""Pre-builds the iNaturalist records behind three questions on the A.T. Resource Grid:
+"When does it flower here?", "Where are forest pests turning up?" and
+"Where are priority invasives spreading?" (the priority invasive plants in invasive_lookup.csv).
 
 The dashboard used to page through the iNaturalist API in each visitor's browser, 200 records at a time, the first time a
 species was picked. This script runs the same queries once (weekly, from the GitHub Action) and writes:
@@ -17,7 +18,7 @@ Records with obscured or private locations are left out, as on the dashboard.
 Standard library only. Run:  python build_phenology.py           (every species)
                              python build_phenology.py bloodroot  (species whose key contains the text)
 """
-import json, os, re, sys, time, urllib.parse, urllib.request
+import csv, json, os, re, sys, time, urllib.parse, urllib.request
 from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -73,9 +74,34 @@ def read_config():
         for it in items:
             common, sci = it[0], it[1]
             kind = it[2] if len(it) > 2 and it[2] else 'plant'
+            st = SETS.get(group, 'phen')
             species.append({'common': common, 'sci': sci, 'key': re.sub(r'[^a-z]+', '-', sci.lower()), 'kind': kind,
-                            'pest': group == 'Forest pests'})
+                            'set': st, 'pest': st != 'phen'})
+    have = {s['key'] for s in species}
+    for sp in read_priority():
+        if sp['key'] not in have: species.append(sp); have.add(sp['key'])
     return project, species
+
+SETS = {'Forest pests': 'pest', 'Priority invasive plants': 'pinv'}
+PRIO_TRUE = ('1', 'y', 'yes', 'true', 'priority', 'high')
+
+def read_priority():
+    """The priority invasive plants from invasive_lookup.csv (APP_EDRR is 1, or APPA_PRIORITY is set), the same rule as
+    build_inat_ebird.py. A subspecies or variety is dropped when its species is also listed (the species query includes it).
+    Species added here appear on the dashboard through phen/index.json without editing index.html."""
+    path = os.path.join(HERE, 'invasive_lookup.csv')
+    if not os.path.exists(path): return []
+    rows = [r for r in csv.DictReader(open(path, encoding='utf-8-sig'))
+            if str(r.get('APP_EDRR', '')).strip() == '1' or str(r.get('APPA_PRIORITY', '')).strip().lower() in PRIO_TRUE]
+    names = [(r.get('INAT_NAME') or r.get('SCI_NAME') or '').strip() for r in rows]
+    out, seen = [], set()
+    for r, n in zip(rows, names):
+        if not n or n.lower() in seen or any(n != m and n.startswith(m + ' ') for m in names): continue
+        seen.add(n.lower())
+        c = (r.get('COMMON_NAME') or '').strip()
+        c = (c[0].upper() + c[1:].lower()) if c and c.lower() != 'grass' else n
+        out.append({'common': c, 'sci': n, 'key': re.sub(r'[^a-z]+', '-', n.lower()), 'kind': 'spread', 'set': 'pinv', 'pest': True})
+    return out
 
 def terms():
     """Annotation ids, looked up by name (iNaturalist renames terms now and then), with the known ids as the fallback."""
@@ -173,7 +199,8 @@ def main():
             print('  FAILED, keeping the previous file:', e, flush=True); failed.append(sp['common']); continue
         with open(os.path.join(OUT, sp['key'] + '.json'), 'w', encoding='utf-8') as f:
             json.dump(out, f, separators=(',', ':'))
-        e = {'at': out['at'], 'n': len(out['pts']), 'top': out['top'], 'taxon': out['taxon'], 'kept': out['kept'], 'drop': out['drop']}
+        e = {'at': out['at'], 'n': len(out['pts']), 'top': out['top'], 'taxon': out['taxon'], 'kept': out['kept'], 'drop': out['drop'],
+             'common': sp['common'], 'sci': sp['sci'], 'set': sp['set']}
         for k in ('cnt', 'nid'):
             if k in out: e[k] = out[k]
         spx[sp['key']] = e
