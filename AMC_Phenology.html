@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AMC Phenology</title>
+<style>
+  :root{--bg:#142235;--panel:#1B2D44;--line:#2E4460;--ink:#E3EAF2;--muted:#A8B8CA;--yes:#7BC47F;--no:#E07A5F;--accent:#3FA796}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#142235;--panel:#1B2D44;--line:#2E4460;--ink:#E3EAF2;--muted:#A8B8CA}}
+  :root[data-theme="dark"]{--bg:#142235;--panel:#1B2D44;--line:#2E4460;--ink:#E3EAF2;--muted:#A8B8CA}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:1180px;margin:0 auto;padding:20px 16px 40px}
+  h1{font-size:22px;margin:0 0 4px} p{margin:6px 0;color:var(--muted)}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}
+  .dl{margin-top:28px;padding:14px 16px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+  .dl h2{font-size:18px;margin:0 0 4px}
+  .dl .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px}
+  .dl label{display:flex;flex-direction:column;gap:4px;font-size:13.5px;color:var(--muted)}
+  .dl input,.dl select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+  #dlstat{color:var(--muted);font-size:14px}
+  button{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:7px 14px;font:inherit;font-weight:600;cursor:pointer}
+  button[disabled]{opacity:.5;cursor:default}
+  button.sec{background:var(--panel);border:1px solid var(--line)}
+  #status{color:var(--muted);font-size:14px}
+  .wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}td:nth-child(2){position:sticky;left:0;background:var(--panel)}
+  th{color:var(--muted);font-weight:600;font-size:12.5px}
+  td i{color:var(--muted);font-style:italic}
+  .yes{color:var(--yes);font-weight:600} .no{color:var(--no)}
+  .spark{display:inline-flex;gap:1px;align-items:flex-end;height:22px;vertical-align:middle}
+  .spark span{display:inline-block;width:6px;background:var(--accent);min-height:1px}
+  .note{font-size:13px;margin-top:12px}
+</style>
+</head>
+<body>
+<main>
+  <h1>AMC Phenology</h1>
+  <p>Checks how much phenology data the iNaturalist project <a href="https://www.inaturalist.org/projects/flowers-and-fauna-along-the-appalachian-trail-corridor" target="_blank" rel="noopener" style="color:var(--accent)">Flowers and Fauna along the Appalachian Trail Corridor</a> holds (the Appalachian Mountain Club&rsquo;s A.T. Seasons project). For each candidate plant it counts records, flowering, fruiting and bud annotations, how many records are annotated at all, where flowering records fall along the trail and in which years and months. <b>Find trail-wide species</b> ranks every plant or animal in the project by how evenly its records cover the trail. Counts come live from iNaturalist (research grade and needs ID, the &ldquo;verifiable&rdquo; records), one species at a time, so a full run takes a few minutes.</p>
+  <div class="bar"><button id="run">Run the check</button><button id="wide">Find trail-wide species</button><select id="widek" aria-label="Which species" style="font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 8px"><option value="pl">Plants, flowering records</option><option value="an">Animals, all records</option><option value="ad">Animals, adult records</option><option value="bi">Birds</option><option value="in">Insects</option></select><button id="csv" class="sec" disabled>Download CSV</button><span id="status" role="status"></span></div>
+  <div class="wrap"><table id="t"></table></div>
+  <p class="note"><b>Find trail-wide species</b> ranks every species of the kind you pick (plants by flowering records; animals, birds or insects by all records; or animals by records annotated adult) by its records in its weakest third of the trail (south of 38&deg;N, 38&ndash;42&deg;N, north of 42&deg;N): the higher, the more continuously it is recorded along the whole trail. Four requests, a few seconds. <b>Flowering south</b>: flowering records south of 38&deg;N (Georgia to southern Virginia). <b>Flowering north</b>: north of 42&deg;N (Massachusetts to Maine). Month bars show flowering records, January to December.</p>
+  <section class="dl">
+    <h2>Download records for one species</h2>
+    <p>Every record of a species in the project, with all of its attributes: date and time, location and accuracy, quality grade, identifications, observer, annotations (flowers and fruits, leaves, life stage and others), observation fields, photos and the link to the record.</p>
+    <div class="grid">
+      <label>Species <input id="dlsp" list="dllist" placeholder="Common or scientific name, e.g. Trillium erectum" autocomplete="off"></label>
+      <datalist id="dllist"></datalist>
+      <label>Records <select id="dlwhich"><option value="all">All records</option><option value="fl">Flowering only</option><option value="bud">In bud only</option><option value="ann">Any flowers and fruits annotation</option></select></label>
+      <label>Quality <select id="dlq"><option value="research">Research grade</option><option value="verifiable">Research grade and needs ID</option></select></label>
+      <label>Format <select id="dlfmt"><option value="csv">CSV</option><option value="xlsx">Excel (.xlsx)</option></select></label>
+    </div>
+    <div class="bar"><button id="dlgo">Download records</button><button id="dlstop" class="sec" disabled>Stop</button><span id="dlstat" role="status"></span></div>
+  </section>
+</main>
+<script>
+const PROJECT = 'flowers-and-fauna-along-the-appalachian-trail-corridor', API = 'https://api.inaturalist.org/v1/';
+/* group: N = northern indicator, S = southern indicator, A = A.T. Seasons focal plant (USA-NPN's Appalachian Trail program) */
+const SPECIES = [
+  ["N","Painted trillium","Trillium undulatum"],["N","Bluebead lily","Clintonia borealis"],["N","Hobblebush","Viburnum lantanoides"],["N","Bunchberry","Cornus canadensis"],
+  ["N","Mountain wood-sorrel","Oxalis montana"],["N","Three-toothed cinquefoil","Sibbaldiopsis tridentata"],["N","Diapensia","Diapensia lapponica"],["N","Mountain sandwort","Mononeuria groenlandica"],
+  ["N","Wild lily-of-the-valley","Maianthemum canadense"],["N","Goldthread","Coptis trifolia"],["N","Starflower","Lysimachia borealis"],
+  ["S","Flame azalea","Rhododendron calendulaceum"],["S","Catawba rhododendron","Rhododendron catawbiense"],["S","Creeping bluet","Houstonia serpyllifolia"],
+  ["S","Galax","Galax urceolata"],["S","Fire pink","Silene virginica"],["S","Great rhododendron","Rhododendron maximum"],["S","Mountain laurel","Kalmia latifolia"],
+  ["S","Bee balm","Monarda didyma"],["S","Turk's-cap lily","Lilium superbum"],["S","Crested dwarf iris","Iris cristata"],["S","Fraser magnolia","Magnolia fraseri"],
+  ["A","Mayapple","Podophyllum peltatum"],["A","Spring beauty","Claytonia virginica"],["A","Red trillium","Trillium erectum"],["A","Flowering dogwood","Cornus florida"],
+  ["A","Red maple","Acer rubrum"],["A","Pin cherry","Prunus pensylvanica"],["A","Sugar maple","Acer saccharum"]];
+const GROUP = {N:'North', S:'South', A:'A.T. Seasons'};
+const YEARS = Array.from({length:10}, (_, i) => 2016 + i), MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const $ = s => document.querySelector(s), sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let rows = [];
+
+async function get(path, params){ const url = API + path + '?' + new URLSearchParams(params);
+  for (let k = 0; k < 4; k++){
+    try { const r = await fetch(url); if (r.status === 429) throw new Error('busy'); if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json(); await sleep(1000); return j; }
+    catch (e){ $('#status').textContent = 'iNaturalist is busy, waiting…'; await sleep(5000 * (k + 1)); } }
+  throw new Error('iNaturalist did not answer'); }
+
+function draw(){ const head = ['Group','Species','Records','Flowering','Fruiting','Annotated','Flowering south','Flowering north','2016–20','2021–25','Flowering by month'];
+  $('#t').innerHTML = '<tr>' + head.map(h => `<th>${h}</th>`).join('') + '</tr>' + rows.map(r => {
+    if (r.note) return `<tr><td>${esc(r.group)}</td><td>${esc(r.species)} <i>${esc(r.sci)}</i></td><td colspan="9" style="text-align:left">${esc(r.note)}</td></tr>`;
+    const mx = Math.max(1, ...MON.map(m => r['fl_' + m]));
+    const spark = '<span class="spark" title="' + MON.map(m => m + ' ' + r['fl_' + m]).join(', ') + '">' + MON.map(m => `<span style="height:${Math.round(22 * r['fl_' + m] / mx)}px"></span>`).join('') + '</span>';
+    const yn = v => `<span class="${v}">${v}</span>`, f = n => n.toLocaleString('en-US');
+    return `<tr><td>${esc(r.group)}</td><td>${esc(r.species)} <i>${esc(r.sci)}</i></td><td>${f(r.records)}</td><td>${f(r.flowering)}</td><td>${f(r.fruiting)}</td><td>${r.annotated_pct}%</td><td>${f(r.fl_south)}</td><td>${f(r.fl_north)}</td><td>${f(r.early)}</td><td>${f(r.late)}</td><td>${spark}</td></tr>`; }).join(''); }
+
+async function run(){ $('#run').disabled = true; $('#csv').disabled = true; rows = [];
+  try {
+    /* iNaturalist renamed this annotation ("Plant Phenology" became "Flowers and Fruits"), so find it by id or either name,
+       and its values by id (13 flowers, 14 fruits, 15 buds, 21 none) or by name */
+    const terms = (await get('controlled_terms', {})).results || [];
+    const ph = terms.find(t => t.id === 12) || terms.find(t => /phenology|flowers and fruits/i.test(t.label || ''));
+    if (!ph || !ph.values) throw new Error('iNaturalist did not list its flowering annotation');
+    const pick = (id, re) => (ph.values.find(v => v.id === id) || ph.values.find(v => re.test(v.label || '')) || {}).id;
+    const V = {'Flowering': pick(13, /^flower(s|ing)$/i), 'Fruiting': pick(14, /fruit/i), 'Flower Budding': pick(15, /bud/i), 'No Evidence of Flowering': pick(21, /^no /i)};
+    $('#status').textContent = 'Annotation: ' + ph.label + ' (' + ph.values.map(v => v.label).join(', ') + ')';
+    const STAGES = [['budding','Flower Budding'],['flowering','Flowering'],['fruiting','Fruiting'],['no_flowers','No Evidence of Flowering']];
+    for (let [i, [grp, common, sci]] of SPECIES.entries()){
+      $('#status').textContent = `${i + 1} of ${SPECIES.length}: ${common}…`;
+      const res = (await get('taxa', {q:sci, is_active:true, per_page:10})).results || [];
+      /* exact name first; otherwise a taxon the name is a synonym of (iNaturalist reports it as matched_term) */
+      let tx = res.find(t => t.name.toLowerCase() === sci.toLowerCase()), renamed = '';
+      if (!tx){ tx = res.find(t => (t.matched_term || '').toLowerCase() === sci.toLowerCase()); if (tx) renamed = tx.name; }
+      if (!tx){ rows.push({group:GROUP[grp], species:common, sci, note:'No exact iNaturalist match'}); draw(); continue; }
+      if (renamed) sci = sci + ' (now ' + renamed + ')';
+      const base = {project_id:PROJECT, taxon_id:tx.id, verifiable:true}, count = async extra => (await get('observations', {...base, per_page:0, ...extra})).total_results;
+      const r = {group:GROUP[grp], species:common, sci, taxon_id:tx.id, records: await count({})};
+      for (const [k, lab] of STAGES) r[k] = await count({term_id:ph.id, term_value_id:V[lab]});
+      const ann = await count({term_id:ph.id}); r.annotated_pct = r.records ? Math.round(1000 * ann / r.records) / 10 : 0;
+      /* where the flowering records are: south of 38°N (Georgia to southern Virginia) and north of 42°N (Massachusetts to Maine) */
+      r.fl_south = await count({term_id:ph.id, term_value_id:V['Flowering'], swlat:30, swlng:-90, nelat:38, nelng:-60});
+      r.fl_north = await count({term_id:ph.id, term_value_id:V['Flowering'], swlat:42, swlng:-90, nelat:48, nelng:-60});
+      const fl = {term_id:ph.id, term_value_id:V['Flowering'], date_field:'observed'};
+      const yr = (await get('observations/histogram', {...base, ...fl, interval:'year'})).results.year;
+      YEARS.forEach(y => r['fl_' + y] = Object.entries(yr).filter(([d]) => d.startsWith(String(y))).reduce((s, [, v]) => s + v, 0));
+      const mo = (await get('observations/histogram', {...base, ...fl, interval:'month_of_year'})).results.month_of_year;
+      MON.forEach((m, k) => r['fl_' + m] = mo[k + 1] || mo[String(k + 1)] || 0);
+      r.early = YEARS.filter(y => y <= 2020).reduce((s, y) => s + r['fl_' + y], 0); r.late = YEARS.filter(y => y > 2020).reduce((s, y) => s + r['fl_' + y], 0);
+      r.wave_ready = r.flowering + r.fruiting >= 150 ? 'yes' : 'no'; r.shift_ready = r.early >= 30 && r.late >= 30 ? 'yes' : 'no';
+      rows.push(r); draw(); }
+    $('#status').textContent = 'Done. ' + new Date().toLocaleString(); $('#csv').disabled = false;
+  } catch (e){ $('#status').textContent = 'Stopped: ' + e.message + '. Check the internet connection and try again.'; }
+  $('#run').disabled = false; }
+
+async function csv(){ if (WROWS) return csvWide(); const cols = ['group','species','sci','taxon_id','records','budding','flowering','fruiting','no_flowers','annotated_pct','fl_south','fl_north','wave_ready','shift_ready','early','late', ...YEARS.map(y => 'fl_' + y), ...MON.map(m => 'fl_' + m), 'note'];
+  const q = v => { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const text = [cols.join(','), ...rows.map(r => cols.map(c => q(r[c])).join(','))].join('\r\n');
+  const dl = window.claude && await claude.use('downloads');
+  if (dl){ try { await dl.save({filename:'amc_phenology_check.csv', data:'﻿' + text}); } catch (e){ if (e && e.code !== 'declined') $('#status').textContent = 'The CSV could not be saved here.'; } return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + text], {type:'text/csv'})); a.download = 'amc_phenology_check.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+
+/* every plant species in the project with flowering records, by thirds of the trail: four species_counts requests in all */
+async function wide(){ $('#run').disabled = $('#wide').disabled = true; $('#csv').disabled = true; rows = [];
+  const k0 = $('#widek').value, KIND = {pl:{term_id:12, term_value_id:13, iconic_taxa:'Plantae'}, an:{iconic_taxa:'Animalia,Aves,Amphibia,Reptilia,Mammalia,Insecta,Arachnida,Mollusca,Actinopterygii'},
+    ad:{term_id:1, term_value_id:2, iconic_taxa:'Animalia,Aves,Amphibia,Reptilia,Mammalia,Insecta,Arachnida,Mollusca,Actinopterygii'}, bi:{iconic_taxa:'Aves'}, in:{iconic_taxa:'Insecta'}}[k0];
+  WKIND = {pl:'flowering records', an:'records', ad:'adult records', bi:'records', in:'records'}[k0];
+  try { const base = {project_id:PROJECT, verifiable:true, rank:'species', per_page:500, ...KIND};
+    const bands = [['all', {}], ['south', {swlat:30, swlng:-90, nelat:38, nelng:-60}], ['mid', {swlat:38, swlng:-90, nelat:42, nelng:-60}], ['north', {swlat:42, swlng:-90, nelat:48, nelng:-60}]];
+    const by = new Map();
+    for (const [k, b] of bands){ $('#status').textContent = 'Counting ' + WKIND + ': ' + (k === 'all' ? 'whole trail' : k) + '…';
+      for (const r of (await get('observations/species_counts', {...base, ...b})).results || []){ const t = r.taxon || {};
+        const e = by.get(t.id) || by.set(t.id, {species:t.preferred_common_name || '', sci:t.name, taxon_id:t.id, all:0, south:0, mid:0, north:0}).get(t.id); e[k] = r.count; } }
+    WROWS = [...by.values()].filter(e => e.all >= 100).map(e => ({...e, weakest:Math.min(e.south, e.mid, e.north)})).sort((a, b) => b.weakest - a.weakest);
+    drawWide(); $('#status').textContent = `Done: ${WROWS.length} species with 100 or more ${WKIND}, ranked by their weakest third. ` + new Date().toLocaleString(); $('#csv').disabled = false;
+  } catch (e){ $('#status').textContent = 'Stopped: ' + e.message + '. Check the internet connection and try again.'; }
+  $('#run').disabled = $('#wide').disabled = false; }
+let WROWS = null, WKIND = 'flowering records';
+function drawWide(){ const f = n => n.toLocaleString('en-US'), pc = (a, b) => b ? Math.round(100 * a / b) + '%' : '–';
+  $('#t').innerHTML = '<tr>' + ['Rank','Species',WKIND.charAt(0).toUpperCase() + WKIND.slice(1),'South (GA–s. VA)','Middle (VA–NY)','North (MA–ME)','Weakest third'].map(h => `<th>${h}</th>`).join('') + '</tr>' +
+    WROWS.slice(0, 60).map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.species)} <i>${esc(r.sci)}</i></td><td>${f(r.all)}</td><td>${f(r.south)} <i>${pc(r.south, r.all)}</i></td><td>${f(r.mid)} <i>${pc(r.mid, r.all)}</i></td><td>${f(r.north)} <i>${pc(r.north, r.all)}</i></td><td><b>${f(r.weakest)}</b></td></tr>`).join(''); }
+$('#wide').onclick = wide;
+/* ---------- one species, every record, every attribute ---------- */
+$('#dllist').innerHTML = SPECIES.map(([, c, sci]) => `<option value="${esc(sci)}">${esc(c)}</option>`).join('');
+let DLSTOP = false, TERMS = null;
+async function termNames(){ if (TERMS) return TERMS; TERMS = {attr:{}, val:{}};
+  try { ((await get('controlled_terms', {})).results || []).forEach(t => { TERMS.attr[t.id] = t.label; (t.values || []).forEach(v => TERMS.val[v.id] = v.label); }); } catch (e) {}
+  return TERMS; }
+async function findTaxon(q){ q = q.trim(); const pick = SPECIES.find(([, c, sci]) => c.toLowerCase() === q.toLowerCase() || sci.toLowerCase() === q.toLowerCase()); if (pick) q = pick[2];
+  const res = (await get('taxa', {q, is_active:true, per_page:10})).results || [];
+  return res.find(t => t.name.toLowerCase() === q.toLowerCase()) || res.find(t => (t.matched_term || '').toLowerCase() === q.toLowerCase())
+    || res.find(t => (t.preferred_common_name || '').toLowerCase() === q.toLowerCase()) || null; }
+/* one flat row per record; lists are joined with " | " */
+function flat(o, T){ const t = o.taxon || {}, u = o.user || {}, gj = o.geojson && o.geojson.coordinates, ids = o.identifications || [];
+  const ann = (o.annotations || []).map(a => `${T.attr[a.controlled_attribute_id] || a.controlled_attribute_id}: ${T.val[a.controlled_value_id] || a.controlled_value_id}${a.vote_score != null ? ' (votes ' + a.vote_score + ')' : ''}`);
+  const annOf = re => (o.annotations || []).filter(a => re.test(T.attr[a.controlled_attribute_id] || '')).map(a => T.val[a.controlled_value_id] || a.controlled_value_id).join(' | ');
+  return {id:o.id, url:o.uri || 'https://www.inaturalist.org/observations/' + o.id, observed_on:o.observed_on || '', time_observed_at:o.time_observed_at || '', time_zone:o.observed_time_zone || '',
+    created_at:o.created_at || '', updated_at:o.updated_at || '', quality_grade:o.quality_grade || '',
+    taxon_id:t.id || '', scientific_name:t.name || '', common_name:t.preferred_common_name || '', taxon_rank:t.rank || '', species_guess:o.species_guess || '',
+    latitude:gj ? +gj[1] : '', longitude:gj ? +gj[0] : '', positional_accuracy_m:o.positional_accuracy ?? '', public_positional_accuracy_m:o.public_positional_accuracy ?? '',
+    place_guess:o.place_guess || '', geoprivacy:o.geoprivacy || '', taxon_geoprivacy:o.taxon_geoprivacy || '', obscured:!!o.obscured, captive:!!o.captive,
+    annotation_flowers_and_fruits:annOf(/flowers and fruits|phenology/i), annotation_leaves:annOf(/^leaves$/i), annotation_life_stage:annOf(/life stage/i), annotation_alive_or_dead:annOf(/alive or dead/i),
+    annotation_sex:annOf(/^sex$/i), annotation_evidence:annOf(/evidence/i), annotations_all:ann.join(' | '),
+    observation_fields:(o.ofvs || []).map(f => `${f.name}: ${f.value}`).join(' | '),
+    identifications:ids.length, identification_agreements:o.num_identification_agreements ?? '', identification_disagreements:o.num_identification_disagreements ?? '',
+    identifiers:[...new Set(ids.map(i => i.user && i.user.login).filter(Boolean))].join(' | '), comments:o.comments_count ?? (o.comments || []).length,
+    faves:o.faves_count ?? '', observer_login:u.login || '', observer_name:u.name || '', license:o.license_code || '',
+    photos:(o.photos || []).length, photo_urls:(o.photos || []).map(ph => (ph.url || '').replace('square', 'medium')).join(' | '), sounds:(o.sounds || []).length,
+    description:(o.description || '').replace(/\s+/g, ' ').trim(), tags:(o.tags || []).join(' | '), oauth_application:o.oauth_application_id ?? ''}; }
+async function dlRecords(){ const q = $('#dlsp').value; if (!q.trim()){ $('#dlstat').textContent = 'Type a species first.'; return; }
+  DLSTOP = false; $('#dlgo').disabled = true; $('#dlstop').disabled = false; const say = x => $('#dlstat').textContent = x;
+  try { say('Looking up the species…'); const tx = await findTaxon(q); if (!tx){ say('No iNaturalist species matched “' + q + '”. Try the scientific name.'); return; }
+    const T = await termNames(), which = $('#dlwhich').value, filt = {};
+    if (which !== 'all'){ filt.term_id = 12; if (which === 'fl') filt.term_value_id = 13; if (which === 'bud') filt.term_value_id = 15; }
+    if ($('#dlq').value === 'research') filt.quality_grade = 'research'; else filt.verifiable = true;
+    const base = {project_id:PROJECT, taxon_id:tx.id, order_by:'id', order:'asc', per_page:200, ...filt};
+    const total = (await get('observations', {...base, per_page:0})).total_results || 0; if (!total){ say(`No records of ${tx.name} match these choices.`); return; }
+    const out = []; let above = 0;
+    while (!DLSTOP){ const res = (await get('observations', {...base, id_above:above})).results || []; res.forEach(o => out.push(flat(o, T)));
+      say(`${tx.preferred_common_name || tx.name}: ${out.length.toLocaleString('en-US')} of ${total.toLocaleString('en-US')} records…`); if (res.length < 200) break; above = res[res.length - 1].id; }
+    if (!out.length){ say('Stopped before any records arrived.'); return; }
+    const name = `inat_${tx.name.toLowerCase().replace(/[^a-z]+/g, '_')}_${which}_${new Date().toISOString().slice(0, 10)}`;
+    if ($('#dlfmt').value === 'xlsx'){ say('Building the Excel file…'); await loadXLSX(); const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(out), 'Records');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{item:'Species', value:`${tx.preferred_common_name || ''} (${tx.name}), taxon ${tx.id}`}, {item:'Project', value:PROJECT},
+        {item:'Records', value:{all:'All records', fl:'Flowering only', bud:'In bud only', ann:'Any flowers and fruits annotation'}[which]}, {item:'Quality', value:$('#dlq').value === 'research' ? 'Research grade' : 'Research grade and needs ID'},
+        {item:'Downloaded', value:new Date().toLocaleString()}, {item:'Complete', value:DLSTOP ? `No: stopped at ${out.length} of ${total}` : 'Yes'},
+        {item:'Note', value:'Obscured or private locations are as iNaturalist shows them publicly (generalized). Lists within a cell are separated by " | ".'}]), 'About');
+      saveBlob(name + '.xlsx', new Blob([XLSX.write(wb, {bookType:'xlsx', type:'array'})], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})); }
+    else { const cols = Object.keys(out[0]), cq = v => { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+      saveBlob(name + '.csv', new Blob(['﻿' + [cols.join(','), ...out.map(r => cols.map(c => cq(r[c])).join(','))].join('\r\n')], {type:'text/csv'})); }
+    say(`Done: ${out.length.toLocaleString('en-US')} ${DLSTOP ? 'records (stopped early)' : 'records'} downloaded.`);
+  } catch (e){ say('Stopped: ' + e.message + '. Check the internet connection and try again.'); }
+  finally { $('#dlgo').disabled = false; $('#dlstop').disabled = true; } }
+function loadXLSX(){ return window.XLSX ? Promise.resolve() : new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = res; sc.onerror = () => rej(new Error('the Excel helper could not load; use CSV')); document.head.appendChild(sc); }); }
+function saveBlob(name, blob){ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); }
+$('#dlgo').onclick = dlRecords; $('#dlstop').onclick = () => { DLSTOP = true; $('#dlstat').textContent = 'Stopping after this page…'; };
+async function csvWide(){ const cols = ['species','sci','taxon_id','all','south','mid','north','weakest'];
+  const text = [cols.join(','), ...WROWS.map(r => cols.map(c => { const v = String(r[c] ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(','))].join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + text], {type:'text/csv'})); a.download = 'inat_trailwide_' + WKIND.replace(/ /g, '_') + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+$('#run').onclick = () => { WROWS = null; run(); }; $('#csv').onclick = csv; draw();
+</script>
+</body>
+</html>
