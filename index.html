@@ -94,6 +94,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .findbar+.blk{border-top:0}
 .use{margin:0;color:#D0DAE5;max-width:40em;font-size:14px;line-height:1.5}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin:0}
+.chips.phrk{margin:6px 0 8px}
 .flist{list-style:none;margin:2px 0 6px;padding:0}
 .flist li{display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:14px;line-height:1.35}
 .flist li button{border:0;background:none;color:inherit;text-align:left;padding:0;font:inherit;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.3);text-underline-offset:3px}
@@ -402,6 +403,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   #stripread{text-align:left}
   #find,.secpick select{font-size:16px}
   .chips button{padding:4px 11px}
+.phrk{margin:6px 0 8px}
 }
 .phctl{margin:2px 0 10px;display:grid;gap:7px}
 .phctl select{width:100%;font:inherit;font-size:14px;padding:5px 8px;border-radius:5px;border:1px solid color-mix(in srgb,var(--hue) 70%,var(--panel));background:var(--ground);color:#E3EAF2}
@@ -1232,14 +1234,19 @@ function phSum(lv, rows, where){ const m = S.m, n0 = rows.length, A = phAgg(lv),
       rs.slice(0, n).map(r => cellItem(lv, r[0], `<span class="val">${esc(show(r[1]))}</span>`)).join('') + '</ol></div>' + (note || ''); };
   const recs = v => `${fmt(v, 0)} ${v === 1 ? 'record' : 'records'}`, L = r => D.levels[lv].mi[r[0]];
   /* forest pests: every cell with records, ranked by all its records over all weeks and years */
-  if (sp.pest && A){ const all = rows.map(r => [r[0], A.any[r[0]]]).filter(r => r[1] > 0).sort((a, b) => b[1] - a[1] || L(a) - L(b));
-    h += selAllBtn(lv, all.map(r => r[0]), sp.common) + rank('Most records, all weeks and years', all, recs); }
+  if (sp.pest && A && m.yr === 'wk'){ const rk = S.ph.rk === 'wk' ? 'wk' : 'all';
+    h += `<div class="chips phrk" role="group" aria-label="Rank by"><button type="button" data-phrk="all" aria-pressed="${rk === 'all'}">All weeks and years</button><button type="button" data-phrk="wk" aria-pressed="${rk === 'wk'}">Weeks around ${esc(wkDate(S.ph.wk))}${phYear() ? ', ' + phYear() : ''}</button></div>`;
+    if (rk === 'all'){ const all = rows.map(r => [r[0], A.any[r[0]]]).filter(r => r[1] > 0).sort((a, b) => b[1] - a[1] || L(a) - L(b));
+      return h + selAllBtn(lv, all.map(r => r[0]), sp.common) + rank('Cells with the most records', all, recs); }
+    const wk = rows.filter(r => r[1] > 0).sort((a, b) => b[1] - a[1] || L(a) - L(b));
+    if (!wk.length) return h + `<p class="statline">None of the ${fmt(n0, 0)} cells with records had any in the three weeks around ${esc(wkDate(S.ph.wk))}${phYear() ? ' in ' + phYear() : ''}. Press Play or pick another week.</p>`;
+    return h + selAllBtn(lv, wk.map(r => r[0]), `${sp.common}, weeks around ${wkDate(S.ph.wk)}`) + rank('Cells with the most records these weeks', wk, recs); }
   if (m.yr === 'wk'){ const wk = rows.filter(r => r[1] > 0).sort((a, b) => b[1] - a[1] || L(a) - L(b));
     if (!wk.length) return h + `<p class="statline">None of the ${fmt(n0, 0)} cells with records had any in the three weeks around ${esc(wkDate(S.ph.wk))}${phYear() ? ' in ' + phYear() : ''}. Press Play or pick another week.</p>`;
-    if (!sp.pest) h += selAllBtn(lv, wk.map(r => r[0]), `${sp.common}, ${wkDate(S.ph.wk)}`);
+    h += selAllBtn(lv, wk.map(r => r[0]), `${sp.common}, ${wkDate(S.ph.wk)}`);
     return h + rank(typeof m.sumTitle === 'function' ? m.sumTitle() : m.sumTitle, wk, m.showFn); }
   rows.sort((a, b) => m.asc ? a[1] - b[1] || L(a) - L(b) : b[1] - a[1] || L(a) - L(b));
-  if (!sp.pest) h += selAllBtn(lv, rows.map(r => r[0]), m.label);
+  h += selAllBtn(lv, rows.map(r => r[0]), m.label);
   return h + rank(typeof m.sumTitle === 'function' ? m.sumTitle() : m.sumTitle, rows, m.showFn); }
 /* ---------- historic resources: National Register (NPS) and cemeteries (OpenStreetMap) ----------
    Normally read from historic_resources.json (built monthly on GitHub, out to the HUC10 shell, with each record's A.T. land tract).
@@ -2167,6 +2174,7 @@ $('#side').addEventListener('click', e => { const b = e.target.closest('button')
   if (b.dataset.blk){ S.side[b.dataset.blk] = !S.side[b.dataset.blk]; side(); return; }
   if (b.dataset.selall && S.m.find){ const lv = dispLevel(), e = S.m.find, L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c) && e.cells[lv].has(c)) cells.push(c);
     if (cells.length) selectMany(lv, cells, null, e.common || e.sci); return; }
+  if (b.dataset.phrk){ S.ph.rk = b.dataset.phrk; side(); return; }
   if (b.dataset.selsum && SUMSEL && SUMSEL.cells.length){ selectMany(SUMSEL.lv, SUMSEL.cells.slice(), null, SUMSEL.label); return; }
   if (b.dataset.clearfind){ clearFind(); return; }
   if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q || S.m.find){ S.q = q; S.m = q.m[0]; S.secOpen = {}; redraw(); } }
