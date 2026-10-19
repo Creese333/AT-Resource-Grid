@@ -1040,10 +1040,11 @@ const PHAGG = {}, PHY0 = 2010, PHST = [1, 2, 3, 4, 5], PHMIN = 5, PHMINLEN = 8;
 function phAgg(lv){ const sp = phSp(), st = PHD[sp.key]; if (!st || st.st !== 'done') return null;
   const key = sp.key + '|' + lv; let A = PHAGG[key]; if (A && A.lev === D.levels[lv]) return A;
   const n = D.levels[lv].id.length, ms = phMain(sp), cnt = sp.kind === 'plant' ? 0 : 5, seen = new Set();
-  A = PHAGG[key] = {lev:D.levels[lv], yn:{}, placed:0, any:new Uint16Array(n), first:new Array(n).fill(null), w:{}, y:{}, d:{}, mx:{}, ymx:{}};
+  A = PHAGG[key] = {lev:D.levels[lv], yn:{}, placed:0, pre:0, preMin:null, any:new Uint16Array(n), first:new Array(n).fill(null), w:{}, y:{}, d:{}, mx:{}, ymx:{}};
   for (const s of PHST){ A.w[s] = new Uint16Array(n * 53); A.d[s] = new Map(); }
   for (const [d, y, s, la, lo, id] of st.pts){ if (s === 2) continue; const c = phCell(lv, la, lo); if (c < 0) continue; const w = wkOf(d);
     if (cnt ? s === cnt : !seen.has(id)){ A.placed++; seen.add(id); } A.any[c]++; if (A.first[c] == null || y < A.first[c]) A.first[c] = y;
+    if (s === ms && y < PHY0){ A.pre++; if (A.preMin == null || y < A.preMin) A.preMin = y; }
     A.w[s][c*53 + w]++;
     if (y >= PHY0){ const Y = A.y[y] || (A.y[y] = {}); (Y[s] || (Y[s] = new Uint16Array(n * 53)))[c*53 + w]++; }
     if (s === ms && y >= PHY0) A.yn[y] = (A.yn[y] || 0) + 1;
@@ -1123,7 +1124,7 @@ function phPlay(on){ if (phTimer){ clearInterval(phTimer); phTimer = null; }
 function phFrame(){ BRK.clear(); restyle(); strip(); legend(); phCtl(); const t = $('#phtrend'); if (t){ t.innerHTML = phTrendBlock(); phWireTrend(); } }
 function phYrsText(){ const y = phYear(), A = phAgg(dispLevel()), ys = A ? A.years : []; return y ? String(y) : phSelText() ? phSelText() : ys.length ? `all years, ${ys[0]}–${ys[ys.length - 1]}` : 'all years'; }
 function phCtl(){ const r = $('#phwk'), l = $('#phwkl'), b = $('#phplay'), y = phYear(), A = phAgg(dispLevel());
-  if (r) r.value = S.ph.wk; if (l) l.textContent = wkLabel(S.ph.wk) + ' · ' + phYrsText(); if (b) b.textContent = phTimer ? 'Pause' : 'Play';
+  if (r) r.value = S.ph.wk; if (l) l.textContent = wkLabel(S.ph.wk) + ' · ' + phYrsText(); { const yn = $('#phyrnote'); if (yn) yn.textContent = phYrNote(); } if (b) b.textContent = phTimer ? 'Pause' : 'Play';
   const multi = S.m.yr === 'wk', sel = multi ? phSel() : (y ? [y] : []);
   document.querySelectorAll('[data-phyr]').forEach(x => { const v = +x.dataset.phyr; x.setAttribute('aria-pressed', v ? sel.includes(v) : !sel.length); x.classList.toggle('now', multi && sel.length > 1 && v === y); });
   phTick(); }
@@ -1153,6 +1154,12 @@ function phStatus(){ const sp = phSp(), st = PHD[sp.key];
     : `${fmt(T ? T.all : 0, 0)} research-grade records${split}` + (sp.kind === 'adult' ? `, ${n(4)} marked adult` : '');
   const nid = st.nid ? ` <a href="https://www.inaturalist.org/observations?${ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : ''}taxon_id=${st.taxon}&quality_grade=needs_id" target="_blank" rel="noopener">${fmt(st.nid, 0)} more ${st.nid === 1 ? 'observation needs' : 'observations need'} ID</a> and ${st.nid === 1 ? 'is' : 'are'} not mapped.` : '';
   return `${what}. ${fmt(A ? A.placed : 0, 0)} of the mapped records fall in ${S.ext === 'huc' ? 'watershed' : 'corridor'} cells.${nid} ${st.built ? `From the weekly download of ${new Date(st.built).toLocaleDateString('en-US')}${st.added ? `, plus ${fmt(st.added, 0)} newer ${st.added === 1 ? 'record' : 'records'} from iNaturalist` : ''}${st.topErr ? ' (iNaturalist could not be reached for newer records)' : ''}.` : `Loaded from iNaturalist ${new Date(st.at).toLocaleDateString('en-US')}.`} <button type="button" data-phref="1">Refresh</button>`; }
+/* under the year buttons: the button counts that year's records; the map shows every cell recorded by the end of the year */
+function phYrNote(){ const lv = dispLevel(), A = phAgg(lv), y = phYear(lv);
+  if (!A || !y) return 'Pick All, or a year to see where it had been recorded by then; Play steps through the years.';
+  const n = A.yn[y] || 0; let cells = 0; for (let c = 0; c < A.first.length; c++) if (A.first[c] != null && A.first[c] <= y) cells++;
+  return `${y}: ${fmt(n, 0)} ${n === 1 ? 'record' : 'records'} that year. The map shows the ${fmt(cells, 0)} ${cells === 1 ? 'cell' : 'cells'} where it had been recorded by the end of ${y}` +
+    (A.pre ? `, including ${fmt(A.pre, 0)} ${A.pre === 1 ? 'record' : 'records'} from before ${A.years[0]} (the earliest from ${A.preMin})` : '') + '.'; }
 function phStatusOnly(){ const e = $('#phstat'); if (e) e.innerHTML = phStatus(); }
 /* a measure that does not apply to the species picked gives way to the first one that does */
 function phFixM(){ if (!PHQ() || S.m.find || !S.m.hideFn || !S.m.hideFn()) return; S.m = S.q.m.find(m => m.id === 'wave'); }
@@ -1166,7 +1173,7 @@ function phBlock(){ const sp = phSp(), m = S.m, A = phAgg(dispLevel()), ys = A ?
       `<p class="phstat" style="margin-top:-3px">Tap years to add or remove them (numbers are each year’s records; dimmed years have fewer than ${PHYMIN}). Picked years show together; with two or more, Play runs each selected year in order. With All, every year is pooled, so Play shows the season for all years together. To play the years one at a time, with each year highlighted on the spread chart: <button type="button" data-phgood="1">Pick years with ${PHYMIN}+ records</button></p>`; }
   else if (m.yr === 'y' && ys.length >= 2){ const lo = ys[0] - 1;
     h += `<div class="wk yr"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button></div>` + phYrBlock(ys, y, false) +
-      `<p class="phstat" style="margin-top:-3px">Pick All, or a year to see where it had been recorded by then; Play steps through the years.</p>`; }
+      `<p class="phstat" id="phyrnote" style="margin-top:-3px">${esc(phYrNote())}</p>`; }
   return h + `<p class="phstat" id="phstat" role="status">${phStatus()}</p><div id="phtrend">${phTrendBlock()}</div></div>`; }
 function phWire(){ const s = $('#phsp'); if (!s) return;
   document.querySelectorAll('[data-phyr]').forEach(x => x.onclick = () => { const v = +x.dataset.phyr, A = phAgg(dispLevel()); phPlay(false);
@@ -1212,7 +1219,7 @@ function phCalendar(){ const sp = phSp(), A = phAgg('wheel'); if (!A) return '';
   const key = `<div class="phkey"><span><i style="background:linear-gradient(90deg,${ramp.join(',')})"></i>${plant ? 'flowering' : ms === 4 ? 'adult' : 'all'} records, few to most in that stretch</span></div>`;
   return g + key; }
 function phSpreadSvg(lv, cells){ const A = phAgg(lv), sp = phSp(); if (!A || !A.years.length) return ''; const ys = A.years, nw = new Map();
-  for (const c of cells){ let y = A.first[c]; if (y == null) continue; if (y < ys[0]) y = ys[0]; nw.set(y, (nw.get(y) || 0) + 1); }
+  let pre = 0, preMin = null; for (const c of cells){ let y = A.first[c]; if (y == null) continue; if (y < ys[0]){ pre++; if (preMin == null || y < preMin) preMin = y; y = ys[0]; } nw.set(y, (nw.get(y) || 0) + 1); }
   let cum = 0; const rows = ys.map(y => ({y, n:nw.get(y) || 0, t:(cum += nw.get(y) || 0)}));
   if (!cum) return '<p class="phstat">No records in these cells yet.</p>';
   const mx0 = Math.max(1, ...rows.map(r => r.n)), stp = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find(s => mx0 / s <= 4) || 2000, mx = Math.ceil(mx0 / stp) * stp;
@@ -1225,8 +1232,8 @@ function phSpreadSvg(lv, cells){ const A = phAgg(lv), sp = phSp(); if (!A || !A.
     if (bw >= 12) g += `<text x="${f(X(i))}" y="${f(y0 - 2.5)}" text-anchor="middle" font-size="8" fill="#E3EAF2">${r.n}</text>`; });
   const every = ys.length > 12 ? 2 : 1;
   rows.forEach((r, i) => { if (i % every === 0 || i === ys.length - 1) g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${r.y === sel ? '#FFE014' : '#A8B8CA'}"${r.y === sel ? ' font-weight="700"' : ''}>’${String(r.y).slice(2)}</text>`;
-    g += `<rect x="${f(pl + bw * i)}" y="${pt}" width="${f(bw)}" height="${ph + pb}" fill="transparent" pointer-events="none"><title>${r.y}: ${r.n} ${r.n === 1 ? 'cell' : 'cells'} first recorded, ${r.t} in all by then</title></rect>`; });
-  return `<p class="phflow">${fmt(cum, 0)} cells (${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} each) have records, ${fmt(rows[rows.length - 1].n, 0)} of them first recorded in ${rows[rows.length - 1].y}.</p>` + g + '</svg><div class="phkey"><span class="thin">cells first recorded each year · <i style="background:linear-gradient(90deg,' + phFirstPal().map(e => e[1]).join(',') + ')"></i>earlier to recent</span></div>'; }
+    g += `<rect x="${f(pl + bw * i)}" y="${pt}" width="${f(bw)}" height="${ph + pb}" fill="transparent" pointer-events="none"><title>${r.y}: ${r.n} ${r.n === 1 ? 'cell' : 'cells'} first recorded${i === 0 && pre ? ` (${pre} of them before ${r.y})` : ''}, ${r.t} in all by then</title></rect>`; });
+  return `<p class="phflow">${fmt(cum, 0)} cells (${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} each) have records, ${fmt(rows[rows.length - 1].n, 0)} of them first recorded in ${rows[rows.length - 1].y}.</p>` + g + '</svg><div class="phkey"><span class="thin">cells first recorded each year · <i style="background:linear-gradient(90deg,' + phFirstPal().map(e => e[1]).join(',') + ')"></i>earlier to recent</span></div>' + (pre ? `<p class="phstat" style="margin-top:2px">The ’${String(ys[0]).slice(2)} bar includes ${fmt(pre, 0)} ${pre === 1 ? 'cell' : 'cells'} first recorded before ${ys[0]} (the earliest in ${preMin}).</p>` : ''); }
 function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) return ''; const where = S.sec === 'all' ? 'the whole trail' : secName(), noun = phNoun();
   let h = '';
   {
