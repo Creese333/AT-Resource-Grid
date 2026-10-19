@@ -936,7 +936,7 @@ const phShown = sp => !sp.pest ? true : PHCNT[sp.key] == null ? !sp.cand : PHCNT
 const phListShown = () => { const L = phList().filter(phShown); return S.q.id === 'pest' ? L.sort((a, b) => (PHCNT[b.key] || 0) - (PHCNT[a.key] || 0)) : L; };
 /* each question keeps its own species */
 function phQSync(){ if (!PHQ()) return; S.ph.by = S.ph.by || {}; if (S.ph.q === S.q.id) return;
-  if (S.ph.q) S.ph.by[S.ph.q] = S.ph.sp; S.ph.q = S.q.id; const L = phListShown(); if (!L.some(s => s.key === S.ph.sp)) S.ph.sp = S.ph.by[S.q.id] || (L[0] || phList()[0]).key; }
+  if (S.ph.q){ S.ph.by[S.ph.q] = S.ph.sp; S.ph.yr = 0; S.ph.sel = []; } S.ph.q = S.q.id; const L = phListShown(); if (!L.some(s => s.key === S.ph.sp)) S.ph.sp = S.ph.by[S.q.id] || (L[0] || phList()[0]).key; }
 const PHD = {};   /* by key: {st:'loading'|'done'|'error', pts:[[day of year, year, stage, lat, lon, id]], n, msg, at} */
 const PHKEEP = 30 * 864e5, phKey = sp => 'atgrid-phen-v3:' + (ATiNat.config.project || '') + ':' + sp.key;
 const PHFIELDS = '(id:!t,observed_on:!t,quality_grade:!t,obscured:!t,geoprivacy:!t,taxon_geoprivacy:!t,geojson:all)';
@@ -1057,7 +1057,9 @@ const phDateLegend = what => PHDATE.map(e => `<div class="row"><i style="backgro
 const PHLEN = [[14, '#FFF06A', '2 weeks or less'], [28, '#FFE014', '3 to 4 weeks'], [42, '#F2C200', '5 to 6 weeks'], [56, '#C99A00', '7 to 8 weeks'], [Infinity, '#8A6800', 'over 8 weeks']];
 const phLenCol = v => v == null ? null : PHLEN.find(e => v <= e[0])[1];
 const PHFIRST = [[2015, '#E8A882'], [2017, '#DB8A63'], [2019, '#CE6D47'], [2021, '#C0502E'], [2023, '#9C3D22'], [Infinity, '#752C18']].map((e, i) => [e[0], e[1], ['2015 or earlier', '2016–17', '2018–19', '2020–21', '2022–23', '2024 or later'][i]]);
-const phFirstCol = v => v == null ? null : PHFIRST.find(e => v <= e[0])[1];
+const PHFIRSTG = ['#FFF0A0', '#FFE14D', '#F2C200', '#C99A00', '#8F6D00', '#5E4800'];
+const phFirstPal = () => phSp().pest ? PHFIRST : PHFIRST.map((e, i) => [e[0], PHFIRSTG[i], e[2]]);
+const phFirstCol = v => v == null ? null : phFirstPal().find(e => v <= e[0])[1];
 /* the bars under the map: values as drawn (dates: later stands taller; spread: years since first recorded, so the oldest stand tallest) */
 function stripV(m, v){ return m.stripH ? m.stripH(v) : m.stripAbs ? Math.abs(v) : v; }
 let phTimer = null;
@@ -1168,7 +1170,7 @@ function phCalendar(){ const sp = phSp(), A = phAgg('wheel'); if (!A) return '';
   g += `<text x="${lab - 4}" y="${f(rows.length * rh + 12)}" text-anchor="end" font-size="7.5" fill="#A8B8CA">▼ Georgia</text></g></svg>`;
   const key = `<div class="phkey"><span><i style="background:linear-gradient(90deg,${ramp.join(',')})"></i>${plant ? 'flowering' : ms === 4 ? 'adult' : 'all'} records, few to most in that stretch</span></div>`;
   return g + key; }
-function phSpreadSvg(lv, cells){ const A = phAgg(lv); if (!A || !A.years.length) return ''; const ys = A.years, nw = new Map();
+function phSpreadSvg(lv, cells){ const A = phAgg(lv), sp = phSp(); if (!A || !A.years.length) return ''; const ys = A.years, nw = new Map();
   for (const c of cells){ let y = A.first[c]; if (y == null) continue; if (y < ys[0]) y = ys[0]; nw.set(y, (nw.get(y) || 0) + 1); }
   let cum = 0; const rows = ys.map(y => ({y, n:nw.get(y) || 0, t:(cum += nw.get(y) || 0)}));
   if (!cum) return '<p class="phstat">No records in these cells yet.</p>';
@@ -1178,19 +1180,19 @@ function phSpreadSvg(lv, cells){ const A = phAgg(lv); if (!A || !A.years.length)
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Cells first recorded each year">`;
   for (let v = 0; v <= mx; v += stp) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="${v ? '#2E4460' : '#4A6182'}" stroke-width="${v ? .6 : .9}"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${v}</text>`;
   rows.forEach((r, i) => { if (!r.n) return; const y0 = Y(r.n);
-    g += `<rect x="${f(pl + bw * i + 1)}" y="${f(y0)}" width="${f(Math.max(1, bw - 2))}" height="${f(Y(0) - y0)}" fill="${phFirstCol(r.y)}" stroke="#F2C4A8" stroke-opacity=".45" stroke-width=".7" opacity="${sel && r.y > sel ? .25 : 1}"/>`;
+    g += `<rect x="${f(pl + bw * i + 1)}" y="${f(y0)}" width="${f(Math.max(1, bw - 2))}" height="${f(Y(0) - y0)}" fill="${phFirstCol(r.y)}" stroke="${r.y === sel ? '#FFFFFF' : sp.pest ? '#F2C4A8' : '#FFF0A0'}" stroke-opacity="${r.y === sel ? 1 : .45}" stroke-width="${r.y === sel ? 2 : .7}" opacity="${sel && r.y > sel ? .25 : 1}"/>`;
     if (bw >= 12) g += `<text x="${f(X(i))}" y="${f(y0 - 2.5)}" text-anchor="middle" font-size="8" fill="#E3EAF2">${r.n}</text>`; });
   const every = ys.length > 12 ? 2 : 1;
   rows.forEach((r, i) => { if (i % every === 0 || i === ys.length - 1) g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${r.y === sel ? '#FFE014' : '#A8B8CA'}"${r.y === sel ? ' font-weight="700"' : ''}>’${String(r.y).slice(2)}</text>`;
     g += `<rect x="${f(pl + bw * i)}" y="${pt}" width="${f(bw)}" height="${ph + pb}" fill="transparent" pointer-events="none"><title>${r.y}: ${r.n} ${r.n === 1 ? 'cell' : 'cells'} first recorded, ${r.t} in all by then</title></rect>`; });
-  return `<p class="phflow">${fmt(cum, 0)} cells (${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} each) have records, ${fmt(rows[rows.length - 1].n, 0)} of them first recorded in ${rows[rows.length - 1].y}.</p>` + g + '</svg><div class="phkey"><span class="thin">cells first recorded each year · <i style="background:linear-gradient(90deg,#E8A882,#DB8A63,#CE6D47,#C0502E,#9C3D22,#752C18)"></i>earlier to recent</span></div>'; }
+  return `<p class="phflow">${fmt(cum, 0)} cells (${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} each) have records, ${fmt(rows[rows.length - 1].n, 0)} of them first recorded in ${rows[rows.length - 1].y}.</p>` + g + '</svg><div class="phkey"><span class="thin">cells first recorded each year · <i style="background:linear-gradient(90deg,' + phFirstPal().map(e => e[1]).join(',') + ')"></i>earlier to recent</span></div>'; }
 function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) return ''; const where = S.sec === 'all' ? 'the whole trail' : secName(), noun = phNoun();
   let h = '';
   {
     h += `<h4 class="phh">When it is ${sp.kind === 'plant' ? 'in flower' : sp.kind === 'adult' ? 'out as adults' : 'recorded'} along the trail${S.m.yr === 'wk' && phYear('wheel') ? ', ' + phYear('wheel') : S.m.yr === 'wk' && phSelText() ? ', ' + esc(phSelText()) : ', all years'}</h4>` + phCalendar() +
       `<details class="phabout" data-phab="cal"${S.ph.ab && S.ph.ab.cal ? ' open' : ''}><summary>About this graph</summary><p class="phnote">${sp.kind === 'plant' ? 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks. Brighter boxes: more flowering records that week, against the stretch’s busiest week, so each stretch shows its season start, peak and end, and the peak moves north.' : 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks.'} Click a week to map it.</p></details>`;
    }
-  if (sp.kind !== 'plant'){ const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
+  { const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
     h += `<h4 class="phh">Spread: cells first recorded each year, ${esc(where)}</h4>` + phSpreadSvg(lv, cells) +
       `<p class="phnote">Records follow hikers and observers, so a first record marks when it was noticed here, not when it arrived.</p>`; }
   return h; }
@@ -1588,7 +1590,10 @@ const Q = [
      {id:'forest', label:'Forests', int:1, brkP:[.4,.7,.85,.95], none:'No forest mapped', showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
  {id:'phen', th:'inat', hue:HUE.phen, ramp:'phen', title:'When does it flower here?',
   use:'When twenty plants flower along the trail, from research-grade iNaturalist records. Measures follow the USA National Phenology Network: first, peak and season length, and flowering by week. Press Play to watch the season move north. Records follow hikers, so a blank cell means too few records, not absence.',
-  m:[{id:'wave', get label(){ const k = phSp().kind; return k === 'plant' ? 'Flowering, week by week' : k === 'adult' ? 'Adults, week by week' : 'Records, week by week'; },
+  m:[{id:'spread', label:'Year first recorded', yr:'y', hasTxt:() => phYear() ? `had a record by ${phYear()}` : 'have records', sumFn:phSum, asc:1, sumTitle:() => phYear() ? `Recorded by ${phYear()}, earliest first` : 'Recorded earliest', d:0, none:'No records (yet)', showFn:v => 'first recorded ' + v, fn:(lv, c) => phFirst(lv, c), colorFn:phFirstCol,
+      stripH:v => { const A = phAgg('wheel'); return A && A.years.length ? Math.max(.3, A.years[A.years.length - 1] + 1 - v) : 1; }, stripTop:() => { const A = phAgg('wheel'); return A && A.years.length ? A.years.length + 1 : 1; },
+      legendFn:lv => phFirstPal().map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${phYear(lv) ? 'Cells with a record by ' + phYear(lv) + ', by the year of the first one.' : 'The year of the first record in each cell.'} Bars under the map are taller where it has been known longer.</p>`},
+     {id:'wave', get label(){ const k = phSp().kind; return k === 'plant' ? 'Flowering, week by week' : k === 'adult' ? 'Adults, week by week' : 'Records, week by week'; },
       yr:'wk', st:() => phMain(), hasTxt:() => 'have records of this species', sumFn:phSum, sumTitle:() => `Most ${PHWORD[S.m.st()] === 'records' ? '' : PHWORD[S.m.st()] + ' '}records around ${wkDate(S.ph.wk)}${phYear() ? ', ' + phYear() : ''}`, showFn:v => `${v} ${v === 1 ? 'record' : 'records'}`, int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'], fn:(lv, c) => phWin(lv, c, phMain()),
       colorFn:phWaveCol, legendFn:phWaveLegend, stripTop:lv => phTop(lv, phMain())},
      {id:'onset', get label(){ return `First ${phNoun()} date`; }, hasTxt:() => `have 5 or more ${phNoun()} records, enough to date`, sumFn:phSum, asc:1, sumTitle:() => `Earliest first ${phNoun()} dates`, hideFn:() => phSp().kind === 'spread', d:0, none:'Fewer than 5 records', showFn:v => doyDate(v),
@@ -1599,10 +1604,7 @@ const Q = [
       legendFn:() => phDateLegend(`Peak: the middle (median) date of the ${phNoun()} records in each cell, all years together. Cells need 5 or more records.`)},
      {id:'len', get label(){ return phSp().kind === 'adult' ? 'Adult season length' : 'Flowering season length'; }, hasTxt:() => `have 8 or more ${phNoun()} records, enough for a season length`, sumFn:phSum, sumTitle:() => phSp().kind === 'adult' ? 'Longest adult seasons' : 'Longest flowering seasons', hideFn:() => phSp().kind === 'spread', d:0, unit:' days', none:'Fewer than 8 records',
       showFn:v => `${Math.max(1, Math.round(v / 7))} ${Math.round(v / 7) > 1 ? 'weeks' : 'week'}`, fn:(lv, c) => { const A = phAgg(lv); return A ? A.len[c] : null; }, colorFn:phLenCol, stripTop:() => 70,
-      legendFn:() => PHLEN.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">Duration: from the earliest 10% to the latest 10% of ${phNoun()} records in each cell, all years together. Cells need 8 or more records.</p>`},
-     {id:'spread', label:'Year first recorded', yr:'y', hasTxt:() => phYear() ? `had a record by ${phYear()}` : 'have records', sumFn:phSum, asc:1, sumTitle:() => phYear() ? `Recorded by ${phYear()}, earliest first` : 'Recorded earliest', hideFn:() => phSp().kind === 'plant', d:0, none:'No records (yet)', showFn:v => 'first recorded ' + v, fn:(lv, c) => phFirst(lv, c), colorFn:phFirstCol,
-      stripH:v => { const A = phAgg('wheel'); return A && A.years.length ? Math.max(.3, A.years[A.years.length - 1] + 1 - v) : 1; }, stripTop:() => { const A = phAgg('wheel'); return A && A.years.length ? A.years.length + 1 : 1; },
-      legendFn:lv => PHFIRST.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${phYear(lv) ? 'Cells with a record by ' + phYear(lv) + ', by the year of the first one.' : 'The year of the first record in each cell.'} Bars under the map are taller where it has been known longer.</p>`}]},
+      legendFn:() => PHLEN.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">Duration: from the earliest 10% to the latest 10% of ${phNoun()} records in each cell, all years together. Cells need 8 or more records.</p>`}]},
  {id:'hist', th:'feat', hue:HUE.hist, ramp:'hist', title:'Where are the historic resources?',
   use:'National Register properties and OpenStreetMap cemeteries in each cell, with links to Find a Grave. The extent buttons set the scale: A.T. corridor or HUC10 watershed. Recorded sites only: small family cemeteries are often missing.',
   m:[{id:'hany', label:'All historic resources', fn:(lv, c) => hCount(lv, c, 'any'), int:1, hollow0:1, none:'None recorded', noun:['resource','resources'], hasTxt:() => 'have a recorded historic resource'},
