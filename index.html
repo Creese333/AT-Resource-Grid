@@ -94,6 +94,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .findbar+.blk{border-top:0}
 .use{margin:0;color:#D0DAE5;max-width:40em;font-size:14px;line-height:1.5}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin:0}
+.chips.pinvm{margin:8px 0 4px}
 .ctab{overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--line,#2E4460);border-radius:4px}.ctab table{border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}.ctab th,.ctab td{padding:4px 7px;border-bottom:1px solid #22344C;white-space:nowrap;text-align:right}.ctab th{position:sticky;top:0;background:#1B2D44;color:#A8B8CA;font-weight:600;white-space:normal;min-width:70px;vertical-align:bottom}.ctab td:first-child,.ctab th:first-child{position:sticky;left:0;background:#1B2D44;text-align:left;z-index:1}.ctab th:first-child{z-index:2}.ctab td:nth-child(2){text-align:left;color:#A8B8CA}
 .chips.phrk{margin:6px 0 8px}
 .flist{list-style:none;margin:2px 0 6px;padding:0}
@@ -928,10 +929,12 @@ const PHEN = [
 const PHSET = {'Forest pests':'pest', 'Priority invasive plants':'pinv'};
 const PHSP = PHEN.flatMap(g => g[1].map(([common, sci, kind, cand]) => ({common, sci, key:sci.toLowerCase().replace(/[^a-z]+/g, '-'), group:g[0], kind:kind || 'plant', cand:!!cand, set:PHSET[g[0]] || 'phen', pest:!!PHSET[g[0]]})));
 /* two questions share this engine: flowering (plants) and forest pests */
-function PHQ(){ return ['phen', 'pest', 'pinv'].includes(S.q.id); }
+function PINVM(){ return S.q.id === 'inv' && !!(S.m && S.m.pinv); }
+function PHQ(){ return S.q.id === 'phen' || S.q.id === 'pest' || PINVM(); }
 /* the two questions that map spread (first year recorded), with species ranked by records */
-function SPREADQ(){ return S.q.id === 'pest' || S.q.id === 'pinv'; }
-const phList = () => PHSP.filter(s => s.set === (S.q.id === 'pest' || S.q.id === 'pinv' ? S.q.id : 'phen'));
+function SPREADQ(){ return S.q.id === 'pest' || PINVM(); }
+const phSetNow = () => S.q.id === 'pest' ? 'pest' : S.q.id === 'inv' ? 'pinv' : 'phen';
+const phList = (set = phSetNow()) => PHSP.filter(s => s.set === set);
 /* record counts of the forest pests in the project, looked up once and kept 30 days; the extra candidates show at PHPESTMIN or more */
 const PHPESTMIN = 100, PHCNT = {}; let phCntRun = false;
 /* Pre-built records: build_phenology.py (weekly GitHub Action) writes phen/index.json and phen/<species>.json.
@@ -950,8 +953,8 @@ function phIdx(){ if (PHIDX === undefined) PHIDX = fetch('phen/index.json', {cac
   return PHIDX; }
 function phIdxAdd(ix){ let n = 0; for (const [key, e] of Object.entries(ix.species)) if (e.set === 'pinv' && e.sci && !PHSP.some(s => s.key === key)){
     PHSP.push({common:e.common || e.sci, sci:e.sci, key, group:'Priority invasive plants', kind:'spread', cand:false, set:'pinv', pest:true}); n++; }
-  if (n && S.q.id === 'pinv') side(); }
-function phCntDone(){ if (SPREADQ()){ const sp = S.ph.pick ? phSp() : (phListShown()[0] || phSp()); if (sp.key !== S.ph.sp){ S.ph.sp = sp.key; phLoad(sp); } BRK.clear(); redraw(); } }
+  if (n && S.q.id === 'inv') side(); }
+function phCntDone(){ if (S.q.id === 'inv' && S.m.id === 'edrr' && $('#pinvsel')) side(); if (SPREADQ()){ const sp = S.ph.pick ? phSp() : (phListShown()[0] || phSp()); if (sp.key !== S.ph.sp){ S.ph.sp = sp.key; phLoad(sp); } BRK.clear(); redraw(); } }
 function phPestCounts(){ if (phCntRun) return; phCntRun = true;
   phIdx().then(ix => { const sx = ix && ix.species, ps = PHSP.filter(s => s.pest);
     if (sx){ const miss = []; ps.forEach(s => { if (sx[s.key] && sx[s.key].cnt != null) PHCNT[s.key] = sx[s.key].cnt; else miss.push(s); }); phCntDone(); if (miss.length) phPestCountsLive(miss, true); }
@@ -966,8 +969,8 @@ function phPestCountsLive(list, fresh){ list = list || PHSP.filter(s => s.pest);
 const phShown = sp => !sp.pest || sp.set === 'pinv' ? true : PHCNT[sp.key] == null ? !sp.cand : PHCNT[sp.key] >= PHPESTMIN;
 const phListShown = () => { const L = phList().filter(phShown); return SPREADQ() ? L.sort((a, b) => (PHCNT[b.key] || 0) - (PHCNT[a.key] || 0)) : L; };
 /* each question keeps its own species */
-function phQSync(){ if (!PHQ()) return; S.ph.by = S.ph.by || {}; if (S.ph.q === S.q.id) return;
-  if (S.ph.q){ S.ph.by[S.ph.q] = S.ph.sp; S.ph.yr = 0; S.ph.sel = []; } S.ph.q = S.q.id; const L = phListShown(); if (!L.some(s => s.key === S.ph.sp)) S.ph.sp = S.ph.by[S.q.id] || (L[0] || phList()[0]).key; }
+function phQSync(){ if (!PHQ()) return; S.ph.by = S.ph.by || {}; const qk = phSetNow(); if (S.ph.q === qk) return;
+  if (S.ph.q){ S.ph.by[S.ph.q] = S.ph.sp; S.ph.yr = 0; S.ph.sel = []; } S.ph.q = qk; const L = phListShown(); if (!L.some(s => s.key === S.ph.sp)) S.ph.sp = S.ph.by[qk] || (L[0] || phList()[0]).key; }
 const PHD = {};   /* by key: {st:'loading'|'done'|'error', pts:[[day of year, year, stage, lat, lon, id]], n, msg, at} */
 const PHKEEP = 30 * 864e5, phKey = sp => 'atgrid-phen-v3:' + (ATiNat.config.project || '') + ':' + sp.key;
 const PHFIELDS = '(id:!t,observed_on:!t,quality_grade:!t,obscured:!t,geoprivacy:!t,taxon_geoprivacy:!t,geojson:all)';
@@ -1169,12 +1172,20 @@ function phYrNote(){ const lv = dispLevel(), A = phAgg(lv), y = phYear(lv);
   const n = A.yn[y] || 0; let cells = 0; for (let c = 0; c < A.first.length; c++) if (A.first[c] != null && A.first[c] <= y) cells++;
   return `${y}: ${fmt(n, 0)} ${n === 1 ? 'record' : 'records'} that year. The map shows the ${fmt(cells, 0)} ${cells === 1 ? 'cell' : 'cells'} where it had been recorded by the end of ${y}` +
     (A.pre ? `, including ${fmt(A.pre, 0)} ${A.pre === 1 ? 'record' : 'records'} from before ${A.years[0]} (the earliest from ${A.preMin})` : '') + '.'; }
+/* Priority invasives measure: the species-per-cell map, with a list to open one species' spread */
+function pinvPick(){ phIdx(); phPestCounts(); const L = phList('pinv').sort((a, b) => (PHCNT[b.key] || 0) - (PHCNT[a.key] || 0));
+  return `<div class="phctl"><select id="pinvsel" aria-label="Priority invasive species"><option value="">All priority invasives: species per cell</option>` +
+    L.map(s => `<option value="${s.key}">${esc(s.common)} (${esc(s.sci)})${(t => t ? ' · ' + fmt(t.all, 0) + ' records' : '')(phTot(s))}</option>`).join('') + '</select></div>' +
+    '<p class="phstat" style="margin-top:4px">Pick a species to see where it has spread along the trail, year by year, with Play to animate it.</p>'; }
+document.addEventListener('change', e => { if (e.target.id !== 'pinvsel' || !e.target.value) return; S.ph.sp = e.target.value; S.ph.pick = true; S.ph.q = 'pinv'; S.ph.yr = 0; S.ph.sel = [];
+  S.m = S.q.m.find(x => x.pinv && x.id === 'spread'); phLoad(phSp()); BRK.clear(); redraw(); });
+document.addEventListener('click', e => { const b = e.target.closest('[data-pinvm]'); if (!b) return; phPlay(false); S.m = S.q.m.find(x => x.pinv && x.id === b.dataset.pinvm); BRK.clear(); redraw(); });
 function phStatusOnly(){ const e = $('#phstat'); if (e) e.innerHTML = phStatus(); }
 /* a measure that does not apply to the species picked gives way to the first one that does */
 function phFixM(){ if (!PHQ() || S.m.find || !S.m.hideFn || !S.m.hideFn()) return; S.m = S.q.m.find(m => m.id === 'wave'); }
 function phBlock(){ const sp = phSp(), m = S.m, A = phAgg(dispLevel()), ys = A ? A.years : [], y = phYear();
   const L = phListShown(), grp = [...new Set(L.map(s => s.group))];
-  let h = `<div class="phctl"><select id="phsp" aria-label="Species">` + grp.map(g => `<optgroup label="${esc(g)}">` + L.filter(s => s.group === g).map(s => `<option value="${s.key}"${s.key === sp.key ? ' selected' : ''}>${esc(s.common)} (${esc(s.sci)})${(t => t ? ' · ' + fmt(t.all, 0) + (s.kind === 'plant' ? ' flowering records' : ' records') : '')(phTot(s))}</option>`).join('') + '</optgroup>').join('') + '</select>';
+  let h = `<div class="phctl"><select id="phsp" aria-label="Species">${PINVM() ? '<option value="">All priority invasives: species per cell</option>' : ''}` + grp.map(g => `<optgroup label="${esc(g)}">` + L.filter(s => s.group === g).map(s => `<option value="${s.key}"${s.key === sp.key ? ' selected' : ''}>${esc(s.common)} (${esc(s.sci)})${(t => t ? ' · ' + fmt(t.all, 0) + (s.kind === 'plant' ? ' flowering records' : ' records') : '')(phTot(s))}</option>`).join('') + '</optgroup>').join('') + '</select>' + (PINVM() ? `<div class="chips pinvm" role="group" aria-label="Show">${S.q.m.filter(x => x.pinv).map(x => `<button type="button" data-pinvm="${x.id}" aria-pressed="${x === S.m}">${esc(x.label)}</button>`).join('')}</div>` : '');
   if (m.yr === 'wk'){ h += `<div class="wk"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button><input type="range" id="phwk" min="1" max="52" step="1" value="${S.ph.wk}" aria-label="Week of the year"></div><div class="wkl" id="phwkl">${wkLabel(S.ph.wk) + ' · ' + phYrsText()}</div>`;
     /* years before the first one with enough records are left off, so the row stays short */
     const ok = phYearsOk(A || {years:[], yn:{}}), ys2 = ok.length ? ys.filter(v => v >= ok[0]) : ys;
@@ -1190,7 +1201,7 @@ function phWire(){ const s = $('#phsp'); if (!s) return;
     else S.ph.yr = A && A.years.includes(v) ? v : 0;
     BRK.clear(); redraw(); });
   document.querySelectorAll('[data-phgood]').forEach(x => x.onclick = () => { const A = phAgg(dispLevel()); if (!A) return; phPlay(false); S.ph.sel = phYearsOk(A); S.ph.yr = 0; BRK.clear(); redraw(); });
-  s.onchange = () => { phPlay(false); S.ph.sp = s.value; if (SPREADQ()) S.ph.pick = true; phLoad(phSp()); phFixM(); BRK.clear(); redraw(); };
+  s.onchange = () => { phPlay(false); if (!s.value){ S.m = S.q.m.find(x => x.id === 'edrr'); BRK.clear(); redraw(); return; } S.ph.sp = s.value; if (SPREADQ()) S.ph.pick = true; phLoad(phSp()); phFixM(); BRK.clear(); redraw(); };
   const r = $('#phwk'); if (r){ r.oninput = () => { S.ph.wk = +r.value; phFrame(); }; r.onchange = () => { redraw(); }; }
   const b = $('#phplay'); if (b) b.onclick = () => { phPlay(!phTimer); if (!phTimer) redraw(); };
   document.querySelectorAll('[data-phref]').forEach(x => x.onclick = phRefresh); phWireTrend(); }
@@ -1591,7 +1602,7 @@ const Q = [
      {id:'gmammal', label:'Mammals, share of records', unit:'%', d:0, zero:1, note:'Research-grade iNaturalist records of mammals, as a share of all records in the cell.', fn:(lv,c)=>recPct(lv,c,'MAMMAL')},
      {id:'native', label:'Native plants, share of plant species', unit:'%', d:0, zero:1, fade:1, note:'Plant species not on the invasive and introduced species lookup, as a share of all plant species recorded. Plants only: the lookup covers introduced plants well but few introduced animals.', fn:(lv,c)=>{ const n = val('inat','PLANT_SPP',lv,c), x = val('inat','N_NONNATIVE_PLANT_SPP',lv,c); return n && x != null ? 100 * (n - x) / n : null; }}]},
  {id:'inv', th:'inat', hue:HUE.inat, ramp:'inv', title:'What invasive species are turning up?',
-  use:'Invasive plants and forest pests reported on iNaturalist, from the quarterly summary. Use it to aim surveys and volunteer workdays at priority invasives. A blank cell means nothing was reported, which is not the same as nothing there. All records, and a live lookup of the latest, are under iNaturalist Records when you select a cell.',
+  use:'Invasive plants and forest pests reported on iNaturalist, from the quarterly summary. Use it to aim surveys and volunteer workdays at priority invasives. Under Priority invasives, pick a species to map where it has spread year by year (Play animates it), from research-grade iNaturalist records updated weekly. A blank cell means nothing was reported, which is not the same as nothing there. All records, and a live lookup of the latest, are under iNaturalist Records when you select a cell.',
   m:[{id:'spp', label:'Invasive species reported', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'None reported', note:'Invasive plants and forest pests, counted together.', fn:(lv,c)=>invCount(lv,c)},
      {id:'edrr', label:'Priority invasives', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'None reported', note:'Priority invasive plants plus forest pests.', fn:(lv,c)=>priCount(lv,c)},
      {id:'pct', label:'Invasive share of records', unit:'%', d:1, zero:1, fade:1, zeroText:'None reported', note:'Records of invasive plants and forest pests, as a share of all iNaturalist records.', fn:(lv,c)=>invShare(lv,c)},
@@ -1692,8 +1703,9 @@ const Q = [
 for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
 { const p = Q.find(q => q.id === 'phen'); Q.push(Object.assign({}, p, {id:'pest', hue:HUE.pest, title:'Where are forest pests turning up?',
     use:'Where forest pests have been recorded along the trail and in which weeks, from research-grade iNaturalist records: spotted lanternfly, emerald ash borer, hemlock woolly adelgid, elongate hemlock scale, spongy moth, beech leaf disease, and others with 100 or more records, most recorded first. Press Play to watch the year; Year first recorded shows the spread. Records follow hikers, so a blank cell means nothing reported, not absence.'})); }
-{ const p = Q.find(q => q.id === 'phen'); if (p) Q.push(Object.assign({}, p, {id:'pinv', hue:HUE.pinv, title:'Where are priority invasives spreading?',
-    use:'Where the priority invasive plants (APPA priority and early detection species) have been recorded along the trail, from research-grade iNaturalist records, most recorded first. Year first recorded shows the spread: press Play to watch it move along the trail year by year. Records follow hikers, so a blank cell means nothing reported, not absence.'})); }
+/* the spread measures for one priority invasive live inside the invasives question; they open from its Priority invasives measure */
+{ const inv = Q.find(q => q.id === 'inv'), ph = Q.find(q => q.id === 'phen');
+  if (inv && ph) ph.m.filter(m => m.id === 'spread' || m.id === 'wave').forEach(m => inv.m.push(Object.create(m, {pinv:{value:true}}))); }
 { const ord = ['rest','veg','inv','pinv','rec','pest','phen','bird','pri','soil','wet','feat','hist','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
@@ -2188,8 +2200,8 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
     (S.herb ? '<p class="extnote">Cells are marked down by up to 10 points for the share of their A.T. lands in wetland, where herbicide use may be limited.</p>' : '') +
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
       (S.appa ? '<p class="extnote">Only NPS – APPA land counts: scores are scaled by the share of the cell’s corridor land that APPA administers. Cells without APPA land score 0.</p>' : ''));
-  h += `<div class="qbody" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + (['phen', 'pest', 'pinv'].includes(q.id) && !S.m.find ? phBlock() : '') + (q.id === 'hist' && !S.m.find ? histAdmBlock() + histBlock() : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
-    blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.hideFn || !m.hideFn()).map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m}">${esc(m.label)}</button>`).join('') + '</div>') +
+  h += `<div class="qbody" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + (PHQ() && !S.m.find ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' && !S.m.find ? pinvPick() : '') + (q.id === 'hist' && !S.m.find ? histAdmBlock() + histBlock() : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
+    blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') +
     blk('results', 'Results', summary(lv), 'res') + '</div>';
   el.innerHTML = h; phWire(); }
 /* the cells behind the results on show, for the Select all button */
@@ -2755,7 +2767,7 @@ function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerC
 function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'done' ? st.counts[lv].get(c) || 0 : null; }
 /* panel sections follow the order of the questions; each question opens its own sections (survey effort has none of its own) */
 const SECORDER = ['cells','rest','veg','inat','live','phen','ebird','nrpz','soil','wet','feat','hist','lands'];
-const QSEC = {rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:[], land:['lands'], phen:['phen'], pest:['phen'], pinv:['phen']};
+const QSEC = {rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:[], land:['lands'], phen:['phen'], pest:['phen']};
 function finishProfile(html){ $('#pbody').innerHTML = html;
   { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Land administrators':'lands'};
     const secs = [...document.querySelectorAll('#pbody .sec')]; if (secs.length > 1){ const par = secs[0].parentNode, anchor = document.createComment('secs'); par.insertBefore(anchor, secs[0]);
@@ -2908,7 +2920,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
   ab('Historic resources', out.histState === 'loaded' ? `${out.hist.length} National Register properties and OpenStreetMap cemeteries in the selected cells (NPS, OpenStreetMap; cemeteries each as mapped). Scale: ${histAdmText()}. find_a_grave_url is the cemetery's Find a Grave page when its ID is recorded in OpenStreetMap or Wikidata, otherwise a web search of findagrave.com for the name and state. Loaded ${new Date(HIST.at).toLocaleDateString('en-US')}.`
     : 'Not included: not loaded yet. Open “Where are the historic resources?” once, then export.');
   ab('Priority invasives', out.pinvLoaded && out.pinvLoaded.length ? `Priority invasive plants loaded in this browser: ${out.pinvLoaded.join(', ')}. All research-grade iNaturalist records in the project; observations still needing ID are not included; obscured locations left out. Records follow hikers; a cell without records means nothing reported, not absence.`
-    : 'Not included: none loaded yet. Open “Where are priority invasives spreading?” and pick each species to include, then export.');
+    : 'Not included: none loaded yet. Open “What invasive species are turning up?”, choose Priority invasives and pick each species to include, then export.');
   ab('Forest pests', out.pestLoaded && out.pestLoaded.length ? `Pests loaded in this browser: ${out.pestLoaded.join(', ')}. All research-grade iNaturalist records in the project, any life stage; observations still needing ID are not included; obscured locations left out. Records follow hikers; a cell without records means nothing reported, not absence.`
     : 'Not included: no pests loaded yet. Open “Where are forest pests turning up?” and pick each pest to include, then export.');
   ab('Flowering', out.phenLoaded && out.phenLoaded.length ? `Species loaded in this browser: ${out.phenLoaded.join(', ')}. Research-grade iNaturalist records with a flower buds or flowers annotation; obscured locations left out. Dates pool all years: first = earliest 10% of flowering records, peak = median, last = latest 10%; 5 or more records for dates, 8 for season length. Records follow hikers, so they show when people saw it.`
