@@ -129,7 +129,7 @@ def build(sp, project, T):
     base = {'taxon_id': tx}
     if project: base['project_id'] = project
     streams = [[3, T['bd']], [1, T['fl']]] if sp['kind'] == 'plant' else [[4, T['ad']], [5, None]] if sp['kind'] == 'adult' else [[5, None]]
-    pts, top, total = [], {}, None
+    pts, top, total, drop, kept = [], {}, None, {}, {}
     for stage, tv in streams:
         q = dict(base)
         if tv: q.update(term_id=tv[0], term_value_id=tv[1])
@@ -140,11 +140,12 @@ def build(sp, project, T):
             for o in res:
                 ll, d = keep(o), doy(o.get('observed_on') or '')
                 if ll and d: pts.append([d, int(str(o['observed_on'])[:4]), stage, ll[0], ll[1], o['id']])
+                else: drop[str(stage)] = drop.get(str(stage), 0) + 1   # hidden (obscured or private) or missing location or date
             if res: above = res[-1]['id']
             if len(res) < 200: break
-        top[str(stage)] = above
+        top[str(stage)] = above; kept[str(stage)] = len(pts) - n0
         print(f'  stage {stage}: {len(pts) - n0} records kept', flush=True)
-    out = {'at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), 'sci': sp['sci'], 'taxon': tx, 'top': top, 'pts': pts}
+    out = {'at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), 'sci': sp['sci'], 'taxon': tx, 'top': top, 'kept': kept, 'drop': drop, 'pts': pts}
     if sp['pest']:
         if total is None:
             total = get('/v1/observations', dict(base, quality_grade='research', per_page=0)).get('total_results', 0)
@@ -172,7 +173,7 @@ def main():
             print('  FAILED, keeping the previous file:', e, flush=True); failed.append(sp['common']); continue
         with open(os.path.join(OUT, sp['key'] + '.json'), 'w', encoding='utf-8') as f:
             json.dump(out, f, separators=(',', ':'))
-        e = {'at': out['at'], 'n': len(out['pts']), 'top': out['top'], 'taxon': out['taxon']}
+        e = {'at': out['at'], 'n': len(out['pts']), 'top': out['top'], 'taxon': out['taxon'], 'kept': out['kept'], 'drop': out['drop']}
         for k in ('cnt', 'nid'):
             if k in out: e[k] = out[k]
         spx[sp['key']] = e
