@@ -914,6 +914,9 @@ const PHEN = [
     ['Mountain wood-sorrel','Oxalis montana'],['Three-toothed cinquefoil','Sibbaldiopsis tridentata']]],
   ['Southern indicators', [['Flame azalea','Rhododendron calendulaceum'],['Great rhododendron','Rhododendron maximum'],['Crested dwarf iris','Iris cristata'],
     ['Fire pink','Silene virginica'],['Catawba rhododendron','Rhododendron catawbiense']]],
+  ['AMC focal: spring ephemerals', [['Carolina spring-beauty','Claytonia caroliniana'],['Cut-leaved toothwort','Cardamine concatenata'],['Dutchman’s breeches','Dicentra cucullaria'],['Rue anemone','Thalictrum thalictroides'],['Squirrel corn','Dicentra canadensis'],['Two-leaf toothwort','Cardamine diphylla'],['Wild leek','Allium tricoccum']]],
+  ['AMC focal: summer-green', [['Bland sweet cicely','Osmorhiza claytonii'],['Blue cohosh','Caulophyllum thalictroides'],['Canada white violet','Viola canadensis'],['Clasping-leaved twistedstalk','Streptopus amplexifolius'],['Early blue cohosh','Caulophyllum giganteum'],['Eastern waterleaf','Hydrophyllum virginianum'],['Jack-in-the-pulpit','Arisaema triphyllum'],['Lance-leaved twistedstalk','Streptopus lanceolatus'],['Large-flowered bellwort','Uvularia grandiflora'],['Long-styled sweet cicely','Osmorhiza longistylis'],['Pale jewelweed','Impatiens pallida'],['Red baneberry','Actaea rubra'],['Sessile-leaved bellwort','Uvularia sessilifolia'],['Solomon’s plume','Maianthemum racemosum'],['Solomon’s seal','Polygonatum pubescens'],['Two-leaf mitrewort','Mitella diphylla'],['White baneberry','Actaea pachypoda'],['Wild ginger','Asarum canadense'],['Wood nettle','Laportea canadensis']]],
+  ['AMC focal: evergreen', [['Foamflower','Tiarella cordifolia'],['Sharp-lobed hepatica','Hepatica acutiloba']]],
   ['Forest pests', [['Spotted lanternfly','Lycorma delicatula','spread'],['Emerald ash borer','Agrilus planipennis','spread'],['Hemlock woolly adelgid','Adelges tsugae','spread'],
     ['Elongate hemlock scale','Fiorinia externa','spread'],['Spongy moth','Lymantria dispar','spread'],['Beech leaf disease','Litylenchus crenatae','spread'],
     /* shown only once the project has enough records of them (PHPESTMIN) */
@@ -926,7 +929,19 @@ function PHQ(){ return ['phen', 'pest'].includes(S.q.id); }
 const phList = () => PHSP.filter(s => s.pest === (S.q.id === 'pest'));
 /* record counts of the forest pests in the project, looked up once and kept 30 days; the extra candidates show at PHPESTMIN or more */
 const PHPESTMIN = 100, PHCNT = {}; let phCntRun = false;
-function phPestCounts(){ if (phCntRun) return; phCntRun = true; const k = 'atgrid-pestcount-v1:' + (ATiNat.config.project || '');
+/* Pre-built records: build_phenology.py (weekly GitHub Action) writes phen/index.json and phen/<species>.json.
+   A species in the files loads from the site in one request, then only records newer than the file come from iNaturalist.
+   Anything not in the files (or a Refresh) loads live from iNaturalist as before. */
+let PHIDX;
+function phIdx(){ if (PHIDX === undefined) PHIDX = fetch('phen/index.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null)
+    .then(j => j && j.species && j.project === (ATiNat.config.project || '') ? j : null).catch(() => null);
+  return PHIDX; }
+function phCntDone(){ if (S.q.id === 'pest'){ const sp = S.ph.pick ? phSp() : (phListShown()[0] || phSp()); if (sp.key !== S.ph.sp){ S.ph.sp = sp.key; phLoad(sp); } BRK.clear(); redraw(); } }
+function phPestCounts(){ if (phCntRun) return; phCntRun = true;
+  phIdx().then(ix => { const sx = ix && ix.species, ps = PHSP.filter(s => s.pest);
+    if (sx && ps.every(s => sx[s.key] && sx[s.key].cnt != null)){ ps.forEach(s => PHCNT[s.key] = sx[s.key].cnt); phCntDone(); }
+    else phPestCountsLive(); }); }
+function phPestCountsLive(){ const k = 'atgrid-pestcount-v1:' + (ATiNat.config.project || '');
   try { const x = JSON.parse(localStorage.getItem(k)); if (x && Date.now() - x.at < PHKEEP){ Object.assign(PHCNT, x.c); return; } } catch (e) {}
   (async () => { for (const sp of PHSP.filter(s => s.pest)){ try { const t = await prioTaxon({sci:sp.sci});
         const r = await fetch('https://api.inaturalist.org/v1/observations?' + (ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : '') + 'quality_grade=research&per_page=0&taxon_id=' + t);
@@ -972,12 +987,27 @@ async function phPage(params){ const q = (ATiNat.config.project ? 'project_id=' 
   if (PRIO_V2){ try { const r = await fetch('https://api.inaturalist.org/v2/observations?' + q + '&fields=' + encodeURIComponent(PHFIELDS)); if (!r.ok) throw 0;
       const j = await r.json(); if ((j.results || []).some(o => (!o.geojson && !o.obscured) || !('observed_on' in o))) throw 0; return j; } catch (e){ PRIO_V2 = false; } }
   const r = await fetch('https://api.inaturalist.org/v1/observations?' + q); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }
-function phLoad(sp){ let st = PHD[sp.key]; if (st && (st.st === 'done' || st.st === 'loading')) return;
+const phStreams = (sp, T) => sp.kind === 'plant' ? [[3, T.bd], [1, T.fl]] : sp.kind === 'adult' ? [[4, T.ad], [5, null]] : [[5, null]];
+function phDone(sp, st){ st.st = 'done'; st.at = st.at || Date.now(); for (const k in PHAGG) if (k.startsWith(sp.key + '|')) delete PHAGG[k];
+  if (PHQ() && phSp() === sp){ BRK.clear(); redraw(); } }
+/* the pre-built file, then any newer records from iNaturalist; false when the species is not pre-built */
+async function phBuilt(sp, st){ const ix = await phIdx(), e = ix && ix.species[sp.key]; if (!e) return false;
+  const r = await fetch('phen/' + sp.key + '.json', {cache:'no-cache'}); if (!r.ok) return false; const j = await r.json(); if (!Array.isArray(j.pts)) return false;
+  st.pts = j.pts.slice(); st.n = st.pts.length; st.taxon = j.taxon; st.nid = j.nid; st.built = j.at; st.added = 0; st.at = Date.now(); phStatusOnly();
+  try { const T = await phTerms(), tally = {obscured:0};
+    for (const [stage, tv] of phStreams(sp, T)){ let above = (j.top || {})[stage] || 0; if (!above) continue;
+      for (let page = 0; page < 50; page++){ const jj = await phPage(`taxon_id=${j.taxon}` + (tv ? `&term_id=${tv[0]}&term_value_id=${tv[1]}` : '') + `&id_above=${above}`), res = jj.results || [];
+        res.forEach(o => { const p = prioKeep(o, tally), d = doyOf(o.observed_on || ''); if (p && d){ st.pts.push([d, +String(o.observed_on).slice(0, 4), stage, p[0], p[1], o.id]); st.added++; } });
+        st.n = st.pts.length; if (res.length) above = res[res.length - 1].id; if (res.length < 200) break; } } }
+  catch (err){ st.topErr = true; }
+  phDone(sp, st); return true; }
+function phLoad(sp, live){ let st = PHD[sp.key]; if (st && (st.st === 'done' || st.st === 'loading')) return;
+  if (!live){ st = PHD[sp.key] = {st:'loading', pts:[], n:0};
+    phBuilt(sp, st).then(ok => { if (ok) return; delete PHD[sp.key]; phLoad(sp, true); }).catch(() => { delete PHD[sp.key]; phLoad(sp, true); }); return; }
   try { const x = JSON.parse(localStorage.getItem(phKey(sp))); if (x && Array.isArray(x.pts) && Date.now() - x.at < PHKEEP){ PHD[sp.key] = {st:'done', pts:x.pts, n:x.pts.length, at:x.at, taxon:x.taxon, nid:x.nid}; return; } } catch (e) {}
   st = PHD[sp.key] = {st:'loading', pts:[], n:0};
   (async () => { const T = await phTerms(), taxon = await prioTaxon({sci:sp.sci}), tally = {obscured:0};
-    const streams = sp.kind === 'plant' ? [[3, T.bd], [1, T.fl]] : sp.kind === 'adult' ? [[4, T.ad], [5, null]] : [[5, null]];
-    for (const [stage, tv] of streams){ let above = 0;
+    for (const [stage, tv] of phStreams(sp, T)){ let above = 0;
       for (let page = 0; page < 100; page++){ const j = await phPage(`taxon_id=${taxon}` + (tv ? `&term_id=${tv[0]}&term_value_id=${tv[1]}` : '') + `&id_above=${above}`), res = j.results || [];
         res.forEach(o => { const p = prioKeep(o, tally), d = doyOf(o.observed_on || ''); if (p && d) st.pts.push([d, +String(o.observed_on).slice(0, 4), stage, p[0], p[1], o.id]); });
         st.n = st.pts.length; if (res.length) above = res[res.length - 1].id; phStatusOnly(); if (res.length < 200) break; } }
@@ -988,7 +1018,7 @@ function phLoad(sp){ let st = PHD[sp.key]; if (st && (st.st === 'done' || st.st 
     for (const k in PHAGG) if (k.startsWith(sp.key + '|')) delete PHAGG[k];
     if (PHQ() && phSp() === sp){ BRK.clear(); redraw(); } })()
   .catch(e => { st.st = 'error'; st.msg = e.message; if (PHQ()) side(); }); }
-function phRefresh(){ const sp = phSp(); try { localStorage.removeItem(phKey(sp)); } catch (e) {} delete PHD[sp.key]; for (const k in PHAGG) if (k.startsWith(sp.key + '|')) delete PHAGG[k]; phLoad(sp); side(); }
+function phRefresh(){ const sp = phSp(); try { localStorage.removeItem(phKey(sp)); } catch (e) {} delete PHD[sp.key]; for (const k in PHAGG) if (k.startsWith(sp.key + '|')) delete PHAGG[k]; phLoad(sp, true); side(); }
 /* which cell of a size each record falls in (nearest few cell centers, tested against the outline) */
 const PHBK = new WeakMap();
 function phCell(lv, la, lo){ const L_ = D.levels[lv]; let B = PHBK.get(L_);
@@ -1112,7 +1142,7 @@ function phStatus(){ const sp = phSp(), st = PHD[sp.key];
   const A = phAgg(dispLevel()), n = s => fmt(st.pts.reduce((t, p) => t + (p[2] === s ? 1 : 0), 0), 0);
   const what = sp.kind === 'plant' ? `${n(3)} in bud and ${n(1)} flowering research-grade records` : sp.kind === 'adult' ? `${n(5)} research-grade records, ${n(4)} of them marked adult` : `${n(5)} research-grade records`;
   const nid = st.nid ? ` <a href="https://www.inaturalist.org/observations?${ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : ''}taxon_id=${st.taxon}&quality_grade=needs_id" target="_blank" rel="noopener">${fmt(st.nid, 0)} more ${st.nid === 1 ? 'observation needs' : 'observations need'} ID</a> and ${st.nid === 1 ? 'is' : 'are'} not mapped.` : '';
-  return `${what}; ${fmt(A ? A.placed : 0, 0)} fall in ${S.ext === 'huc' ? 'watershed' : 'corridor'} cells.${nid} Loaded ${new Date(st.at).toLocaleDateString('en-US')}. <button type="button" data-phref="1">Refresh</button>`; }
+  return `${what}; ${fmt(A ? A.placed : 0, 0)} fall in ${S.ext === 'huc' ? 'watershed' : 'corridor'} cells.${nid} ${st.built ? `From the weekly download of ${new Date(st.built).toLocaleDateString('en-US')}${st.added ? `, plus ${fmt(st.added, 0)} newer ${st.added === 1 ? 'record' : 'records'} from iNaturalist` : ''}${st.topErr ? ' (iNaturalist could not be reached for newer records)' : ''}.` : `Loaded from iNaturalist ${new Date(st.at).toLocaleDateString('en-US')}.`} <button type="button" data-phref="1">Refresh</button>`; }
 function phStatusOnly(){ const e = $('#phstat'); if (e) e.innerHTML = phStatus(); }
 /* a measure that does not apply to the species picked gives way to the first one that does */
 function phFixM(){ if (!PHQ() || S.m.find || !S.m.hideFn || !S.m.hideFn()) return; S.m = S.q.m.find(m => m.id === 'wave'); }
@@ -1657,7 +1687,7 @@ function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   if (h.get('herb') === '1') S.herb = true;
   if (h.get('lands') === 'appa') S.appa = true;
   if (['adm', 'huc'].includes(h.get('hadm'))) S.hadm = h.get('hadm');
-  if (h.get('sp') && PHSP.some(s => s.key === h.get('sp'))) S.ph.sp = h.get('sp');
+  if (h.get('sp') && PHSP.some(s => s.key === h.get('sp'))){ S.ph.sp = h.get('sp'); S.ph.pick = true; }
   if (+h.get('wk') >= 1 && +h.get('wk') <= 52) S.ph.wk = +h.get('wk');
   if (h.get('yr')){ const ys = h.get('yr').split(',').map(Number).filter(v => v >= 2010 && v <= 2100); S.ph.sel = ys; if (ys.length === 1) S.ph.yr = ys[0]; }
   if (h.get('cell')){ for (const lv of ['hex','cog','wheel']) if (IDX[lv].has(h.get('cell'))){ S.cell = IDX[lv].get(h.get('cell')); S.cellLv = lv; }
@@ -2632,7 +2662,8 @@ const PRIORITY = [
 /* the iNaturalist taxon for a scientific name; an exact name match only, so a near miss never loads the wrong species */
 async function prioTaxon(p){ if (p.taxon) return p.taxon;
   const r = await fetch('https://api.inaturalist.org/v1/taxa?per_page=30&q=' + encodeURIComponent(p.sci)); if (!r.ok) throw new Error('HTTP ' + r.status);
-  const t = ((await r.json()).results || []).find(x => (x.name || '').toLowerCase() === p.sci.toLowerCase());
+  const rs = (await r.json()).results || [], nm = p.sci.toLowerCase();
+  const t = rs.find(x => (x.name || '').toLowerCase() === nm) || rs.find(x => (x.matched_term || '').toLowerCase() === nm);  /* exact name, else a synonym iNaturalist matched */
   if (!t) throw new Error('No iNaturalist taxon named ' + p.sci); return p.taxon = t.id; }
 const PRIO = {};   // full loads, by scientific name in lower case: {st:'loading'|'done'|'error', n, total, obscured, placed, counts:{hex,cog,wheel: Map cell -> records}, pts}
 const prioState = p => PRIO[p.sci.toLowerCase()];
