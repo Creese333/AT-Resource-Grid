@@ -1138,49 +1138,57 @@ function phCalendar(){ const sp = phSp(), A = phAgg('wheel'); if (!A || sp.kind 
   return g + key; }
 /* Earlier or later than usual, by year: each record's days from its cell's usual date; a year's value is the median of those
    (10 or more records), with a centered 3-year average; plus 2021–25 against 2016–20 (20 or more records in each) */
-function phTrend(){ const A = phAgg('wheel'), R = phResid(); if (!A || !R || A.years.length < 2) return ''; const rng = secRange();
-  const rs = R.filter(r => !rng || (r[3] >= rng[0] && r[3] <= rng[1])), by = new Map(); let ys = A.years;
-  rs.forEach(r => { if (!by.has(r[0])) by.set(r[0], []); by.get(r[0]).push(r[1]); });
-  let ann = ys.map(y => { const a = by.get(y) || []; return {y, v:a.length >= 10 ? phMed(a) : null, k:a.length}; });
-  let sm = ann.map((p, i) => { const w = ann.slice(Math.max(0, i - 1), i + 2).filter(q => q.v != null); return {y:p.y, v:w.length >= 2 ? w.reduce((t, q) => t + q.v, 0) / w.length : null}; });
-  const early = rs.filter(r => r[0] >= 2016 && r[0] <= 2020).map(r => r[1]), late = rs.filter(r => r[0] >= 2021 && r[0] <= 2025).map(r => r[1]);
-  /* where the compared records come from: main-stage records in corridor cells, then 2016-2025, then cells with a usual date */
-  let nAll = 0, nYrs = 0; for (const [c, L] of A.d[phMain()]){ const mi = D.levels.wheel.mi[c]; if (rng && (mi < rng[0] || mi > rng[1])) continue; nAll += L.length; nYrs += L.filter(p => p[1] >= 2016 && p[1] <= 2025).length; }
-  const word = phNoun() === 'adult' ? 'adult' : 'flowering';
-  const flow = `<p class="phflow">${fmt(nAll, 0)} ${word} records in ${S.ext === 'huc' ? 'watershed' : 'corridor'} cells → ${fmt(nYrs, 0)} from 2016–2025 → ${fmt(early.length + late.length, 0)} in cells with enough records (5+) to set a usual date: ${fmt(early.length, 0)} in 2016–20 and ${fmt(late.length, 0)} in 2021–25.</p>`;
-  const cmp = early.length >= 20 && late.length >= 20 ? Math.round(phMed(late) - phMed(early)) : null;
-  /* likely range (95%): the cells are resampled with replacement 400 times and the comparison redone. Records from one cell move together
-     (same observers, same spots), so whole cells are resampled, not single records. Seeded, so the range is the same on every visit. */
-  let ci = null;
-  if (cmp != null){ const cel = new Map(); rs.forEach(r => { if (r[0] < 2016 || r[0] > 2025) return; let e = cel.get(r[2]); if (!e) cel.set(r[2], e = [[], []]); e[r[0] <= 2020 ? 0 : 1].push(r[1]); });
-    const C = [...cel.values()], n = C.length; let s = 20261018; const rnd = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296, out = [];
-    for (let k = 0; k < 400; k++){ const a = [], b = []; for (let i = 0; i < n; i++){ const e = C[Math.floor(rnd() * n)]; for (const v of e[0]) a.push(v); for (const v of e[1]) b.push(v); }
-      if (a.length >= 5 && b.length >= 5) out.push(phMed(b) - phMed(a)); }
-    if (out.length >= 100){ out.sort((p, q) => p - q); ci = [Math.round(out[Math.floor(out.length * .025)]), Math.round(out[Math.ceil(out.length * .975) - 1])]; } }
-  const sg = v => v > 0 ? '+' + v : v < 0 ? '−' + (-v) : '0', ciTxt = !ci ? '' : `range ${sg(ci[0])} to ${sg(ci[1])} days${ci[0] <= 0 && ci[1] >= 0 ? ', uncertain' : ''}; `;
-  let head = cmp == null ? `<p class="phbig">2021–25 against 2016–20: too few records to compare (${early.length} and ${late.length}; 20 or more each).</p>`
-    : `<p class="phbig">${esc(phSp().common)} is ${phNoun() === 'adult' ? 'out as adults' : 'flowering'} <b>${cmp === 0 ? 'at about the same time' : 'approximately ' + phDays(cmp)}</b> in 2021–25 compared with 2016–20${S.sec === 'all' ? '' : ' in ' + esc(secName())} <span>(${fmt(late.length, 0)} and ${fmt(early.length, 0)} records)</span>.</p>`;
-  head += flow;
-  if (ann.filter(p => p.v != null).length < 2) return head + '<p class="phstat">Not enough records to chart single years here: a year needs 10 or more records in cells with a usual date.</p>';
-  /* the chart runs from the first to the last year with enough records here, so each species and section shows its own record span */
-  { const ok = ann.filter(p => p.v != null).map(p => p.y), y0 = ok[0], y1 = ok[ok.length - 1], inR = p => p.y >= y0 && p.y <= y1;
-    ys = ys.filter(y => y >= y0 && y <= y1); ann = ann.filter(inR); sm = sm.filter(inR); }
-  let mx = 6; ann.forEach(p => { if (p.v != null) mx = Math.max(mx, Math.abs(p.v)); }); mx = Math.min(42, Math.ceil(mx / 6) * 6);   /* a multiple of 6, so the ticks fall on whole days */
-  const W = 320, H = 140, pl = 26, pr = 6, pt = 14, pb = 18, pw = W - pl - pr, ph = H - pt - pb, step = pw / Math.max(1, ys.length - 1);
-  const X = y => pl + step * (y - ys[0]), Y = v => pt + ph / 2 - (ph / 2) * Math.max(-mx, Math.min(mx, v)) / mx, f = v => v.toFixed(1), sel = S.m.yr ? phYear() : 0, col = phSp().kind === 'adult' ? '#F08A5D' : '#F2C200';
-  let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Days earlier or later than usual by year">`;
+/* Earlier or later than usual: a trend across every year, in days per decade.
+   Each record is measured against its own 49 sq mi cell's usual date in 2016–20 (the median of the main stage, cells with 5 or more
+   records in those years), so 0 is a fixed reference and years with more northern or higher records do not look late.
+   Each year is the median of its records; years with 10+ records are drawn, those under 20 hollow. The trend is a straight line fitted
+   to the years with 20+ records (weighted by the square root of their records); 5 such years are needed. The shaded band and each
+   year's bar come from resampling whole cells (records from one cell move together), seeded so they are the same on every visit. */
+function phTrend(){ const A = phAgg('wheel'); if (!A || A.years.length < 2) return ''; const rng = secRange(), L_ = D.levels.wheel, ms = phMain();
+  const word = phNoun() === 'adult' ? 'adult' : 'flowering', ext = S.ext === 'huc' ? 'watershed' : 'corridor';
+  /* records by cell, with the cell's usual date in 2016-20 */
+  const cells = []; let nAll = 0;
+  for (const [c, L] of A.d[ms]){ const mi = L_.mi[c]; if (rng && (mi < rng[0] || mi > rng[1])) continue; nAll += L.length;
+    const b = L.filter(p => p[1] >= 2016 && p[1] <= 2020).map(p => p[0]); if (b.length < PHMIN) continue; const m = phMed(b);
+    cells.push(L.map(p => [p[1], p[0] - m])); }
+  const nUse = cells.reduce((t, L) => t + L.length, 0);
+  const flow = `<p class="phflow">${fmt(nAll, 0)} ${word} records in ${ext} cells → ${fmt(nUse, 0)} in ${cells.length} ${cells.length === 1 ? 'cell' : 'cells'} with a usual date for 2016–20 (5+ records then).</p>`;
+  const yearly = cs => { const by = new Map(); cs.forEach(L => L.forEach(([y, v]) => { let a = by.get(y); if (!a) by.set(y, a = []); a.push(v); })); return by; };
+  const fit = by => { const P = []; by.forEach((a, y) => { if (a.length >= 20) P.push([y, phMed(a), Math.sqrt(a.length)]); }); if (P.length < 5) return null;
+    let sw = 0, sx = 0, sy = 0; P.forEach(([x, y, w]) => { sw += w; sx += w * x; sy += w * y; }); const mx_ = sx / sw, my = sy / sw; let num = 0, den = 0;
+    P.forEach(([x, y, w]) => { num += w * (x - mx_) * (y - my); den += w * (x - mx_) * (x - mx_); }); if (!den) return null; const b = num / den; return [b, my - b * mx_]; };
+  const by = yearly(cells), main = fit(by);
+  const ann = [...by].map(([y, a]) => ({y, k:a.length, v:a.length >= 10 ? phMed(a) : null})).filter(p => p.v != null).sort((p, q) => p.y - q.y);
+  if (!main) return `<p class="phbig">Too few years to show a trend here: it needs 5 or more years with 20+ ${word} records in cells with a usual date for 2016–20.</p>` + flow;
+  /* resampling whole cells */
+  let s = 20261018; const rnd = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296, n = cells.length, fits = [], yb = new Map();
+  for (let k = 0; k < 300; k++){ const pick = []; for (let i = 0; i < n; i++) pick.push(cells[Math.floor(rnd() * n)]); const bb = yearly(pick), f = fit(bb); if (f) fits.push(f);
+    bb.forEach((a, y) => { if (a.length >= 10){ let t = yb.get(y); if (!t) yb.set(y, t = []); t.push(phMed(a)); } }); }
+  const pct = (a, q) => { const b = a.slice().sort((p, r) => p - r); return b[Math.min(b.length - 1, Math.max(0, Math.round(q * (b.length - 1))))]; };
+  const dec = Math.round(main[0] * 10), y0 = ann[0].y, y1 = ann[ann.length - 1].y;
+  const lab = phNoun() === 'adult' ? 'out as adults' : 'flowering';
+  let head = `<p class="phbig">${esc(phSp().common)} is ${lab} <b>${dec === 0 ? 'at about the same time' : 'approximately ' + Math.abs(dec) + (Math.abs(dec) === 1 ? ' day ' : ' days ') + (dec < 0 ? 'earlier' : 'later') + ' per decade'}</b>${S.sec === 'all' ? '' : ' in ' + esc(secName())} <span>(${y0}–${y1}, ${fmt(nUse, 0)} records)</span>.</p>` + flow;
+  /* chart */
+  const ys = []; for (let y = y0; y <= y1; y++) ys.push(y);
+  const line = x => main[0] * x + main[1], band = ys.map(x => { const v = fits.map(f => f[0] * x + f[1]); return [x, pct(v, .025), pct(v, .975)]; });
+  let mx = 6; ann.forEach(p => { mx = Math.max(mx, Math.abs(p.v)); const t = yb.get(p.y); if (t) mx = Math.max(mx, Math.abs(pct(t, .025)), Math.abs(pct(t, .975))); });
+  band.forEach(b => { mx = Math.max(mx, Math.abs(b[1]), Math.abs(b[2])); }); mx = Math.min(42, Math.ceil(mx / 6) * 6);
+  const W = 320, H = 150, pl = 26, pr = 8, pt = 14, pb = 18, pw = W - pl - pr, ph = H - pt - pb, step = pw / Math.max(1, ys.length - 1);
+  const X = y => pl + step * (y - y0), Y = v => pt + ph / 2 - (ph / 2) * Math.max(-mx, Math.min(mx, v)) / mx, f = v => v.toFixed(1), sel = S.m.yr ? phYear() : 0, col = phSp().kind === 'adult' ? '#F08A5D' : '#F2C200';
+  const kmax = Math.max(...ann.map(p => p.k));
+  let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Days earlier or later than 2016–20 by year, with the trend">`;
   if (sel && ys.includes(sel)) g += `<rect x="${f(X(sel) - step / 2)}" y="${pt}" width="${f(step)}" height="${ph}" fill="#fff" opacity=".1"/>`;
   [mx, mx / 2, -mx / 2, -mx].forEach(v => { g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${v > 0 ? '+' : '−'}${Math.abs(Math.round(v))}</text>`; });
   g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(0))}" y2="${f(Y(0))}" stroke="#E3EAF2" stroke-dasharray="3 3" stroke-width=".8"/><text x="${pl - 3}" y="${f(Y(0) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">0</text>`;
-  g += `<text x="${pl + 3}" y="${pt - 4}" font-size="9" fill="#A8B8CA">▲ Later</text><text x="${pl + 3}" y="${pt + ph - 3}" font-size="9" fill="#A8B8CA">▼ Earlier</text>`;
-  const path = pts => { let d = '', pen = false; pts.forEach(p => { if (p.v == null){ pen = false; return; } d += (pen ? 'L' : 'M') + f(X(p.y)) + ' ' + f(Y(p.v)); pen = true; }); return d; };
-  g += `<path d="${path(ann)}" fill="none" stroke="${col}" stroke-width="1.1" opacity=".75"/>`;
-  ann.forEach(p => { if (p.v != null) g += `<circle cx="${f(X(p.y))}" cy="${f(Y(p.v))}" r="2" fill="${col}"/>`; });
-  g += `<path d="${path(sm)}" fill="none" stroke="${col}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>`;
-  const every = ys.length > 12 ? 2 : 1;
-  ys.forEach((y, i) => { const p = ann[i]; if (i % every === 0 || i === ys.length - 1) g += `<text x="${f(X(y))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${y === sel ? '#FFE014' : '#A8B8CA'}"${y === sel ? ' font-weight="700"' : ''}>’${String(y).slice(2)}</text>`;
-    g += `<rect data-phy="${y}" x="${f(X(y) - step / 2)}" y="${pt}" width="${f(step)}" height="${ph + pb}" fill="transparent" style="cursor:pointer"><title>${y}: ${p.v == null ? `too few records (${p.k})` : phDays(Math.round(p.v)) + ` than usual (${p.k} records)`}</title></rect>`; });
-  return head + g + `</svg><div class="phkey"><span><i style="background:${col}"></i>median days from the usual date</span><span class="thin">thin: each year · thick: 3-year average</span></div>`; }
+  g += `<text x="${pl + 3}" y="${pt - 4}" font-size="9" fill="#A8B8CA">▲ Later than 2016–20</text><text x="${pl + 3}" y="${pt + ph - 3}" font-size="9" fill="#A8B8CA">▼ Earlier</text>`;
+  if (fits.length >= 50) g += `<polygon points="${band.map(b => f(X(b[0])) + ',' + f(Y(b[2]))).join(' ')} ${band.slice().reverse().map(b => f(X(b[0])) + ',' + f(Y(b[1]))).join(' ')}" fill="${col}" opacity=".18"/>`;
+  g += `<line x1="${f(X(y0))}" y1="${f(Y(line(y0)))}" x2="${f(X(y1))}" y2="${f(Y(line(y1)))}" stroke="${col}" stroke-width="2.6" stroke-linecap="round"/>`;
+  ann.forEach(p => { const t = yb.get(p.y); if (t && t.length >= 50) g += `<line x1="${f(X(p.y))}" x2="${f(X(p.y))}" y1="${f(Y(pct(t, .975)))}" y2="${f(Y(pct(t, .025)))}" stroke="${col}" stroke-width="1" opacity=".7"/>`;
+    const r = 1.8 + 3.6 * Math.sqrt(p.k / kmax); g += `<circle cx="${f(X(p.y))}" cy="${f(Y(p.v))}" r="${f(r)}" fill="${p.k >= 20 ? col : '#142235'}" stroke="${col}" stroke-width="1.2"/>`; });
+  const byY = new Map(ann.map(p => [p.y, p])), every = ys.length > 12 ? 2 : 1;
+  ys.forEach((y, i) => { const p = byY.get(y); if (i % every === 0 || i === ys.length - 1) g += `<text x="${f(X(y))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${y === sel ? '#FFE014' : '#A8B8CA'}"${y === sel ? ' font-weight="700"' : ''}>’${String(y).slice(2)}</text>`;
+    g += `<rect data-phy="${y}" x="${f(X(y) - step / 2)}" y="${pt}" width="${f(step)}" height="${ph + pb}" fill="transparent" style="cursor:pointer"><title>${y}: ${!p ? 'too few records' : phDays(Math.round(p.v)) + ` than 2016–20 (${p.k} records)`}</title></rect>`; });
+  return head + g + `</svg><div class="phkey"><span><i style="background:${col}"></i>trend, likely range shaded</span><span class="thin">dots: each year, sized by records (hollow under 20) · bars: each year’s likely range</span></div>`; }
 function phSpreadSvg(lv, cells){ const A = phAgg(lv); if (!A || !A.years.length) return ''; const ys = A.years, nw = new Map();
   for (const c of cells){ let y = A.first[c]; if (y == null) continue; if (y < ys[0]) y = ys[0]; nw.set(y, (nw.get(y) || 0) + 1); }
   let cum = 0; const rows = ys.map(y => ({y, n:nw.get(y) || 0, t:(cum += nw.get(y) || 0)}));
@@ -1201,7 +1209,7 @@ function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) retu
     h += `<h4 class="phh">When it is ${sp.kind === 'plant' ? 'in flower' : 'out as adults'} along the trail</h4>` + phCalendar() +
       `<details class="phabout" data-phab="cal"${S.ph.ab && S.ph.ab.cal ? ' open' : ''}><summary>About this graph</summary><p class="phnote">${sp.kind === 'plant' ? 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks. Brighter boxes: more flowering records that week, against the stretch’s busiest week, so each stretch shows its season start, peak and end, and the peak moves north.' : 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks.'} Click a week to map it.</p></details>`;
     h += `<h4 class="phh">Is ${noun === 'adult' ? 'adult season' : 'flowering'} earlier or later than usual?</h4>` + phTrend() +
-      `<details class="phabout" data-phab="trend"${S.ph.ab && S.ph.ab.trend ? ' open' : ''}><summary>About this graph</summary><p class="phnote">Each record is measured against its own 49 sq mi cell’s usual ${noun} date (cells with 5 or more records), so years with more northern or higher records do not look late. Records are thin; read the 3-year line and the period comparison, not single years. Click a year to map it.</p></details>`; }
+      `<details class="phabout" data-phab="trend"${S.ph.ab && S.ph.ab.trend ? ' open' : ''}><summary>About this graph</summary><p class="phnote">Each record is measured against its own 49 sq mi cell’s usual ${noun} date in 2016–20 (cells with 5 or more records in those years), so 0 is a fixed reference and years with more northern or higher records do not look late. Dots are each year’s median, sized by records; hollow dots have under 20 records. The line is the trend across years with 20 or more records (5 such years needed), given in days per decade. The shaded band and the bars show the likely range from resampling the cells; a wide band means the direction is not settled. Records follow hikers and have grown fast since 2020, so treat this as a lead for field checks, not a measured trend. Click a year to map it.</p></details>`; }
   if (sp.kind !== 'plant'){ const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
     h += `<h4 class="phh">Spread: cells with records by year, ${esc(where)}</h4>` + phSpreadSvg(lv, cells) +
       `<p class="phnote">${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} cells. Records follow hikers and observers, so a first record marks when it was noticed here, not when it arrived. Click a year to map it.</p>`; }
