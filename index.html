@@ -73,6 +73,8 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .secpick select:focus-visible{outline:3px solid #9CC3E6;outline-offset:1px}
 /* question cards, tinted with each question's color like the profile sections; the selected one is stronger (plain values are for browsers without color-mix) */
 .qbody.hasviz>.blk.res,.qbody.hasviz>.blk.res>.blkbody,.qbody.hasviz>.blk.res>.blkbody>.rank{flex:none !important;min-height:auto !important}.qbody.hasviz .rank ol.scroll{flex:none !important;max-height:300px !important;overflow-y:auto}
+.tag.maplink{cursor:pointer;border:1px solid #6FA8DC;color:#BFE0FF;background:none;font:inherit;font-size:11.5px}.tag.maplink[aria-current=true]{background:#D9661A;border-color:#D9661A;color:#fff}
+.linkbtn{background:none;border:0;padding:0;font:inherit;color:#9FD0FF;text-decoration:underline;cursor:pointer;text-align:left}.linkbtn[aria-current=true]{color:#fff;font-weight:600;text-decoration:none}
 .qsblk{border-bottom:1px solid var(--line)}.qs[hidden]{display:none}.qsblk>h2{padding:4px 12px 0 14px}.qsblk>h2 .blktog{font-size:15px}
 .qs{padding:8px 12px 9px 14px;display:flex;flex-direction:column;gap:5px}
 .qs button{display:block;width:100%;text-align:left;padding:5px 10px 6px;border-radius:6px;font-family:var(--cond);font-size:15.5px;font-weight:500;line-height:1.35;color:#E3EAF2;
@@ -1329,7 +1331,23 @@ function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) retu
       `<p class="phnote">Records follow hikers and observers, so a first record marks when it was noticed here, not when it arrived.</p>`; }
   return h; }
 /* the cell panel: records by week by stage, and the cell's season */
-function phSection(lv, c){ const sp = phSp(), A = phAgg(lv), k = sp.kind;
+/* the popup's Priority invasives section: every priority invasive plant the quarterly summary has in the cell(s), by tier,
+   each opening its spread map; then the species on show in detail */
+function phSection(lv, c){ const sp = phSp(); if (sp.set === 'pinv') return ''; return phSectionCore(lv, c); }
+function phSectionOld(lv, c){ const core = phSectionCore(lv, c), sp = phSp(); if (sp.set !== 'pinv') return core;
+  const cs = Array.isArray(c) ? c : [c], pest = new Set(cs.flatMap(x => val('inat', 'PEST_LIST', lv, x) || [])), seen = new Map();
+  cs.forEach(x => (val('inat', 'EDRR_LIST', lv, x) || []).forEach(i => { if (!pest.has(i)) seen.set(i, (seen.get(i) || 0) + 1); }));
+  const items = [...seen].map(([i, n]) => { const nm = sppName(i), s = pinvSp(nm.sci); return {i, n, nm, s, tier:s ? (s.group === PINVG.EDRR ? 'EDRR' : 'Priority') : 'Priority'}; })
+    .sort((a, b) => (a.tier === b.tier ? 0 : a.tier === 'EDRR' ? -1 : 1) || (a.nm.common || a.nm.sci).localeCompare(b.nm.common || b.nm.sci));
+  const many = cs.length > 1, row = x => `<li>${x.s ? `<button type="button" class="linkbtn" data-pinvsp="${x.s.key}"${x.s.key === sp.key ? ' aria-current="true"' : ''}>${esc(x.nm.common || x.nm.sci)}</button>` : esc(x.nm.common || x.nm.sci)} <em>${esc(x.nm.sci)}</em>${many ? `<span class="tag">${nCells(x.n)}</span>` : ''}</li>`;
+  let L = `<p style="margin:0 0 4px">${items.length ? `${items.length} priority invasive ${items.length === 1 ? 'plant' : 'plants'} recorded ${many ? 'in the selected cells' : 'here'} (quarterly summary). Pick one to map its spread:` : `No priority invasive plants recorded ${many ? 'in the selected cells' : 'here'} in the quarterly summary.`}</p>`;
+  for (const [t, lab] of [['EDRR', 'Early detection (EDRR)'], ['Priority', 'Established priority']]){ const g = items.filter(x => x.tier === t); if (g.length) L += `<p class="phsub" style="margin:6px 0 2px;font-weight:600">${lab}</p><ul class="spp">${g.map(row).join('')}</ul>`; }
+  L += `<p style="margin:10px 0 4px;font-weight:600">On the map: ${esc(sp.common)}</p>`;
+  return core.replace(/(<h3>[^<]*<\/h3>)<p style="margin:0 0 6px"><b>[^<]*<\/b> <i[^>]*>[^<]*<\/i><\/p>/, '$1' + L); }
+document.addEventListener('click', e => { const b = e.target.closest('[data-pinvsp]'); if (!b) return; const q = Q.find(x => x.id === 'inv'); if (!q) return;
+  phPlay(false); S.q = q; S.m = q.m.find(x => x.pinv && x.id === 'spread') || S.m; S.ph.q = 'pinv'; S.ph.sp = b.dataset.pinvsp; S.ph.pick = true; S.ph.yr = 0; S.ph.sel = [];
+  phLoad(phSp()); BRK.clear(); redraw(); if (S.cell != null || S.box) profile(); });
+function phSectionCore(lv, c){ const sp = phSp(), A = phAgg(lv), k = sp.kind;
   /* outside the flowering question the records are not fetched just for the panel; the section says how to see them */
   if (!A && !PHQ()) return `<div class="sec" style="--hue:${HUE.phen}"><h3>Flowering</h3><p class="none">Open “When does it flower here?” or “Where are forest pests turning up?” and pick a species to load its records; this section then shows them for any cell.</p></div>`;
   let b = `<div class="sec" style="--hue:${sp.set === 'pinv' ? HUE.pinv : sp.pest ? HUE.pest : HUE.phen}"><h3>${sp.set === 'pinv' ? 'Priority invasives' : sp.pest ? 'Forest pests' : 'Flowering'}</h3><p style="margin:0 0 6px"><b>${esc(sp.common)}</b> <i style="color:var(--muted)">${esc(sp.sci)}</i></p>`;
@@ -2488,10 +2506,33 @@ function sppName(i){ if (SPPN[i]) return SPPN[i]; const s = D.spp[i], m = s.matc
 let SPPBOX = null;
 const setSppBox = rings => { const ll = rings.flat(); SPPBOX = ll.length ? [Math.min(...ll.map(p => p[0])), Math.min(...ll.map(p => p[1])), Math.max(...ll.map(p => p[0])), Math.max(...ll.map(p => p[1]))] : null; };
 const inatObsUrl = sci => SPPBOX ? `https://www.inaturalist.org/observations?taxon_name=${encodeURIComponent(sci)}&swlat=${SPPBOX[0].toFixed(4)}&swlng=${SPPBOX[1].toFixed(4)}&nelat=${SPPBOX[2].toFixed(4)}&nelng=${SPPBOX[3].toFixed(4)}&quality_grade=research` : '';
+/* tier of a priority invasive plant (EDRR or established priority), from the dashboard's list, which follows invasive_lookup.csv */
+let PINVIX = null, PINVIXN = -1;
+function pinvSp(sci){ const n = PHSP.length; if (!PINVIX || PINVIXN !== n){ PINVIX = new Map(); PINVIXN = n;
+    PHSP.filter(s => s.set === 'pinv').forEach(s => { const k = s.sci.toLowerCase().replace('×', 'x'); PINVIX.set(k, s); PINVIX.set(k.split(' ').slice(0, 2).join(' '), s); }); }
+  const k = (sci || '').toLowerCase().replace('×', 'x'), alias = {'mahonia bealei':'berberis bealei', 'humulus japonicus':'humulus scandens', 'photinia villosa':'pourthiaea villosa', 'fallopia japonica':'reynoutria japonica', 'fallopia sachalinensis':'reynoutria sachalinensis'};
+  return PINVIX.get(k) || PINVIX.get(k.split(' ').slice(0, 2).join(' ')) || PINVIX.get(alias[k.split(' ').slice(0, 2).join(' ')] || '') || null; }
+const pinvTier = sci => { const s = pinvSp(sci); return s ? (s.group === PINVG.EDRR ? 'EDRR' : 'Priority') : null; };
+/* invasive plants for a cell or a selection, grouped: early detection (EDRR), established priority, other invasive plants.
+   entries: [[species index, cells or null]]; a priority plant gets a link that maps its spread */
+function invPlantsHTML(entries, ed, lv, cells){ const sp = phSp(), on = sp.set === 'pinv' ? sp : null;
+  const G = {EDRR:[], Priority:[], Other:[]}; entries.forEach(x => { const t = ed.has(x[0]) ? (pinvTier(sppName(x[0]).sci) || 'Priority') : 'Other'; G[t].push(x); });
+  const li = x => { const s = ed.has(x[0]) ? pinvSp(sppName(x[0]).sci) : null; let h = sppItem(x[0], false, true);
+    if (x[1] != null) h = h.replace('</li>', `<span class="tag">${nCells(x[1])}</span></li>`);
+    if (s) h = h.replace('</li>', `<button type="button" class="tag maplink" data-pinvsp="${s.key}"${on && on.key === s.key ? ' aria-current="true"' : ''}>${on && on.key === s.key ? 'on the map' : 'map spread'}</button></li>`);
+    return h; };
+  const list = (arr, lab) => !arr.length ? '' : `<p style="margin-top:8px">${lab}, ${arr.length}:</p><ul class="spp">${arr.slice(0, 15).map(li).join('')}</ul>` +
+    (arr.length > 15 ? `<details><summary>${arr.length - 15} more</summary><ul class="spp">${arr.slice(15).map(li).join('')}</ul></details>` : '');
+  let b = entries.length ? list(G.EDRR, 'Early detection (EDRR) priority plants') + list(G.Priority, 'Established priority plants') + list(G.Other, 'Other invasive plants')
+    : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
+  /* the priority plant on the map: its first record and records in these cells, from the weekly download */
+  const A = on && phAgg(lv); if (A){ const cs = cells, first = Math.min(...cs.map(x => A.first[x] == null ? Infinity : A.first[x])), n = cs.reduce((t, x) => t + (A.any[x] || 0), 0);
+    b = `<p class="none" style="font-size:13.5px;margin-top:8px">On the map now: <b style="color:var(--ink,#fff)">${esc(on.common)}</b>, ${n ? `${fmt(n, 0)} research-grade ${n === 1 ? 'record' : 'records'} ${cs.length > 1 ? 'in these cells' : 'here'}, first in ${first}` : `no research-grade records ${cs.length > 1 ? 'in these cells' : 'here'}`} (weekly download).</p>` + b; }
+  return b; }
 function sppItem(i, edrr, inat){ const {common, sci, tag} = sppName(i), tx = common ? `${esc(common)} <em>${esc(sci)}</em>` : `<em>${esc(sci)}</em>`;
   let h = `<a href="${wiki(sci)}" target="_blank" rel="noopener" title="Look up ${esc(sci)} on Wikipedia">${tx}</a>`;
   if (tag) h += `<span class="tag">${esc(tag)}</span>`;
-  if (edrr) h += '<span class="tag edrr">priority invasive</span>';
+  if (edrr){ const t = pinvTier(sci); h += `<span class="tag edrr">${t === 'EDRR' ? 'early detection (EDRR)' : 'priority invasive'}</span>`; }
   if (inat && SPPBOX) h += `<a class="obslink" href="${inatObsUrl(sci)}" target="_blank" rel="noopener" title="Research-grade iNaturalist observations of ${esc(sci)} in this area">iNat records</a>`;
   return `<li>${h}</li>`; }
 /* The other cell sizes for a cell: the larger cells it sits in, and the smaller cells inside it (selected together).
@@ -2744,8 +2785,8 @@ function invSection(lv, c){ const v = (th, f) => val(th, f, lv, c); let b = `<di
     const nInv = invCount(lv, c), nPri = priCount(lv, c), sh = invShare(lv, c), big = n => n ? fmt(n, 0) : 'None';
     b += `<div class="facts"><div><b>${big(nInv)}</b>invasive species</div><div><b>${big(nPri)}</b>priority invasives</div><div><b>${sh ? fmt(sh, sh < 10 ? 1 : 0) + '%' : 'None'}</b>of records</div></div>`;
     b += `<p class="none" style="font-size:13.5px">Invasive plants and forest pests are counted together.</p>`;
-    b += inv.length ? `<p style="margin-top:8px">${inv.length} invasive ${inv.length === 1 ? 'plant' : 'plants'}:</p><ul class="spp">${inv.map(i => sppItem(i, ed.has(i), true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
-    b += pest.length ? `<p style="margin-top:8px">${pest.length} forest ${pest.length === 1 ? 'pest' : 'pests'}:</p><ul class="spp">${pest.map(i => sppItem(i, true, true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
+    b += invPlantsHTML(inv.map(i => [i, null]), ed, lv, [c]);
+    b += pest.length ? `<p style="margin-top:8px">${pest.length} forest ${pest.length === 1 ? 'pest' : 'pests'}:</p><ul class="spp">${pest.map(i => sppItem(i, false, true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
     b += `<p style="margin-top:10px"><span class="badge">${esc(cat('DATA_STATUS', v('inat','DATA_STATUS')) || '')}</span> Quarterly summary (${esc(D.run)}), from ${fmt(v('inat','N_OBS'),0)} iNaturalist ${v('inat','N_OBS') === 1 ? 'record' : 'records'}.</p>`;
   } else b += '<p class="none">No iNaturalist records in this cell in the quarterly summary.</p>';
   return b + '</div>'; }
@@ -3105,7 +3146,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
       const nInvAll = new Set([...inv.map(x => x[0]), ...pest.map(x => x[0])]).size;
       b += `<div class="facts"><div><b>${nInvAll ? nInvAll : 'None'}</b>invasive species</div><div><b>${fmt(rec,0)}</b>records</div><div><b>${cs.length}</b>of ${N} cells with records</div></div>`;
       b += `<p class="none" style="font-size:13.5px">Invasive plants and forest pests are counted together. Quarterly summary (${esc(D.run)}).</p>`;
-      b += inv.length ? `<p style="margin-top:8px">Invasive plants reported, with the number of selected cells each was found in:</p><ul class="spp">${inv.slice(0, 12).map(x => item(x[0], x[1], ed.has(x[0]))).join('')}</ul>` + (inv.length > 12 ? `<details><summary>${inv.length - 12} more</summary><ul class="spp">${inv.slice(12).map(x => item(x[0], x[1], ed.has(x[0]))).join('')}</ul></details>` : '') : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
+      b += (inv.length ? '<p class="none" style="font-size:13.5px;margin-top:8px">With the number of selected cells each was found in.</p>' : '') + invPlantsHTML(inv, ed, lv, cells);
       b += pest.length ? `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(x => item(x[0], x[1], true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
     } else b += '<p class="none">No iNaturalist records in the selected cells in the quarterly summary.</p>';
     b += '</div>'; b += recBox(lv, cells); }
