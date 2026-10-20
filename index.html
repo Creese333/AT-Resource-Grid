@@ -75,6 +75,8 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .qbody.hasviz>.blk.res,.qbody.hasviz>.blk.res>.blkbody,.qbody.hasviz>.blk.res>.blkbody>.rank{flex:none !important;min-height:auto !important}.qbody.hasviz .rank ol.scroll{flex:none !important;max-height:300px !important;overflow-y:auto}
 .tag.maplink{cursor:pointer;border:1px solid #6FA8DC;color:#BFE0FF;background:none;font:inherit;font-size:11.5px}.tag.maplink[aria-current=true]{background:#D9661A;border-color:#D9661A;color:#fff}
 .linkbtn{background:none;border:0;padding:0;font:inherit;color:#9FD0FF;text-decoration:underline;cursor:pointer;text-align:left}.linkbtn[aria-current=true]{color:#fff;font-weight:600;text-decoration:none}
+.extblk .extsw{flex-wrap:nowrap;white-space:nowrap;margin:6px 0 6px}.extblk h2{font-size:15px;margin:0 4px 0 0;color:#fff}.extblk .extnote{margin-top:0}
+details.instr{margin:2px 0 6px}details.instr>summary{font-size:13px;color:#A8B8CA;cursor:pointer}details.instr>p{margin-top:4px}
 .qsblk{border-bottom:1px solid var(--line)}.qs[hidden]{display:none}.qsblk>h2{padding:4px 12px 0 14px}.qsblk>h2 .blktog{font-size:15px}
 .qs{padding:8px 12px 9px 14px;display:flex;flex-direction:column;gap:5px}
 .qs button{display:block;width:100%;text-align:left;padding:5px 10px 6px;border-radius:6px;font-family:var(--cond);font-size:15.5px;font-weight:500;line-height:1.35;color:#E3EAF2;
@@ -130,7 +132,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .rank li button:hover{background:var(--ground)}
 .rank .where{font-weight:500}
 .rank .club{grid-column:1;font-size:13.5px;color:var(--muted)}
-.rank .val{grid-row:1/3;grid-column:2;align-self:center;font-family:var(--cond);font-size:19px;font-weight:600}
+.rank .val{grid-row:1/3;grid-column:2;align-self:center;font-family:var(--cond);font-size:15px;font-weight:600;text-align:right}
 .rank .val.two{grid-row:1;align-self:end;text-align:right;line-height:1.05}
 .rank .eff{grid-row:2;grid-column:2;font-size:12.5px;color:var(--muted);text-align:right;white-space:nowrap}
 .rank .eff.thin{color:#F4B08E}
@@ -1150,7 +1152,7 @@ function phPlay(on){ if (phTimer){ clearInterval(phTimer); phTimer = null; }
 function phFrame(){ BRK.clear(); restyle(); strip(); legend(); phCtl(); const t = $('#phtrend'); if (t && S.side.viz){ t.innerHTML = phTrendBlock(); phWireTrend(); } }
 function phYrsText(){ const y = phYear(), A = phAgg(dispLevel()), ys = A ? A.years : []; return y ? String(y) : phSelText() ? phSelText() : ys.length ? `all years, ${ys[0]}–${ys[ys.length - 1]}` : 'all years'; }
 function phCtl(){ const r = $('#phwk'), l = $('#phwkl'), b = $('#phplay'), y = phYear(), A = phAgg(dispLevel());
-  if (r) r.value = S.ph.wk; if (l) l.textContent = wkLabel(S.ph.wk) + ' · ' + phYrsText(); { const yn = $('#phyrnote'); if (yn) yn.textContent = phYrNote(); } if (b) b.textContent = phTimer ? 'Pause' : 'Play';
+  if (r) r.value = S.ph.wk; if (l) l.textContent = wkLabel(S.ph.wk) + ' · ' + phYrsText(); { const yn = $('#phyrnote'); if (yn){ const t = phYrNote(); yn.textContent = t; yn.hidden = !t; } } if (b) b.textContent = phTimer ? 'Pause' : 'Play';
   const multi = S.m.yr === 'wk', sel = multi ? phSel() : (y ? [y] : []);
   document.querySelectorAll('[data-phyr]').forEach(x => { const v = +x.dataset.phyr; x.setAttribute('aria-pressed', v ? sel.includes(v) : !sel.length); x.classList.toggle('now', multi && sel.length > 1 && v === y); });
   phTick(); }
@@ -1183,7 +1185,7 @@ function phStatus(){ const sp = phSp(), st = PHD[sp.key];
   return `${what}. ${fmt(A ? A.placed : 0, 0)} of the mapped records fall in ${S.ext === 'huc' ? 'watershed' : 'corridor'} cells.${nid} ${st.built ? `From the weekly download of ${new Date(st.built).toLocaleDateString('en-US')}${st.added ? `, plus ${fmt(st.added, 0)} newer ${st.added === 1 ? 'record' : 'records'} from iNaturalist` : ''}${st.topErr ? ' (iNaturalist could not be reached for newer records)' : ''}.` : `Loaded from iNaturalist ${new Date(st.at).toLocaleDateString('en-US')}.`} <button type="button" data-phref="1">Refresh</button>`; }
 /* under the year buttons: the button counts that year's records; the map shows every cell recorded by the end of the year */
 function phYrNote(){ if (S.m.id === 'share') return phShNote(); const lv = dispLevel(), A = phAgg(lv), y = phYear(lv);
-  if (!A || !y) return 'Pick All, or a year to see where it had been recorded by then; Play steps through the years.';
+  if (!A || !y) return '';
   const n = A.yn[y] || 0; let cells = 0; for (let c = 0; c < A.first.length; c++) if (A.first[c] != null && A.first[c] <= y) cells++;
   return `${y}: ${fmt(n, 0)} ${n === 1 ? 'record' : 'records'} that year. The map shows the ${fmt(cells, 0)} ${cells === 1 ? 'cell' : 'cells'} where it had been recorded by the end of ${y}` +
     (A.pre ? `, including ${fmt(A.pre, 0)} ${A.pre === 1 ? 'record' : 'records'} from before ${A.years[0]} (the earliest from ${A.preMin})` : '') + '.'; }
@@ -1221,7 +1223,7 @@ function phShLegend(lv){ const p = PHSHPAL[phSp().set] || PHSHPAL.pest, pl = phS
 function phShNote(){ const lv = dispLevel(), A = phAgg(lv), y = phYear(lv), pl = phSp().set === 'pinv' ? 'plant ' : '';
   if (!A) return ''; if (!phShReady(lv)) return 'The share needs the yearly record totals from the next quarterly iNaturalist summary.';
   const L_ = D.levels[lv], yc = phYc(A, y); let k = 0, m = 0; for (let c = 0; c < L_.id.length; c++){ const den = phEff(lv, c, y); if (den != null && den >= PHSHMIN){ m++; if (yc[c]) k++; } }
-  return `${y ? y + ': r' : 'From 2010 on, r'}ecorded in ${fmt(k, 0)} of the ${fmt(m, 0)} cells with ${PHSHMIN} or more ${pl}records${y ? ' that year' : ''}. Pick a year or press Play to step through the years.`; }
+  return `${y ? y + ': r' : 'From 2010 on, r'}ecorded in ${fmt(k, 0)} of the ${fmt(m, 0)} cells with ${PHSHMIN} or more ${pl}records${y ? ' that year' : ''}.`; }
 /* Range along the trail: the southernmost and northernmost trail miles recorded by each year (band) and in that year (line) */
 function phRangeBlock(lv){ const A = phAgg(lv), sp = phSp(); if (!A || !A.years.length) return ''; const L_ = D.levels[lv], ys = A.years, n = L_.id.length, sel = phYear(lv);
   let clo = null, chi = null; for (let c = 0; c < n; c++) if (A.first[c] != null && A.first[c] < ys[0]){ const m = L_.mi[c]; clo = clo == null ? m : Math.min(clo, m); chi = chi == null ? m : Math.max(chi, m); }
@@ -1243,6 +1245,7 @@ function phRangeBlock(lv){ const A = phAgg(lv), sp = phSp(); if (!A || !A.years.
   const lead = `By ${z.y} it had been recorded from mile ${fmt(z.clo, 0)} to mile ${fmt(z.chi, 0)}.` + (Math.abs(moved) >= 25 ? ` The northernmost record moved from mile ${fmt(a.chi, 0)} (${a.y}) to mile ${fmt(z.chi, 0)}.` : '');
   return `<h4 class="phh">Range along the trail, by year</h4><p class="phflow">${lead}</p>` + g + '</svg>' +
     `<p class="phnote">Band: the stretch between the southernmost and northernmost records so far. Lines: where it was recorded that year. Trail miles are the cells’ miles (the nearest corridor mile for watershed cells). A new northern record can mean spread, or someone looking there for the first time.</p>`; }
+document.addEventListener('toggle', e => { if (e.target.matches && e.target.matches('details.instr')) S.side.instr = e.target.open; }, true);
 function phStatusOnly(){ const e = $('#phstat'); if (e) e.innerHTML = phStatus(); }
 /* a measure that does not apply to the species picked gives way to the first one that does */
 function phFixM(){ if (!PHQ() || S.m.find || !S.m.hideFn || !S.m.hideFn()) return; S.m = S.q.m.find(m => m.id === (SPREADQ() ? 'spread' : 'wave')); }
@@ -1253,10 +1256,11 @@ function phBlock(){ const sp = phSp(), m = S.m, A = phAgg(dispLevel()), ys = A ?
     /* years before the first one with enough records are left off, so the row stays short */
     const ok = phYearsOk(A || {years:[], yn:{}}), ys2 = ok.length ? ys.filter(v => v >= ok[0]) : ys;
     if (ys2.length >= 2) h += phYrBlock(ys2, y, true) +
-      `<p class="phstat" style="margin-top:-3px">Tap years to add or remove them (numbers are each year’s records; dimmed years have fewer than ${PHYMIN}). Picked years show together; with two or more, Play runs each selected year in order. With All, every year is pooled, so Play shows the season for all years together. To play the years one at a time, with each year highlighted on the spread chart: <button type="button" data-phgood="1">Pick years with ${PHYMIN}+ records</button></p>`; }
+      `<details class="instr"${S.side.instr ? ' open' : ''}><summary>Instructions</summary><p class="phstat">Tap years to add or remove them (numbers are each year’s records; dimmed years have fewer than ${PHYMIN}). Picked years show together; with two or more, Play runs each selected year in order. With All, every year is pooled, so Play shows the season for all years together. To play the years one at a time, with each year highlighted on the spread chart: <button type="button" data-phgood="1">Pick years with ${PHYMIN}+ records</button></p></details>`; }
   else if (m.yr === 'y' && ys.length >= 2){ const lo = ys[0] - 1;
     h += `<div class="wk yr"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button></div>` + phYrBlock(ys, y, false) +
-      `<p class="phstat" id="phyrnote" style="margin-top:-3px">${esc(phYrNote())}</p>`; }
+      `<details class="instr"${S.side.instr ? ' open' : ''}><summary>Instructions</summary><p class="phstat">${m.id === 'share' ? 'Pick All for every year from 2010 together, or one year to see that year. Play steps through the years.' : 'Pick All, or a year to see where it had been recorded by the end of that year. Play steps through the years.'}</p></details>` +
+      `<p class="phstat" id="phyrnote"${phYrNote() ? '' : ' hidden'}>${esc(phYrNote())}</p>`; }
   return h + `<p class="phstat" id="phstat" role="status">${phStatus()}</p></div>`; }
 function phVizBlk(){ return `<section class="blk vizblk"><h2><button type="button" class="blktog" data-blk="viz" aria-expanded="${!!S.side.viz}"><span>Visualizations</span><i aria-hidden="true"></i></button></h2>` +
     `<div class="blkbody"${S.side.viz ? '' : ' hidden'}><div id="phtrend">${S.side.viz ? phTrendBlock() : ''}</div></div></section>`; }
@@ -1803,7 +1807,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 /* ---------- state ---------- */
 /* The basemap the page opens on: USGS topo. */
 const DEFBASE = 'topo';
-const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, about:false, measures:true, results:true, mgmt:false, hadm:false}};
+const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, sel:true, instr:false, about:false, measures:true, results:true, mgmt:false, hadm:false}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
@@ -2290,24 +2294,30 @@ function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3><button type="b
 /* ---------- side panel ---------- */
 const cellItem = (lv, c, extra) => `<li><button type="button" data-cell="${c}" data-lv="${lv}"><span class="where">Near mile ${fmt(D.levels[lv].mi[c], 0)}</span>${extra || ''}<span class="club">${esc(cat('club', D.levels[lv].club[c]) || '')}</span></button></li>`;
 const scroller = el => { for (let p = el.parentElement; p; p = p.parentElement){ const s = getComputedStyle(p); if (/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight) return p; } return document.scrollingElement; };
-function keepPlace(el, sels, fn){ const t0 = el && el.isConnected ? el.getBoundingClientRect().top : null, side = $('#side'); S.keepH = {q:S.q.id, h:Math.max(side.scrollHeight, side.offsetHeight)}; fn();
+function keepPlace(el, sels, fn){ const t0 = el && el.isConnected ? el.getBoundingClientRect().top : null, side = $('#side'); S.keepH = {q:S.q.id, h:Math.max(side.scrollHeight, side.offsetHeight), sels, top:t0}; fn();
   if (t0 == null) return; const nu = sels.map(s => document.querySelector(s)).find(Boolean); if (!nu) return; const d = nu.getBoundingClientRect().top - t0;
   if (Math.abs(d) >= 1){ const sc = scroller(nu); sc.scrollTop += d; } }
+/* a question or measure with its own choices (species, years, scale) opens the Selections block */
+const hasSel = () => PHQ() || (S.q.id === 'inv' && S.m.id === 'edrr');
 function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
   let h = `<section class="blk qsblk"><h2><button type="button" class="blktog" data-blk="qs" aria-expanded="${!!S.side.qs}"><span>Stewardship Questions${S.side.qs ? '' : ` <small class="mgsum">${esc(q.title)}</small>`}</span><i aria-hidden="true"></i></button></h2>` +
     `<nav class="qs" aria-label="Stewardship questions"${S.side.qs ? '' : ' hidden'}>` + Q.map(x => `<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${x === q && !S.m.find}">${esc(x.title)}</button>`).join('') + '</nav></section>';
   if (S.m.find){ const fs = findSummary(lv); el.innerHTML = h + `<div class="qbody">${fs[0]}${blk('results', 'Results', fs[1], 'res')}</div>`; return; }
-  const extBlk = !EXTQ.includes(q.id) ? '' : `<div class="extsw" role="group" aria-label="Extent"><span>Extent</span><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
-    (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow once you zoom in. Trail miles are those of the nearest corridor cell.' + '</p>' : '');
+  const extBlk = q.id === 'hist' && !S.m.find ? `<section class="blk extblk">${histAdmBlock().replace('<span>Extent</span>', '<h2>Extent</h2>')}${histBlock()}</section>` : !EXTQ.includes(q.id) ? '' : `<section class="blk extblk"><div class="extsw" role="group" aria-label="Extent"><h2>Extent</h2><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
+    (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow once you zoom in. Trail miles are those of the nearest corridor cell.' + '</p>' : '') + '</section>';
   const herbBlk = q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Herbicide use"><span>Herbicide use</span><button type="button" data-herb="off" aria-pressed="${!S.herb}">Off</button><button type="button" data-herb="on" aria-pressed="${!!S.herb}">On</button></div>` +
     (S.herb ? '<p class="extnote">Cells are marked down by up to 10 points for the share of their A.T. lands in wetland, where herbicide use may be limited.</p>' : '') +
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
       (S.appa ? '<p class="extnote">Only NPS – APPA land counts: scores are scaled by the share of the cell’s corridor land that APPA administers. Cells without APPA land score 0.</p>' : ''));
-  h += `<div class="qbody${PHQ() && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + (PHQ() && !S.m.find ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' && !S.m.find ? pinvPick() : '') + (q.id === 'hist' && !S.m.find ? histAdmBlock() + histBlock() : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
-    blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') +
+  const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : '';
+  h += `<div class="qbody${PHQ() && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
+    blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
     blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + '</div>';
-  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire(); }
+  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire();
+  const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
+  if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
+    const nu = k.top == null ? null : (k.sels || []).map(s => document.querySelector(s)).find(Boolean); if (nu){ const d = nu.getBoundingClientRect().top - k.top; if (Math.abs(d) >= 1) scroller(nu).scrollTop += d; } }); } }
 /* the cells behind the results on show, for the Select all button */
 let SUMSEL = null; const SELMAX = 2000;
 function selAllBtn(lv, cells, label){ SUMSEL = {lv, cells, label}; if (!cells.length) return '';
@@ -2358,8 +2368,8 @@ $('#side').addEventListener('click', e => { const b = e.target.closest('button')
   if (b.dataset.phrk){ S.ph.rk = b.dataset.phrk; side(); return; }
   if (b.dataset.selsum && SUMSEL && SUMSEL.cells.length){ selectMany(SUMSEL.lv, SUMSEL.cells.slice(), null, SUMSEL.label); return; }
   if (b.dataset.clearfind){ clearFind(); return; }
-  if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q || S.m.find){ S.q = q; S.m = q.m[0]; S.secOpen = {}; redraw(); } }
-  else if (b.dataset.m){ keepPlace(b, [`[data-m="${b.dataset.m}"]`], () => { const m0 = S.m; S.m = S.q.m.find(x => x.id === b.dataset.m); if (S.m.th !== m0.th) S.secOpen = {}; redraw(); }); }
+  if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q || S.m.find){ S.q = q; S.m = q.m[0]; S.secOpen = {}; if (hasSel()) S.side.sel = true; redraw(); } }
+  else if (b.dataset.m){ keepPlace(b, [`[data-m="${b.dataset.m}"]`], () => { const m0 = S.m; S.m = S.q.m.find(x => x.id === b.dataset.m); if (S.m.th !== m0.th) S.secOpen = {}; if (hasSel()) S.side.sel = true; redraw(); }); }
   else if (b.dataset.cell) select(b.dataset.lv, +b.dataset.cell, true); });
 secSel.addEventListener('change', () => { S.sec = secSel.value; fitSection(); redraw(); });
 
