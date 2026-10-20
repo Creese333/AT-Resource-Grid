@@ -72,6 +72,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .secpick select:hover{border-color:#9CC3E6}
 .secpick select:focus-visible{outline:3px solid #9CC3E6;outline-offset:1px}
 /* question cards, tinted with each question's color like the profile sections; the selected one is stronger (plain values are for browsers without color-mix) */
+.qbody.hasviz>.blk.res,.qbody.hasviz>.blk.res>.blkbody,.qbody.hasviz>.blk.res>.blkbody>.rank{flex:none !important;min-height:auto !important}.qbody.hasviz .rank ol.scroll{flex:none !important;max-height:300px !important;overflow-y:auto}
 .qsblk{border-bottom:1px solid var(--line)}.qs[hidden]{display:none}.qsblk>h2{padding:4px 12px 0 14px}.qsblk>h2 .blktog{font-size:15px}
 .qs{padding:8px 12px 9px 14px;display:flex;flex-direction:column;gap:5px}
 .qs button{display:block;width:100%;text-align:left;padding:5px 10px 6px;border-radius:6px;font-family:var(--cond);font-size:15.5px;font-weight:500;line-height:1.35;color:#E3EAF2;
@@ -982,7 +983,10 @@ function phQSync(){ if (!PHQ()) return; S.ph.by = S.ph.by || {}; const qk = phSe
 const PHD = {};   /* by key: {st:'loading'|'done'|'error', pts:[[day of year, year, stage, lat, lon, id]], n, msg, at} */
 const PHKEEP = 30 * 864e5, phKey = sp => 'atgrid-phen-v3:' + (ATiNat.config.project || '') + ':' + sp.key;
 const PHFIELDS = '(id:!t,observed_on:!t,quality_grade:!t,obscured:!t,geoprivacy:!t,taxon_geoprivacy:!t,geojson:all)';
-const phSp = () => { if (!PHQ()) return PHSP.find(s => s.key === S.ph.sp) || PHSP[0]; const L = phListShown(); return L.find(s => s.key === S.ph.sp) || L[0] || phList()[0]; };
+const phSpRaw = () => { if (!PHQ()) return PHSP.find(s => s.key === S.ph.sp) || PHSP[0]; const L = phListShown(); return L.find(s => s.key === S.ph.sp) || L[0] || phList()[0]; };
+let PHSPC = null;
+const phSp = () => { const k = S.q.id + '|' + S.ph.sp + '|' + (S.m && S.m.pinv ? 1 : 0) + '|' + PHSP.length; if (PHSPC && PHSPC.k === k) return PHSPC.v;
+  const v = phSpRaw(); if (!PHSPC) queueMicrotask(() => { PHSPC = null; }); PHSPC = {k, v}; return v; };
 const phMain = (sp = phSp()) => sp.kind === 'plant' ? 1 : sp.kind === 'adult' ? 4 : 5;
 const PHWORD = {1:'flowering', 2:'fruiting', 3:'in bud', 4:'adults', 5:'records'};
 const phNoun = () => phSp().kind === 'adult' ? 'adult' : 'flowering';
@@ -1141,7 +1145,7 @@ function phPlay(on){ if (phTimer){ clearInterval(phTimer); phTimer = null; }
         const sel = phSel(); if (sel.length > 1){ const i = sel.indexOf(S.ph.yr); S.ph.yr = sel[(i + 1) % sel.length]; } }
       phFrame(); }, yrs ? 380 : 550); }
   phCtl(); }
-function phFrame(){ BRK.clear(); restyle(); strip(); legend(); phCtl(); const t = $('#phtrend'); if (t){ t.innerHTML = phTrendBlock(); phWireTrend(); } }
+function phFrame(){ BRK.clear(); restyle(); strip(); legend(); phCtl(); const t = $('#phtrend'); if (t && S.side.viz){ t.innerHTML = phTrendBlock(); phWireTrend(); } }
 function phYrsText(){ const y = phYear(), A = phAgg(dispLevel()), ys = A ? A.years : []; return y ? String(y) : phSelText() ? phSelText() : ys.length ? `all years, ${ys[0]}–${ys[ys.length - 1]}` : 'all years'; }
 function phCtl(){ const r = $('#phwk'), l = $('#phwkl'), b = $('#phplay'), y = phYear(), A = phAgg(dispLevel());
   if (r) r.value = S.ph.wk; if (l) l.textContent = wkLabel(S.ph.wk) + ' · ' + phYrsText(); { const yn = $('#phyrnote'); if (yn) yn.textContent = phYrNote(); } if (b) b.textContent = phTimer ? 'Pause' : 'Play';
@@ -1251,7 +1255,9 @@ function phBlock(){ const sp = phSp(), m = S.m, A = phAgg(dispLevel()), ys = A ?
   else if (m.yr === 'y' && ys.length >= 2){ const lo = ys[0] - 1;
     h += `<div class="wk yr"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button></div>` + phYrBlock(ys, y, false) +
       `<p class="phstat" id="phyrnote" style="margin-top:-3px">${esc(phYrNote())}</p>`; }
-  return h + `<p class="phstat" id="phstat" role="status">${phStatus()}</p><div id="phtrend">${phTrendBlock()}</div></div>`; }
+  return h + `<p class="phstat" id="phstat" role="status">${phStatus()}</p></div>`; }
+function phVizBlk(){ return `<section class="blk vizblk"><h2><button type="button" class="blktog" data-blk="viz" aria-expanded="${!!S.side.viz}"><span>Visualizations</span><i aria-hidden="true"></i></button></h2>` +
+    `<div class="blkbody"${S.side.viz ? '' : ' hidden'}><div id="phtrend">${S.side.viz ? phTrendBlock() : ''}</div></div></section>`; }
 function phWire(){ const s = $('#phsp'); if (!s) return;
   document.querySelectorAll('[data-phyr]').forEach(x => x.onclick = () => { const v = +x.dataset.phyr, A = phAgg(dispLevel()); phPlay(false);
     if (S.m.yr === 'wk'){ const sel = new Set(phSel()); if (!v) sel.clear(); else if (sel.has(v)) sel.delete(v); else sel.add(v); S.ph.sel = [...sel]; S.ph.yr = 0; }
@@ -1779,7 +1785,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 /* ---------- state ---------- */
 /* The basemap the page opens on: USGS topo. */
 const DEFBASE = 'topo';
-const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, about:false, measures:true, results:true, mgmt:false, hadm:false}};
+const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, about:false, measures:true, results:true, mgmt:false, hadm:false}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
@@ -1936,15 +1942,20 @@ function zoomFade(){ const k = Math.max(0, Math.min(1, (map.getZoom() - FADE_FRO
 /* where a measure counts records or mapped things, a cell with none is left clear rather than filled */
 const ZCLEAR = new Set(['inat', 'ebird', 'hist', 'feat', 'wet']);
 const zClear = m => (!!m.zero && ZCLEAR.has(m.th)) || m.id === 'share';
-function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, strong = m.th === 'feat';
+const BIGGRID = 15000;
+function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, strong = m.th === 'feat', g = GROUP[lv], big = ps.length > BIGGRID;
+  /* each cell's style is set only when it changes; on a big grid a cell with nothing to show leaves the canvas (clicks still find it, see below) */
+  const put = (c, st) => { const p = ps[c], k = `${st.fillOpacity}|${st.fillColor}|${st.stroke}|${st.color}|${st.weight}|${st.opacity}`, empty = big && !st.fillOpacity && (!st.stroke || !st.opacity);
+    if (empty){ if (!p.atOff){ g.removeLayer(p); p.atOff = true; } return; }
+    if (p.atOff){ g.addLayer(p); p.atOff = false; } if (p._sk !== k){ p._sk = k; p.setStyle(st); } };
   const px = {hex:1700, cog:4500, wheel:12000}[lv] * Math.pow(2, map.getZoom()) / (156543 * Math.cos(map.getCenter().lat * Math.PI / 180)), tiny = px < 10, w = tiny ? 1 : lv === 'hex' ? .4 : .7; /* trail features: solid fill and a dark outline at every zoom, so any cell with a feature stands out */
   for (let c = 0; c < ps.length; c++){ const v = m.get(lv, c), ins = inSec(lv, c);
     if (m.colorFn === phWaveCol){ const on = v != null && v > 0, col = on ? phWaveCol(v) : null;
-      ps[c].setStyle(on ? {fill:true, fillColor:col, fillOpacity:ins ? .95 : .15, stroke:true, color:tiny ? col : '#3A2600', weight:tiny ? 1.2 : lv === 'hex' ? .8 : 1.1, opacity:ins ? .95 : .2}
+      put(c, on ? {fill:true, fillColor:col, fillOpacity:ins ? .95 : .15, stroke:true, color:tiny ? col : '#3A2600', weight:tiny ? 1.2 : lv === 'hex' ? .8 : 1.1, opacity:ins ? .95 : .2}
         : {fill:true, fillOpacity:0, stroke:false}); continue; }
-    if (v == null || (v === 0 && zClear(m))) ps[c].setStyle({fill:true, fillOpacity:0, stroke:!tiny, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
-    else if (strong) ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : .9) * Math.max(zf, .85), stroke:true, color:'#0B2410', weight:lv === 'hex' ? 1.6 : 2, opacity:ins ? 1 : .2});
-    else ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf, stroke:true, color:tiny ? colorOf(m, lv, v) : '#fff', weight:w, opacity:tiny ? (!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf : ins ? .9 : .2}); } }
+    if (v == null || (v === 0 && zClear(m))) put(c, {fill:true, fillOpacity:0, stroke:!tiny, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
+    else if (strong) put(c, {fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : .9) * Math.max(zf, .85), stroke:true, color:'#0B2410', weight:lv === 'hex' ? 1.6 : 2, opacity:ins ? 1 : .2});
+    else put(c, {fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf, stroke:true, color:tiny ? colorOf(m, lv, v) : '#fff', weight:w, opacity:tiny ? (!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf : ins ? .9 : .2}); } }
 function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
     if (sc === 'huc' && S.ext !== 'huc' && !S.histHucFail) setExt('huc', true).then(() => { if (S.ext !== 'huc'){ S.histHucFail = true; S.extMsg = ''; redraw(); } });
     else if (sc !== 'huc' && S.ext === 'huc') setExt('corr', true); }
@@ -2141,7 +2152,10 @@ function liveHit(latlng){ const cp = map.latLngToContainerPoint(latlng), tol = T
     const polyHit = ll => Array.isArray(ll[0]) && Array.isArray(ll[0][0]) ? ll.some(polyHit) : (Array.isArray(ll[0]) ? (inside(ll[0]) && !ll.slice(1).some(inside)) : inside(ll));
     l.group.eachLayer(g => { if (g.eachLayer) g.eachLayer(ly => { if (!hit && ly.getLatLngs && ly.getBounds().contains(latlng) && polyHit(ly.getLatLngs())) hit = ly; }); }); if (hit) return open(l, hit.feature ? hit.feature.properties || {} : {}); }
   return false; }
-map.on('click', e => { if (!S.drawing && Date.now() - S.boxAt > 450) liveHit(e.latlng); });
+map.on('click', e => { if (S.drawing || Date.now() - S.boxAt < 450) return; if (liveHit(e.latlng)) return;
+  /* a big grid keeps empty cells off the canvas, so a click there is matched to its cell here */
+  const lv = dispLevel(), ps = POLY[lv]; if (!ps || ps.length <= BIGGRID || !S.cells) return; const c = phCell(lv, e.latlng.lat, e.latlng.lng); if (c < 0) return;
+  const oe = e.originalEvent || {}; if (S.picking || oe.shiftKey || oe.ctrlKey || oe.metaKey){ pickToggle(lv, c); return; } select(lv, c, false); });
 /* Features of a switched-on layer are labelled with their names once the map is zoomed in far enough to read them. */
 const LABELZ = 11;
 /* One pass places every name label for all switched-on layers together, so none overlap:
@@ -2258,7 +2272,7 @@ function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3><button type="b
 /* ---------- side panel ---------- */
 const cellItem = (lv, c, extra) => `<li><button type="button" data-cell="${c}" data-lv="${lv}"><span class="where">Near mile ${fmt(D.levels[lv].mi[c], 0)}</span>${extra || ''}<span class="club">${esc(cat('club', D.levels[lv].club[c]) || '')}</span></button></li>`;
 const scroller = el => { for (let p = el.parentElement; p; p = p.parentElement){ const s = getComputedStyle(p); if (/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight) return p; } return document.scrollingElement; };
-function keepPlace(el, sels, fn){ const t0 = el && el.isConnected ? el.getBoundingClientRect().top : null, side = $('#side'); S.keepH = {q:S.q.id, h:side.offsetHeight}; fn();
+function keepPlace(el, sels, fn){ const t0 = el && el.isConnected ? el.getBoundingClientRect().top : null, side = $('#side'); S.keepH = {q:S.q.id, h:Math.max(side.scrollHeight, side.offsetHeight)}; fn();
   if (t0 == null) return; const nu = sels.map(s => document.querySelector(s)).find(Boolean); if (!nu) return; const d = nu.getBoundingClientRect().top - t0;
   if (Math.abs(d) >= 1){ const sc = scroller(nu); sc.scrollTop += d; } }
 function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
@@ -2272,10 +2286,10 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
     (S.herb ? '<p class="extnote">Cells are marked down by up to 10 points for the share of their A.T. lands in wetland, where herbicide use may be limited.</p>' : '') +
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
       (S.appa ? '<p class="extnote">Only NPS – APPA land counts: scores are scaled by the share of the cell’s corridor land that APPA administers. Cells without APPA land score 0.</p>' : ''));
-  h += `<div class="qbody" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + (PHQ() && !S.m.find ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' && !S.m.find ? pinvPick() : '') + (q.id === 'hist' && !S.m.find ? histAdmBlock() + histBlock() : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
+  h += `<div class="qbody${PHQ() && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + (PHQ() && !S.m.find ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' && !S.m.find ? pinvPick() : '') + (q.id === 'hist' && !S.m.find ? histAdmBlock() + histBlock() : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') +
-    blk('results', 'Results', summary(lv), 'res') + '</div>';
-  el.innerHTML = h; phWire(); }
+    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + '</div>';
+  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire(); }
 /* the cells behind the results on show, for the Select all button */
 let SUMSEL = null; const SELMAX = 2000;
 function selAllBtn(lv, cells, label){ SUMSEL = {lv, cells, label}; if (!cells.length) return '';
