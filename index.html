@@ -72,7 +72,8 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .secpick select:hover{border-color:#9CC3E6}
 .secpick select:focus-visible{outline:3px solid #9CC3E6;outline-offset:1px}
 /* question cards, tinted with each question's color like the profile sections; the selected one is stronger (plain values are for browsers without color-mix) */
-.qs{border-bottom:1px solid var(--line);padding:8px 12px 9px 14px;display:flex;flex-direction:column;gap:5px}
+.qsblk{border-bottom:1px solid var(--line)}.qs[hidden]{display:none}.qsblk>h2{padding:4px 12px 0 14px}.qsblk>h2 .blktog{font-size:15px}
+.qs{padding:8px 12px 9px 14px;display:flex;flex-direction:column;gap:5px}
 .qs button{display:block;width:100%;text-align:left;padding:5px 10px 6px;border-radius:6px;font-family:var(--cond);font-size:15.5px;font-weight:500;line-height:1.35;color:#E3EAF2;
   background:var(--ground);border:1px solid var(--line);background:color-mix(in srgb,var(--hue) 45%,var(--panel));border-color:color-mix(in srgb,var(--hue) 80%,var(--panel))}
 .qs button:hover{color:#fff;background:color-mix(in srgb,var(--hue) 54%,var(--panel))}
@@ -1185,9 +1186,9 @@ function pinvPick(){ phIdx(); phPestCounts(); const L = phList('pinv').sort((a, 
   return `<div class="phctl"><select id="pinvsel" aria-label="Priority invasive species"><option value="">All priority invasives: species per cell</option>` +
     Object.values(PINVG).map(g => `<optgroup label="${esc(g)}">` + L.filter(s => s.group === g).map(s => `<option value="${s.key}">${esc(s.common)} (${esc(s.sci)})${(t => t ? ' · ' + fmt(t.all, 0) + ' records' : '')(phTot(s))}</option>`).join('') + '</optgroup>').join('') + '</select></div>' +
     '<p class="phstat" style="margin-top:4px">Pick a species to see where it has spread along the trail, year by year, with Play to animate it.</p>'; }
-document.addEventListener('change', e => { if (e.target.id !== 'pinvsel' || !e.target.value) return; S.ph.sp = e.target.value; S.ph.pick = true; S.ph.q = 'pinv'; S.ph.yr = 0; S.ph.sel = [];
-  S.m = S.q.m.find(x => x.pinv && x.id === 'spread'); phLoad(phSp()); BRK.clear(); redraw(); });
-document.addEventListener('click', e => { const b = e.target.closest('[data-pinvm]'); if (!b) return; phPlay(false); S.m = S.q.m.find(x => x.pinv && x.id === b.dataset.pinvm); BRK.clear(); redraw(); });
+document.addEventListener('change', e => { if (e.target.id !== 'pinvsel' || !e.target.value) return; keepPlace(e.target, ['#phsp'], () => { S.ph.sp = e.target.value; S.ph.pick = true; S.ph.q = 'pinv'; S.ph.yr = 0; S.ph.sel = [];
+  S.m = S.q.m.find(x => x.pinv && x.id === 'spread'); phLoad(phSp()); BRK.clear(); redraw(); }); });
+document.addEventListener('click', e => { const b = e.target.closest('[data-pinvm]'); if (!b) return; keepPlace(b, [`[data-pinvm="${b.dataset.pinvm}"]`], () => { phPlay(false); S.m = S.q.m.find(x => x.pinv && x.id === b.dataset.pinvm); BRK.clear(); redraw(); }); });
 /* Share of records: a species' research-grade records in a cell and year as a share of all the research-grade iNaturalist records
    made there that year (plant records for the priority invasive plants, every record for forest pests). The yearly totals come from
    the quarterly summary (OBS_BY_YEAR, PLANT_OBS_BY_YEAR, from 2010); dividing by them takes out most of the growth in iNaturalist use.
@@ -1209,8 +1210,8 @@ function phShCol(v){ if (v == null) return null; if (v === 0) return PHSH0; cons
 function phShLegend(lv){ const p = PHSHPAL[phSp().set] || PHSHPAL.pest, pl = phSp().set === 'pinv' ? 'plant ' : '';
   const lab = ['under 0.5%', '0.5 to 1%', '1 to 2%', '2 to 5%', '5% or more'];
   if (!phShReady(lv)) return `<p class="sub">The yearly record totals this needs arrive with the next quarterly iNaturalist summary. Until then the map stays blank; Year first recorded works now.</p>`;
-  return `<div class="row"><i style="background:${PHSH0}"></i><span>Not recorded (enough ${pl}records to tell)</span></div>` + p.map((c, i) => `<div class="row"><i style="background:${c}"></i><span>${lab[i]}</span></div>`).join('') +
-    `<p class="sub">Its research-grade records as a share of all research-grade ${pl}records in the cell ${phYear(lv) ? 'in ' + phYear(lv) : 'from 2010 on'}. Dividing by every record takes out most of the growth in iNaturalist use. Cells with fewer than ${PHSHMIN} ${pl}records ${phYear(lv) ? 'that year' : ''} are left blank.</p>`; }
+  return p.map((c, i) => `<div class="row"><i style="background:${c}"></i><span>${lab[i]}</span></div>`).join('') +
+    `<p class="sub">Its research-grade records as a share of all research-grade ${pl}records in the cell ${phYear(lv) ? 'in ' + phYear(lv) : 'from 2010 on'}. Dividing by every record takes out most of the growth in iNaturalist use. Cells where it was not recorded, or with fewer than ${PHSHMIN} ${pl}records${phYear(lv) ? ' that year' : ''}, are left clear.</p>`; }
 function phShNote(){ const lv = dispLevel(), A = phAgg(lv), y = phYear(lv), pl = phSp().set === 'pinv' ? 'plant ' : '';
   if (!A) return ''; if (!phShReady(lv)) return 'The share needs the yearly record totals from the next quarterly iNaturalist summary.';
   const L_ = D.levels[lv], yc = phYc(A, y); let k = 0, m = 0; for (let c = 0; c < L_.id.length; c++){ const den = phEff(lv, c, y); if (den != null && den >= PHSHMIN){ m++; if (yc[c]) k++; } }
@@ -1257,7 +1258,7 @@ function phWire(){ const s = $('#phsp'); if (!s) return;
     else S.ph.yr = A && A.years.includes(v) ? v : 0;
     BRK.clear(); redraw(); });
   document.querySelectorAll('[data-phgood]').forEach(x => x.onclick = () => { const A = phAgg(dispLevel()); if (!A) return; phPlay(false); S.ph.sel = phYearsOk(A); S.ph.yr = 0; BRK.clear(); redraw(); });
-  s.onchange = () => { phPlay(false); if (!s.value){ S.m = S.q.m.find(x => x.id === 'edrr'); BRK.clear(); redraw(); return; } S.ph.sp = s.value; if (SPREADQ()) S.ph.pick = true; phLoad(phSp()); phFixM(); BRK.clear(); redraw(); };
+  s.onchange = () => keepPlace(s, ['#phsp', '#pinvsel'], () => { phPlay(false); if (!s.value){ S.m = S.q.m.find(x => x.id === 'edrr'); BRK.clear(); redraw(); return; } S.ph.sp = s.value; if (SPREADQ()) S.ph.pick = true; phLoad(phSp()); phFixM(); BRK.clear(); redraw(); });
   const r = $('#phwk'); if (r){ r.oninput = () => { S.ph.wk = +r.value; phFrame(); }; r.onchange = () => { redraw(); }; }
   const b = $('#phplay'); if (b) b.onclick = () => { phPlay(!phTimer); if (!phTimer) redraw(); };
   document.querySelectorAll('[data-phref]').forEach(x => x.onclick = phRefresh); phWireTrend(); }
@@ -1778,7 +1779,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 /* ---------- state ---------- */
 /* The basemap the page opens on: USGS topo. */
 const DEFBASE = 'topo';
-const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {about:false, measures:true, results:true, mgmt:false, hadm:false}};
+const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, about:false, measures:true, results:true, mgmt:false, hadm:false}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
@@ -1865,7 +1866,7 @@ const THIN_AC = 10;
 const faded = (m, lv, c) => S.fade && m.fade && (m.fadeFn ? m.fadeFn(lv, c) : m.th === 'veg' ? val('veg', 'VEG_AREA', lv, c) < THIN_AC : thin(m.th, lv, c));
 
 /* ---------- map ---------- */
-const map = L.map('map', {preferCanvas:true, zoomSnap:.5, minZoom:4, maxZoom:18, attributionControl:true}); /* 18 is the tile layers' own limit */
+const map = L.map('map', {preferCanvas:true, zoomSnap:0, zoomDelta:.5, wheelPxPerZoomLevel:110, minZoom:4, maxZoom:18, attributionControl:true}); /* 18 is the tile layers' own limit */
 map.attributionControl.setPrefix(false);
 const ATTR = 'Basemap: USGS The National Map';
 const TNM = 'https://basemap.nationalmap.gov/arcgis/rest/services/', OSMA = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
@@ -1932,13 +1933,16 @@ function dispLevel(){ let lv = S.level === 'auto' ? autoLevel() : S.level;
 /* Cell fill thins out as you zoom in: full strength up to zoom 9, down to 40% opacity (60% transparent) at the closest zoom. */
 const FADE_FROM = 9, FADE_TO = 15, FILL_FAR = .86, FILL_NEAR = .4;
 function zoomFade(){ const k = Math.max(0, Math.min(1, (map.getZoom() - FADE_FROM) / (FADE_TO - FADE_FROM))); return (FILL_FAR - k * (FILL_FAR - FILL_NEAR)) / FILL_FAR; }
+/* where a measure counts records or mapped things, a cell with none is left clear rather than filled */
+const ZCLEAR = new Set(['inat', 'ebird', 'hist', 'feat', 'wet']);
+const zClear = m => (!!m.zero && ZCLEAR.has(m.th)) || m.id === 'share';
 function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, strong = m.th === 'feat';
   const px = {hex:1700, cog:4500, wheel:12000}[lv] * Math.pow(2, map.getZoom()) / (156543 * Math.cos(map.getCenter().lat * Math.PI / 180)), tiny = px < 10, w = tiny ? 1 : lv === 'hex' ? .4 : .7; /* trail features: solid fill and a dark outline at every zoom, so any cell with a feature stands out */
   for (let c = 0; c < ps.length; c++){ const v = m.get(lv, c), ins = inSec(lv, c);
     if (m.colorFn === phWaveCol){ const on = v != null && v > 0, col = on ? phWaveCol(v) : null;
       ps[c].setStyle(on ? {fill:true, fillColor:col, fillOpacity:ins ? .95 : .15, stroke:true, color:tiny ? col : '#3A2600', weight:tiny ? 1.2 : lv === 'hex' ? .8 : 1.1, opacity:ins ? .95 : .2}
         : {fill:true, fillOpacity:0, stroke:false}); continue; }
-    if (v == null) ps[c].setStyle({fill:true, fillOpacity:0, stroke:!tiny, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
+    if (v == null || (v === 0 && zClear(m))) ps[c].setStyle({fill:true, fillOpacity:0, stroke:!tiny, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
     else if (strong) ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : .9) * Math.max(zf, .85), stroke:true, color:'#0B2410', weight:lv === 'hex' ? 1.6 : 2, opacity:ins ? 1 : .2});
     else ps[c].setStyle({fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf, stroke:true, color:tiny ? colorOf(m, lv, v) : '#fff', weight:w, opacity:tiny ? (!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf : ins ? .9 : .2}); } }
 function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
@@ -2234,7 +2238,7 @@ function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3><button type="b
       if (top.length > 8) h += `<p class="sub">and ${top.length - 8} more types, shaded by land cover group. Point to a cell for its name.</p>`; }
     else CATCOL[m.f].forEach(e => { if (present.has(e[0])) h += `<div class="row"><i style="background:${e[1]}"></i><span>${esc(e[2] || e[0])}</span></div>`; });
   } else if (m.legendFn){ h += m.legendFn(lv); } else { const B = breaks(m, lv), u = m.unit || '', st = m.int ? 1 : 0;
-    if (m.zero) h += `<div class="row"><i style="background:${ZERO}"></i><span>${m.th === 'veg' ? 'None mapped' : m.th === 'soil' || m.th === 'feat' ? 'None' : m.th === 'wet' ? (m.zeroText || 'None mapped') : 'None reported'}</span></div>`;
+    if (m.zero) h += `<div class="row"><i style="${zClear(m) ? 'background:transparent;box-shadow:inset 0 0 0 1px #8A97A6' : 'background:' + ZERO}"></i><span>${m.th === 'veg' ? 'None mapped' : m.th === 'soil' || m.th === 'feat' ? 'None' : m.th === 'wet' ? (m.zeroText || 'None mapped') : 'None reported'}</span></div>`;
     B.cols.forEach((col,i) => { let t; const lo = i === 0 ? B.min : B.b[i-1] + st, hi = i < B.b.length ? B.b[i] : B.max;
       if (m.int) t = lo >= hi ? fmt(hi,0) : `${fmt(lo,0)} to ${fmt(hi,0)}`;
       else t = i === 0 ? `up to ${fmt(hi,m.d)}${u}` : i === B.cols.length-1 ? `over ${fmt(B.b[i-1],m.d)}${u}` : `${fmt(B.b[i-1],m.d)} to ${fmt(hi,m.d)}${u}`;
@@ -2253,9 +2257,14 @@ function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3><button type="b
 
 /* ---------- side panel ---------- */
 const cellItem = (lv, c, extra) => `<li><button type="button" data-cell="${c}" data-lv="${lv}"><span class="where">Near mile ${fmt(D.levels[lv].mi[c], 0)}</span>${extra || ''}<span class="club">${esc(cat('club', D.levels[lv].club[c]) || '')}</span></button></li>`;
-function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
-  let h = '<nav class="qs" aria-label="Questions">' + Q.map(x => `<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${x === q && !S.m.find}">${esc(x.title)}</button>`).join('') + '</nav>';
+const scroller = el => { for (let p = el.parentElement; p; p = p.parentElement){ const s = getComputedStyle(p); if (/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight) return p; } return document.scrollingElement; };
+function keepPlace(el, sels, fn){ const t0 = el && el.isConnected ? el.getBoundingClientRect().top : null, side = $('#side'); S.keepH = {q:S.q.id, h:side.offsetHeight}; fn();
+  if (t0 == null) return; const nu = sels.map(s => document.querySelector(s)).find(Boolean); if (!nu) return; const d = nu.getBoundingClientRect().top - t0;
+  if (Math.abs(d) >= 1){ const sc = scroller(nu); sc.scrollTop += d; } }
+function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
+  let h = `<section class="blk qsblk"><h2><button type="button" class="blktog" data-blk="qs" aria-expanded="${!!S.side.qs}"><span>Stewardship Questions${S.side.qs ? '' : ` <small class="mgsum">${esc(q.title)}</small>`}</span><i aria-hidden="true"></i></button></h2>` +
+    `<nav class="qs" aria-label="Stewardship questions"${S.side.qs ? '' : ' hidden'}>` + Q.map(x => `<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${x === q && !S.m.find}">${esc(x.title)}</button>`).join('') + '</nav></section>';
   if (S.m.find){ const fs = findSummary(lv); el.innerHTML = h + `<div class="qbody">${fs[0]}${blk('results', 'Results', fs[1], 'res')}</div>`; return; }
   const extBlk = !EXTQ.includes(q.id) ? '' : `<div class="extsw" role="group" aria-label="Extent"><span>Extent</span><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
     (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow once you zoom in. Trail miles are those of the nearest corridor cell.' + '</p>' : '');
@@ -2318,7 +2327,7 @@ $('#side').addEventListener('click', e => { const b = e.target.closest('button')
   if (b.dataset.selsum && SUMSEL && SUMSEL.cells.length){ selectMany(SUMSEL.lv, SUMSEL.cells.slice(), null, SUMSEL.label); return; }
   if (b.dataset.clearfind){ clearFind(); return; }
   if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q || S.m.find){ S.q = q; S.m = q.m[0]; S.secOpen = {}; redraw(); } }
-  else if (b.dataset.m){ const m0 = S.m; S.m = S.q.m.find(x => x.id === b.dataset.m); if (S.m.th !== m0.th) S.secOpen = {}; redraw(); }
+  else if (b.dataset.m){ keepPlace(b, [`[data-m="${b.dataset.m}"]`], () => { const m0 = S.m; S.m = S.q.m.find(x => x.id === b.dataset.m); if (S.m.th !== m0.th) S.secOpen = {}; redraw(); }); }
   else if (b.dataset.cell) select(b.dataset.lv, +b.dataset.cell, true); });
 secSel.addEventListener('change', () => { S.sec = secSel.value; fitSection(); redraw(); });
 
