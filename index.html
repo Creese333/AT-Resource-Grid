@@ -76,7 +76,7 @@ aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;over
 .tag.maplink{cursor:pointer;border:1px solid #6FA8DC;color:#BFE0FF;background:none;font:inherit;font-size:11.5px}.tag.maplink[aria-current=true]{background:#D9661A;border-color:#D9661A;color:#fff}
 .linkbtn{background:none;border:0;padding:0;font:inherit;color:#9FD0FF;text-decoration:underline;cursor:pointer;text-align:left}.linkbtn[aria-current=true]{color:#fff;font-weight:600;text-decoration:none}
 .extblk .extsw{flex-wrap:nowrap;white-space:nowrap;margin:6px 0 6px}.extblk h2{font-size:15px;margin:0 4px 0 0;color:#fff}.extblk .extnote{margin-top:0}
-details.instr{margin:2px 0 6px}details.instr>summary{font-size:13px;color:#A8B8CA;cursor:pointer}details.instr>p{margin-top:4px}
+details.instr{margin:0}details.instr>summary{font-size:13px;line-height:1.3;color:#A8B8CA;cursor:pointer}details.instr>p{margin-top:4px}.phctl details.instr+details.instr{margin-top:-4px}.phctl:has(>details.instr:last-child){margin-bottom:4px}
 .qsblk{border-bottom:1px solid var(--line)}.qs[hidden]{display:none}.qsblk>h2{padding:4px 12px 0 14px}.qsblk>h2 .blktog{font-size:15px}
 .qs{padding:8px 12px 9px 14px;display:flex;flex-direction:column;gap:5px}
 .qs button{display:block;width:100%;text-align:left;padding:5px 10px 6px;border-radius:6px;font-family:var(--cond);font-size:15.5px;font-weight:500;line-height:1.35;color:#E3EAF2;
@@ -1244,7 +1244,7 @@ function phRangeBlock(lv){ const A = phAgg(lv), sp = phSp(); if (!A || !A.years.
   const a = R[0], z = R[R.length - 1], moved = z.chi - a.chi;
   const lead = `By ${z.y} it had been recorded from mile ${fmt(z.clo, 0)} to mile ${fmt(z.chi, 0)}.` + (Math.abs(moved) >= 25 ? ` The northernmost record moved from mile ${fmt(a.chi, 0)} (${a.y}) to mile ${fmt(z.chi, 0)}.` : '');
   return `<h4 class="phh">Range along the trail, by year</h4>` + g + '</svg>' +
-    sumD('vsum', `<p class="phflow">${lead}</p><p class="phnote">Band: southern to northern limit of records so far. Lines: that year’s records. A new northern record can mean spread, or new searching.</p>`); }
+    sumD('vsumr', `<p class="phflow">${lead}</p><p class="phnote">Band: southern to northern limit of records so far. Lines: that year’s records. A new northern record can mean spread, or new searching.</p>`); }
 document.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details[data-k]')) S.side[d.dataset.k] = d.open; }, true);
 const sumD = (k, inner, id) => `<details class="instr" data-k="${k}"${S.side[k] ? ' open' : ''}><summary${id ? ` id="${id}"` : ''}>Summary</summary>${inner}</details>`;
 function phStatusOnly(){ const e = $('#phstat'); if (e) e.innerHTML = phStatus(); const l = $('#phsumlab'), st = PHD[phSp().key]; if (l) l.textContent = 'Summary' + (st && st.st === 'loading' ? ' · loading…' : ''); }
@@ -1334,7 +1334,7 @@ function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) retu
   { const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
     const sv = phSpreadSvg(lv, cells), m1 = sv.match(/^<p class="phflow">[\s\S]*?<\/p>/), rest = m1 ? sv.slice(m1[0].length) : sv, m2 = rest.match(/<p class="phstat" style="margin-top:2px">[\s\S]*?<\/p>$/);
     h += `<h4 class="phh">Spread: cells first recorded each year, ${esc(where)}</h4>` + (m2 ? rest.slice(0, -m2[0].length) : rest) +
-      sumD('vsum', (m1 ? m1[0] : '') + (m2 ? m2[0] : '') + '<p class="phnote">Records follow hikers, so a first record marks when it was noticed, not when it arrived.</p>'); }
+      sumD('vsums', (m1 ? m1[0] : '') + (m2 ? m2[0] : '') + '<p class="phnote">Records follow hikers, so a first record marks when it was noticed, not when it arrived.</p>'); }
   return h; }
 /* the cell panel: records by week by stage, and the cell's season */
 /* the popup's Priority invasives section: every priority invasive plant the quarterly summary has in the cell(s), by tier,
@@ -1810,7 +1810,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 /* ---------- state ---------- */
 /* The basemap the page opens on: USGS topo. */
 const DEFBASE = 'topo';
-const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, sel:true, instr:false, sum:false, vsum:false, about:false, measures:true, results:true, mgmt:false, hadm:false}};
+const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, sel:true, instr:false, sum:false, vsumr:false, vsums:false, about:false, measures:true, results:true, mgmt:false, hadm:false}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
