@@ -75,6 +75,7 @@ def read_config():
             common, sci = it[0], it[1]
             kind = it[2] if len(it) > 2 and it[2] else 'plant'
             st = SETS.get(group, 'phen')
+            if st == 'pinv': continue   # the priority invasives come from invasive_lookup.csv (read_priority), so the CSV is the one list
             species.append({'common': common, 'sci': sci, 'key': re.sub(r'[^a-z]+', '-', sci.lower()), 'kind': kind,
                             'set': st, 'pest': st != 'phen'})
     have = {s['key'] for s in species}
@@ -82,12 +83,13 @@ def read_config():
         if sp['key'] not in have: species.append(sp); have.add(sp['key'])
     return project, species
 
-SETS = {'Forest pests': 'pest', 'Priority invasive plants': 'pinv'}
+SETS = {'Forest pests': 'pest', 'Early detection (EDRR)': 'pinv', 'Established priority': 'pinv', 'Priority invasive plants': 'pinv'}
+PINV_GROUP = {'EDRR': 'Early detection (EDRR)', 'Priority': 'Established priority'}
 PRIO_TRUE = ('1', 'y', 'yes', 'true', 'priority', 'high')
 
 def read_priority():
-    """The priority invasive plants from invasive_lookup.csv (APP_EDRR is 1, or APPA_PRIORITY is set), the same rule as
-    build_inat_ebird.py. A subspecies or variety is dropped when its species is also listed (the species query includes it).
+    """The priority invasive plants from invasive_lookup.csv, the same rule as build_inat_ebird.py: APP_EDRR = 1 marks an
+    early detection (EDRR) species, APPA_PRIORITY marks an established priority species. A subspecies or variety is dropped when its species is also listed (the species query includes it).
     Species added here appear on the dashboard through phen/index.json without editing index.html."""
     path = os.path.join(HERE, 'invasive_lookup.csv')
     if not os.path.exists(path): return []
@@ -99,8 +101,10 @@ def read_priority():
         if not n or n.lower() in seen or any(n != m and n.startswith(m + ' ') for m in names): continue
         seen.add(n.lower())
         c = (r.get('COMMON_NAME') or '').strip()
-        c = (c[0].upper() + c[1:].lower()) if c and c.lower() != 'grass' else n
-        out.append({'common': c, 'sci': n, 'key': re.sub(r'[^a-z]+', '-', n.lower()), 'kind': 'spread', 'set': 'pinv', 'pest': True})
+        c = (c[0].upper() + c[1:]) if c and c.lower() != 'grass' else n
+        tier = 'EDRR' if str(r.get('APP_EDRR', '')).strip() == '1' else 'Priority'
+        out.append({'common': c, 'sci': n, 'key': re.sub(r'[^a-z]+', '-', n.lower()), 'kind': 'spread', 'set': 'pinv', 'pest': True,
+                    'tier': tier, 'group': PINV_GROUP[tier]})
     return out
 
 def terms():
@@ -201,9 +205,19 @@ def main():
             json.dump(out, f, separators=(',', ':'))
         e = {'at': out['at'], 'n': len(out['pts']), 'top': out['top'], 'taxon': out['taxon'], 'kept': out['kept'], 'drop': out['drop'],
              'common': sp['common'], 'sci': sp['sci'], 'set': sp['set']}
+        if sp.get('tier'): e['tier'] = sp['tier']
         for k in ('cnt', 'nid'):
             if k in out: e[k] = out[k]
         spx[sp['key']] = e
+    keys = {s['key'] for s in species}
+    for k, e in spx.items():   # keep tier and names current even for a species whose download failed this time
+        s = next((x for x in species if x['key'] == k), None)
+        if s and s.get('tier'): e.update(tier=s['tier'], common=s['common'])
+    if not only:   # a full run drops species no longer on any list, and their files
+        for k in [k for k in spx if k not in keys]:
+            del spx[k]
+            try: os.remove(os.path.join(OUT, k + '.json'))
+            except OSError: pass
     index = {'at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), 'project': project, 'species': spx}
     with open(ipath, 'w', encoding='utf-8') as f: json.dump(index, f, separators=(',', ':'), indent=None)
     print(f'Done. {len(species) - len(failed)} built' + (f'; failed: {", ".join(failed)}' if failed else ''))
