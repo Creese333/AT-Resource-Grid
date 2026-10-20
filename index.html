@@ -2204,12 +2204,13 @@ function labelAll(){ LABELS.clearLayers(); if (map.getZoom() < LABELZ) return; c
     LABELS.addLayer(L.tooltip({permanent:true, direction:o[0], offset:o[2], className:'featlab', interactive:false, opacity:1}).setLatLng(c.ll).setContent(esc(c.nm))); } }
 map.on('moveend zoomend', () => labelSync());
 const FEATLIVE = [['shelters', 'Shelter'], ['campsites', 'Campsite'], ['privies', 'Privy'], ['parking', 'Parking'], ['bridges', 'Bridge'], ['vistas', 'Vista']];
-let FEATGOT = null, FEATDONE = false, FEATRUN = false;
+let FEATGOT = null, FEATDONE = false, FEATRUN = false, FEATAT = null;
 function featSync(){ if (FEATDONE) return; if (FEATGOT){ if (S.ext === 'corr') featApply(); return; } if (FEATRUN) return; FEATRUN = true;
-  Promise.all(FEATLIVE.map(([id, t]) => arcQuery(LIVE.find(l => l.id === id).url, {outFields:'Name,Type', geometryPrecision:6}).then(f => [t, f])))
-    .then(got => { FEATGOT = got; if (S.ext === 'corr') featApply(); }).catch(() => {}).then(() => { FEATRUN = false; }); }
+  const one = url => arcQuery(url, {outFields:'Name,Type', geometryPrecision:6}).catch(() => arcQuery(url, {outFields:'Name', geometryPrecision:6}));
+  Promise.allSettled(FEATLIVE.map(([id, t]) => one(LIVE.find(l => l.id === id).url).then(f => [t, f])))
+    .then(rs => { const got = rs.filter(r => r.status === 'fulfilled').map(r => r.value); if (got.length){ FEATGOT = got; FEATAT = new Date(); if (S.ext === 'corr') featApply(); } }).then(() => { FEATRUN = false; }); }
 function featApply(){ if (FEATDONE || !FEATGOT || S.ext !== 'corr' || !D.themes.feat) return; FEATDONE = true;
-  const liveT = new Set(FEATLIVE.map(x => x[1])), feats = D.feat.filter(f => !liveT.has(f[0]));
+  const liveT = new Set(FEATGOT.map(x => x[0])), feats = D.feat.filter(f => !liveT.has(f[0]));
   for (const [t, fs] of FEATGOT) fs.forEach(g => { const c = g.geometry && g.geometry.coordinates; if (!c || c.length < 2) return; const p = g.properties || {};
     let det = String(p.Type == null ? '' : p.Type).trim(); if (['0', '1', '2', '3', '4', 'None', 'nan', 'No info', 'null'].includes(det)) det = '';
     feats.push([t, String(p.Name || t).trim() || t, det, Math.round(c[1] * 1e5) / 1e5, Math.round(c[0] * 1e5) / 1e5]); });
@@ -2694,7 +2695,7 @@ function featSection(lv, c){ if (!D.themes.feat || !D.themes.feat[lv]) return ''
   if (ml.length) b += `<details><summary>Maintained landscapes (${ml.length}), ${fmt(v('ML_AC'), 0)} acres</summary><ul class="flist">${ml.map(x => `<li><span>${esc(x[0])}${x[1] ? ' <em>' + esc(x[1]) + '</em>' : ''}</span><em>${fmt(x[2], x[2] < 10 ? 1 : 0)} ac</em></li>`).join('')}</ul></details>`;
   if (rd.length) b += `<p style="margin:8px 0 0">Administrative roads</p><ul class="flist">${rd.map(x => `<li><span>${esc(x)}</span></li>`).join('')}</ul>`;
   b += structHTML(v('ST') || [], STRUCT_NOTE);
-  b += '<p class="none" style="font-size:13.5px;margin-top:8px">From the A.T. facilities inventory (official and additional features). Select a name to zoom to it.</p>';
+  b += `<p class="none" style="font-size:13.5px;margin-top:8px">${FEATDONE ? `${FEATGOT.map(x => FTYPES.find(t => t[0] === x[0])[1].toLowerCase()).join(', ')} live from the A.T. facilities map service (the same as the map layers), loaded ${FEATAT.toLocaleString('en-US', {month:'numeric', day:'numeric', hour:'numeric', minute:'2-digit'})}; other features from the A.T. facilities inventory.` : 'From the A.T. facilities inventory (official and additional features); live counts load shortly.'} Select a name to zoom to it.</p>`;
   return b + '</div>'; }
 function featBox(lv, cells){ if (!D.themes.feat || !D.themes.feat[lv]) return '';
   const sum = f => cells.reduce((a, c) => a + (val('feat', f, lv, c) || 0), 0), ids = [], side = new Map(), ml = new Map(), st = new Map();
