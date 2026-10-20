@@ -1985,6 +1985,7 @@ function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
     if (sc === 'huc' && S.ext !== 'huc' && !S.histHucFail) setExt('huc', true).then(() => { if (S.ext !== 'huc'){ S.histHucFail = true; S.extMsg = ''; redraw(); } });
     else if (sc !== 'huc' && S.ext === 'huc') setExt('corr', true); }
   else if (S.ext === 'huc' && (!EXTQ.includes(S.q.id) || S.m.find)) setExt('corr', true);
+  if (S.ext === 'corr') featSync();
   phQSync(); if (PHQ()){ if (SPREADQ()) phPestCounts(); phFixM(); phLoad(phSp()); } else if (phTimer) phPlay(false);
   if (S.q.id === 'hist') histLoad();
   phTick();
@@ -2202,6 +2203,27 @@ function labelAll(){ LABELS.clearLayers(); if (map.getZoom() < LABELZ) return; c
     const o = opts.find(o => !hit(o[1])); if (!o) continue; taken.push(o[1]); n++;
     LABELS.addLayer(L.tooltip({permanent:true, direction:o[0], offset:o[2], className:'featlab', interactive:false, opacity:1}).setLatLng(c.ll).setContent(esc(c.nm))); } }
 map.on('moveend zoomend', () => labelSync());
+const FEATLIVE = [['shelters', 'Shelter'], ['campsites', 'Campsite'], ['privies', 'Privy'], ['parking', 'Parking'], ['bridges', 'Bridge'], ['vistas', 'Vista']];
+let FEATGOT = null, FEATDONE = false, FEATRUN = false;
+function featSync(){ if (FEATDONE) return; if (FEATGOT){ if (S.ext === 'corr') featApply(); return; } if (FEATRUN) return; FEATRUN = true;
+  Promise.all(FEATLIVE.map(([id, t]) => arcQuery(LIVE.find(l => l.id === id).url, {outFields:'Name,Type', geometryPrecision:6}).then(f => [t, f])))
+    .then(got => { FEATGOT = got; if (S.ext === 'corr') featApply(); }).catch(() => {}).then(() => { FEATRUN = false; }); }
+function featApply(){ if (FEATDONE || !FEATGOT || S.ext !== 'corr' || !D.themes.feat) return; FEATDONE = true;
+  const liveT = new Set(FEATLIVE.map(x => x[1])), feats = D.feat.filter(f => !liveT.has(f[0]));
+  for (const [t, fs] of FEATGOT) fs.forEach(g => { const c = g.geometry && g.geometry.coordinates; if (!c || c.length < 2) return; const p = g.properties || {};
+    let det = String(p.Type == null ? '' : p.Type).trim(); if (['0', '1', '2', '3', '4', 'None', 'nan', 'No info', 'null'].includes(det)) det = '';
+    feats.push([t, String(p.Name || t).trim() || t, det, Math.round(c[1] * 1e5) / 1e5, Math.round(c[0] * 1e5) / 1e5]); });
+  const TY = FTYPES.map(x => x[0]);
+  for (const lv of ['hex', 'cog', 'wheel']){ const T = D.themes.feat[lv]; if (!T) continue; const n = D.levels[lv].id.length, lists = new Map();
+    feats.forEach((f, i) => { const c = phCell(lv, f[3], f[4]); if (c < 0) return; let a = lists.get(c); if (!a) lists.set(c, a = []); a.push(i); });
+    const row = ROW.feat[lv], add = [...lists.keys()].filter(c => row[c] < 0);
+    if (add.length){ add.forEach(c => { T.ix.push(c); for (const k in T.f) T.f[k].push(Array.isArray(T.f[k][0]) ? [] : 0); });
+      const a = new Int32Array(n).fill(-1); T.ix.forEach((c, k) => a[c] = k); ROW.feat[lv] = a; }
+    T.ix.forEach((c, r) => { const L = lists.get(c) || [], cnt = {}; L.forEach(i => cnt[feats[i][0]] = (cnt[feats[i][0]] || 0) + 1); T.f.LIST[r] = L;
+      TY.forEach(t => { const k = 'N_' + t.toUpperCase(); if (T.f[k]) T.f[k][r] = cnt[t] || 0; });
+      if (T.f.N_FAC) T.f.N_FAC[r] = TY.filter(t => t !== 'Vista').reduce((s, t) => s + (cnt[t] || 0), 0); }); }
+  D.feat = feats; FIDX = null; BRK.clear(); for (const k in RESTC) delete RESTC[k];
+  redraw(); if (S.cell != null || S.box) profile(); }
 async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZoom(); if (l.local) return histLayer(l, my);
   try {
     if (l.bbox){ if (z < l.minZoom){ l.group.clearLayers(); liveStatus(l, 'Zoom in to see these'); return; }
