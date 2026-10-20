@@ -1153,6 +1153,7 @@ function phTick(){ let t = document.getElementById('phtick'); const on = PHQ() &
   if (!on){ t.style.display = 'none'; return; } const y = phYear(), A = phAgg(dispLevel()), ys = A.years, span = ys.length ? ys[0] + '–' + String(ys[ys.length - 1]).slice(2) : 'All years';
   let big, small;
   if (S.m.id === 'spread'){ big = y ? 'by ' + y : span; small = y ? 'cells with records so far' : 'year first recorded'; }
+  else if (S.m.id === 'share'){ big = y || '2010–' + String(ys[ys.length - 1]).slice(2); small = `share of ${phSp().set === 'pinv' ? 'plant ' : ''}records${y ? ' that year' : ', all years'}`; }
   else if (y){ big = y; small = esc(wkLabel(S.ph.wk)) + ' · ' + PHWORD[S.m.st()]; }
   else if (phSelText()){ big = esc(wkLabel(S.ph.wk)); small = `${esc(phSelText())} together · ${PHWORD[S.m.st()]}`; }
   /* all years together: the week is what changes as it plays, so it is the big line */
@@ -1174,7 +1175,7 @@ function phStatus(){ const sp = phSp(), st = PHD[sp.key];
   const nid = st.nid ? ` <a href="https://www.inaturalist.org/observations?${ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : ''}taxon_id=${st.taxon}&quality_grade=needs_id" target="_blank" rel="noopener">${fmt(st.nid, 0)} more ${st.nid === 1 ? 'observation needs' : 'observations need'} ID</a> and ${st.nid === 1 ? 'is' : 'are'} not mapped.` : '';
   return `${what}. ${fmt(A ? A.placed : 0, 0)} of the mapped records fall in ${S.ext === 'huc' ? 'watershed' : 'corridor'} cells.${nid} ${st.built ? `From the weekly download of ${new Date(st.built).toLocaleDateString('en-US')}${st.added ? `, plus ${fmt(st.added, 0)} newer ${st.added === 1 ? 'record' : 'records'} from iNaturalist` : ''}${st.topErr ? ' (iNaturalist could not be reached for newer records)' : ''}.` : `Loaded from iNaturalist ${new Date(st.at).toLocaleDateString('en-US')}.`} <button type="button" data-phref="1">Refresh</button>`; }
 /* under the year buttons: the button counts that year's records; the map shows every cell recorded by the end of the year */
-function phYrNote(){ const lv = dispLevel(), A = phAgg(lv), y = phYear(lv);
+function phYrNote(){ if (S.m.id === 'share') return phShNote(); const lv = dispLevel(), A = phAgg(lv), y = phYear(lv);
   if (!A || !y) return 'Pick All, or a year to see where it had been recorded by then; Play steps through the years.';
   const n = A.yn[y] || 0; let cells = 0; for (let c = 0; c < A.first.length; c++) if (A.first[c] != null && A.first[c] <= y) cells++;
   return `${y}: ${fmt(n, 0)} ${n === 1 ? 'record' : 'records'} that year. The map shows the ${fmt(cells, 0)} ${cells === 1 ? 'cell' : 'cells'} where it had been recorded by the end of ${y}` +
@@ -1187,12 +1188,60 @@ function pinvPick(){ phIdx(); phPestCounts(); const L = phList('pinv').sort((a, 
 document.addEventListener('change', e => { if (e.target.id !== 'pinvsel' || !e.target.value) return; S.ph.sp = e.target.value; S.ph.pick = true; S.ph.q = 'pinv'; S.ph.yr = 0; S.ph.sel = [];
   S.m = S.q.m.find(x => x.pinv && x.id === 'spread'); phLoad(phSp()); BRK.clear(); redraw(); });
 document.addEventListener('click', e => { const b = e.target.closest('[data-pinvm]'); if (!b) return; phPlay(false); S.m = S.q.m.find(x => x.pinv && x.id === b.dataset.pinvm); BRK.clear(); redraw(); });
+/* Share of records: a species' research-grade records in a cell and year as a share of all the research-grade iNaturalist records
+   made there that year (plant records for the priority invasive plants, every record for forest pests). The yearly totals come from
+   the quarterly summary (OBS_BY_YEAR, PLANT_OBS_BY_YEAR, from 2010); dividing by them takes out most of the growth in iNaturalist use.
+   A cell needs PHSHMIN records that year to be shown; with All, every year from 2010 is added together. */
+const PHSHMIN = 20, PHSHBR = [0.5, 1, 2, 5], PHSH0 = '#C9C3B8';
+const PHSHPAL = {pinv:['#FBD3AE', '#F7B47C', '#F2934C', '#D9661A', '#8A410A'], pest:['#E8A882', '#DB8A63', '#CE6D47', '#C0502E', '#752C18']};
+const phShField = () => phSp().set === 'pinv' ? 'PLANT_OBS_BY_YEAR' : 'OBS_BY_YEAR';
+const phShReady = lv => { const t = D.themes.inat && D.themes.inat[lv]; return !!(t && t.f[phShField()]); };
+function phEff(lv, c, y){ const a = val('inat', phShField(), lv, c); if (!a) return null; let t = 0;
+  for (let i = 0; i < a.length; i += 2) if (y ? a[i] === y : a[i] >= PHY0) t += a[i + 1]; return t; }
+/* this species' records per cell, one year or every year from 2010 */
+function phYc(A, y){ const k = y || 'all'; A.yc = A.yc || {}; if (A.yc[k]) return A.yc[k]; const n = A.any.length, out = new Uint32Array(n), ms = phMain();
+  const add = Y => { const w = Y && Y[ms]; if (!w) return; for (let c = 0; c < n; c++){ let t = 0; for (let j = 0; j < 53; j++) t += w[c * 53 + j]; out[c] += t; } };
+  if (y) add(A.y[y]); else for (const yy in A.y) add(A.y[yy]); return A.yc[k] = out; }
+function phShare(lv, c){ const A = phAgg(lv); if (!A) return null; const y = phYear(lv), den = phEff(lv, c, y); if (den == null || den < PHSHMIN) return null;
+  return Math.min(100, 100 * phYc(A, y)[c] / den); }
+const phShTxt = v => v == null ? '–' : v === 0 ? 'none of the records' : v < 0.1 ? 'under 0.1% of records' : `${fmt(v, v < 10 ? 1 : 0)}% of records`;
+function phShCol(v){ if (v == null) return null; if (v === 0) return PHSH0; const p = PHSHPAL[phSp().set] || PHSHPAL.pest, i = PHSHBR.findIndex(b => v < b); return p[i < 0 ? p.length - 1 : i]; }
+function phShLegend(lv){ const p = PHSHPAL[phSp().set] || PHSHPAL.pest, pl = phSp().set === 'pinv' ? 'plant ' : '';
+  const lab = ['under 0.5%', '0.5 to 1%', '1 to 2%', '2 to 5%', '5% or more'];
+  if (!phShReady(lv)) return `<p class="sub">The yearly record totals this needs arrive with the next quarterly iNaturalist summary. Until then the map stays blank; Year first recorded works now.</p>`;
+  return `<div class="row"><i style="background:${PHSH0}"></i><span>Not recorded (enough ${pl}records to tell)</span></div>` + p.map((c, i) => `<div class="row"><i style="background:${c}"></i><span>${lab[i]}</span></div>`).join('') +
+    `<p class="sub">Its research-grade records as a share of all research-grade ${pl}records in the cell ${phYear(lv) ? 'in ' + phYear(lv) : 'from 2010 on'}. Dividing by every record takes out most of the growth in iNaturalist use. Cells with fewer than ${PHSHMIN} ${pl}records ${phYear(lv) ? 'that year' : ''} are left blank.</p>`; }
+function phShNote(){ const lv = dispLevel(), A = phAgg(lv), y = phYear(lv), pl = phSp().set === 'pinv' ? 'plant ' : '';
+  if (!A) return ''; if (!phShReady(lv)) return 'The share needs the yearly record totals from the next quarterly iNaturalist summary.';
+  const L_ = D.levels[lv], yc = phYc(A, y); let k = 0, m = 0; for (let c = 0; c < L_.id.length; c++){ const den = phEff(lv, c, y); if (den != null && den >= PHSHMIN){ m++; if (yc[c]) k++; } }
+  return `${y ? y + ': r' : 'From 2010 on, r'}ecorded in ${fmt(k, 0)} of the ${fmt(m, 0)} cells with ${PHSHMIN} or more ${pl}records${y ? ' that year' : ''}. Pick a year or press Play to step through the years.`; }
+/* Range along the trail: the southernmost and northernmost trail miles recorded by each year (band) and in that year (line) */
+function phRangeBlock(lv){ const A = phAgg(lv), sp = phSp(); if (!A || !A.years.length) return ''; const L_ = D.levels[lv], ys = A.years, n = L_.id.length, sel = phYear(lv);
+  let clo = null, chi = null; for (let c = 0; c < n; c++) if (A.first[c] != null && A.first[c] < ys[0]){ const m = L_.mi[c]; clo = clo == null ? m : Math.min(clo, m); chi = chi == null ? m : Math.max(chi, m); }
+  const rows = ys.map(y => { const yc = phYc(A, y); let lo = null, hi = null, k = 0; for (let c = 0; c < n; c++) if (yc[c]){ k++; const m = L_.mi[c]; lo = lo == null ? m : Math.min(lo, m); hi = hi == null ? m : Math.max(hi, m); }
+    if (lo != null){ clo = clo == null ? lo : Math.min(clo, lo); chi = chi == null ? hi : Math.max(chi, hi); } return {y, lo, hi, k, clo, chi}; });
+  const R = rows.filter(r => r.chi != null); if (!R.length) return '';
+  const col = sp.set === 'pinv' ? HUE.pinv : HUE.pest, TOP = Math.ceil((D.totalMi || 2198) / 100) * 100;
+  const W = 320, H = 150, pl = 40, pr = 8, pt = 12, pb = 18, pw = W - pl - pr, ph = H - pt - pb, bw = pw / ys.length, f = v => v.toFixed(1);
+  const X = i => pl + bw * i + bw / 2, Y = m => pt + ph - ph * m / TOP, idx = r => ys.indexOf(r.y);
+  let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Range along the trail by year">`;
+  for (const m of [0, 500, 1000, 1500, 2000]) if (m <= TOP) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(m))}" y2="${f(Y(m))}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 3}" y="${f(Y(m) + 3)}" text-anchor="end" font-size="8" fill="#A8B8CA">mi ${fmt(m, 0)}</text>`;
+  g += `<text x="${pl - 3}" y="${pt - 3}" text-anchor="end" font-size="7.5" fill="#A8B8CA">▲ Maine</text><text x="${pl - 3}" y="${H - 5}" text-anchor="end" font-size="7.5" fill="#A8B8CA">▼ Georgia</text>`;
+  g += `<polygon points="${R.map(r => f(X(idx(r))) + ',' + f(Y(r.chi))).join(' ')} ${R.slice().reverse().map(r => f(X(idx(r))) + ',' + f(Y(r.clo))).join(' ')}" fill="${col}" fill-opacity=".22" stroke="${col}" stroke-opacity=".6" stroke-width=".8"/>`;
+  rows.forEach((r, i) => { if (r.lo == null) return; const on = r.y === sel, dim = sel && r.y > sel ? .25 : 1;
+    g += `<line x1="${f(X(i))}" x2="${f(X(i))}" y1="${f(Y(r.hi))}" y2="${f(Y(r.lo))}" stroke="${on ? '#FFFFFF' : col}" stroke-width="${on ? 3 : 2}" stroke-linecap="round" opacity="${dim}"><title>${r.y}: recorded from mile ${fmt(r.lo, 0)} to ${fmt(r.hi, 0)} in ${r.k} ${r.k === 1 ? 'cell' : 'cells'}; by then from mile ${fmt(r.clo, 0)} to ${fmt(r.chi, 0)}</title></line>`; });
+  const every = ys.length > 12 ? 2 : 1;
+  rows.forEach((r, i) => { if (i % every === 0 || i === ys.length - 1) g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${r.y === sel ? '#FFE014' : '#A8B8CA'}"${r.y === sel ? ' font-weight="700"' : ''}>’${String(r.y).slice(2)}</text>`; });
+  const a = R[0], z = R[R.length - 1], moved = z.chi - a.chi;
+  const lead = `By ${z.y} it had been recorded from mile ${fmt(z.clo, 0)} to mile ${fmt(z.chi, 0)}.` + (Math.abs(moved) >= 25 ? ` The northernmost record moved from mile ${fmt(a.chi, 0)} (${a.y}) to mile ${fmt(z.chi, 0)}.` : '');
+  return `<h4 class="phh">Range along the trail, by year</h4><p class="phflow">${lead}</p>` + g + '</svg>' +
+    `<p class="phnote">Band: the stretch between the southernmost and northernmost records so far. Lines: where it was recorded that year. Trail miles are the cells’ miles (the nearest corridor mile for watershed cells). A new northern record can mean spread, or someone looking there for the first time.</p>`; }
 function phStatusOnly(){ const e = $('#phstat'); if (e) e.innerHTML = phStatus(); }
 /* a measure that does not apply to the species picked gives way to the first one that does */
-function phFixM(){ if (!PHQ() || S.m.find || !S.m.hideFn || !S.m.hideFn()) return; S.m = S.q.m.find(m => m.id === 'wave'); }
+function phFixM(){ if (!PHQ() || S.m.find || !S.m.hideFn || !S.m.hideFn()) return; S.m = S.q.m.find(m => m.id === (SPREADQ() ? 'spread' : 'wave')); }
 function phBlock(){ const sp = phSp(), m = S.m, A = phAgg(dispLevel()), ys = A ? A.years : [], y = phYear();
   const L = phListShown(), grp = [...new Set(L.map(s => s.group))];
-  let h = `<div class="phctl"><select id="phsp" aria-label="Species">${PINVM() ? '<option value="">All priority invasives: species per cell</option>' : ''}` + grp.map(g => `<optgroup label="${esc(g)}">` + L.filter(s => s.group === g).map(s => `<option value="${s.key}"${s.key === sp.key ? ' selected' : ''}>${esc(s.common)} (${esc(s.sci)})${(t => t ? ' · ' + fmt(t.all, 0) + (s.kind === 'plant' ? ' flowering records' : ' records') : '')(phTot(s))}</option>`).join('') + '</optgroup>').join('') + '</select>' + (PINVM() ? `<div class="chips pinvm" role="group" aria-label="Show">${S.q.m.filter(x => x.pinv).map(x => `<button type="button" data-pinvm="${x.id}" aria-pressed="${x === S.m}">${esc(x.label)}</button>`).join('')}</div>` : '');
+  let h = `<div class="phctl"><select id="phsp" aria-label="Species">${PINVM() ? '<option value="">All priority invasives: species per cell</option>' : ''}` + grp.map(g => `<optgroup label="${esc(g)}">` + L.filter(s => s.group === g).map(s => `<option value="${s.key}"${s.key === sp.key ? ' selected' : ''}>${esc(s.common)} (${esc(s.sci)})${(t => t ? ' · ' + fmt(t.all, 0) + (s.kind === 'plant' ? ' flowering records' : ' records') : '')(phTot(s))}</option>`).join('') + '</optgroup>').join('') + '</select>' + (PINVM() ? `<div class="chips pinvm" role="group" aria-label="Show">${S.q.m.filter(x => x.pinv && (!x.hideFn || !x.hideFn())).map(x => `<button type="button" data-pinvm="${x.id}" aria-pressed="${x === S.m}">${esc(x.label)}</button>`).join('')}</div>` : '');
   if (m.yr === 'wk'){ h += `<div class="wk"><button type="button" id="phplay">${phTimer ? 'Pause' : 'Play'}</button><input type="range" id="phwk" min="1" max="52" step="1" value="${S.ph.wk}" aria-label="Week of the year"></div><div class="wkl" id="phwkl">${wkLabel(S.ph.wk) + ' · ' + phYrsText()}</div>`;
     /* years before the first one with enough records are left off, so the row stays short */
     const ok = phYearsOk(A || {years:[], yn:{}}), ys2 = ok.length ? ys.filter(v => v >= ok[0]) : ys;
@@ -1263,7 +1312,8 @@ function phSpreadSvg(lv, cells){ const A = phAgg(lv), sp = phSp(); if (!A || !A.
   return `<p class="phflow">${fmt(cum, 0)} cells (${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} each) have records, ${fmt(rows[rows.length - 1].n, 0)} of them first recorded in ${rows[rows.length - 1].y}.</p>` + g + '</svg><div class="phkey"><span class="thin">cells first recorded each year · <i style="background:linear-gradient(90deg,' + phFirstPal().map(e => e[1]).join(',') + ')"></i>earlier to recent</span></div>' + (pre ? `<p class="phstat" style="margin-top:2px">The ’${String(ys[0]).slice(2)} bar includes ${fmt(pre, 0)} ${pre === 1 ? 'cell' : 'cells'} first recorded before ${ys[0]} (the earliest in ${preMin}).</p>` : ''); }
 function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) return ''; const where = S.sec === 'all' ? 'the whole trail' : secName(), noun = phNoun();
   let h = '';
-  {
+  if (SPREADQ()) h += phRangeBlock(dispLevel());
+  else {
     h += `<h4 class="phh">When it is ${sp.kind === 'plant' ? 'in flower' : sp.kind === 'adult' ? 'out as adults' : 'recorded'} along the trail${S.m.yr === 'wk' && phYear('wheel') ? ', ' + phYear('wheel') : S.m.yr === 'wk' && phSelText() ? ', ' + esc(phSelText()) : ', all years'}</h4>` + phCalendar() +
       `<details class="phabout" data-phab="cal"${S.ph.ab && S.ph.ab.cal ? ' open' : ''}><summary>About this graph</summary><p class="phnote">${sp.kind === 'plant' ? 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks. Brighter boxes: more flowering records that week, against the stretch’s busiest week, so each stretch shows its season start, peak and end, and the peak moves north.' : 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks.'} Click a week to map it.</p></details>`;
    }
@@ -1324,6 +1374,7 @@ function phSum(lv, rows, where){ const m = S.m, n0 = rows.length, A = phAgg(lv),
     if (!wk.length) return h + `<p class="statline">None of the ${fmt(n0, 0)} cells with records had any in the three weeks around ${esc(wkDate(S.ph.wk))}${phYear() ? ' in ' + phYear() : ''}. Press Play or pick another week.</p>`;
     h += selAllBtn(lv, wk.map(r => r[0]), `${sp.common}, ${wkDate(S.ph.wk)}`);
     return h + rank(typeof m.sumTitle === 'function' ? m.sumTitle() : m.sumTitle, wk, m.showFn); }
+  if (m.id === 'share') rows = rows.filter(r => r[1] > 0);
   rows.sort((a, b) => m.asc ? a[1] - b[1] || L(a) - L(b) : b[1] - a[1] || L(a) - L(b));
   h += selAllBtn(lv, rows.map(r => r[0]), m.label);
   return h + rank(typeof m.sumTitle === 'function' ? m.sumTitle() : m.sumTitle, rows, m.showFn); }
@@ -1668,9 +1719,14 @@ const Q = [
   m:[{id:'spread', label:'Year first recorded', yr:'y', hasTxt:() => phYear() ? `had a record by ${phYear()}` : 'have records', sumFn:phSum, asc:1, sumTitle:() => phYear() ? `Recorded by ${phYear()}, earliest first` : 'Recorded earliest', d:0, none:'No records (yet)', showFn:v => 'first recorded ' + v, fn:(lv, c) => phFirst(lv, c), colorFn:phFirstCol,
       stripH:v => { const A = phAgg('wheel'); return A && A.years.length ? Math.max(.3, A.years[A.years.length - 1] + 1 - v) : 1; }, stripTop:() => { const A = phAgg('wheel'); return A && A.years.length ? A.years.length + 1 : 1; },
       legendFn:lv => phFirstPal().map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${phYear(lv) ? 'Cells with a record by ' + phYear(lv) + ', by the year of the first one.' : 'The year of the first record in each cell.'} Bars under the map are taller where it has been known longer.</p>`},
-     {id:'wave', get label(){ const k = phSp().kind; return k === 'plant' ? 'Flowering, week by week' : k === 'adult' ? 'Adults, week by week' : 'Records, week by week'; },
+     {id:'wave', hideFn:() => SPREADQ(), get label(){ const k = phSp().kind; return k === 'plant' ? 'Flowering, week by week' : k === 'adult' ? 'Adults, week by week' : 'Records, week by week'; },
       yr:'wk', st:() => phMain(), hasTxt:() => 'have records of this species', sumFn:phSum, sumTitle:() => `Most ${PHWORD[S.m.st()] === 'records' ? '' : PHWORD[S.m.st()] + ' '}records around ${wkDate(S.ph.wk)}${phYear() ? ', ' + phYear() : ''}`, showFn:v => `${v} ${v === 1 ? 'record' : 'records'}`, int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'], fn:(lv, c) => phWin(lv, c, phMain()),
       colorFn:phWaveCol, legendFn:phWaveLegend, stripTop:lv => phTop(lv, phMain())},
+     {id:'share', get label(){ return phSp().set === 'pinv' ? 'Share of plant records, by year' : 'Share of records, by year'; }, yr:'y', hideFn:() => !SPREADQ(),
+      hasTxt:() => `have enough ${phSp().set === 'pinv' ? 'plant ' : ''}records${phYear() ? ' in ' + phYear() : ''} to tell`, sumFn:phSum,
+      sumTitle:() => `Highest share of ${phSp().set === 'pinv' ? 'plant ' : ''}records${phYear() ? ', ' + phYear() : ', 2010 on'}`, d:1, zero:1,
+      none:'Too few records to tell', showFn:v => phShTxt(v), fn:(lv, c) => phShare(lv, c), colorFn:v => phShCol(v),
+      stripH:v => Math.min(v, 10), stripTop:() => 10, legendFn:lv => phShLegend(lv)},
      {id:'onset', get label(){ return `First ${phNoun()} date`; }, hasTxt:() => `have 5 or more ${phNoun()} records, enough to date`, sumFn:phSum, asc:1, sumTitle:() => `Earliest first ${phNoun()} dates`, hideFn:() => phSp().kind === 'spread', d:0, none:'Fewer than 5 records', showFn:v => doyDate(v),
       fn:(lv, c) => { const A = phAgg(lv); return A ? A.on[c] : null; }, colorFn:phDateCol, stripH:v => Math.max(1, v - 60), stripTop:() => 180,
       legendFn:() => phDateLegend(`Onset: the date of the earliest 10% of ${phNoun()} records in each cell, all years together. Cells need 5 or more records; larger cells fill in more.`)},
@@ -1712,7 +1768,7 @@ for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
     use:'Where forest pests have been recorded along the trail and in which weeks, from research-grade iNaturalist records: spotted lanternfly, emerald ash borer, hemlock woolly adelgid, elongate hemlock scale, spongy moth, beech leaf disease, and others with 100 or more records, most recorded first. Press Play to watch the year; Year first recorded shows the spread. Records follow hikers, so a blank cell means nothing reported, not absence.'})); }
 /* the spread measures for one priority invasive live inside the invasives question; they open from its Priority invasives measure */
 { const inv = Q.find(q => q.id === 'inv'), ph = Q.find(q => q.id === 'phen');
-  if (inv && ph) ph.m.filter(m => m.id === 'spread' || m.id === 'wave').forEach(m => inv.m.push(Object.create(m, {pinv:{value:true}}))); }
+  if (inv && ph) ph.m.filter(m => m.id === 'spread' || m.id === 'share').forEach(m => inv.m.push(Object.create(m, {pinv:{value:true}}))); }
 { const ord = ['rest','veg','inv','pinv','rec','pest','phen','bird','pri','soil','wet','feat','hist','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));

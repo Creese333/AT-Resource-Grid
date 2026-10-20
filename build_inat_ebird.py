@@ -299,7 +299,10 @@ def vernacular(spp, keys, budget=25 * 60):
 def new_cell(kind):
     return {'n': 0, 'users': set(), 'units': set(), 'spp': defaultdict(int), 'inc': defaultdict(set) if kind == 'inat' else defaultdict(int),
             'last': '', 'recent': 0, 'grp': defaultdict(set), 'gobs': defaultdict(int), 'inv': defaultdict(int), 'pest': defaultdict(int),
-            'nonnat': set(), 'nnplant': set(), 'breed': set()}
+            'nonnat': set(), 'nnplant': set(), 'breed': set(), 'yr': defaultdict(int), 'pyr': defaultdict(int)}
+
+
+YEARS_FROM = '2010'   # first year counted in OBS_BY_YEAR and PLANT_OBS_BY_YEAR (the dashboard's year buttons start in 2010)
 
 
 def summarize(kind, zpath, grids, names):
@@ -355,6 +358,9 @@ def summarize(kind, zpath, grids, names):
                 if d[:4] >= cutoff: s['recent'] += 1
                 if kind == 'inat':
                     for gg in grp: s['gobs'][gg] += 1
+                    if d[:4].isdigit() and d[:4] >= YEARS_FROM:   # records per year: the effort behind the dashboard's share-of-records measure
+                        s['yr'][d[:4]] += 1
+                        if 'PLANT_SPP' in grp: s['pyr'][d[:4]] += 1
                 if not sp:
                     continue
                 s['spp'][sp] += 1
@@ -402,6 +408,9 @@ def summarize(kind, zpath, grids, names):
                              PEST_LIST=sorted((nm(x) for x in s['pest']), key=str.lower), TOP10_SPECIES=[nm(x) for x, _ in top], TOP10_COUNTS=[k for _, k in top])
                     for gg, _ in GROUPS:
                         v[gg] = len(s['grp'][gg]); v[gg.replace('_SPP', '_OBS')] = s['gobs'][gg]
+                    if not (g == 'huc' and lv == 'hex'):   # [year, records, year, records, ...]; left off the HUC10 square miles to keep that file small
+                        v['OBS_BY_YEAR'] = [x for y in sorted(s['yr']) for x in (int(y), s['yr'][y])]
+                        v['PLANT_OBS_BY_YEAR'] = [x for y in sorted(s['pyr']) for x in (int(y), s['pyr'][y])]
                 else:
                     spp = list(s['spp']); info = {x: (look.get(norm(x)), guild.get(norm(x))) for x in spp}
                     soc = [(x, soc_tags(info[x][0])) for x in spp]; soc = [(x, t) for x, t in soc if t]
