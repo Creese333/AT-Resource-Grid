@@ -2519,15 +2519,11 @@ function invPlantsHTML(entries, ed, lv, cells){ const sp = phSp(), on = sp.set =
   const G = {EDRR:[], Priority:[], Other:[]}; entries.forEach(x => { const t = ed.has(x[0]) ? (pinvTier(sppName(x[0]).sci) || 'Priority') : 'Other'; G[t].push(x); });
   const li = x => { const s = ed.has(x[0]) ? pinvSp(sppName(x[0]).sci) : null; let h = sppItem(x[0], false, true);
     if (x[1] != null) h = h.replace('</li>', `<span class="tag">${nCells(x[1])}</span></li>`);
-    if (s) h = h.replace('</li>', `<button type="button" class="tag maplink" data-pinvsp="${s.key}"${on && on.key === s.key ? ' aria-current="true"' : ''}>${on && on.key === s.key ? 'on the map' : 'map spread'}</button></li>`);
     return h; };
   const list = (arr, lab) => !arr.length ? '' : `<p style="margin-top:8px">${lab}, ${arr.length}:</p><ul class="spp">${arr.slice(0, 15).map(li).join('')}</ul>` +
     (arr.length > 15 ? `<details><summary>${arr.length - 15} more</summary><ul class="spp">${arr.slice(15).map(li).join('')}</ul></details>` : '');
   let b = entries.length ? list(G.EDRR, 'Early detection (EDRR) priority plants') + list(G.Priority, 'Established priority plants') + list(G.Other, 'Other invasive plants')
     : '<p class="none" style="margin-top:8px">No invasive plants reported.</p>';
-  /* the priority plant on the map: its first record and records in these cells, from the weekly download */
-  const A = on && phAgg(lv); if (A){ const cs = cells, first = Math.min(...cs.map(x => A.first[x] == null ? Infinity : A.first[x])), n = cs.reduce((t, x) => t + (A.any[x] || 0), 0);
-    b = `<p class="none" style="font-size:13.5px;margin-top:8px">On the map now: <b style="color:var(--ink,#fff)">${esc(on.common)}</b>, ${n ? `${fmt(n, 0)} research-grade ${n === 1 ? 'record' : 'records'} ${cs.length > 1 ? 'in these cells' : 'here'}, first in ${first}` : `no research-grade records ${cs.length > 1 ? 'in these cells' : 'here'}`} (weekly download).</p>` + b; }
   return b; }
 function sppItem(i, edrr, inat){ const {common, sci, tag} = sppName(i), tx = common ? `${esc(common)} <em>${esc(sci)}</em>` : `<em>${esc(sci)}</em>`;
   let h = `<a href="${wiki(sci)}" target="_blank" rel="noopener" title="Look up ${esc(sci)} on Wikipedia">${tx}</a>`;
