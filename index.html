@@ -800,7 +800,8 @@ document.querySelectorAll('.run').forEach(e => e.textContent = D.run);
 
 /* ---------- data access ---------- */
 const LV = {wheel:{name:'49 sq mi', acres:31360}, cog:{name:'7 sq mi', acres:4480}, hex:{name:'1 sq mi', acres:640}};
-const ROW = {}; if (!D.themes.edd) D.themes.edd = {};
+const HISTTH = () => ({hex:{ix:[], f:{}}, cog:{ix:[], f:{}}, wheel:{ix:[], f:{}}});
+const ROW = {}; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.hist) D.themes.hist = HISTTH();
 for (const th in D.themes){ ROW[th] = {};
   for (const lv in D.themes[th]){ const a = new Int32Array(D.levels[lv].id.length).fill(-1);
     D.themes[th][lv].ix.forEach((c,k) => a[c] = k); ROW[th][lv] = a; } }
@@ -1836,7 +1837,7 @@ const Q = [
      {id:'len', get label(){ return phSp().kind === 'adult' ? 'Adult season length' : 'Flowering season length'; }, hasTxt:() => `have 8 or more ${phNoun()} records, enough for a season length`, sumFn:phSum, sumTitle:() => phSp().kind === 'adult' ? 'Longest adult seasons' : 'Longest flowering seasons', hideFn:() => phSp().kind === 'spread', d:0, unit:' days', none:'Fewer than 8 records',
       showFn:v => `${Math.max(1, Math.round(v / 7))} ${Math.round(v / 7) > 1 ? 'weeks' : 'week'}`, fn:(lv, c) => { const A = phAgg(lv); return A ? A.len[c] : null; }, colorFn:phLenCol, stripTop:() => 70,
       legendFn:() => PHLEN.map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">Duration: from the earliest 10% to the latest 10% of ${phNoun()} records in each cell, all years together. Cells need 8 or more records.</p>`}]},
- {id:'hist', th:'feat', hue:HUE.hist, ramp:'hist', title:'Where are the historic resources?',
+ {id:'hist', th:'hist', hue:HUE.hist, ramp:'hist', title:'Where are the historic resources?',
   use:'National Register properties and OpenStreetMap cemeteries in each cell, with links to Find a Grave. The extent buttons set the scale: A.T. corridor or HUC10 watershed. Recorded sites only: small family cemeteries are often missing.',
   m:[{id:'hany', label:'All historic resources', fn:(lv, c) => hCount(lv, c, 'any'), int:1, hollow0:1, none:'None recorded', noun:['resource','resources'], hasTxt:() => 'have a recorded historic resource'},
      {id:'hnr', label:'National Register properties', fn:(lv, c) => hCount(lv, c, 'nr'), int:1, hollow0:1, none:'None recorded', noun:['property','properties'], hasTxt:() => 'have a National Register property'},
@@ -2037,7 +2038,7 @@ function zoomFade(){ const k = Math.max(0, Math.min(1, (map.getZoom() - FADE_FRO
 const ZCLEAR = new Set(['inat', 'ebird', 'hist', 'feat', 'wet', 'edd']);
 const zClear = m => (!!m.zero && ZCLEAR.has(m.th)) || m.id === 'share';
 const BIGGRID = 15000;
-function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, strong = m.th === 'feat', g = GROUP[lv], big = ps.length > BIGGRID;
+function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, strong = m.th === 'feat' || m.th === 'hist', g = GROUP[lv], big = ps.length > BIGGRID;
   /* each cell's style is set only when it changes; on a big grid a cell with nothing to show leaves the canvas (clicks still find it, see below) */
   const put = (c, st) => { const p = ps[c], k = `${st.fillOpacity}|${st.fillColor}|${st.stroke}|${st.color}|${st.weight}|${st.opacity}`, empty = big && !st.fillOpacity && (!st.stroke || !st.opacity);
     if (empty){ if (!p.atOff){ g.removeLayer(p); p.atOff = true; } return; }
@@ -2087,7 +2088,7 @@ function extLoad(){ if (EXT.huc) return Promise.resolve(); if (extLoading) retur
     return fetch(BIOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(b => { if (b && b.themes) bioHuc(b, H); }).catch(() => {}).then(() => { EXT.huc = H; }); });
   extLoading.catch(() => {}).then(() => { extLoading = null; });
   return extLoading; }
-function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {};
+function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
   for (const th in D.themes){ ROW[th] = {}; for (const lv in D.themes[th]){ const a = new Int32Array(D.levels[lv].id.length).fill(-1); D.themes[th][lv].ix.forEach((c,k) => a[c] = k); ROW[th][lv] = a; } }
   for (const lv in D.levels){ const m = new Map(); D.levels[lv].id.forEach((id,i) => m.set(id,i)); IDX[lv] = m; }
   BRK.clear(); for (const k in COVER) delete COVER[k]; for (const k in RINGS) delete RINGS[k]; }
@@ -2449,7 +2450,7 @@ function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3><button type="b
       if (top.length > 8) h += `<p class="sub">and ${top.length - 8} more types, shaded by land cover group. Point to a cell for its name.</p>`; }
     else CATCOL[m.f].forEach(e => { if (present.has(e[0])) h += `<div class="row"><i style="background:${e[1]}"></i><span>${esc(e[2] || e[0])}</span></div>`; });
   } else if (m.legendFn){ h += m.legendFn(lv); } else { const B = breaks(m, lv), u = m.unit || '', st = m.int ? 1 : 0;
-    if (m.zero) h += `<div class="row"><i style="${zClear(m) ? 'background:transparent;box-shadow:inset 0 0 0 1px #8A97A6' : 'background:' + ZERO}"></i><span>${m.th === 'veg' ? 'None mapped' : m.th === 'soil' || m.th === 'feat' ? 'None' : m.th === 'wet' ? (m.zeroText || 'None mapped') : 'None reported'}</span></div>`;
+    if (m.zero) h += `<div class="row"><i style="${zClear(m) ? 'background:transparent;box-shadow:inset 0 0 0 1px #8A97A6' : 'background:' + ZERO}"></i><span>${m.th === 'veg' ? 'None mapped' : m.th === 'soil' || m.th === 'feat' || m.th === 'hist' ? 'None' : m.th === 'wet' ? (m.zeroText || 'None mapped') : 'None reported'}</span></div>`;
     B.cols.forEach((col,i) => { let t; const lo = i === 0 ? B.min : B.b[i-1] + st, hi = i < B.b.length ? B.b[i] : B.max;
       if (m.int) t = lo >= hi ? fmt(hi,0) : `${fmt(lo,0)} to ${fmt(hi,0)}`;
       else t = i === 0 ? `up to ${fmt(hi,m.d)}${u}` : i === B.cols.length-1 ? `over ${fmt(B.b[i-1],m.d)}${u}` : `${fmt(B.b[i-1],m.d)} to ${fmt(hi,m.d)}${u}`;
