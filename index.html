@@ -1100,7 +1100,7 @@ function phAgg(lv){ const sp = phSp(), st = PHD[sp.key]; if (!st || st.st !== 'd
   const n = D.levels[lv].id.length, ms = phMain(sp), cnt = sp.kind === 'plant' ? 0 : 5, seen = new Set();
   A = PHAGG[key] = {lev:D.levels[lv], yn:{}, placed:0, pre:0, preMin:null, any:new Uint16Array(n), first:new Array(n).fill(null), w:{}, y:{}, d:{}, mx:{}, ymx:{}};
   for (const s of PHST){ A.w[s] = new Uint16Array(n * 53); A.d[s] = new Map(); }
-  for (const [d, y, s, la, lo, id] of st.pts){ if (s === 2) continue; const c = phCell(lv, la, lo); if (c < 0) continue; const w = wkOf(d);
+  for (const [d, y, s, la, lo, id] of st.pts){ if (s === 2 || sp.pest && y < PHY0) continue; const c = phCell(lv, la, lo); if (c < 0) continue; const w = wkOf(d);
     if (cnt ? s === cnt : !seen.has(id)){ A.placed++; seen.add(id); } A.any[c]++; if (A.first[c] == null || y < A.first[c]) A.first[c] = y;
     if (s === ms && y < PHY0){ A.pre++; if (A.preMin == null || y < A.preMin) A.preMin = y; }
     A.w[s][c*53 + w]++;
@@ -1109,7 +1109,7 @@ function phAgg(lv){ const sp = phSp(), st = PHD[sp.key]; if (!st || st.st !== 'd
     let L = A.d[s].get(c); if (!L) A.d[s].set(c, L = []); L.push([d, y]); }
   /* EDDMapS reports: where and when first recorded, and the range by year; not in the weekly or share counts */
   A.eany = new Uint16Array(n); A.ey = {}; A.eyn = {}; A.eplaced = 0;
-  for (const [d, y, la, lo] of (st.edd || [])){ const c = phCell(lv, la, lo); if (c < 0) continue; A.eplaced++; A.eany[c]++; if (A.first[c] == null || y < A.first[c]) A.first[c] = y;
+  for (const [d, y, la, lo] of (st.edd || [])){ if (y < PHY0) continue; const c = phCell(lv, la, lo); if (c < 0) continue; A.eplaced++; A.eany[c]++; if (A.first[c] == null || y < A.first[c]) A.first[c] = y;
     if (y >= PHY0){ (A.ey[y] || (A.ey[y] = new Uint32Array(n)))[c]++; A.eyn[y] = (A.eyn[y] || 0) + 1; } }
   const cells = []; for (let c = 0; c < n; c++) if (A.any[c]) cells.push(c);
   const ys = Object.keys(A.y).map(Number).sort((p, q) => p - q), yu = [...new Set([...ys, ...Object.keys(A.ey).map(Number)])].sort((p, q) => p - q);
@@ -1218,7 +1218,7 @@ function phStatus(){ const sp = phSp(), st = PHD[sp.key];
   const what = sp.kind === 'plant' ? `${fmt(T ? T.all : 0, 0)} flowering research-grade records${split} and ${n(3)} in bud`
     : `${fmt(T ? T.all : 0, 0)} research-grade records${split}` + (sp.kind === 'adult' ? `, ${n(4)} marked adult` : '');
   const nid = st.nid ? ` <a href="https://www.inaturalist.org/observations?${ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : ''}taxon_id=${st.taxon}&quality_grade=needs_id" target="_blank" rel="noopener">${fmt(st.nid, 0)} more ${st.nid === 1 ? 'observation needs' : 'observations need'} ID</a> and ${st.nid === 1 ? 'is' : 'are'} not mapped.` : '';
-  return `${what}. ${fmt(A ? A.placed : 0, 0)} of the mapped records fall in ${S.ext === 'huc' ? 'watershed' : 'corridor'} cells.${A && A.eplaced ? ` Plus ${fmt(A.eplaced, 0)} EDDMapS ${A.eplaced === 1 ? 'report' : 'reports'} in those cells, which count toward first recorded and the range${st.eddDup ? `; ${fmt(st.eddDup, 0)} more ${st.eddDup === 1 ? 'matches an iNaturalist record' : 'match iNaturalist records'} (same day or next, within 50 m) and ${st.eddDup === 1 ? 'is' : 'are'} counted once` : ''}.` : ''}${nid} ${st.built ? `From the weekly download of ${new Date(st.built).toLocaleDateString('en-US')}${st.added ? `, plus ${fmt(st.added, 0)} newer ${st.added === 1 ? 'record' : 'records'} from iNaturalist` : ''}${st.topErr ? ' (iNaturalist could not be reached for newer records)' : ''}.` : `Loaded from iNaturalist ${new Date(st.at).toLocaleDateString('en-US')}.`} <button type="button" data-phref="1">Refresh</button>`; }
+  return `${what}. ${fmt(A ? A.placed : 0, 0)} of the mapped records fall in ${S.ext === 'huc' ? 'watershed' : 'corridor'} cells${sp.pest ? ` (from ${PHY0} on; earlier records are left out)` : ''}.${A && A.eplaced ? ` Plus ${fmt(A.eplaced, 0)} EDDMapS ${A.eplaced === 1 ? 'report' : 'reports'} in those cells, which count toward where it has been recorded and the range${st.eddDup ? `; ${fmt(st.eddDup, 0)} more ${st.eddDup === 1 ? 'matches an iNaturalist record' : 'match iNaturalist records'} (same day or next, within 50 m) and ${st.eddDup === 1 ? 'is' : 'are'} counted once` : ''}.` : ''}${nid} ${st.built ? `From the weekly download of ${new Date(st.built).toLocaleDateString('en-US')}${st.added ? `, plus ${fmt(st.added, 0)} newer ${st.added === 1 ? 'record' : 'records'} from iNaturalist` : ''}${st.topErr ? ' (iNaturalist could not be reached for newer records)' : ''}.` : `Loaded from iNaturalist ${new Date(st.at).toLocaleDateString('en-US')}.`} <button type="button" data-phref="1">Refresh</button>`; }
 /* under the year buttons: the button counts that year's records; the map shows every cell recorded by the end of the year */
 function phYrNote(){ if (S.m.id === 'share') return phShNote(); const lv = dispLevel(), A = phAgg(lv), y = phYear(lv);
   if (!A || !y) return '';
@@ -1348,7 +1348,24 @@ function phCalendar(){ const sp = phSp(), A = phAgg('wheel'); if (!A) return '';
   g += `<text x="${lab - 4}" y="${f(rows.length * rh + 12)}" text-anchor="end" font-size="7.5" fill="#A8B8CA">▼ Georgia</text></g></svg>`;
   const key = `<div class="phkey"><span><i style="background:linear-gradient(90deg,${ramp.join(',')})"></i>${plant ? 'flowering' : ms === 4 ? 'adult' : 'all'} records, few to most in that stretch</span></div>`;
   return g + key; }
-function phSpreadSvg(lv, cells){ const A = phAgg(lv), sp = phSp(); if (!A || !A.years.length) return ''; const ys = A.years, nw = new Map();
+/* cells with a record by each year (a running total), each bar in its year's color; the year shown is outlined */
+function phSpreadSvg(lv, cells){ const A = phAgg(lv); if (!A || !A.years.length) return ''; const ys = A.years, sel = S.m.yr ? phYear(lv) : 0;
+  const fy = cells.map(c => A.first[c]).filter(v => v != null); if (!fy.length) return '<p class="phstat">No records in these cells yet.</p>';
+  const rows = ys.map(y => ({y, n:fy.filter(v => v <= y).length, add:fy.filter(v => v === y).length})), cur = rows.find(r => r.y === sel) || rows[rows.length - 1];
+  const mx0 = Math.max(1, rows[rows.length - 1].n), stp = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000].find(s => mx0 / s <= 4) || 10000, mx = Math.ceil(mx0 / stp) * stp;
+  const W = 320, H = 130, pl = 30, pr = 6, pt = 12, pb = 18, pw = W - pl - pr, ph = H - pt - pb, bw = pw / ys.length;
+  const X = i => pl + bw * i + bw / 2, Y = v => pt + ph - ph * v / mx, f = v => v.toFixed(1), digits = String(rows[rows.length - 1].n).length;
+  let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Cells with records by year">`;
+  for (let v = 0; v <= mx; v += stp) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="${v ? '#2E4460' : '#4A6182'}" stroke-width="${v ? .6 : .9}"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${fmt(v, 0)}</text>`;
+  rows.forEach((r, i) => { if (!r.n) return; const y0 = Y(r.n), on = r === cur && sel;
+    g += `<rect x="${f(pl + bw * i + 1)}" y="${f(y0)}" width="${f(Math.max(1, bw - 2))}" height="${f(Y(0) - y0)}" fill="${phFirstCol(r.y)}" stroke="${on ? '#FFFFFF' : '#FDE0C4'}" stroke-opacity="${on ? 1 : .35}" stroke-width="${on ? 2 : .6}" opacity="${sel && r.y > sel ? .25 : 1}"/>`;
+    if (bw * 1.1 >= 6 * digits || r === cur) g += `<text x="${f(X(i))}" y="${f(y0 - 2.5)}" text-anchor="middle" font-size="8" fill="${r === cur ? '#FFFFFF' : '#E3EAF2'}"${r === cur ? ' font-weight="700"' : ''}>${fmt(r.n, 0)}</text>`; });
+  const every = ys.length > 12 ? 2 : 1;
+  rows.forEach((r, i) => { if (i % every === 0 || i === ys.length - 1 || r.y === sel) g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${r.y === sel ? '#FFE014' : '#A8B8CA'}"${r.y === sel ? ' font-weight="700"' : ''}>’${String(r.y).slice(2)}</text>`;
+    g += `<rect x="${f(pl + bw * i)}" y="${pt}" width="${f(bw)}" height="${ph + pb}" fill="transparent" pointer-events="none"><title>${r.y}: ${fmt(r.n, 0)} ${r.n === 1 ? 'cell' : 'cells'} with a record by then, ${fmt(r.add, 0)} of them first recorded that year</title></rect>`; });
+  return `<p class="phflow">By ${cur.y}, ${fmt(cur.n, 0)} ${cur.n === 1 ? 'cell' : 'cells'} (${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} each) had a record, ${fmt(cur.add, 0)} of them first recorded that year.</p>` + g +
+    '</svg><div class="phkey"><span class="thin">cells with a record by each year · <i style="background:linear-gradient(90deg,' + phFirstPal().map(e => e[1]).join(',') + ')"></i>earlier to recent</span></div>'; }
+function phSpreadSvgOld(lv, cells){ const A = phAgg(lv), sp = phSp(); if (!A || !A.years.length) return ''; const ys = A.years, nw = new Map();
   let pre = 0, preMin = null; for (const c of cells){ let y = A.first[c]; if (y == null) continue; if (y < ys[0]){ pre++; if (preMin == null || y < preMin) preMin = y; continue; } nw.set(y, (nw.get(y) || 0) + 1); }
   let cum = pre; const rows = ys.map(y => ({y, n:nw.get(y) || 0, t:(cum += nw.get(y) || 0)}));
   if (!cum) return '<p class="phstat">No records in these cells yet.</p>';
@@ -1373,7 +1390,7 @@ function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) retu
    }
   { const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
     const sv = phSpreadSvg(lv, cells), m1 = sv.match(/^<p class="phflow">[\s\S]*?<\/p>/), rest = m1 ? sv.slice(m1[0].length) : sv, m2 = rest.match(/<p class="phstat" style="margin-top:2px">[\s\S]*?<\/p>$/);
-    h += `<h4 class="phh">Spread: cells first recorded each year, ${esc(where)}</h4>` + (m2 ? rest.slice(0, -m2[0].length) : rest) +
+    h += `<h4 class="phh">Cells with records, by year, ${esc(where)}</h4>` + (m2 ? rest.slice(0, -m2[0].length) : rest) +
       sumD('vsums', (m1 ? m1[0] : '') + (m2 ? m2[0] : '') + '<p class="phnote">Records follow hikers, so a first record marks when it was noticed, not when it arrived.</p>'); }
   return h; }
 /* the cell panel: records by week by stage, and the cell's season */
@@ -3094,10 +3111,10 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
     const la0 = Math.min(...ll.map(p => p[0])), la1 = Math.max(...ll.map(p => p[0])), lo0 = Math.min(...ll.map(p => p[1])), lo1 = Math.max(...ll.map(p => p[1]));
     const STG = {1:'flowering', 3:'in bud', 5:'record'}, dt = (y, d) => { const t = new Date(y, 0, d); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
     loaded.forEach(sp => { const by = new Map();
-      PHD[sp.key].pts.forEach(([d, y, st, la, lo, id]) => { if (!STG[st] || la < la0 || la > la1 || lo < lo0 || lo > lo1) return; const k = cells.findIndex((c, i) => inRingLL(la, lo, rings[i])); if (k < 0) return;
+      PHD[sp.key].pts.forEach(([d, y, st, la, lo, id]) => { if (!STG[st] || sp.pest && y < PHY0 || la < la0 || la > la1 || lo < lo0 || lo > lo1) return; const k = cells.findIndex((c, i) => inRingLL(la, lo, rings[i])); if (k < 0) return;
         const c = cells[k]; (sp.set === 'pinv' ? out.pinvRec : sp.pest ? out.pestRec : out.phenRec).push({grid_id:L_.id[c], trail_mile:L_.mi[c], species:sp.common, scientific_name:sp.sci, ...(sp.pest ? {} : {stage:STG[st]}), observed_on:dt(y, d), latitude:la, longitude:lo, inaturalist_url:id ? 'https://www.inaturalist.org/observations/' + id : '', ...(sp.pest ? {source:'iNaturalist', eddmaps_url:''} : {})});
         if (!by.has(c)) by.set(c, {fl:[], bud:0, all:0, first:null, last:null}); const e = by.get(c); e.all++; if (e.first == null || y < e.first) e.first = y; if (e.last == null || y > e.last) e.last = y; if (st === 1 || st === 5) e.fl.push(d); else if (st === 3) e.bud++; });
-      (sp.pest ? PHD[sp.key].edd || [] : []).forEach(([d, y, la, lo, id]) => { if (la < la0 || la > la1 || lo < lo0 || lo > lo1) return; const k = cells.findIndex((c, i) => inRingLL(la, lo, rings[i])); if (k < 0) return; const c = cells[k];
+      (sp.pest ? PHD[sp.key].edd || [] : []).forEach(([d, y, la, lo, id]) => { if (y < PHY0 || la < la0 || la > la1 || lo < lo0 || lo > lo1) return; const k = cells.findIndex((c, i) => inRingLL(la, lo, rings[i])); if (k < 0) return; const c = cells[k];
         (sp.set === 'pinv' ? out.pinvRec : out.pestRec).push({grid_id:L_.id[c], trail_mile:L_.mi[c], species:sp.common, scientific_name:sp.sci, observed_on:dt(y, d), latitude:la, longitude:lo, inaturalist_url:'', source:'EDDMapS', eddmaps_url:'https://www.eddmaps.org/distribution/point.cfm?id=' + id});
         if (!by.has(c)) by.set(c, {fl:[], bud:0, all:0, first:null, last:null}); const e = by.get(c); e.edd = (e.edd || 0) + 1; if (e.first == null || y < e.first) e.first = y; if (e.last == null || y > e.last) e.last = y; });
       if (sp.pest){ [...by].sort((a, b) => L_.mi[a[0]] - L_.mi[b[0]]).forEach(([c, e]) => (sp.set === 'pinv' ? out.pinv : out.pest).push({grid_id:L_.id[c], cell_size:LV[lv].name, trail_mile:L_.mi[c], species:sp.common, scientific_name:sp.sci,
