@@ -830,7 +830,7 @@ const RAMP = {
   wet:['#D2F1F7','#9EE0EE','#5CC8DF','#1FA9C9','#0E6680'],
   rest:['#E8A097','#D0605B','#AE2C35','#821225','#4C0613'],
   phen:['#FFF06A','#FFE014','#F2C200','#C99A00','#8A6800'],
-  hist:['#EFE6D2','#D8C59C','#BCA06A','#957B45','#5C4A25']
+  hist:['#E2CFA4','#CBAE74','#AE8D4E','#876A33','#5A4622']
 };
 const ZERO = '#E3E7E1';
 const CATCOL = {
@@ -2049,7 +2049,7 @@ function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv]
     if (m.colorFn === phWaveCol){ const on = v != null && v > 0, col = on ? phWaveCol(v) : null;
       put(c, on ? {fill:true, fillColor:col, fillOpacity:ins ? .95 : .15, stroke:true, color:tiny ? col : '#3A2600', weight:tiny ? 1.2 : lv === 'hex' ? .8 : 1.1, opacity:ins ? .95 : .2}
         : {fill:true, fillOpacity:0, stroke:false}); continue; }
-    if (v == null || (v === 0 && zClear(m))) put(c, {fill:true, fillOpacity:0, stroke:!tiny, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
+    if (v == null || (v === 0 && zClear(m))) put(c, {fill:true, fillOpacity:0, stroke:!tiny, color:DARKBASE[S.base] ? '#C9D3CC' : strong ? '#5F6E66' : '#7F8C84', weight:strong ? .8 : .5, opacity:ins ? (strong ? .7 : .4) : .12});
     else if (strong) put(c, {fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : .9) * Math.max(zf, .85), stroke:true, color:'#0B2410', weight:lv === 'hex' ? 1.6 : 2, opacity:ins ? 1 : .2});
     else put(c, {fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf, stroke:true, color:tiny ? colorOf(m, lv, v) : '#fff', weight:w, opacity:tiny ? (!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf : ins ? .9 : .2}); } }
 function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
