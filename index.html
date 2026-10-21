@@ -1194,9 +1194,11 @@ function phCtl(){ const r = $('#phwk'), l = $('#phwkl'), b = $('#phplay'), y = p
   document.querySelectorAll('[data-phyr]').forEach(x => { const v = +x.dataset.phyr; x.setAttribute('aria-pressed', v ? sel.includes(v) : !sel.length); x.classList.toggle('now', multi && sel.length > 1 && v === y); });
   phTick(); }
 /* the year ticker on the map while a week or year view is showing */
-function phTick(){ let t = document.getElementById('phtick'); const on = PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
+function phTick(){ let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', on = acq || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
   if (!t){ if (!on) return; t = document.createElement('div'); t.id = 'phtick'; t.setAttribute('aria-live', 'off'); document.getElementById('map').appendChild(t); }
-  if (!on){ t.style.display = 'none'; return; } const y = phYear(), A = phAgg(dispLevel()), ys = A.years, span = ys.length ? ys[0] + '–' + String(ys[ys.length - 1]).slice(2) : 'All years';
+  if (!on){ t.style.display = 'none'; return; }
+  if (acq){ t.innerHTML = `<b>by ${S.acqYr || ACQ.y1}</b><span>A.T. land protected so far</span>`; t.style.display = 'block'; phTickPos(); return; }
+  const y = phYear(), A = phAgg(dispLevel()), ys = A.years, span = ys.length ? ys[0] + '–' + String(ys[ys.length - 1]).slice(2) : 'All years';
   let big, small;
   if (S.m.id === 'spread'){ big = y ? 'by ' + y : span; small = y ? 'cells with records so far' : 'year first recorded'; }
   else if (S.m.id === 'share'){ big = y || '2010–' + String(ys[ys.length - 1]).slice(2); small = `share of ${phSp().set === 'pinv' ? 'plant ' : ''}records${y ? ' that year' : ', all years'}`; }
@@ -2322,7 +2324,7 @@ function acqLoad(){ if (ACQ) return; ACQ = {st:'loading', n:0};
     ACQ.brk = {}; for (const lv of lvs){ const a = [...acqCum(lv, y1)].filter(v => v >= 1).sort((p, q) => p - q), q = f => a[Math.min(a.length - 1, Math.floor(f * a.length))];
       let b = a.length ? [.35, .6, .8, .93].map(f => Math.max(1, Math.round(niceNum(q(f))))) : []; b = b.filter((v, i) => i === 0 || v > b[i - 1]); ACQ.brk[lv] = b; }
     { const a = [...acqCum('wheel', y1)].filter(v => v >= 1).sort((p, q) => p - q); ACQ.stripMax = a.length ? a[Math.min(a.length - 1, Math.floor(.95 * a.length))] : 1; }
-    if (S.q.id === 'land' && S.m.id === 'acq'){ BRK.clear(); redraw(); side(); } })()
+    if (S.q.id === 'land' && S.m.id === 'acq'){ BRK.clear(); redraw(); side(); phTick(); } })()
   .catch(e => { ACQ = {st:'error', msg:e.message}; if (S.q.id === 'land' && S.m.id === 'acq') side(); }); }
 function acqCum(lv, y){ const key = lv + y; if (ACQ.cum[key]) return ACQ.cum[key]; const n = D.levels[lv].id.length, a = new Float64Array(n);
   ACQ.cy[lv].forEach((Y, c) => { let t = 0; Y.forEach((ac, yy) => { if (yy <= y) t += ac; }); a[c] = t; }); return ACQ.cum[key] = a; }
@@ -2361,7 +2363,7 @@ function acqChart(){ if (!ACQ || ACQ.st !== 'done') return '<p class="phstat">Th
   return `<h4 class="phh">Acres conveyed each year, the whole trail</h4><p class="phflow">By ${sel}, ${fmt(Math.round(cum[i]), 0)} acres in ${fmt(byN, 0)} tracts (${Math.round(100 * cum[i] / tot)}% of the dated acres); ${fmt(Math.round(per[i]), 0)} acres in ${sel} itself.</p>` + g + '</svg>' +
     `<div class="phkey"><span class="thin"><i style="background:${RAMP.land[2]}"></i>acres conveyed that year · <i style="background:#E8C7D8"></i>running total (right axis)</span></div>`; }
 function acqFrame(full){ const y = S.acqYr, l = $('#acqyl'), r = $('#acqyr'), v = $('#acqviz'); if (l) l.textContent = 'By ' + y; if (r) r.value = y;
-  if (v) v.innerHTML = acqChart(); BRK.clear(); restyle(); strip(); legend(); if (full) side(); }
+  if (v) v.innerHTML = acqChart(); BRK.clear(); restyle(); strip(); legend(); phTick(); if (full) side(); }
 function acqPlay(on){ if (acqTimer){ clearInterval(acqTimer); acqTimer = null; }
   if (on && ACQ && ACQ.st === 'done'){ if (S.acqYr >= ACQ.y1) S.acqYr = ACQ.y0 - 1;
     acqTimer = setInterval(() => { if (S.q.id !== 'land' || S.m.id !== 'acq'){ clearInterval(acqTimer); acqTimer = null; return; }   /* another measure was picked */
