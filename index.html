@@ -1197,7 +1197,8 @@ function phCtl(){ const r = $('#phwk'), l = $('#phwkl'), b = $('#phplay'), y = p
 function phTick(){ let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', on = acq || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
   if (!t){ if (!on) return; t = document.createElement('div'); t.id = 'phtick'; t.setAttribute('aria-live', 'off'); document.getElementById('map').appendChild(t); }
   if (!on){ t.style.display = 'none'; return; }
-  if (acq){ t.innerHTML = `<b>by ${S.acqYr || ACQ.y1}</b><span>A.T. land protected so far</span>`; t.style.display = 'block'; phTickPos(); return; }
+  if (acq){ const yy = S.acqYr || ACQ.y1; let ac = 0; ACQ.by.forEach((e, y) => { if (y <= yy) ac += e.ac; });
+    t.innerHTML = `<b>by ${yy}</b><span>${fmt(Math.round(ac), 0)} acres of A.T. land protected</span>`; t.style.display = 'block'; phTickPos(); return; }
   const y = phYear(), A = phAgg(dispLevel()), ys = A.years, span = ys.length ? ys[0] + '–' + String(ys[ys.length - 1]).slice(2) : 'All years';
   let big, small;
   if (S.m.id === 'spread'){ big = y ? 'by ' + y : span; small = y ? 'cells with records so far' : 'year first recorded'; }
