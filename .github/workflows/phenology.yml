@@ -1,6 +1,7 @@
 # Pre-builds the iNaturalist records behind "When does it flower here?" and "Where are forest pests turning up?"
 # (phen/index.json and one phen/<species>.json per species), so the dashboard loads them from the site instead of
 # paging through the iNaturalist API in every visitor's browser. The dashboard still asks iNaturalist for anything newer.
+# Priority invasives and forest pests also get their EDDMapS reports (public EDDMapS points service), less iNaturalist duplicates.
 # Runs every Monday, or press "Run workflow" on the Actions tab. No secrets needed.
 name: Phenology and forest pests
 
