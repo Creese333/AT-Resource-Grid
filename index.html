@@ -318,6 +318,7 @@ ol.spp.top10 li::marker{color:var(--muted);font-size:13.5px}
 .spp .tag{font-size:13px;border:1px solid var(--line);border-radius:3px;padding:0 4px;margin-left:4px;color:var(--muted);white-space:nowrap}
 .spp .tag{background:rgba(10,19,31,.45)}
 .tag.edd{border-color:#C9A15A;color:#F1D7A6}.badge.edd{background:rgba(201,161,90,.25)}
+details.eddd{margin-top:8px}details.eddd>summary{cursor:pointer;font-size:14px}.eddt{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:4px}.eddt th{font-weight:500;color:var(--muted);text-align:left;padding:2px 6px 2px 0;border-bottom:1px solid var(--line)}.eddt td{padding:3px 6px 3px 0;border-bottom:1px solid var(--line);vertical-align:top}.eddt .n{text-align:right;white-space:nowrap}.eddt .yr{color:var(--muted);font-size:12.5px}
 .spp .edrr{border-color:#F08A55;color:#FFC9A8}
 details{margin-top:6px}
 summary{cursor:pointer;font-size:14px;color:var(--blaze)}
@@ -881,6 +882,17 @@ function invSrc(lv, cells){ const e = new Set(), n = new Set();
   return {e, n}; }
 function srcTag(i, T){ return !T.e.has(i) ? '' : T.n.has(i) ? '<span class="tag edd" title="Reported on iNaturalist and in EDDMapS">iNat + EDDMapS</span>' : '<span class="tag edd" title="Reported in EDDMapS only">EDDMapS</span>'; }
 function srcItem(i, T, ed, tail){ return sppItem(i, ed, !T.e.has(i) || T.n.has(i)).replace('</li>', srcTag(i, T) + (tail || '') + '</li>'); }
+/* EDDMapS by species for these cells: reports, infested acres (each spot once, at its latest report with an area) and the latest abundance */
+function eddDet(lv, cells){ const m = new Map();
+  cells.forEach(c => (val('edd','EDD_SPP_DETAIL',lv,c) || []).forEach(([i, n, ac, ab, ay]) => { let e = m.get(i); if (!e) m.set(i, e = {n:0, ac:0, hasAc:false, ab:null, ay:0});
+    e.n += n || 0; if (ac != null){ e.ac += ac; e.hasAc = true; } if (ab && (ay || 0) >= e.ay){ e.ab = ab; e.ay = ay || 0; } }));
+  return m; }
+const acFmt = v => v < 0.01 ? 'under 0.01' : fmt(v, v < 10 ? 2 : v < 100 ? 1 : 0);
+function eddDetail(lv, cells){ const m = eddDet(lv, cells); if (!m.size) return '';
+  const rows = [...m].sort((a, b) => b[1].ac - a[1].ac || b[1].n - a[1].n || D.spp[a[0]].localeCompare(D.spp[b[0]]));
+  return `<details class="eddd" open><summary>EDDMapS by species</summary><table class="eddt"><thead><tr><th>Species</th><th class="n">Reports</th><th class="n">Infested acres</th><th>Latest abundance</th></tr></thead><tbody>` +
+    rows.map(([i, e]) => { const p = sppName(i); return `<tr><td>${esc(p.common || p.sci)}</td><td class="n">${fmt(e.n, 0)}</td><td class="n">${e.hasAc ? acFmt(e.ac) : '–'}</td><td>${e.ab ? esc(e.ab) + (e.ay ? ` <span class="yr">${e.ay}</span>` : '') : '–'}</td></tr>`; }).join('') +
+    `</tbody></table><p class="none" style="font-size:13px;margin-top:4px">All EDDMapS reports of each species here, including any that match iNaturalist records. Infested area is as reported, converted to acres, with each spot counted once at its latest report. Abundance is from the latest report that gave one.</p></details>`; }
 /* the EDDMapS line under a cell's or a selection's invasive lists */
 function eddNote(lv, cells){ let n = 0, d = 0, t = 0, last = ''; const any = cells.some(c => has('edd', lv, c));
   cells.forEach(c => { n += val('edd','N_EDD_OBS',lv,c) || 0; d += val('edd','N_EDD_DUP',lv,c) || 0; t += val('edd','N_EDD_TREATED',lv,c) || 0; const l = val('edd','EDD_LAST',lv,c); if (l && l > last) last = l; });
@@ -1045,7 +1057,7 @@ function phDone(sp, st){ st.st = 'done'; st.at = st.at || Date.now(); for (const
 /* the pre-built file, then any newer records from iNaturalist; false when the species is not pre-built */
 async function phBuilt(sp, st){ const ix = await phIdx(), e = ix && ix.species[sp.key]; if (!e) return false;
   const r = await fetch('phen/' + sp.key + '.json', {cache:'no-cache'}); if (!r.ok) return false; const j = await r.json(); if (!Array.isArray(j.pts)) return false;
-  st.pts = j.pts.slice(); st.n = st.pts.length; st.taxon = j.taxon; st.nid = j.nid; st.built = j.at; st.added = 0; st.drop = Object.assign({}, j.drop || {}); st.at = Date.now(); phStatusOnly();
+  st.pts = j.pts.slice(); st.n = st.pts.length; st.taxon = j.taxon; st.nid = j.nid; st.built = j.at; st.added = 0; st.drop = Object.assign({}, j.drop || {}); st.edd = Array.isArray(j.edd) ? j.edd : []; st.eddDup = j.edd_dup || 0; st.at = Date.now(); phStatusOnly();
   try { const T = await phTerms(), tally = {obscured:0};
     for (const [stage, tv] of phStreams(sp, T)){ let above = (j.top || {})[stage] || 0; if (!above) continue;
       for (let page = 0; page < 50; page++){ const jj = await phPage(`taxon_id=${j.taxon}` + (tv ? `&term_id=${tv[0]}&term_value_id=${tv[1]}` : '') + `&id_above=${above}`), res = jj.results || [];
@@ -1056,7 +1068,7 @@ async function phBuilt(sp, st){ const ix = await phIdx(), e = ix && ix.species[s
 function phLoad(sp, live){ let st = PHD[sp.key]; if (st && (st.st === 'done' || st.st === 'loading')) return;
   if (!live){ st = PHD[sp.key] = {st:'loading', pts:[], n:0};
     phBuilt(sp, st).then(ok => { if (ok) return; delete PHD[sp.key]; phLoad(sp, true); }).catch(() => { delete PHD[sp.key]; phLoad(sp, true); }); return; }
-  try { const x = JSON.parse(localStorage.getItem(phKey(sp))); if (x && Array.isArray(x.pts) && Date.now() - x.at < PHKEEP){ PHD[sp.key] = {st:'done', pts:x.pts, n:x.pts.length, at:x.at, taxon:x.taxon, nid:x.nid, drop:x.drop || {}}; return; } } catch (e) {}
+  try { const x = JSON.parse(localStorage.getItem(phKey(sp))); if (x && Array.isArray(x.pts) && Date.now() - x.at < PHKEEP){ PHD[sp.key] = {st:'done', pts:x.pts, n:x.pts.length, at:x.at, taxon:x.taxon, nid:x.nid, drop:x.drop || {}, edd:x.edd || [], eddDup:x.eddDup || 0}; return; } } catch (e) {}
   st = PHD[sp.key] = {st:'loading', pts:[], n:0, drop:{}};
   (async () => { const T = await phTerms(), taxon = await prioTaxon({sci:sp.sci}), tally = {obscured:0};
     for (const [stage, tv] of phStreams(sp, T)){ let above = 0;
@@ -1065,8 +1077,9 @@ function phLoad(sp, live){ let st = PHD[sp.key]; if (st && (st.st === 'done' || 
         st.n = st.pts.length; if (res.length) above = res[res.length - 1].id; phStatusOnly(); if (res.length < 200) break; } }
     st.taxon = taxon;
     if (sp.pest) try { const r = await fetch('https://api.inaturalist.org/v1/observations?' + (ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : '') + 'quality_grade=needs_id&per_page=0&taxon_id=' + taxon); if (r.ok) st.nid = (await r.json()).total_results || 0; } catch (e) {}
+    if (sp.pest) try { const r = await fetch('phen/' + sp.key + '.json', {cache:'no-cache'}); if (r.ok){ const jj = await r.json(); st.edd = jj.edd || []; st.eddDup = jj.edd_dup || 0; } } catch (e) {}   /* EDDMapS comes only from the weekly file */
     st.st = 'done'; st.at = Date.now();
-    try { localStorage.setItem(phKey(sp), JSON.stringify({at:st.at, pts:st.pts, taxon:st.taxon, nid:st.nid, drop:st.drop})); } catch (e) {}
+    try { localStorage.setItem(phKey(sp), JSON.stringify({at:st.at, pts:st.pts, taxon:st.taxon, nid:st.nid, drop:st.drop, edd:st.edd || [], eddDup:st.eddDup || 0})); } catch (e) {}
     for (const k in PHAGG) if (k.startsWith(sp.key + '|')) delete PHAGG[k];
     if (PHQ() && phSp() === sp){ BRK.clear(); redraw(); } })()
   .catch(e => { st.st = 'error'; st.msg = e.message; if (PHQ()) side(); }); }
@@ -1094,8 +1107,13 @@ function phAgg(lv){ const sp = phSp(), st = PHD[sp.key]; if (!st || st.st !== 'd
     if (y >= PHY0){ const Y = A.y[y] || (A.y[y] = {}); (Y[s] || (Y[s] = new Uint16Array(n * 53)))[c*53 + w]++; }
     if (s === ms && y >= PHY0) A.yn[y] = (A.yn[y] || 0) + 1;
     let L = A.d[s].get(c); if (!L) A.d[s].set(c, L = []); L.push([d, y]); }
+  /* EDDMapS reports: where and when first recorded, and the range by year; not in the weekly or share counts */
+  A.eany = new Uint16Array(n); A.ey = {}; A.eyn = {}; A.eplaced = 0;
+  for (const [d, y, la, lo] of (st.edd || [])){ const c = phCell(lv, la, lo); if (c < 0) continue; A.eplaced++; A.eany[c]++; if (A.first[c] == null || y < A.first[c]) A.first[c] = y;
+    if (y >= PHY0){ (A.ey[y] || (A.ey[y] = new Uint32Array(n)))[c]++; A.eyn[y] = (A.eyn[y] || 0) + 1; } }
   const cells = []; for (let c = 0; c < n; c++) if (A.any[c]) cells.push(c);
-  const ys = Object.keys(A.y).map(Number).sort((p, q) => p - q); A.years = ys.length ? Array.from({length:ys[ys.length - 1] - ys[0] + 1}, (_, i) => ys[0] + i) : [];
+  const ys = Object.keys(A.y).map(Number).sort((p, q) => p - q), yu = [...new Set([...ys, ...Object.keys(A.ey).map(Number)])].sort((p, q) => p - q);
+  A.years = yu.length ? Array.from({length:yu[yu.length - 1] - yu[0] + 1}, (_, i) => yu[0] + i) : [];
   A.on = new Array(n).fill(null); A.pk = new Array(n).fill(null); A.end = new Array(n).fill(null); A.len = new Array(n).fill(null); A.nm = new Uint16Array(n);
   for (const [c, L] of A.d[ms]){ const a = L.map(p => p[0]).sort((p, q) => p - q); A.nm[c] = a.length;
     if (a.length >= PHMIN){ A.on[c] = phPct(a, .1); A.pk[c] = phMed(a); A.end[c] = phPct(a, .9); }
@@ -1200,12 +1218,13 @@ function phStatus(){ const sp = phSp(), st = PHD[sp.key];
   const what = sp.kind === 'plant' ? `${fmt(T ? T.all : 0, 0)} flowering research-grade records${split} and ${n(3)} in bud`
     : `${fmt(T ? T.all : 0, 0)} research-grade records${split}` + (sp.kind === 'adult' ? `, ${n(4)} marked adult` : '');
   const nid = st.nid ? ` <a href="https://www.inaturalist.org/observations?${ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : ''}taxon_id=${st.taxon}&quality_grade=needs_id" target="_blank" rel="noopener">${fmt(st.nid, 0)} more ${st.nid === 1 ? 'observation needs' : 'observations need'} ID</a> and ${st.nid === 1 ? 'is' : 'are'} not mapped.` : '';
-  return `${what}. ${fmt(A ? A.placed : 0, 0)} of the mapped records fall in ${S.ext === 'huc' ? 'watershed' : 'corridor'} cells.${nid} ${st.built ? `From the weekly download of ${new Date(st.built).toLocaleDateString('en-US')}${st.added ? `, plus ${fmt(st.added, 0)} newer ${st.added === 1 ? 'record' : 'records'} from iNaturalist` : ''}${st.topErr ? ' (iNaturalist could not be reached for newer records)' : ''}.` : `Loaded from iNaturalist ${new Date(st.at).toLocaleDateString('en-US')}.`} <button type="button" data-phref="1">Refresh</button>`; }
+  return `${what}. ${fmt(A ? A.placed : 0, 0)} of the mapped records fall in ${S.ext === 'huc' ? 'watershed' : 'corridor'} cells.${A && A.eplaced ? ` Plus ${fmt(A.eplaced, 0)} EDDMapS ${A.eplaced === 1 ? 'report' : 'reports'} in those cells, which count toward first recorded and the range${st.eddDup ? `; ${fmt(st.eddDup, 0)} more ${st.eddDup === 1 ? 'matches an iNaturalist record' : 'match iNaturalist records'} (same day or next, within 50 m) and ${st.eddDup === 1 ? 'is' : 'are'} counted once` : ''}.` : ''}${nid} ${st.built ? `From the weekly download of ${new Date(st.built).toLocaleDateString('en-US')}${st.added ? `, plus ${fmt(st.added, 0)} newer ${st.added === 1 ? 'record' : 'records'} from iNaturalist` : ''}${st.topErr ? ' (iNaturalist could not be reached for newer records)' : ''}.` : `Loaded from iNaturalist ${new Date(st.at).toLocaleDateString('en-US')}.`} <button type="button" data-phref="1">Refresh</button>`; }
 /* under the year buttons: the button counts that year's records; the map shows every cell recorded by the end of the year */
 function phYrNote(){ if (S.m.id === 'share') return phShNote(); const lv = dispLevel(), A = phAgg(lv), y = phYear(lv);
   if (!A || !y) return '';
   const n = A.yn[y] || 0; let cells = 0; for (let c = 0; c < A.first.length; c++) if (A.first[c] != null && A.first[c] <= y) cells++;
-  return `${y}: ${fmt(n, 0)} ${n === 1 ? 'record' : 'records'} that year. The map shows the ${fmt(cells, 0)} ${cells === 1 ? 'cell' : 'cells'} where it had been recorded by the end of ${y}` +
+  const ne = (A.eyn || {})[y] || 0;
+  return `${y}: ${fmt(n, 0)} ${A.eplaced ? 'iNaturalist ' : ''}${n === 1 ? 'record' : 'records'}${ne ? ` and ${fmt(ne, 0)} EDDMapS ${ne === 1 ? 'report' : 'reports'}` : ''} that year. The map shows the ${fmt(cells, 0)} ${cells === 1 ? 'cell' : 'cells'} where it had been recorded by the end of ${y}` +
     (A.pre ? `, including ${fmt(A.pre, 0)} ${A.pre === 1 ? 'record' : 'records'} from before ${A.years[0]} (the earliest from ${A.preMin})` : '') + '.'; }
 /* Priority invasives measure: the species-per-cell map, with a list to open one species' spread */
 function pinvPick(){ phIdx(); phPestCounts(); const L = phList('pinv').sort((a, b) => (PHCNT[b.key] || 0) - (PHCNT[a.key] || 0));
@@ -1229,6 +1248,9 @@ function phEff(lv, c, y){ const a = val('inat', phShField(), lv, c); if (!a) ret
 function phYc(A, y){ const k = y || 'all'; A.yc = A.yc || {}; if (A.yc[k]) return A.yc[k]; const n = A.any.length, out = new Uint32Array(n), ms = phMain();
   const add = Y => { const w = Y && Y[ms]; if (!w) return; for (let c = 0; c < n; c++){ let t = 0; for (let j = 0; j < 53; j++) t += w[c * 53 + j]; out[c] += t; } };
   if (y) add(A.y[y]); else for (const yy in A.y) add(A.y[yy]); return A.yc[k] = out; }
+/* records per cell in a year with EDDMapS reports added: for the range chart */
+function phYcR(A, y){ const a = phYc(A, y), e = A.ey && A.ey[y]; if (!e) return a; const k = 'r' + y; if (A.yc[k]) return A.yc[k];
+  const o = new Uint32Array(a.length); for (let c = 0; c < a.length; c++) o[c] = a[c] + e[c]; return A.yc[k] = o; }
 function phShare(lv, c){ const A = phAgg(lv); if (!A) return null; const y = phYear(lv), den = phEff(lv, c, y); if (den == null || den < PHSHMIN) return null;
   return Math.min(100, 100 * phYc(A, y)[c] / den); }
 const phShTxt = v => v == null ? '–' : v === 0 ? 'none of the records' : v < 0.1 ? 'under 0.1% of records' : `${fmt(v, v < 10 ? 1 : 0)}% of records`;
@@ -1245,7 +1267,7 @@ function phShNote(){ const lv = dispLevel(), A = phAgg(lv), y = phYear(lv), pl =
 /* Range along the trail: the southernmost and northernmost trail miles recorded by each year (band) and in that year (line) */
 function phRangeBlock(lv){ const A = phAgg(lv), sp = phSp(); if (!A || !A.years.length) return ''; const L_ = D.levels[lv], ys = A.years, n = L_.id.length, sel = phYear(lv);
   let clo = null, chi = null; for (let c = 0; c < n; c++) if (A.first[c] != null && A.first[c] < ys[0]){ const m = L_.mi[c]; clo = clo == null ? m : Math.min(clo, m); chi = chi == null ? m : Math.max(chi, m); }
-  const rows = ys.map(y => { const yc = phYc(A, y); let lo = null, hi = null, k = 0; for (let c = 0; c < n; c++) if (yc[c]){ k++; const m = L_.mi[c]; lo = lo == null ? m : Math.min(lo, m); hi = hi == null ? m : Math.max(hi, m); }
+  const rows = ys.map(y => { const yc = phYcR(A, y); let lo = null, hi = null, k = 0; for (let c = 0; c < n; c++) if (yc[c]){ k++; const m = L_.mi[c]; lo = lo == null ? m : Math.min(lo, m); hi = hi == null ? m : Math.max(hi, m); }
     if (lo != null){ clo = clo == null ? lo : Math.min(clo, lo); chi = chi == null ? hi : Math.max(chi, hi); } return {y, lo, hi, k, clo, chi}; });
   const R = rows.filter(r => r.chi != null); if (!R.length) return '';
   const col = sp.set === 'pinv' ? HUE.pinv : HUE.pest, TOP = Math.ceil((D.totalMi || 2198) / 100) * 100;
@@ -1262,7 +1284,7 @@ function phRangeBlock(lv){ const A = phAgg(lv), sp = phSp(); if (!A || !A.years.
   const a = R[0], z = R[R.length - 1], moved = z.chi - a.chi;
   const lead = `By ${z.y} it had been recorded from mile ${fmt(z.clo, 0)} to mile ${fmt(z.chi, 0)}.` + (Math.abs(moved) >= 25 ? ` The northernmost record moved from mile ${fmt(a.chi, 0)} (${a.y}) to mile ${fmt(z.chi, 0)}.` : '');
   return `<h4 class="phh">Range along the trail, by year</h4>` + g + '</svg>' +
-    sumD('vsumr', `<p class="phflow">${lead}</p><p class="phnote">Band: southern to northern limit of records so far. Lines: that year’s records. A new northern record can mean spread, or new searching.</p>`); }
+    sumD('vsumr', `<p class="phflow">${lead}</p><p class="phnote">Band: southern to northern limit of records so far. Lines: that year’s records${A.eplaced ? ' (iNaturalist records and EDDMapS reports)' : ''}. A new northern record can mean spread, or new searching.</p>`); }
 document.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details[data-k]')) S.side[d.dataset.k] = d.open; }, true);
 const sumD = (k, inner, id) => `<details class="instr" data-k="${k}"${S.side[k] ? ' open' : ''}><summary${id ? ` id="${id}"` : ''}>Summary</summary>${inner}</details>`;
 function phStatusOnly(){ const e = $('#phstat'); if (e) e.innerHTML = phStatus(); const l = $('#phsumlab'), st = PHD[phSp().key]; if (l) l.textContent = 'Summary' + (st && st.st === 'loading' ? ' · loading…' : ''); }
@@ -1378,7 +1400,7 @@ function phSectionCore(lv, c){ const sp = phSp(), A = phAgg(lv), k = sp.kind;
   if (!A) return b + `<p class="none">${phStatus()}</p></div>`;
   /* c is one cell, or an array of cells for a box or multi-cell selection: weekly counts are added, dates pool the cells' records */
   const cs = Array.isArray(c) ? c : [c], many = cs.length > 1;
-  if (!cs.some(x => A.any[x])) return b + `<p class="none">No records of this species in ${many ? 'the selected cells' : 'this cell'}.</p></div>`;
+  if (!cs.some(x => A.any[x] || (A.eany && A.eany[x]))) return b + `<p class="none">No records of this species in ${many ? 'the selected cells' : 'this cell'}.</p></div>`;
   const ms = phMain(sp), pool = cs.flatMap(x => (A.d[ms].get(x) || []).map(p => p[0])).sort((p, q) => p - q), NM = pool.length;
   const ON = NM >= PHMIN ? phPct(pool, .1) : null, PK = NM >= PHMIN ? phMed(pool) : null, END = NM >= PHMIN ? phPct(pool, .9) : null, LEN = NM >= PHMINLEN ? END - ON : null;
   const FIRST = Math.min(...cs.map(x => A.first[x]).filter(v => v != null));
@@ -1400,7 +1422,7 @@ function phSectionCore(lv, c){ const sp = phSp(), A = phAgg(lv), k = sp.kind;
   b += '<div class="keys nosw" style="margin-top:6px">' + (k === 'spread' ? '' :
       soilRow(`First ${noun} date`, ON == null ? few(PHMIN) : doyDate(ON)) + soilRow(`Peak ${noun} date`, PK == null ? few(PHMIN) : doyDate(PK)) +
       soilRow(`${noun === 'adult' ? 'Adult' : 'Flowering'} season length`, LEN == null ? few(PHMINLEN) : `${Math.round(LEN / 7)} weeks (${doyDate(ON)} to ${doyDate(END)})`)) +
-    soilRow(many ? 'First recorded in these cells' : 'First recorded here', String(FIRST)) + '</div>';
+    soilRow(many ? 'First recorded in these cells' : 'First recorded here', String(FIRST)) + (A.eany && cs.some(x => A.eany[x]) ? soilRow('EDDMapS reports', fmt(cs.reduce((t, x) => t + A.eany[x], 0), 0)) : '') + '</div>';
   const note = k === 'plant' ? 'Research-grade iNaturalist records with a flower buds or flowers annotation. Dates pool every year: first is the earliest 10% of flowering records, peak the middle, and the season runs to the latest 10%. Records follow hikers, so they show when people saw it, not how much there is.'
     : k === 'adult' ? 'Research-grade iNaturalist records; adults are those annotated with that life stage, and the dates use them. Records follow observers, so they show when and where it was noticed.'
     : 'Research-grade iNaturalist records of the nematode that causes beech leaf disease, usually photos of the leaf symptoms. Records follow observers, so the first year marks when it was noticed here.';
@@ -2840,7 +2862,7 @@ function invSection(lv, c){ const v = (th, f) => val(th, f, lv, c); let b = `<di
     b += invPlantsHTML(inv.map(i => [i, null]), ed, lv, [c]);
     b += pest.length ? `<p style="margin-top:8px">${pest.length} forest ${pest.length === 1 ? 'pest' : 'pests'}:</p><ul class="spp">${pest.map(i => srcItem(i, T, false)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
     b += has('inat', lv, c) ? `<p style="margin-top:10px"><span class="badge">${esc(cat('DATA_STATUS', v('inat','DATA_STATUS')) || '')}</span> Quarterly summary (${esc(D.run)}), from ${fmt(v('inat','N_OBS'),0)} iNaturalist ${v('inat','N_OBS') === 1 ? 'record' : 'records'}.</p>` : '<p class="none" style="margin-top:10px">No iNaturalist records in this cell in the quarterly summary.</p>';
-    b += eddNote(lv, [c]);
+    b += eddNote(lv, [c]) + eddDetail(lv, [c]);
   } else b += `<p class="none">No iNaturalist${D.themes.edd && D.themes.edd[lv] ? ' or EDDMapS' : ''} records in this cell in the quarterly summary.</p>`;
   return b + '</div>'; }
 /* birds for one cell */
@@ -3053,7 +3075,9 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
     (v('feat','ML',c) || []).forEach(x => out.features.push({grid_id:id, trail_mile:L_.mi[c], feature_type:'Maintained landscape', name:x[0], detail:[x[1], fmt(x[2], 1) + ' acres in this cell'].filter(Boolean).join(', '), latitude:'', longitude:''}));
     const sp = (group, detail, list, edset) => (list || []).forEach(i => { const p = sppName(i); out.species.push({grid_id:id, trail_mile:L_.mi[c], group, habitat_group_or_list:detail, common_name:p.common, scientific_name:p.sci, lists:[p.tag, edset && edset.has(i) ? 'priority invasive' : ''].filter(Boolean).join('; ')}); });
     const ed = new Set(invL('EDRR_LIST', lv, c) || []), T = invSrc(lv, [c]), srcOf = i => T.e.has(i) ? (T.n.has(i) ? 'iNaturalist; EDDMapS' : 'EDDMapS') : 'iNaturalist';
-    (invL('INVASIVE_LIST', lv, c) || []).forEach(i => sp('Invasive plant', srcOf(i), [i], ed)); (invL('PEST_LIST', lv, c) || []).forEach(i => sp('Forest pest', srcOf(i), [i], new Set([i]))); /* forest pests count as priority invasives */ sp('iNaturalist most recorded', 'Top ten in the cell', v('inat','TOP10_SPECIES',c));
+    const n0 = out.species.length; (invL('INVASIVE_LIST', lv, c) || []).forEach(i => sp('Invasive plant', srcOf(i), [i], ed)); (invL('PEST_LIST', lv, c) || []).forEach(i => sp('Forest pest', srcOf(i), [i], new Set([i])));
+    { const det = eddDet(lv, [c]), bySci = new Map([...det].map(([i, e]) => [sppName(i).sci, e])); out.species.slice(n0).forEach(r => { const e = bySci.get(r.scientific_name); if (!e) return;
+      Object.assign(r, {eddmaps_reports:e.n, eddmaps_infested_acres:e.hasAc ? Math.round(e.ac * 1000) / 1000 : '', eddmaps_latest_abundance:e.ab ? e.ab + (e.ay ? ` (${e.ay})` : '') : ''}); }); } /* forest pests count as priority invasives */ sp('iNaturalist most recorded', 'Top ten in the cell', v('inat','TOP10_SPECIES',c));
     BIRD_GROUPS.forEach(g => sp('Bird', g.full, v('ebird', g.list, c))); sp('Bird on a watch list', 'eBird', v('ebird','SOC_LIST',c));
     PRIORITY.forEach(p => { const n = prioCount(p, lv, c);
       if (n) out.species.push({grid_id:id, trail_mile:L_.mi[c], group:'Priority species', habitat_group_or_list:`Live from the iNaturalist project, ${n} research-grade ${n === 1 ? 'record' : 'records'}`, common_name:p.common, scientific_name:p.sci, lists:''}); });
@@ -3071,10 +3095,13 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
     const STG = {1:'flowering', 3:'in bud', 5:'record'}, dt = (y, d) => { const t = new Date(y, 0, d); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
     loaded.forEach(sp => { const by = new Map();
       PHD[sp.key].pts.forEach(([d, y, st, la, lo, id]) => { if (!STG[st] || la < la0 || la > la1 || lo < lo0 || lo > lo1) return; const k = cells.findIndex((c, i) => inRingLL(la, lo, rings[i])); if (k < 0) return;
-        const c = cells[k]; (sp.set === 'pinv' ? out.pinvRec : sp.pest ? out.pestRec : out.phenRec).push({grid_id:L_.id[c], trail_mile:L_.mi[c], species:sp.common, scientific_name:sp.sci, ...(sp.pest ? {} : {stage:STG[st]}), observed_on:dt(y, d), latitude:la, longitude:lo, inaturalist_url:id ? 'https://www.inaturalist.org/observations/' + id : ''});
+        const c = cells[k]; (sp.set === 'pinv' ? out.pinvRec : sp.pest ? out.pestRec : out.phenRec).push({grid_id:L_.id[c], trail_mile:L_.mi[c], species:sp.common, scientific_name:sp.sci, ...(sp.pest ? {} : {stage:STG[st]}), observed_on:dt(y, d), latitude:la, longitude:lo, inaturalist_url:id ? 'https://www.inaturalist.org/observations/' + id : '', ...(sp.pest ? {source:'iNaturalist', eddmaps_url:''} : {})});
         if (!by.has(c)) by.set(c, {fl:[], bud:0, all:0, first:null, last:null}); const e = by.get(c); e.all++; if (e.first == null || y < e.first) e.first = y; if (e.last == null || y > e.last) e.last = y; if (st === 1 || st === 5) e.fl.push(d); else if (st === 3) e.bud++; });
+      (sp.pest ? PHD[sp.key].edd || [] : []).forEach(([d, y, la, lo, id]) => { if (la < la0 || la > la1 || lo < lo0 || lo > lo1) return; const k = cells.findIndex((c, i) => inRingLL(la, lo, rings[i])); if (k < 0) return; const c = cells[k];
+        (sp.set === 'pinv' ? out.pinvRec : out.pestRec).push({grid_id:L_.id[c], trail_mile:L_.mi[c], species:sp.common, scientific_name:sp.sci, observed_on:dt(y, d), latitude:la, longitude:lo, inaturalist_url:'', source:'EDDMapS', eddmaps_url:'https://www.eddmaps.org/distribution/point.cfm?id=' + id});
+        if (!by.has(c)) by.set(c, {fl:[], bud:0, all:0, first:null, last:null}); const e = by.get(c); e.edd = (e.edd || 0) + 1; if (e.first == null || y < e.first) e.first = y; if (e.last == null || y > e.last) e.last = y; });
       if (sp.pest){ [...by].sort((a, b) => L_.mi[a[0]] - L_.mi[b[0]]).forEach(([c, e]) => (sp.set === 'pinv' ? out.pinv : out.pest).push({grid_id:L_.id[c], cell_size:LV[lv].name, trail_mile:L_.mi[c], species:sp.common, scientific_name:sp.sci,
-          research_grade_records:e.all, first_year_recorded:e.first, latest_year_recorded:e.last})); return; }
+          research_grade_records:e.all, eddmaps_reports:e.edd || 0, first_year_recorded:e.first, latest_year_recorded:e.last})); return; }
       [...by].sort((a, b) => L_.mi[a[0]] - L_.mi[b[0]]).forEach(([c, e]) => { const a = e.fl.sort((p, q) => p - q), ok = a.length >= PHMIN, okL = a.length >= PHMINLEN, isP = sp.kind === 'plant';
         out.phen.push({grid_id:L_.id[c], cell_size:LV[lv].name, trail_mile:L_.mi[c], species:sp.common, scientific_name:sp.sci, [isP ? 'flowering_records' : 'records']:a.length, ...(isP ? {in_bud_records:e.bud} : {}),
           first_flowering_date:isP && ok ? doyDate(phPct(a, .1)) : '', peak_flowering_date:isP && ok ? doyDate(phMed(a)) : '', last_flowering_date:isP && ok ? doyDate(phPct(a, .9)) : '',
@@ -3129,16 +3156,16 @@ async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !==
     d.soils.forEach(s => Object.keys(s).forEach(k => { if (!['grid_id','trail_mile','cell_size'].includes(k) && s[k] !== '') rows.push([s.grid_id, s.trail_mile, 'Soils', k, '', '', s[k], '']); }));
     d.wetlands.forEach(s => Object.keys(s).forEach(k => { if (!['grid_id','trail_mile','cell_size'].includes(k) && s[k] !== '') rows.push([s.grid_id, s.trail_mile, 'Wetlands', k, '', '', s[k], k.endsWith('_ac') || k.endsWith('_acres') ? 'acres' : '']); }));
     d.veg.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Vegetation type', r.vegetation_type, '', r.acres + ' acres', r.pct_of_mapped_acres, '% of mapped acres']));
-    d.species.forEach(r => rows.push([r.grid_id, r.trail_mile, r.group, r.common_name, r.scientific_name, [r.habitat_group_or_list, r.lists].filter(Boolean).join('; '), '', '']));
+    d.species.forEach(r => rows.push([r.grid_id, r.trail_mile, r.group, r.common_name, r.scientific_name, [r.habitat_group_or_list, r.lists, r.eddmaps_reports != null ? `EDDMapS: ${r.eddmaps_reports} reports` + (r.eddmaps_infested_acres !== '' ? `, ${r.eddmaps_infested_acres} infested acres` : '') + (r.eddmaps_latest_abundance ? `, latest abundance ${r.eddmaps_latest_abundance}` : '') : ''].filter(Boolean).join('; '), '', '']));
     d.layers.forEach(L2 => L2.rows.forEach((r, i) => { const id = r.Name || r.NAME || r.Tract || r.TRACT1 || ''; Object.keys(r).forEach(k => { if (!['grid_id','trail_mile'].includes(k) && r[k] !== '') rows.push([r.grid_id, r.trail_mile, 'Map layer: ' + L2.name, k, '', `feature ${i + 1}${id ? ' (' + id + ')' : ''}`, r[k], '']); }); }));
     d.land.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Land administrator', r.administrator, '', '', r.pct_of_mapped_land, '% of mapped land']));
     d.features.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Facility or landscape: ' + r.feature_type, r.name, '', r.detail, r.latitude === '' ? '' : r.latitude + ', ' + r.longitude, r.latitude === '' ? '' : 'lat, lon']));
     (d.hist || []).forEach(r => rows.push([r.grid_id, r.trail_mile, 'Historic resource: ' + r.kind, r.name, '', Object.entries(r).filter(([k, v]) => !['grid_id','trail_mile','kind','name','latitude','longitude'].includes(k) && v !== '').map(([k, v]) => k + ': ' + v).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
     d.phen.forEach(s => Object.keys(s).forEach(k => { if (!['grid_id','trail_mile','cell_size','species','scientific_name'].includes(k) && s[k] !== '') rows.push([s.grid_id, s.trail_mile, 'Flowering', s.species + ': ' + k, s.scientific_name, '', s[k], '']); }));
-    (d.pinv || []).forEach(s => rows.push([s.grid_id, s.trail_mile, 'Priority invasive', s.species, s.scientific_name, `first recorded ${s.first_year_recorded}, latest ${s.latest_year_recorded}`, s.research_grade_records, 'research-grade records']));
-    (d.pinvRec || []).forEach(r => rows.push([r.grid_id, r.trail_mile, 'Priority invasive record', r.species, r.scientific_name, [r.observed_on, r.inaturalist_url].filter(Boolean).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
-    (d.pest || []).forEach(s => rows.push([s.grid_id, s.trail_mile, 'Forest pest', s.species, s.scientific_name, `first recorded ${s.first_year_recorded}, latest ${s.latest_year_recorded}`, s.research_grade_records, 'research-grade records']));
-    (d.pestRec || []).forEach(r => rows.push([r.grid_id, r.trail_mile, 'Forest pest record', r.species, r.scientific_name, [r.observed_on, r.inaturalist_url].filter(Boolean).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
+    (d.pinv || []).forEach(s => rows.push([s.grid_id, s.trail_mile, 'Priority invasive', s.species, s.scientific_name, `first recorded ${s.first_year_recorded}, latest ${s.latest_year_recorded}` + (s.eddmaps_reports ? `, plus ${s.eddmaps_reports} EDDMapS ${s.eddmaps_reports === 1 ? 'report' : 'reports'}` : ''), s.research_grade_records, 'research-grade records']));
+    (d.pinvRec || []).forEach(r => rows.push([r.grid_id, r.trail_mile, 'Priority invasive record', r.species, r.scientific_name, [r.observed_on, r.source, r.inaturalist_url || r.eddmaps_url].filter(Boolean).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
+    (d.pest || []).forEach(s => rows.push([s.grid_id, s.trail_mile, 'Forest pest', s.species, s.scientific_name, `first recorded ${s.first_year_recorded}, latest ${s.latest_year_recorded}` + (s.eddmaps_reports ? `, plus ${s.eddmaps_reports} EDDMapS ${s.eddmaps_reports === 1 ? 'report' : 'reports'}` : ''), s.research_grade_records, 'research-grade records']));
+    (d.pestRec || []).forEach(r => rows.push([r.grid_id, r.trail_mile, 'Forest pest record', r.species, r.scientific_name, [r.observed_on, r.source, r.inaturalist_url || r.eddmaps_url].filter(Boolean).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
     d.phenRec.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Flowering record', r.species, r.scientific_name, [r.stage, r.observed_on, r.inaturalist_url].filter(Boolean).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
     d.live.forEach(r => rows.push([r.grid_id, r.trail_mile, 'iNaturalist live lookup', r.common_name || r.scientific_name, r.scientific_name, [r.observed_on, r.observer, r.quality_grade, r.list, r.inaturalist_url].filter(Boolean).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
     download(name + '.csv', new Blob(['\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n')], {type:'text/csv;charset=utf-8'}));
@@ -3202,7 +3229,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
       b += `<p class="none" style="font-size:13.5px">Invasive plants and forest pests are counted together, from iNaturalist and EDDMapS (species reported in EDDMapS are flagged). Quarterly summary (${esc(D.run)}).</p>`;
       b += (inv.length ? '<p class="none" style="font-size:13.5px;margin-top:8px">With the number of selected cells each was found in.</p>' : '') + invPlantsHTML(inv, ed, lv, ci);
       b += pest.length ? `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(x => srcItem(x[0], T, true, `<span class="tag">${nCells(x[1])}</span>`)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
-      b += eddNote(lv, ci);
+      b += eddNote(lv, ci) + eddDetail(lv, ci);
     } else b += `<p class="none">No iNaturalist${D.themes.edd && D.themes.edd[lv] ? ' or EDDMapS' : ''} records in the selected cells in the quarterly summary.</p>`;
     b += '</div>'; b += recBox(lv, cells); }
 
@@ -3514,7 +3541,7 @@ function bioConv(j, idx){ const si = new Map(D.spp.map((s, i) => [s, i])), sp = 
       const f = {};
       for (const name in t.f){ const col = t.f[name];
         f[name] = keep.map(k => { const x = col[k]; if (name === 'DATA_STATUS') return x == null ? null : ds[x];
-          if (name.endsWith('_LIST') || name === 'TOP10_SPECIES') return (x || []).map(sp); return x; }); }
+          if (name.endsWith('_LIST') || name === 'TOP10_SPECIES') return (x || []).map(sp); if (name === 'EDD_SPP_DETAIL') return (x || []).map(r => [sp(r[0]), ...r.slice(1)]); return x; }); }
       out[lv] = {ix, f}; }
     themes[th] = out; }
   return themes; }

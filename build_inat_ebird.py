@@ -53,7 +53,10 @@ GROUPS = [('PLANT_SPP', lambda r: r['kingdom'] == 'Plantae'), ('BIRD_SPP', lambd
           ('MOLLUSK_SPP', lambda r: r['phylum'] == 'Mollusca')]
 # EDDMapS: public points service (EDDMapS, University of Georgia Center for Invasive Species and Ecosystem Health)
 EDD_URL = 'https://services2.arcgis.com/PYn6bWCjT6bhw1z3/arcgis/rest/services/EDDMapSPoints/FeatureServer/0/query'
-EDD_FIELDS = 'OBJECTID_1,ObjectID,Scientific_Name,SUB_name,ObservationDate,Treatment'
+EDD_FIELDS = 'OBJECTID_1,ObjectID,Scientific_Name,SUB_name,ObservationDate,Treatment,Abundance_Name,Infested_Area,Area_Units,InfestedAreaAcres'
+AREA_UNITS = {'acre': 1, 'acres': 1, 'ac': 1, 'square feet': 1 / 43560, 'square foot': 1 / 43560, 'sq ft': 1 / 43560, 'sqft': 1 / 43560, 'hectare': 2.47105, 'hectares': 2.47105, 'ha': 2.47105,
+              'square meters': 0.000247105, 'square meter': 0.000247105, 'square metres': 0.000247105, 'sq m': 0.000247105, 'square miles': 640, 'square mile': 640,
+              'square kilometers': 247.105, 'square kilometer': 247.105, 'square yards': 1 / 4840, 'square yard': 1 / 4840}
 EDD_PAGE = 2000                 # the service's page size
 DUP_M, DUP_DAYS = 50, 1         # an EDDMapS record this close to an iNaturalist record of the same species, this many days apart, is the same record
 csv.field_size_limit(10 ** 8)
@@ -515,10 +518,25 @@ def edd_fetch(levels):
     return list(got.values())
 
 
+def edd_acres(a):
+    """infested area in acres: EDDMapS's own conversion (InfestedAreaAcres), else Infested_Area in its Area_Units"""
+    for v in (a.get('InfestedAreaAcres'),):
+        try:
+            v = float(v)
+            if v > 0: return v
+        except (TypeError, ValueError):
+            pass
+    try:
+        v, u = float(a.get('Infested_Area')), AREA_UNITS.get((a.get('Area_Units') or '').strip().lower())
+        return v * u if v > 0 and u else None
+    except (TypeError, ValueError):
+        return None
+
+
 def edd_summarize(feats, grids, names):
     """EDDMapS points of listed invasive plants and forest pests, by cell, with duplicates dropped (see the top of this file)"""
     inv = load_invasive(); canon, sci = load_canon(); pestn = {norm(p): p for p in PESTS}
-    cells = {g: {lv: defaultdict(lambda: {'n': 0, 'dup': 0, 'treat': 0, 'last': '', 'inv': set(), 'pest': set()}) for lv in L} for g, L in grids.items()}
+    cells = {g: {lv: defaultdict(lambda: {'n': 0, 'dup': 0, 'treat': 0, 'last': '', 'inv': set(), 'pest': set(), 'det': {}}) for lv in L} for g, L in grids.items()}
     seen = set(); st = Counter(); other = Counter(); edd_names = {}
     for f in feats:
         a = f.get('attributes') or {}; g_ = f.get('geometry') or {}
@@ -560,11 +578,22 @@ def edd_summarize(feats, grids, names):
             edd_names.setdefault(norm(sp), a['SUB_name'].strip())
         st['also on iNaturalist' if dup else 'counted'] += 1
         treated = str(a.get('Treatment') or '').strip() not in ('', '0', 'None', 'null')
+        acres = edd_acres(a); ab = (a.get('Abundance_Name') or '').strip(); spot = (round(la, 4), round(lo, 4))
+        if ab.lower() in ('unknown', 'none', 'null', 'n/a', 'na'):
+            ab = ''
         for g, hit in hits.items():
             for lv, c in hit.items():
                 if c < 0:
                     continue
                 s = cells[g][lv][c]
+                # per species: every EDDMapS report (those matching iNaturalist too: the table describes EDDMapS), infested acres
+                # (each spot once, its latest report with an area) and the latest abundance
+                e = s['det'].setdefault(sp, {'n': 0, 'spots': {}, 'ab': None})
+                e['n'] += 1
+                if acres and (spot not in e['spots'] or d >= e['spots'][spot][0]):
+                    e['spots'][spot] = (d, acres)
+                if ab and (not e['ab'] or d >= e['ab'][0]):
+                    e['ab'] = (d, ab)
                 if dup:
                     s['dup'] += 1; continue
                 s['n'] += 1; s['last'] = max(s['last'], d); s['treat'] += treated
@@ -585,7 +614,11 @@ def edd_summarize(feats, grids, names):
                 v = {'N_EDD_OBS': s['n'], 'N_EDD_DUP': s['dup'], 'N_EDD_TREATED': s['treat'], 'EDD_LAST': s['last'] or None,
                      'EDD_INV_LIST': sorted((nm(x) for x in s['inv']), key=str.lower),
                      'EDD_EDRR_LIST': sorted((nm(x) for x in s['inv'] if inv.get(norm(x), (0, False))[1] or inv.get(ckey(x, canon), (0, False))[1]), key=str.lower),
-                     'EDD_PEST_LIST': sorted((nm(x) for x in s['pest']), key=str.lower)}
+                     'EDD_PEST_LIST': sorted((nm(x) for x in s['pest']), key=str.lower),
+                     # [species, EDDMapS reports, infested acres or None, latest abundance or None, its year or None]
+                     'EDD_SPP_DETAIL': sorted(([nm(x), e['n'], round(sum(v[1] for v in e['spots'].values()), 3) if e['spots'] else None,
+                                                e['ab'][1] if e['ab'] else None, int(e['ab'][0][:4]) if e['ab'] and e['ab'][0] else None]
+                                               for x, e in s['det'].items()), key=lambda r: r[0].lower())}
                 ids.append(L[lv]['id'][c])
                 for k, x in v.items():
                     F[k].append(x)
@@ -608,6 +641,8 @@ def pack(themes):
                     t['f'][k] = [cats.index(x) for x in col]
                 elif k.endswith('_LIST') or k == 'TOP10_SPECIES':
                     t['f'][k] = [[ix(s) for s in L] if L else [] for L in col]
+                elif k == 'EDD_SPP_DETAIL':
+                    t['f'][k] = [[[ix(r[0])] + r[1:] for r in L] if L else [] for L in col]
     return spp, {'DATA_STATUS': cats}
 
 
@@ -623,6 +658,8 @@ def unpack(prev, keep):
                     lv['f'][k] = [prev['cats']['DATA_STATUS'][x] for x in col]
                 elif k.endswith('_LIST') or k == 'TOP10_SPECIES':
                     lv['f'][k] = [[prev['spp'][i] for i in L] if L else [] for L in col]
+                elif k == 'EDD_SPP_DETAIL':
+                    lv['f'][k] = [[[prev['spp'][r[0]]] + r[1:] for r in L] if L else [] for L in col]
         out[th] = t
     return out
 
