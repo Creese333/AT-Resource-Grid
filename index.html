@@ -1540,8 +1540,8 @@ const histAdmText = () => (HADM.find(h => h[0] === histScale()) || HADM[0])[1];
 /* the OpenStreetMap cemeteries as a map layer, from the loaded file (no separate request) */
 async function histLayer(l, my){
   if (!HIST || HIST.st !== 'done'){ liveStatus(l, 'Loading…'); histLoad(); return; }   // histDone redraws the layer when ready
-  const f = HIST.items.filter(x => x.t === 'cem' && histKeep(x)).map(x => ({type:'Feature', geometry:{type:'Point', coordinates:[x.lo, x.la]},
-    properties:{NAME:x.nm || '', Source:x.a.source, Denomination:x.a.denomination || '', osm:x.a.osm || '', ld:x.ld || '', fag:x.a.fag || '', la:x.la, lo:x.lo, state:x.a.state || ''}}));
+  const f = HIST.items.filter(x => x.t === (l.hist || 'cem') && histKeep(x)).map(x => ({type:'Feature', geometry:{type:'Point', coordinates:[x.lo, x.la]},
+    properties:{NAME:x.nm || '', type:x.a.type || '', listed:x.a.listed || '', nhl:!!x.a.nhl, refnum:x.a.refnum || '', city:x.a.city || '', Source:x.a.source, Denomination:x.a.denomination || '', osm:x.a.osm || '', ld:x.ld || '', fag:x.a.fag || '', la:x.la, lo:x.lo, state:x.a.state || ''}}));
   if (my !== l.req) return; liveDraw(l, f); l.loaded = true; liveStatus(l, f.length ? fmt(f.length, 0) + (histAdmOn() ? ' (' + histAdmText() + ')' : ' out to the HUC10 shell') : 'None in the loaded file'); }
 function histLive(){ const chunks = histChunks(); HIST = {st:'loading', items:[], done:0, total:chunks.length, err:{}}; histStatusOnly();
   (async () => { const nr = new Map(), os = new Map(), inCorr = (ch, p) => ch.rings.some(r => inRingLL(p.la, p.lo, r));
@@ -2160,7 +2160,7 @@ const LIVE = [
   {id:'vistas', name:'Vistas', url:SVC + 'ANST_Facilities/FeatureServer/5', type:'pt', color:'#B03FA8'},
   {id:'sidetrails', name:'Side trails', url:SVC + 'ANST_Facilities/FeatureServer/6', type:'line', bbox:1, minZoom:10, color:'#35A7FF'},
   {id:'lands', name:'Administrative areas', url:SVC + 'AT_Lands/FeatureServer/1', type:'poly', bbox:1, minZoom:11, fields:'NAME,ADMIN,ACRES,TRACT1,LEGEND3', color:'rgb(0,77,168)'},
-  {id:'nrhp', name:'National Register (NPS)', url:HISTSRC.nr.url, type:'pt', bbox:1, minZoom:9, fields:'RESNAME,ResType,NRIS_Refnum,CertDate,Is_NHL,City,State', color:'#8C5A2B'},
+  {id:'nrhp', name:'National Register (NPS)', local:1, hist:'nr', type:'pt', color:'#8C5A2B'},
   {id:'osmcem', name:'Cemeteries (OpenStreetMap)', local:1, type:'pt', color:'#4F6B5A'}
 ];
 const GLYPH = {
@@ -2191,6 +2191,9 @@ function featPopup(l, p){ const kind = ({lands:'Administrative area', shelters:'
     if (ad) h += `<div><span class="k">Administered by</span> ${esc(tcase(ad))}</div>`;
     if (isFinite(ac) && ac > 0) h += `<div><span class="k">Acres</span> ${fmt(ac, ac < 100 ? 1 : 0)}</div>`;
     if (tr) h += `<div><span class="k">Tract</span> ${esc(tr)}</div>`; }
+  if (l.id === 'nrhp'){ if (p.nhl) h += `<div>National Historic Landmark</div>`; if (p.type) h += `<div><span class="k">Type</span> ${esc(p.type)}</div>`;
+    if (p.listed) h += `<div><span class="k">Listed</span> ${esc(p.listed)}</div>`; if (p.city || p.state) h += `<div><span class="k">Place</span> ${esc([p.city, p.state].filter(Boolean).join(', '))}</div>`;
+    if (p.refnum) h += `<div><a href="https://npgallery.nps.gov/AssetDetail/NRIS/${esc(p.refnum)}" target="_blank" rel="noopener">National Register record (NPGallery)</a></div>`; }
   if (l.id === 'osmcem'){ if (p.Source) h += `<div><span class="k">Source</span> ${esc(p.Source)}</div>`; if (p.Denomination) h += `<div><span class="k">Denomination</span> ${esc(p.Denomination)}</div>`;
     if (p.ld) h += `<div><span class="k">Land</span> ${esc((LANDMAP.get(p.ld) || [0, tcase(p.ld)])[1])}</div>`;
     if (p.osm) h += `<div><a href="https://www.openstreetmap.org/${esc(p.osm)}" target="_blank" rel="noopener">Open in OpenStreetMap</a></div>`;
@@ -3041,7 +3044,8 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
   const out = {cells:[], restoration:[], soils:[], wetlands:[], species:[], veg:[], land:[], features:[], live:[], phen:[], phenRec:[], pest:[], pestRec:[], pinv:[], pinvRec:[], layers:[], about:[]};
   { const R = LAYERS[liveKey()] || {}; out.layerState = S.ext === 'huc' ? '' : LAYERS[liveKey()] ? 'loaded' : 'missing';
     LIVE.forEach(l => { if (l.local){ const A = hAgg(lv), rows = [];
-        if (A) cells.slice().sort((a, b) => L_.mi[a] - L_.mi[b]).forEach(c => (A.list.get(c) || []).map(i => HIST.items[i]).filter(x => x.t === 'cem').forEach(x => rows.push({grid_id:L_.id[c], trail_mile:L_.mi[c], Name:x.nm,
+        if (A) cells.slice().sort((a, b) => L_.mi[a] - L_.mi[b]).forEach(c => (A.list.get(c) || []).map(i => HIST.items[i]).filter(x => x.t === (l.hist || 'cem')).forEach(x => rows.push(x.t === 'nr' ? {grid_id:L_.id[c], trail_mile:L_.mi[c], Name:x.nm, Type:x.a.type || '', Listed:x.a.listed || '',
+          National_Historic_Landmark:x.a.nhl ? 'yes' : '', City:x.a.city || '', State:x.a.state || '', npgallery_url:x.a.refnum ? 'https://npgallery.nps.gov/AssetDetail/NRIS/' + x.a.refnum : '', latitude:x.la, longitude:x.lo} : {grid_id:L_.id[c], trail_mile:L_.mi[c], Name:x.nm,
           Denomination:x.a.denomination || '', Operator:x.a.operator || '', Land:HIST.lands ? (x.ld ? (LANDMAP.get(x.ld) || [0, x.ld])[1] : 'Outside administrative areas') : '', find_a_grave_url:histFagUrl(x),
           openstreetmap_url:x.a.osm ? 'https://www.openstreetmap.org/' + x.a.osm : '', latitude:x.la, longitude:x.lo})));
         out.layers.push({id:l.id, name:l.name, type:l.type, rows, state:A ? 'loaded' : 'missing'}); return; }
@@ -3154,7 +3158,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
     : 'Not included: no pests loaded yet. Open “Where are forest pests turning up?” and pick each pest to include, then export.');
   ab('Flowering', out.phenLoaded && out.phenLoaded.length ? `Species loaded in this browser: ${out.phenLoaded.join(', ')}. Research-grade iNaturalist records with a flower buds or flowers annotation; obscured locations left out. Dates pool all years: first = earliest 10% of flowering records, peak = median, last = latest 10%; 5 or more records for dates, 8 for season length. Records follow hikers, so they show when people saw it.`
     : 'Not included: no species loaded yet. Open “When does it flower here?” and pick each species to include, then export.');
-  if (out.layerState) out.layers.forEach(L2 => ab('Map layer: ' + L2.name, L2.id === 'osmcem' ? (L2.state === 'loaded' ? `${L2.rows.length} OpenStreetMap ${L2.rows.length === 1 ? 'cemetery' : 'cemeteries'} from ${HISTFILE} (built ${new Date(HIST.at).toLocaleDateString('en-US')}), scale: ${histAdmText()}. The same cemeteries are in the Historic resources sheet.` : 'Not included: open “Where are the historic resources?” once, then export.') : L2.state === 'loaded' ? `${L2.rows.length} ${L2.rows.length === 1 ? 'feature' : 'features'}, all attributes, fetched ${localDay()} from the map layer service. ${L2.type === 'pt' ? 'Each point is listed in the cell it falls in.' : 'Every feature touching a cell is listed under it, so one that crosses several cells appears in each; acres and lengths are for the whole feature.'}`
+  if (out.layerState) out.layers.forEach(L2 => ab('Map layer: ' + L2.name, L2.id === 'osmcem' || L2.id === 'nrhp' ? (L2.state === 'loaded' ? `${L2.rows.length} ${L2.id === 'nrhp' ? 'National Register ' + (L2.rows.length === 1 ? 'property' : 'properties') : 'OpenStreetMap ' + (L2.rows.length === 1 ? 'cemetery' : 'cemeteries')} from ${HISTFILE} (built ${new Date(HIST.at).toLocaleDateString('en-US')}), scale: ${histAdmText()}. The same records are in the Historic resources sheet.` : 'Not included: open “Where are the historic resources?” once, then export.') : L2.state === 'loaded' ? `${L2.rows.length} ${L2.rows.length === 1 ? 'feature' : 'features'}, all attributes, fetched ${localDay()} from the map layer service. ${L2.type === 'pt' ? 'Each point is listed in the cell it falls in.' : 'Every feature touching a cell is listed under it, so one that crosses several cells appears in each; acres and lengths are for the whole feature.'}`
       : L2.state === 'skipped' ? `Not included: the selection has more than ${LAYERMAX} cells. Select fewer cells to include this layer.` : 'Not included: the map layer service could not be reached.'));
   if (out.liveState) ab('iNaturalist live lookup', out.liveState === 'loaded' ? `${out.live.length} most recent observations with open locations, fetched ${localDay()} from the iNaturalist project. A snapshot, not a complete count; not part of any other number in this export.`
     : 'Not included: iNaturalist could not be reached, or the selection is too wide for a live lookup.');
