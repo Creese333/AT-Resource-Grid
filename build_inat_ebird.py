@@ -9,14 +9,20 @@ Quarterly iNaturalist and eBird summaries for the A.T. Resource Grid, without Ar
      taxon groups, invasive / priority (EDRR) / forest pest lists from invasive_lookup.csv, the ten most-recorded
      species; for birds, checklists, habitat guild counts and lists (bird_guilds.csv) and species of concern
      (bird_lookup.csv: federal listing, Birds of Conservation Concern, Partners in Flight for A.T. BCRs).
-  4. Writes inat_ebird.json (corridor) and inat_ebird_huc10.json (HUC10 shell), which the dashboard loads in place of the summaries built into index.html,
+  4. Adds EDDMapS invasive species points (the public EDDMapS feature service), placed in the same cells and counted for the
+     invasive plants and forest pests on the same lists. Duplicates are dropped: EDDMapS rows for the same species, date and spot
+     (treatment and monitoring rows of one report), and EDDMapS records of a species that iNaturalist has on the same day (one day
+     either way) within 50 m, which are counted once, as iNaturalist records. Runs with every iNaturalist rebuild.
+  5. Writes inat_ebird.json (corridor) and inat_ebird_huc10.json (HUC10 shell), which the dashboard loads in place of the summaries built into index.html,
      and prints a comparison with those built-in summaries.
 
 Usage: python build_inat_ebird.py [inat|ebird|both]      (GBIF_USER and GBIF_PWD in the environment)
-Re-running with a dataset left out keeps that dataset's part of the existing inat_ebird.json.
+inat rebuilds iNaturalist and EDDMapS; ebird rebuilds eBird; both rebuilds all three.
+Re-running with a dataset left out keeps that dataset's part of the existing inat_ebird.json. If EDDMapS cannot be reached,
+its previous summaries are kept and the rest of the build goes on.
 Standard library only.
 """
-import base64, csv, io, json, math, os, re, sys, time, urllib.request, zipfile
+import base64, csv, io, json, math, os, re, sys, time, urllib.parse, urllib.request, zipfile
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
@@ -45,6 +51,11 @@ GROUPS = [('PLANT_SPP', lambda r: r['kingdom'] == 'Plantae'), ('BIRD_SPP', lambd
           ('FUNGI_SPP', lambda r: r['kingdom'] == 'Fungi'), ('MAMMAL_SPP', lambda r: r['class'] == 'Mammalia'), ('AMPHIB_SPP', lambda r: r['class'] == 'Amphibia'),
           ('REPTILE_SPP', lambda r: r['class'] in ('Reptilia', 'Squamata', 'Testudines', 'Crocodylia')), ('ARACHNID_SPP', lambda r: r['class'] == 'Arachnida'),
           ('MOLLUSK_SPP', lambda r: r['phylum'] == 'Mollusca')]
+# EDDMapS: public points service (EDDMapS, University of Georgia Center for Invasive Species and Ecosystem Health)
+EDD_URL = 'https://services2.arcgis.com/PYn6bWCjT6bhw1z3/arcgis/rest/services/EDDMapSPoints/FeatureServer/0/query'
+EDD_FIELDS = 'OBJECTID_1,ObjectID,Scientific_Name,SUB_name,ObservationDate,Treatment'
+EDD_PAGE = 2000                 # the service's page size
+DUP_M, DUP_DAYS = 50, 1         # an EDDMapS record this close to an iNaturalist record of the same species, this many days apart, is the same record
 csv.field_size_limit(10 ** 8)
 
 
@@ -100,13 +111,19 @@ def gbif(path, data=None, auth=None, method=None):
         return r.read().decode()
 
 
-def area_predicate(levels):
-    # rectangles around stretches of ten 49 sq mi cells, counter-clockwise as GBIF requires; records are trimmed to the cells afterwards
-    W = levels['wheel']; order = sorted(range(len(W['id'])), key=lambda c: W['mi'][c]); polys = []
+def area_rects(levels):
+    # rectangles (south, north, west, east) around stretches of ten 49 sq mi cells; records are trimmed to the cells afterwards
+    W = levels['wheel']; order = sorted(range(len(W['id'])), key=lambda c: W['mi'][c]); out = []
     for i in range(0, len(order), 10):
         pts = [p for c in order[i:i + 10] for p in W['rings'][c]]
-        s_, n_ = min(p[0] for p in pts) - .01, max(p[0] for p in pts) + .01; w_, e_ = min(p[1] for p in pts) - .01, max(p[1] for p in pts) + .01
-        polys.append({'type': 'within', 'geometry': f'POLYGON(({w_:.4f} {s_:.4f},{e_:.4f} {s_:.4f},{e_:.4f} {n_:.4f},{w_:.4f} {n_:.4f},{w_:.4f} {s_:.4f}))'})
+        out.append((min(p[0] for p in pts) - .01, max(p[0] for p in pts) + .01, min(p[1] for p in pts) - .01, max(p[1] for p in pts) + .01))
+    return out
+
+
+def area_predicate(levels):
+    # the rectangles counter-clockwise, as GBIF requires
+    polys = [{'type': 'within', 'geometry': f'POLYGON(({w_:.4f} {s_:.4f},{e_:.4f} {s_:.4f},{e_:.4f} {n_:.4f},{w_:.4f} {n_:.4f},{w_:.4f} {s_:.4f}))'}
+             for s_, n_, w_, e_ in area_rects(levels)]
     return {'type': 'or', 'predicates': polys}
 
 
@@ -174,6 +191,34 @@ def load_invasive():
             if n:
                 inv.setdefault(norm(n), v)
     return inv
+
+
+def load_canon():
+    """any name on the invasive lookup (SCI_NAME or INAT_NAME) or the pest list -> one key per species, and that key's lookup name"""
+    canon, sci = {}, {}
+    for r in csv.DictReader(open(os.path.join(HERE, 'invasive_lookup.csv'), encoding='utf-8-sig')):
+        k = norm(r['SCI_NAME']); sci.setdefault(k, r['SCI_NAME'].strip())
+        for n in (r['SCI_NAME'], r.get('INAT_NAME')):
+            if n:
+                canon.setdefault(norm(n), k); canon.setdefault(norm(binomial(n)), k)
+    for p in PESTS:
+        canon.setdefault(norm(p), norm(p)); sci.setdefault(norm(p), p)
+    return canon, sci
+
+
+def ckey(s, canon):
+    return canon.get(norm(s)) or canon.get(norm(binomial(s))) or norm(binomial(s))
+
+
+def nm_common(sp, names, inv, common=None, tags=None):
+    """'Common name (Scientific name)', the same string for a species whichever source it comes from"""
+    k = norm(sp); c = names.get(k) or (common.get(k) if common else None) or (inv.get(k, (0, 0, ''))[2] if inv else '') or PESTS.get(sp, '')
+    c = c[:1].upper() + c[1:] if c else ''
+    return (f'{c} ({sp})' if c else sp) + (f' [{", ".join(tags)}]' if tags else '')
+
+
+# iNaturalist's invasive and pest records, kept for matching EDDMapS records: (species key, day) -> [(lat, lon)]; species key -> name used
+INAT_PTS, INAT_SP = defaultdict(list), {}
 
 
 def load_birds():
@@ -309,6 +354,7 @@ def summarize(kind, zpath, grids, names):
     """grids: {'corr': corridor levels, 'huc': HUC10 shell levels}. A record counts in a grid when it falls in one of that grid's
     1 sq mi cells; its 7 and 49 sq mi cells then add up those square miles (as the ArcGIS summaries did)."""
     inv = load_invasive() if kind == 'inat' else None
+    canon = load_canon()[0] if kind == 'inat' else None
     look, guild, common = load_birds() if kind == 'ebird' else (None, None, None)
     cells = {g: {lv: defaultdict(lambda: new_cell(kind)) for lv in L} for g, L in grids.items()}
     cutoff = str(date.today().year - RECENT_YEARS)
@@ -348,6 +394,10 @@ def summarize(kind, zpath, grids, names):
             grp = [g for g, test in GROUPS if test(r)]
             pest = sp and (sp in PESTS or binomial(r.get('verbatimScientificName')) in PESTS)
             iv = sp and r['kingdom'] == 'Plantae' and (inv.get(norm(r.get('verbatimScientificName'))) or inv.get(norm(sp)))
+            if (pest or iv) and sp:
+                ck = ckey(sp, canon); INAT_SP.setdefault(ck, sp)
+                if len(d) == 10 and d[4] == '-':
+                    INAT_PTS[(ck, date.fromisoformat(d).toordinal())].append((la, lo))
         for g, hit in hits.items():
             for lv, c in hit.items():
                 if c < 0:
@@ -383,10 +433,7 @@ def summarize(kind, zpath, grids, names):
     missing = sorted({sp for g in cells for lv in cells[g] for c in cells[g][lv].values() for sp in c['spp'] if not have(sp)})
     names.update(vernacular(missing, keys))
 
-    def nm(sp, tags=None):
-        k = norm(sp); c = names.get(k) or (common.get(k) if common else None) or (inv.get(k, (0, 0, ''))[2] if inv else '') or PESTS.get(sp, '')
-        c = c[:1].upper() + c[1:] if c else ''
-        return (f'{c} ({sp})' if c else sp) + (f' [{", ".join(tags)}]' if tags else '')
+    nm = lambda sp, tags=None: nm_common(sp, names, inv, common, tags)
     out = {}
     for g, L in grids.items():
         out[g] = {}
@@ -428,6 +475,123 @@ def summarize(kind, zpath, grids, names):
             print(f'   {kind} {g} {lv}: {len(ids)} cells with records', flush=True)
         cells[g] = None    # free memory before the next grid
     return out
+
+
+# ---------------------------------------------------------------- EDDMapS
+def arc(params, tries=6):
+    url = EDD_URL + '?' + urllib.parse.urlencode(params)
+    for i in range(tries):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'AT-Resource-Grid'}), timeout=180) as r:
+                j = json.loads(r.read().decode())
+            if 'error' in j:
+                raise RuntimeError(j['error'])
+            return j
+        except Exception as e:
+            if i == tries - 1:
+                raise
+            print(f'   EDDMapS: retry {i + 1} after {e}', flush=True); time.sleep(10 * (i + 1))
+
+
+def edd_fetch(levels):
+    """every visible EDDMapS point in the rectangles around the cells, paged; a point in two rectangles is kept once"""
+    rects = area_rects(levels); got = {}; t0 = time.time()
+    def one(rc):
+        s_, n_, w_, e_ = rc; out, off = [], 0
+        while True:
+            j = arc({'where': 'hidden IS NULL OR hidden = 0', 'geometry': f'{w_:.4f},{s_:.4f},{e_:.4f},{n_:.4f}', 'geometryType': 'esriGeometryEnvelope',
+                     'inSR': 4326, 'spatialRel': 'esriSpatialRelIntersects', 'outFields': EDD_FIELDS, 'returnGeometry': 'true', 'outSR': 4326,
+                     'orderByFields': 'OBJECTID_1', 'resultOffset': off, 'resultRecordCount': EDD_PAGE, 'f': 'json'})
+            fs = j.get('features') or []; out += fs; off += len(fs)
+            if not fs or not (j.get('exceededTransferLimit') or len(fs) >= EDD_PAGE):
+                return out
+    with ThreadPoolExecutor(4) as pool:
+        for k, fs in enumerate(pool.map(one, rects)):
+            for f in fs:
+                a = f.get('attributes') or {}; got[a.get('OBJECTID_1') or a.get('ObjectID')] = f
+            if (k + 1) % 20 == 0:
+                print(f'   EDDMapS: {k + 1} of {len(rects)} areas, {len(got):,} points ({time.time() - t0:.0f} s)', flush=True)
+    print(f'EDDMapS: {len(got):,} points in {len(rects)} areas around the cells', flush=True)
+    return list(got.values())
+
+
+def edd_summarize(feats, grids, names):
+    """EDDMapS points of listed invasive plants and forest pests, by cell, with duplicates dropped (see the top of this file)"""
+    inv = load_invasive(); canon, sci = load_canon(); pestn = {norm(p): p for p in PESTS}
+    cells = {g: {lv: defaultdict(lambda: {'n': 0, 'dup': 0, 'treat': 0, 'last': '', 'inv': set(), 'pest': set()}) for lv in L} for g, L in grids.items()}
+    seen = set(); st = Counter(); other = Counter(); edd_names = {}
+    for f in feats:
+        a = f.get('attributes') or {}; g_ = f.get('geometry') or {}
+        try:
+            la, lo = float(g_['y']), float(g_['x'])
+        except (KeyError, TypeError, ValueError):
+            st['no location'] += 1; continue
+        name = (a.get('Scientific_Name') or '').strip()
+        if not name:
+            st['no species'] += 1; continue
+        ck = ckey(name, canon); b = norm(binomial(name))
+        iv = inv.get(norm(name)) or inv.get(b) or inv.get(ck)
+        pest = pestn.get(b) or pestn.get(ck)
+        if not pest and not (iv and iv[0] == 'Priority'):
+            other[name] += 1; continue
+        hits = {}
+        for g, L in grids.items():
+            hx = cell_of(L['hex'], la, lo)
+            if hx >= 0:
+                hits[g] = {'hex': hx, 'cog': cell_of(L['cog'], la, lo), 'wheel': cell_of(L['wheel'], la, lo)}
+        if not hits:
+            st['outside the cells'] += 1; continue
+        ms = a.get('ObservationDate'); d = datetime.fromtimestamp(ms / 1000, timezone.utc).strftime('%Y-%m-%d') if isinstance(ms, (int, float)) else ''
+        k = (ck, d, round(la, 4), round(lo, 4))                     # about 10 m: the rows of one report (treatment, monitoring)
+        if k in seen:
+            st['repeat rows'] += 1; continue
+        seen.add(k)
+        dup = False
+        if d:
+            o = date.fromisoformat(d).toordinal(); cl = math.cos(math.radians(la))
+            for oo in range(o - DUP_DAYS, o + DUP_DAYS + 1):
+                for pla, plo in INAT_PTS.get((ck, oo), ()):
+                    if math.hypot((pla - la) * 111320, (plo - lo) * 111320 * cl) <= DUP_M:
+                        dup = True; break
+                if dup:
+                    break
+        sp = pest or INAT_SP.get(ck) or sci.get(ck) or binomial(name)
+        if a.get('SUB_name') and not names.get(norm(sp)):
+            edd_names.setdefault(norm(sp), a['SUB_name'].strip())
+        st['also on iNaturalist' if dup else 'counted'] += 1
+        treated = str(a.get('Treatment') or '').strip() not in ('', '0', 'None', 'null')
+        for g, hit in hits.items():
+            for lv, c in hit.items():
+                if c < 0:
+                    continue
+                s = cells[g][lv][c]
+                if dup:
+                    s['dup'] += 1; continue
+                s['n'] += 1; s['last'] = max(s['last'], d); s['treat'] += treated
+                (s['pest'] if pest else s['inv']).add(sp)
+    print('EDDMapS: ' + ', '.join(f'{v:,} {k}' for k, v in st.most_common()), flush=True)
+    print(f'EDDMapS: {sum(other.values()):,} points of {len(other)} species not on the invasive or pest lists, not counted; most reported: ' +
+          ', '.join(f'{k} ({v:,})' for k, v in other.most_common(12)), flush=True)
+    def nm(sp):        # the same name iNaturalist's lists give a species; EDDMapS's own common name only when there is no other
+        x = nm_common(sp, names, inv); c = edd_names.get(norm(sp))
+        return f'{c[:1].upper() + c[1:]} ({sp})' if x == sp and c else x
+    out = {}
+    for g, L in grids.items():
+        out[g] = {}
+        for lv in L:
+            ids, F = [], defaultdict(list)
+            for c in sorted(cells[g][lv]):
+                s = cells[g][lv][c]
+                v = {'N_EDD_OBS': s['n'], 'N_EDD_DUP': s['dup'], 'N_EDD_TREATED': s['treat'], 'EDD_LAST': s['last'] or None,
+                     'EDD_INV_LIST': sorted((nm(x) for x in s['inv']), key=str.lower),
+                     'EDD_EDRR_LIST': sorted((nm(x) for x in s['inv'] if inv.get(norm(x), (0, False))[1] or inv.get(ckey(x, canon), (0, False))[1]), key=str.lower),
+                     'EDD_PEST_LIST': sorted((nm(x) for x in s['pest']), key=str.lower)}
+                ids.append(L[lv]['id'][c])
+                for k, x in v.items():
+                    F[k].append(x)
+            out[g][lv] = {'ids': ids, 'f': dict(F)}
+            print(f'   EDDMapS {g} {lv}: {len(ids)} cells with records', flush=True)
+    return out, {'points': len(feats), 'counted': st['counted'], 'also_inat': st['also on iNaturalist'], 'repeat_rows': st['repeat rows']}
 
 
 def pack(themes):
@@ -514,7 +678,7 @@ def main():
             prev[g] = json.load(open(path))
         except Exception:
             prev[g] = {}
-    keep = [k for k in ('inat', 'ebird') if k not in kinds]
+    keep = [k for k in ('inat', 'ebird') if k not in kinds] + ([] if 'inat' in kinds else ['edd'])
     themes = {g: unpack(prev[g], keep) for g in grids}
     meta = prev['corr'].get('meta', {})
     for k in kinds:
@@ -524,6 +688,18 @@ def main():
             themes[g][k] = res[g]
         meta[k] = dict(info, built=datetime.now(timezone.utc).strftime('%Y-%m-%d'))
         os.remove(path)
+        if k == 'inat':        # EDDMapS rides with iNaturalist: its duplicates are found against the iNaturalist records just read
+            try:
+                res, info = edd_summarize(edd_fetch(huc or levels), grids, names)
+                for g in grids:
+                    themes[g]['edd'] = res[g]
+                meta['edd'] = dict(info, source=EDD_URL.rsplit('/query', 1)[0], built=datetime.now(timezone.utc).strftime('%Y-%m-%d'))
+            except Exception as e:
+                print(f'EDDMapS not rebuilt ({e}); keeping its previous summaries', flush=True)
+                for g in grids:
+                    old = unpack(prev[g], ['edd'])
+                    if old:
+                        themes[g].update(old)
     compare(D, themes['corr'])
     q = (date.today().month - 1) // 3 + 1
     for g, path in (('corr', OUT), ('huc', OUT_HUC)):

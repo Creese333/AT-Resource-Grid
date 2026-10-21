@@ -317,6 +317,7 @@ ol.spp.top10 li::marker{color:var(--muted);font-size:13.5px}
 .spp a:hover em{color:var(--blaze)}
 .spp .tag{font-size:13px;border:1px solid var(--line);border-radius:3px;padding:0 4px;margin-left:4px;color:var(--muted);white-space:nowrap}
 .spp .tag{background:rgba(10,19,31,.45)}
+.tag.edd{border-color:#C9A15A;color:#F1D7A6}.badge.edd{background:rgba(201,161,90,.25)}
 .spp .edrr{border-color:#F08A55;color:#FFC9A8}
 details{margin-top:6px}
 summary{cursor:pointer;font-size:14px;color:var(--blaze)}
@@ -797,7 +798,7 @@ document.querySelectorAll('.run').forEach(e => e.textContent = D.run);
 
 /* ---------- data access ---------- */
 const LV = {wheel:{name:'49 sq mi', acres:31360}, cog:{name:'7 sq mi', acres:4480}, hex:{name:'1 sq mi', acres:640}};
-const ROW = {};
+const ROW = {}; if (!D.themes.edd) D.themes.edd = {};
 for (const th in D.themes){ ROW[th] = {};
   for (const lv in D.themes[th]){ const a = new Int32Array(D.levels[lv].id.length).fill(-1);
     D.themes[th][lv].ix.forEach((c,k) => a[c] = k); ROW[th][lv] = a; } }
@@ -805,8 +806,8 @@ const IDX = {}; for (const lv in D.levels){ const m = new Map(); D.levels[lv].id
 /* layout viewport: steady while pinch-zooming and as phone toolbars slide in and out */
 function VW(){ return document.documentElement.clientWidth || window.innerWidth; }
 function VH(){ return document.documentElement.clientHeight || window.innerHeight; }
-function val(th, f, lv, c){ const t = D.themes[th][lv]; if (!t) return null; const r = ROW[th][lv][c]; if (r < 0) return null; const a = t.f[f]; if (!a) return null; const x = a[r]; return (x == null || x === -1) ? null : x; }
-const has = (th, lv, c) => !!D.themes[th][lv] && ROW[th][lv][c] >= 0;
+function val(th, f, lv, c){ const t = D.themes[th] && D.themes[th][lv]; if (!t) return null; const R = ROW[th] && ROW[th][lv], r = R ? R[c] : -1; if (!(r >= 0)) return null; const a = t.f[f]; if (!a) return null; const x = a[r]; return (x == null || x === -1) ? null : x; }
+const has = (th, lv, c) => !!(D.themes[th] && D.themes[th][lv] && ROW[th] && ROW[th][lv]) && ROW[th][lv][c] >= 0;
 const cat = (name, i) => i == null ? null : D.cats[name][i];
 function regionOf(mi){ for (const r of D.regions) if (mi <= r[2]) return r[0]; return D.regions[D.regions.length-1][0]; }
 const shortClub = s => s.replace('Appalachian Trail Club','A.T. Club').replace('Appalachian Mountain Club','AMC');
@@ -869,7 +870,24 @@ const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest gene
 /* Invasive species = invasive plants and forest pests together. Priority invasives = the priority plant list plus every forest pest.
    (The summary's own count fields cover plants only, so these are counted from the species lists.) */
 const blank = x => x == null ? '' : x;
-function invSet(lv, c, pri){ if (!has('inat', lv, c)) return null; const s = new Set(val('inat', pri ? 'EDRR_LIST' : 'INVASIVE_LIST', lv, c) || []); (val('inat','PEST_LIST',lv,c) || []).forEach(i => s.add(i)); return s; }
+/* EDDMapS lists sit beside iNaturalist's; invL() gives a cell's list from both, each species once */
+const EDDF = {INVASIVE_LIST:'EDD_INV_LIST', EDRR_LIST:'EDD_EDRR_LIST', PEST_LIST:'EDD_PEST_LIST'};
+function invL(f, lv, c){ const a = val('inat', f, lv, c), b = val('edd', EDDF[f], lv, c); if (!b || !b.length) return a; if (!a || !a.length) return b; const s = new Set(a); b.forEach(i => s.add(i)); return [...s]; }
+const hasInv = (lv, c) => has('inat', lv, c) || has('edd', lv, c);
+function invSet(lv, c, pri){ if (!hasInv(lv, c)) return null; const s = new Set(invL(pri ? 'EDRR_LIST' : 'INVASIVE_LIST', lv, c) || []); (invL('PEST_LIST',lv,c) || []).forEach(i => s.add(i)); return s; }
+/* which source reported each species in these cells: e EDDMapS, n iNaturalist */
+function invSrc(lv, cells){ const e = new Set(), n = new Set();
+  cells.forEach(c => { ['EDD_INV_LIST','EDD_PEST_LIST'].forEach(f => (val('edd', f, lv, c) || []).forEach(i => e.add(i))); ['INVASIVE_LIST','PEST_LIST'].forEach(f => (val('inat', f, lv, c) || []).forEach(i => n.add(i))); });
+  return {e, n}; }
+function srcTag(i, T){ return !T.e.has(i) ? '' : T.n.has(i) ? '<span class="tag edd" title="Reported on iNaturalist and in EDDMapS">iNat + EDDMapS</span>' : '<span class="tag edd" title="Reported in EDDMapS only">EDDMapS</span>'; }
+function srcItem(i, T, ed, tail){ return sppItem(i, ed, !T.e.has(i) || T.n.has(i)).replace('</li>', srcTag(i, T) + (tail || '') + '</li>'); }
+/* the EDDMapS line under a cell's or a selection's invasive lists */
+function eddNote(lv, cells){ let n = 0, d = 0, t = 0, last = ''; const any = cells.some(c => has('edd', lv, c));
+  cells.forEach(c => { n += val('edd','N_EDD_OBS',lv,c) || 0; d += val('edd','N_EDD_DUP',lv,c) || 0; t += val('edd','N_EDD_TREATED',lv,c) || 0; const l = val('edd','EDD_LAST',lv,c); if (l && l > last) last = l; });
+  if (!D.themes.edd || !D.themes.edd[lv]) return '';
+  if (!any || !n && !d) return `<p class="none" style="font-size:13.5px;margin-top:8px">No EDDMapS reports of listed invasive plants or forest pests ${cells.length > 1 ? 'in the selected cells' : 'in this cell'}.</p>`;
+  return `<p style="margin-top:8px"><span class="badge edd">EDDMapS</span> ${fmt(n,0)} ${n === 1 ? 'report' : 'reports'} of listed invasive plants and forest pests${t ? `, ${fmt(t,0)} with a treatment recorded` : ''}${last ? `; newest ${esc(last)}` : ''}.` +
+    (d ? ` ${fmt(d,0)} more ${d === 1 ? 'matches an iNaturalist record' : 'match iNaturalist records'} (same species, within a day and 50 m) and ${d === 1 ? 'is' : 'are'} counted once, as iNaturalist.` : '') + '</p>'; }
 const invCount = (lv, c) => { const s = invSet(lv, c, false); return s ? s.size : null; }, priCount = (lv, c) => { const s = invSet(lv, c, true); return s ? s.size : null; };
 function invShare(lv, c){ const n = val('inat','N_OBS',lv,c); if (!n) return null; return Math.min(100, Math.round(1000 * ((val('inat','N_INV_OBS',lv,c) || 0) + (val('inat','N_PEST_OBS',lv,c) || 0)) / n) / 10); }
 /* The quarterly summary's cutoff: the newest record it contains. The live section shows what has come in after it. */
@@ -1579,8 +1597,8 @@ function restRaw(k, lv, c){ const v = (th, f) => val(th, f, lv, c) || 0, va = va
     case 'open': return va == null ? null : Math.min(va * (v('veg','L1_HERB') + v('veg','L1_SHRUB') + v('veg','L1_AGRIC')) / 100, v('lands','LAND_AC'));
     case 'forest': return va == null ? null : Math.min(va * v('veg','L1_FOREST') / 100, v('lands','LAND_AC'));
     case 'rare': { const t = restTier(lv, c); return t ? TIERVAL[t] || 0 : 0; }
-    case 'inv': return (val('inat','EDRR_LIST',lv,c) || []).length;
-    case 'pest': return (val('inat','PEST_LIST',lv,c) || []).length;
+    case 'inv': return (invL('EDRR_LIST',lv,c) || []).length;
+    case 'pest': return (invL('PEST_LIST',lv,c) || []).length;
     case 'soil': { const x = val('soil','LCC14',lv,c); return x == null ? 0 : x / 100; }
     case 'birds': return v('ebird','GRASS_SPP') + v('ebird','SHRUB_SPP');
     case 'vista': return v('feat','N_VISTA');
@@ -1624,7 +1642,7 @@ function restSection(lv, c){ if (!has('veg', lv, c)) return '';
 function restBox(lv, cells){ if (!D.themes.veg || !D.themes.veg[lv]) return ''; const L_ = D.levels[lv], N = cells.length;
   let b = `<div class="sec" style="--hue:${HUE.rest}"><h3>Restoration targets</h3>`;
   const avg = a => a.length ? a.reduce((t, x) => t + x, 0) / a.length : 0, sum = a => a.reduce((t, x) => t + x, 0);
-  const union = f => { const u = new Set(); cells.forEach(c => (val('inat', f, lv, c) || []).forEach(x => u.add(x))); return u.size; };
+  const union = f => { const u = new Set(); cells.forEach(c => ((EDDF[f] ? invL(f, lv, c) : val('inat', f, lv, c)) || []).forEach(x => u.add(x))); return u.size; };
   const kinds = S.m.id === 'forest' && S.q.id === 'rest' ? ['forest', 'grass'] : ['grass', 'forest'];
   for (const kind of kinds){ const d = RESTDEF[kind], R = cells.map(c => [c, has('veg', lv, c) ? restParts(kind, lv, c) : null]).filter(x => x[1] && x[1][0] != null);
     if (!R.length){ b += `<p style="margin-top:8px"><b>${d.label}:</b> ${d.none.toLowerCase()} in the selected cells</p>`; continue; }
@@ -1691,11 +1709,12 @@ const Q = [
      {id:'gmammal', label:'Mammals, share of records', unit:'%', d:0, zero:1, note:'Research-grade iNaturalist records of mammals, as a share of all records in the cell.', fn:(lv,c)=>recPct(lv,c,'MAMMAL')},
      {id:'native', label:'Native plants, share of plant species', unit:'%', d:0, zero:1, fade:1, note:'Plant species not on the invasive and introduced species lookup, as a share of all plant species recorded. Plants only: the lookup covers introduced plants well but few introduced animals.', fn:(lv,c)=>{ const n = val('inat','PLANT_SPP',lv,c), x = val('inat','N_NONNATIVE_PLANT_SPP',lv,c); return n && x != null ? 100 * (n - x) / n : null; }}]},
  {id:'inv', th:'inat', hue:HUE.inat, ramp:'inv', title:'What invasive species are turning up?',
-  use:'Invasive plants and forest pests reported on iNaturalist, from the quarterly summary. Use it to aim surveys and volunteer workdays at priority invasives. Under Priority invasives, pick a species to map where it has spread year by year (Play animates it), from research-grade iNaturalist records updated weekly. A blank cell means nothing was reported, which is not the same as nothing there. All records, and a live lookup of the latest, are under iNaturalist Records when you select a cell.',
-  m:[{id:'spp', label:'Invasive species reported', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'None reported', note:'Invasive plants and forest pests, counted together.', fn:(lv,c)=>invCount(lv,c)},
-     {id:'edrr', label:'Priority invasives', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'None reported', note:'Priority invasive plants plus forest pests.', fn:(lv,c)=>priCount(lv,c)},
+  use:'Invasive plants and forest pests reported on iNaturalist and in EDDMapS, from the quarterly summary. Use it to aim surveys and volunteer workdays at priority invasives. Under Priority invasives, pick a species to map where it has spread year by year (Play animates it), from research-grade iNaturalist records updated weekly. A blank cell means nothing was reported, which is not the same as nothing there. All records, and a live lookup of the latest, are under iNaturalist Records when you select a cell.',
+  m:[{id:'spp', label:'Invasive species reported', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'None reported', note:'Invasive plants and forest pests from iNaturalist and EDDMapS, counted together.', fn:(lv,c)=>invCount(lv,c)},
+     {id:'edrr', label:'Priority invasives', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'None reported', note:'Priority invasive plants plus forest pests, from iNaturalist and EDDMapS.', fn:(lv,c)=>priCount(lv,c)},
      {id:'pct', label:'Invasive share of records', unit:'%', d:1, zero:1, fade:1, zeroText:'None reported', note:'Records of invasive plants and forest pests, as a share of all iNaturalist records.', fn:(lv,c)=>invShare(lv,c)},
-     {id:'pest', label:'Forest pest records', f:'N_PEST_OBS', int:1, zero:1, noun:['record','records']}]},
+     {id:'pest', label:'Forest pest records', f:'N_PEST_OBS', int:1, zero:1, noun:['record','records'], note:'Research-grade iNaturalist records of forest pests.'},
+     {id:'eddrec', label:'EDDMapS reports', th:'edd', f:'N_EDD_OBS', int:1, zero:1, noun:['report','reports'], zeroText:'None reported', note:'Reports of listed invasive plants and forest pests in EDDMapS. Reports that match an iNaturalist record (same species, within a day and 50 m) are counted once, as iNaturalist.'}]},
  {id:'eff', th:'inat', hue:HUE.eff, ramp:'eff', title:'How well is it surveyed?',
   use:'Every vegetation and wildlife map here depends on where people have looked. Use this one to find survey gaps worth a bioblitz, and to judge how much weight the other maps can carry in a given cell.',
   m:[{id:'obs', label:'iNaturalist records', f:'N_OBS', int:1, noun:['record','records']},
@@ -1965,7 +1984,7 @@ function dispLevel(){ let lv = S.level === 'auto' ? autoLevel() : S.level;
 const FADE_FROM = 9, FADE_TO = 15, FILL_FAR = .86, FILL_NEAR = .4;
 function zoomFade(){ const k = Math.max(0, Math.min(1, (map.getZoom() - FADE_FROM) / (FADE_TO - FADE_FROM))); return (FILL_FAR - k * (FILL_FAR - FILL_NEAR)) / FILL_FAR; }
 /* where a measure counts records or mapped things, a cell with none is left clear rather than filled */
-const ZCLEAR = new Set(['inat', 'ebird', 'hist', 'feat', 'wet']);
+const ZCLEAR = new Set(['inat', 'ebird', 'hist', 'feat', 'wet', 'edd']);
 const zClear = m => (!!m.zero && ZCLEAR.has(m.th)) || m.id === 'share';
 const BIGGRID = 15000;
 function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv], m = S.m, strong = m.th === 'feat', g = GROUP[lv], big = ps.length > BIGGRID;
@@ -2018,7 +2037,7 @@ function extLoad(){ if (EXT.huc) return Promise.resolve(); if (extLoading) retur
     return fetch(BIOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(b => { if (b && b.themes) bioHuc(b, H); }).catch(() => {}).then(() => { EXT.huc = H; }); });
   extLoading.catch(() => {}).then(() => { extLoading = null; });
   return extLoading; }
-function extIndex(){ for (const th in ROW) delete ROW[th];
+function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {};
   for (const th in D.themes){ ROW[th] = {}; for (const lv in D.themes[th]){ const a = new Int32Array(D.levels[lv].id.length).fill(-1); D.themes[th][lv].ix.forEach((c,k) => a[c] = k); ROW[th][lv] = a; } }
   for (const lv in D.levels){ const m = new Map(); D.levels[lv].id.forEach((id,i) => m.set(id,i)); IDX[lv] = m; }
   BRK.clear(); for (const k in COVER) delete COVER[k]; for (const k in RINGS) delete RINGS[k]; }
@@ -2412,6 +2431,8 @@ function findIndex(){ if (FIDX) return FIDX; if (S.ext === 'huc') setExt('corr',
     const eb = D.themes.ebird && D.themes.ebird[lv]; if (eb) lists('ebird', lv, Object.keys(eb.f).filter(k => k.endsWith('_LIST')), 'Bird', true);
     lists('inat', lv, ['INVASIVE_LIST','EDRR_LIST'], 'Invasive plant', true);
     lists('inat', lv, ['PEST_LIST'], 'Forest pest', true);
+    lists('edd', lv, ['EDD_INV_LIST','EDD_EDRR_LIST'], 'Invasive plant', true);
+    lists('edd', lv, ['EDD_PEST_LIST'], 'Forest pest', true);
     lists('inat', lv, ['TOP10_SPECIES'], 'iNaturalist species', false);
     const vg = D.themes.veg && D.themes.veg[lv]; if (vg && vg.f.COMP) for (let r = 0; r < vg.f.COMP.length; r++){ const a = vg.f.COMP[r]; for (let k = 0; k < a.length; k += 2){ const nm = D.cats.DOM_TYPE[a[k]]; add('veg:' + nm.toLowerCase(), nm, '', 'Vegetation type', 'veg', true, lv, vg.ix[r]); } } }
   PRIORITY.forEach(p => { const k = p.sci.toLowerCase(); let e = M.get(k);
@@ -2553,9 +2574,7 @@ const pinvTier = sci => { const s = pinvSp(sci); return s ? (s.group === PINVG.E
    entries: [[species index, cells or null]]; a priority plant gets a link that maps its spread */
 function invPlantsHTML(entries, ed, lv, cells){ const sp = phSp(), on = sp.set === 'pinv' ? sp : null;
   const G = {EDRR:[], Priority:[], Other:[]}; entries.forEach(x => { const t = ed.has(x[0]) ? (pinvTier(sppName(x[0]).sci) || 'Priority') : 'Other'; G[t].push(x); });
-  const li = x => { const s = ed.has(x[0]) ? pinvSp(sppName(x[0]).sci) : null; let h = sppItem(x[0], false, true);
-    if (x[1] != null) h = h.replace('</li>', `<span class="tag">${nCells(x[1])}</span></li>`);
-    return h; };
+  const T = invSrc(lv, cells), li = x => srcItem(x[0], T, false, x[1] != null ? `<span class="tag">${nCells(x[1])}</span>` : '');
   const list = (arr, lab) => !arr.length ? '' : `<p style="margin-top:8px">${lab}, ${arr.length}:</p><ul class="spp">${arr.slice(0, 15).map(li).join('')}</ul>` +
     (arr.length > 15 ? `<details><summary>${arr.length - 15} more</summary><ul class="spp">${arr.slice(15).map(li).join('')}</ul></details>` : '');
   let b = entries.length ? list(G.EDRR, 'Early detection (EDRR) priority plants') + list(G.Priority, 'Established priority plants') + list(G.Other, 'Other invasive plants')
@@ -2777,6 +2796,7 @@ function recGroups(rows, n, spLab){ const hasObs = rows.some(r => r[1] != null);
 let RECFLAG = null;
 function recFlags(){ const t = D.themes.inat; if (RECFLAG && RECFLAG.t === t) return RECFLAG; const pri = new Set(), inv = new Set();
   Object.values(t || {}).forEach(L => { [['EDRR_LIST', pri], ['PEST_LIST', pri], ['INVASIVE_LIST', inv]].forEach(([f, set]) => (L.f[f] || []).forEach(a => (a || []).forEach(i => set.add(i)))); });
+  Object.values(D.themes.edd || {}).forEach(L => { [['EDD_EDRR_LIST', pri], ['EDD_PEST_LIST', pri], ['EDD_INV_LIST', inv]].forEach(([f, set]) => (L.f[f] || []).forEach(a => (a || []).forEach(i => set.add(i)))); });
   return RECFLAG = {t, pri, inv}; }
 function recItem(i){ const F = recFlags(), p = F.pri.has(i); let h = sppItem(i, p, true); if (!p && F.inv.has(i)) h = h.replace(/(<\/a>)/, '$1<span class="tag">invasive</span>'); return h; }
 var LIVEBODY = '<h4 class="livehd">Live lookup</h4><p class="none" style="font-size:13.5px">The most recent observations here, fetched from iNaturalist now, including ones not yet research grade. They are separate from the counts above.</p><div id="inatrec"><div id="inatlive" style="margin-top:6px"></div></div>';
@@ -2813,14 +2833,15 @@ function recBox(lv, cells){ let b = recOpen(); const cs = D.themes.inat && D.the
   return b + LIVEBODY + '</div>'; }
 /* invasive species for one cell: the interpreted quarterly summary */
 function invSection(lv, c){ const v = (th, f) => val(th, f, lv, c); let b = `<div class="sec" style="--hue:${HUE.inat}"><h3>Invasive species</h3>`;
-  if (has('inat', lv, c)){ const inv = v('inat','INVASIVE_LIST') || [], ed = new Set(v('inat','EDRR_LIST') || []), pest = v('inat','PEST_LIST') || [];
+  if (hasInv(lv, c)){ const inv = invL('INVASIVE_LIST', lv, c) || [], ed = new Set(invL('EDRR_LIST', lv, c) || []), pest = invL('PEST_LIST', lv, c) || [], T = invSrc(lv, [c]);
     const nInv = invCount(lv, c), nPri = priCount(lv, c), sh = invShare(lv, c), big = n => n ? fmt(n, 0) : 'None';
-    b += `<div class="facts"><div><b>${big(nInv)}</b>invasive species</div><div><b>${big(nPri)}</b>priority invasives</div><div><b>${sh ? fmt(sh, sh < 10 ? 1 : 0) + '%' : 'None'}</b>of records</div></div>`;
-    b += `<p class="none" style="font-size:13.5px">Invasive plants and forest pests are counted together.</p>`;
+    b += `<div class="facts"><div><b>${big(nInv)}</b>invasive species</div><div><b>${big(nPri)}</b>priority invasives</div><div><b>${sh ? fmt(sh, sh < 10 ? 1 : 0) + '%' : 'None'}</b>of iNat records</div></div>`;
+    b += `<p class="none" style="font-size:13.5px">Invasive plants and forest pests are counted together, from iNaturalist and EDDMapS. Species reported in EDDMapS are flagged.</p>`;
     b += invPlantsHTML(inv.map(i => [i, null]), ed, lv, [c]);
-    b += pest.length ? `<p style="margin-top:8px">${pest.length} forest ${pest.length === 1 ? 'pest' : 'pests'}:</p><ul class="spp">${pest.map(i => sppItem(i, false, true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
-    b += `<p style="margin-top:10px"><span class="badge">${esc(cat('DATA_STATUS', v('inat','DATA_STATUS')) || '')}</span> Quarterly summary (${esc(D.run)}), from ${fmt(v('inat','N_OBS'),0)} iNaturalist ${v('inat','N_OBS') === 1 ? 'record' : 'records'}.</p>`;
-  } else b += '<p class="none">No iNaturalist records in this cell in the quarterly summary.</p>';
+    b += pest.length ? `<p style="margin-top:8px">${pest.length} forest ${pest.length === 1 ? 'pest' : 'pests'}:</p><ul class="spp">${pest.map(i => srcItem(i, T, false)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
+    b += has('inat', lv, c) ? `<p style="margin-top:10px"><span class="badge">${esc(cat('DATA_STATUS', v('inat','DATA_STATUS')) || '')}</span> Quarterly summary (${esc(D.run)}), from ${fmt(v('inat','N_OBS'),0)} iNaturalist ${v('inat','N_OBS') === 1 ? 'record' : 'records'}.</p>` : '<p class="none" style="margin-top:10px">No iNaturalist records in this cell in the quarterly summary.</p>';
+    b += eddNote(lv, [c]);
+  } else b += `<p class="none">No iNaturalist${D.themes.edd && D.themes.edd[lv] ? ' or EDDMapS' : ''} records in this cell in the quarterly summary.</p>`;
   return b + '</div>'; }
 /* birds for one cell */
 function birdSection(lv, c){ const v = (th, f) => val(th, f, lv, c); let b = `<div class="sec" style="--hue:${HUE.ebird}"><h3>Birds</h3>`;
@@ -2845,7 +2866,7 @@ function inatFetch(rings, id){ const el = $('#inatlive'); if (!el || !window.ATi
 /* lowercase scientific name -> badge, from the page's invasive, forest pest and priority invasive lists */
 function inatFlags(){ if (!INATFLAGS){ INATFLAGS = {};
     [['INVASIVE_LIST','Invasive'],['PEST_LIST','Forest pest'],['EDRR_LIST','Priority invasive']].forEach(([f, label]) =>
-      Object.values(D.themes.inat || {}).forEach(t => (t.f[f] || []).forEach(a => a.forEach(i => { INATFLAGS[sppName(i).sci.toLowerCase()] = label; })))); }
+      [D.themes.inat, D.themes.edd].forEach(T => Object.values(T || {}).forEach(t => (t.f[f] || t.f[EDDF[f]] || []).forEach(a => a.forEach(i => { INATFLAGS[sppName(i).sci.toLowerCase()] = label; }))))); }
   return INATFLAGS; }
 /* ---------- priority species ----------
    Species where every record matters. The quarterly summary only lists them in cells where they rank among the ten
@@ -2992,7 +3013,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
     const n = (th, f) => { const x = v(th, f, c); return x == null ? '' : x; }, k = (th, f) => { const x = v(th, f, c); return x == null || !D.cats[f] ? '' : D.cats[f][x]; };
     out.cells.push(Object.assign({}, base, {
       veg_acres_mapped:n('veg','VEG_AREA'), veg_pct_of_cell_mapped:n('veg','PCT_MAPPED'), veg_types:n('veg','N_TYPES'), veg_main_type:k('veg','DOM_TYPE'), nlcd_main_cover:k('veg','L2_DOM'),
-      inat_records:n('inat','N_OBS'), inat_species:n('inat','N_SPP'), inat_observers:n('inat','N_OBSERVERS'), inat_invasive_species:blank(invCount(lv, c)), inat_invasive_plants:n('inat','N_INV_SPP'), inat_forest_pests:has('inat', lv, c) ? (val('inat','PEST_LIST',lv,c) || []).length : '', inat_priority_invasives:blank(priCount(lv, c)), inat_invasive_pct_of_records:blank(invShare(lv, c)), inat_forest_pest_records:n('inat','N_PEST_OBS'), inat_data_status:k('inat','DATA_STATUS'), inat_summary_newest_record:n('inat','LAST_OBS'), inat_species_standardized:n('inat','COV_RICHNESS'), inat_records_last_3_years:n('inat','N_OBS_RECENT'), inat_nonnative_species:n('inat','N_NONNATIVE_SPP'), inat_nonnative_plant_species:n('inat','N_NONNATIVE_PLANT_SPP'),
+      inat_records:n('inat','N_OBS'), inat_species:n('inat','N_SPP'), inat_observers:n('inat','N_OBSERVERS'), inat_invasive_species:blank(invCount(lv, c)), inat_invasive_plants:n('inat','N_INV_SPP'), inat_forest_pests:hasInv(lv, c) ? (invL('PEST_LIST',lv,c) || []).length : '', inat_priority_invasives:blank(priCount(lv, c)), inat_invasive_pct_of_records:blank(invShare(lv, c)), inat_forest_pest_records:n('inat','N_PEST_OBS'), eddmaps_reports:n('edd','N_EDD_OBS'), eddmaps_reports_also_on_inat:n('edd','N_EDD_DUP'), eddmaps_reports_treated:n('edd','N_EDD_TREATED'), eddmaps_newest_report:n('edd','EDD_LAST'), inat_data_status:k('inat','DATA_STATUS'), inat_summary_newest_record:n('inat','LAST_OBS'), inat_species_standardized:n('inat','COV_RICHNESS'), inat_records_last_3_years:n('inat','N_OBS_RECENT'), inat_nonnative_species:n('inat','N_NONNATIVE_SPP'), inat_nonnative_plant_species:n('inat','N_NONNATIVE_PLANT_SPP'),
       ...Object.fromEntries(RECG.flatMap(([lab, g]) => { const k = lab.toLowerCase().replace(/[^a-z]+/g, '_'); return [['inat_' + k + '_records', n('inat', g + '_OBS')], ['inat_' + k + '_species', n('inat', g + '_SPP')]]; })),
       ebird_checklists:n('ebird','N_CHECKLISTS'), ebird_records:n('ebird','N_RECORDS'), ebird_species:n('ebird','N_SPP'), ebird_observers:n('ebird','N_OBSERVERS'), ebird_birds_of_conservation_concern:n('ebird','N_BCC_SPP'), ebird_data_status:k('ebird','DATA_STATUS'), ebird_latest_checklist:n('ebird','LAST_OBS'),
       unique_species_rating:te ? (te[2] || te[0]) : '', unique_species_rating_cell_size:te ? LV[plv].name : '',
@@ -3031,8 +3052,8 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
     (v('feat','SIDE',c) || []).forEach(x => out.features.push({grid_id:id, trail_mile:L_.mi[c], feature_type:'Side trail', name:x[0], detail:fmt(x[1], 2) + ' mi in this cell', latitude:'', longitude:''}));
     (v('feat','ML',c) || []).forEach(x => out.features.push({grid_id:id, trail_mile:L_.mi[c], feature_type:'Maintained landscape', name:x[0], detail:[x[1], fmt(x[2], 1) + ' acres in this cell'].filter(Boolean).join(', '), latitude:'', longitude:''}));
     const sp = (group, detail, list, edset) => (list || []).forEach(i => { const p = sppName(i); out.species.push({grid_id:id, trail_mile:L_.mi[c], group, habitat_group_or_list:detail, common_name:p.common, scientific_name:p.sci, lists:[p.tag, edset && edset.has(i) ? 'priority invasive' : ''].filter(Boolean).join('; ')}); });
-    const ed = new Set(v('inat','EDRR_LIST',c) || []);
-    sp('Invasive plant', 'iNaturalist', v('inat','INVASIVE_LIST',c), ed); sp('Forest pest', 'iNaturalist', v('inat','PEST_LIST',c), new Set(v('inat','PEST_LIST',c) || [])); /* forest pests count as priority invasives */ sp('iNaturalist most recorded', 'Top ten in the cell', v('inat','TOP10_SPECIES',c));
+    const ed = new Set(invL('EDRR_LIST', lv, c) || []), T = invSrc(lv, [c]), srcOf = i => T.e.has(i) ? (T.n.has(i) ? 'iNaturalist; EDDMapS' : 'EDDMapS') : 'iNaturalist';
+    (invL('INVASIVE_LIST', lv, c) || []).forEach(i => sp('Invasive plant', srcOf(i), [i], ed)); (invL('PEST_LIST', lv, c) || []).forEach(i => sp('Forest pest', srcOf(i), [i], new Set([i]))); /* forest pests count as priority invasives */ sp('iNaturalist most recorded', 'Top ten in the cell', v('inat','TOP10_SPECIES',c));
     BIRD_GROUPS.forEach(g => sp('Bird', g.full, v('ebird', g.list, c))); sp('Bird on a watch list', 'eBird', v('ebird','SOC_LIST',c));
     PRIORITY.forEach(p => { const n = prioCount(p, lv, c);
       if (n) out.species.push({grid_id:id, trail_mile:L_.mi[c], group:'Priority species', habitat_group_or_list:`Live from the iNaturalist project, ${n} research-grade ${n === 1 ? 'record' : 'records'}`, common_name:p.common, scientific_name:p.sci, lists:''}); });
@@ -3174,13 +3195,15 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
 
   // iNaturalist
   { const cs = withTh('inat'); b += `<div class="sec" style="--hue:${HUE.inat}"><h3>Invasive species</h3>`;
-    if (cs.length){ const rec = cs.reduce((s,c) => s + (val('inat','N_OBS',lv,c) || 0), 0), inv = union('inat','INVASIVE_LIST',cs), ed = new Set(union('inat','EDRR_LIST',cs).map(x => x[0])), pest = union('inat','PEST_LIST',cs);
+    const ci = cells.filter(c => hasInv(lv, c)), uInv = f => { const m = new Map(); ci.forEach(c => (invL(f, lv, c) || []).forEach(i => m.set(i, (m.get(i) || 0) + 1))); return [...m].sort((a,b) => b[1] - a[1] || D.spp[a[0]].localeCompare(D.spp[b[0]])); };
+    if (ci.length){ const rec = cs.reduce((s,c) => s + (val('inat','N_OBS',lv,c) || 0), 0), inv = uInv('INVASIVE_LIST'), ed = new Set(uInv('EDRR_LIST').map(x => x[0])), pest = uInv('PEST_LIST'), T = invSrc(lv, ci);
       const nInvAll = new Set([...inv.map(x => x[0]), ...pest.map(x => x[0])]).size;
-      b += `<div class="facts"><div><b>${nInvAll ? nInvAll : 'None'}</b>invasive species</div><div><b>${fmt(rec,0)}</b>records</div><div><b>${cs.length}</b>of ${N} cells with records</div></div>`;
-      b += `<p class="none" style="font-size:13.5px">Invasive plants and forest pests are counted together. Quarterly summary (${esc(D.run)}).</p>`;
-      b += (inv.length ? '<p class="none" style="font-size:13.5px;margin-top:8px">With the number of selected cells each was found in.</p>' : '') + invPlantsHTML(inv, ed, lv, cells);
-      b += pest.length ? `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(x => item(x[0], x[1], true)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
-    } else b += '<p class="none">No iNaturalist records in the selected cells in the quarterly summary.</p>';
+      b += `<div class="facts"><div><b>${nInvAll ? nInvAll : 'None'}</b>invasive species</div><div><b>${fmt(rec,0)}</b>iNat records</div><div><b>${ci.length}</b>of ${N} cells with records</div></div>`;
+      b += `<p class="none" style="font-size:13.5px">Invasive plants and forest pests are counted together, from iNaturalist and EDDMapS (species reported in EDDMapS are flagged). Quarterly summary (${esc(D.run)}).</p>`;
+      b += (inv.length ? '<p class="none" style="font-size:13.5px;margin-top:8px">With the number of selected cells each was found in.</p>' : '') + invPlantsHTML(inv, ed, lv, ci);
+      b += pest.length ? `<p style="margin-top:8px">Forest pests reported:</p><ul class="spp">${pest.map(x => srcItem(x[0], T, true, `<span class="tag">${nCells(x[1])}</span>`)).join('')}</ul>` : '<p class="none" style="margin-top:8px">No forest pests reported.</p>';
+      b += eddNote(lv, ci);
+    } else b += `<p class="none">No iNaturalist${D.themes.edd && D.themes.edd[lv] ? ' or EDDMapS' : ''} records in the selected cells in the quarterly summary.</p>`;
     b += '</div>'; b += recBox(lv, cells); }
 
   // birds
@@ -3485,7 +3508,7 @@ fetch('inat_ebird.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).t
 function bioConv(j, idx){ const si = new Map(D.spp.map((s, i) => [s, i])), sp = i => { const s = j.spp[i]; let k = si.get(s); if (k == null){ k = D.spp.length; D.spp.push(s); si.set(s, k); } return k; };
   const ds = (j.cats && j.cats.DATA_STATUS || []).map(x => { let k = D.cats.DATA_STATUS.indexOf(x); if (k < 0){ k = D.cats.DATA_STATUS.length; D.cats.DATA_STATUS.push(x); } return k; });
   const themes = {};
-  for (const th of ['inat', 'ebird']){ const src = j.themes[th]; if (!src) continue; const out = {};
+  for (const th of ['inat', 'ebird', 'edd']){ const src = j.themes[th]; if (!src) continue; const out = {};
     for (const lv in src){ if (!idx[lv]) continue; const t = src[lv], keep = [], ix = [];
       t.ids.forEach((id, k) => { const c = idx[lv].get(id); if (c != null){ keep.push(k); ix.push(c); } });
       const f = {};
@@ -3504,7 +3527,8 @@ function bioApply(){ const j = BIO; if (!j || j.done || S.ext !== 'corr') return
   if (j.run) D.run = j.run; document.querySelectorAll('.run').forEach(e => e.textContent = D.run);
   const m = j.meta || {}, dl = document.getElementById('biodl');
   if (dl && m.inat || dl && m.ebird) dl.hidden = false;
-  if (dl) dl.innerHTML = '<b>Quarterly downloads.</b> GBIF.org occurrence downloads: ' + ['inat', 'ebird'].filter(k => m[k] && m[k].doi).map(k => `${k === 'inat' ? 'iNaturalist' : 'eBird'} ${esc(m[k].built || '')}, <a href="https://doi.org/${esc(m[k].doi)}" target="_blank" rel="noopener">doi.org/${esc(m[k].doi)}</a>`).join('; ') + '.';
+  if (dl) dl.innerHTML = '<b>Quarterly downloads.</b> GBIF.org occurrence downloads: ' + ['inat', 'ebird'].filter(k => m[k] && m[k].doi).map(k => `${k === 'inat' ? 'iNaturalist' : 'eBird'} ${esc(m[k].built || '')}, <a href="https://doi.org/${esc(m[k].doi)}" target="_blank" rel="noopener">doi.org/${esc(m[k].doi)}</a>`).join('; ') + '.' +
+    (m.edd ? ` EDDMapS invasive species points ${esc(m.edd.built || '')}, from <a href="https://www.eddmaps.org/" target="_blank" rel="noopener">EDDMapS</a> (University of Georgia Center for Invasive Species and Ecosystem Health).` : '');
   extIndex(); FIDX = null; for (const k in RESTC) delete RESTC[k]; }
 draw(); strip(); elevLoad();
 if (S.pendingLayers) S.pendingLayers.forEach(id => { const l = LIVE.find(x => x.id === id), cb = document.querySelector('#layerspanel [data-live="' + id + '"]'); if (l && cb){ cb.checked = true; liveToggle(l, true); } });
