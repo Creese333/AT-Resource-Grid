@@ -1251,6 +1251,11 @@ function phYc(A, y){ const k = y || 'all'; A.yc = A.yc || {}; if (A.yc[k]) retur
 /* records per cell in a year with EDDMapS reports added: for the range chart */
 function phYcR(A, y){ const a = phYc(A, y), e = A.ey && A.ey[y]; if (!e) return a; const k = 'r' + y; if (A.yc[k]) return A.yc[k];
   const o = new Uint32Array(a.length); for (let c = 0; c < a.length; c++) o[c] = a[c] + e[c]; return A.yc[k] = o; }
+/* records in a cell from 2010 through the year shown (all years when none): iNaturalist plus EDDMapS */
+function phRecBy(lv, c, all){ const A = phAgg(lv); if (!A) return 0; const y = all ? 9999 : phYear(lv) || 9999; A.rb = A.rb || {}; let a = A.rb[y];
+  if (!a){ const n = A.any.length; a = A.rb[y] = new Uint32Array(n);
+    for (const yy of A.years){ if (yy > y) continue; const ic = phYc(A, yy), e = A.ey && A.ey[yy]; for (let k = 0; k < n; k++) a[k] += ic[k] + (e ? e[k] : 0); } }
+  return a[c]; }
 function phShare(lv, c){ const A = phAgg(lv); if (!A) return null; const y = phYear(lv), den = phEff(lv, c, y); if (den == null || den < PHSHMIN) return null;
   return Math.min(100, 100 * phYc(A, y)[c] / den); }
 const phShTxt = v => v == null ? '–' : v === 0 ? 'none of the records' : v < 0.1 ? 'under 0.1% of records' : `${fmt(v, v < 10 ? 1 : 0)}% of records`;
@@ -1806,8 +1811,8 @@ const Q = [
  {id:'phen', th:'inat', hue:HUE.phen, ramp:'phen', title:'When does it flower here?',
   use:'When twenty plants flower along the trail, from research-grade iNaturalist records. Measures follow the USA National Phenology Network: first, peak and season length, and flowering by week. Press Play to watch the season move north. Records follow hikers, so a blank cell means too few records, not absence.',
   m:[{id:'spread', label:'Year first recorded', yr:'y', hasTxt:() => phYear() ? `had a record by ${phYear()}` : 'have records', sumFn:phSum, asc:1, sumTitle:() => phYear() ? `Recorded by ${phYear()}, earliest first` : 'Recorded earliest', d:0, none:'No records (yet)', showFn:v => 'first recorded ' + v, fn:(lv, c) => phFirst(lv, c), colorFn:phFirstCol,
-      stripH:() => 1, stripTop:() => 1.6,
-      legendFn:lv => phFirstPal().map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${phYear(lv) ? 'Cells with a record by ' + phYear(lv) + ', by the year of the first one.' : 'The year of the first record in each cell.'} Bars under the map mark the same cells, in the same colors.</p>`},
+      stripCnt:(lv, c, all) => phRecBy(lv, c, all),
+      legendFn:lv => phFirstPal().map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${phYear(lv) ? 'Cells with a record by ' + phYear(lv) + ', by the year of the first one.' : 'The year of the first record in each cell.'} Bars under the map: the same cells in the same colors, taller where there are more records by then (iNaturalist and EDDMapS; square-root scale).</p>`},
      {id:'wave', hideFn:() => SPREADQ(), get label(){ const k = phSp().kind; return k === 'plant' ? 'Flowering, week by week' : k === 'adult' ? 'Adults, week by week' : 'Records, week by week'; },
       yr:'wk', st:() => phMain(), hasTxt:() => 'have records of this species', sumFn:phSum, sumTitle:() => `Most ${PHWORD[S.m.st()] === 'records' ? '' : PHWORD[S.m.st()] + ' '}records around ${wkDate(S.ph.wk)}${phYear() ? ', ' + phYear() : ''}`, showFn:v => `${v} ${v === 1 ? 'record' : 'records'}`, int:1, zero:1, zeroText:'Not these weeks', none:'No records', noun:['record','records'], fn:(lv, c) => phWin(lv, c, phMain()),
       colorFn:phWaveCol, legendFn:phWaveLegend, stripTop:lv => phTop(lv, phMain())},
@@ -3465,13 +3470,13 @@ function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stri
   const W = svg.clientWidth || 800, H = 136, pl = 4, pr = 4, top = ELEV && W > 568 ? 36 : 6, base = 92, pw = W - pl - pr, bw = pw / NB;
   const bins = Array.from({length:NB}, () => ({v:[], clubs:new Map()}));
   for (let c = 0; c < L_.id.length; c++){ const b = bins[Math.min(NB-1, Math.floor(L_.mi[c] / BIN))]; const v = m.get(lv, c);
-    b.clubs.set(L_.club[c], (b.clubs.get(L_.club[c]) || 0) + 1); if (v != null) b.v.push(v); }
+    b.clubs.set(L_.club[c], (b.clubs.get(L_.club[c]) || 0) + 1); if (m.stripCnt) b.all = (b.all || 0) + m.stripCnt(lv, c, true); if (v != null){ b.v.push(v); if (m.stripCnt) b.cnt = (b.cnt || 0) + m.stripCnt(lv, c); } }
   let mx = 0;
   bins.forEach(b => { if (!b.v.length){ b.val = null; return; }
     if (m.kind === 'cat'){ const cnt = new Map(); b.v.forEach(x => cnt.set(x, (cnt.get(x) || 0) + 1)); b.val = [...cnt].sort((x,y) => y[1] - x[1])[0][0]; }
     else { b.val = b.v.reduce((s,x) => s + x, 0) / b.v.length; mx = Math.max(mx, b.val); }
     b.club = [...b.clubs].sort((x,y) => y[1] - x[1])[0][0]; });
-  stripBins = bins;
+  stripBins = bins; const cntMx = m.stripCnt ? Math.max(1, ...bins.map(b => b.all || 0)) : 0;
   /* the top of the chart: the full range for scores, the index and even percentages; for lopsided measures the 95th-percentile
      stretch, so a few extreme stretches don't flatten the rest (taller bars are drawn to the top and marked) */
   if (m.kind !== 'cat'){ const vs = bins.map(b => b.val).filter(v => v != null).sort((p, q) => p - q), sk = breaks(m, lv).kind;
@@ -3487,7 +3492,7 @@ function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stri
   h += `<line x1="${pl}" x2="${W-pr}" y1="${base+.5}" y2="${base+.5}" stroke="#4D6079"/>`;
   bins.forEach((b,i) => { if (b.val == null) return; const bx = pl + i*bw;
     const inR = !rng || ((i+1)*BIN > rng[0] && i*BIN < rng[1]);
-    const clip = m.kind !== 'cat' && mx && stripV(m, b.val) > mx * 1.001, hh = m.kind === 'cat' ? base - top - 18 : Math.max(1.5, (base - top) * (mx ? Math.min(1, stripV(m, b.val) / mx) : 0)), col = m.kind !== 'cat' && m.zero && b.val === 0 ? '#60738B' : colorOf(m, lv, b.val);
+    const clip = m.kind !== 'cat' && !m.stripCnt && mx && stripV(m, b.val) > mx * 1.001, hh = m.kind === 'cat' ? base - top - 18 : m.stripCnt ? Math.max(1.5, (base - top) * Math.sqrt((b.cnt || 0) / cntMx)) : Math.max(1.5, (base - top) * (mx ? Math.min(1, stripV(m, b.val) / mx) : 0)), col = m.kind !== 'cat' && m.zero && b.val === 0 ? '#60738B' : colorOf(m, lv, b.val);
     h += `<rect x="${bx}" y="${base-hh}" width="${Math.max(1,bw-.6)}" height="${hh}" fill="${col}" opacity="${inR ? 1 : .3}" stroke="#fff" stroke-opacity=".22" stroke-width=".5"/>` +
       (clip ? `<path d="M${bx + bw / 2 - Math.min(3.5, bw / 2)} ${top} L${bx + bw / 2} ${top - 5} L${bx + bw / 2 + Math.min(3.5, bw / 2)} ${top} Z" fill="#fff" opacity="${inR ? .9 : .3}"/>` : ''); });
   h += elevSvg(pl, bw, top, base, W, pr, true);
