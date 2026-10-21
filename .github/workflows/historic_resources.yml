@@ -13,7 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 150      # OpenStreetMap cemeteries are fetched slowly, one small stretch at a time (up to 75 minutes)
     steps:
       - uses: actions/checkout@v4
         with:
