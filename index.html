@@ -317,6 +317,7 @@ ol.spp.top10 li::marker{color:var(--muted);font-size:13.5px}
 .spp a:hover em{color:var(--blaze)}
 .spp .tag{font-size:13px;border:1px solid var(--line);border-radius:3px;padding:0 4px;margin-left:4px;color:var(--muted);white-space:nowrap}
 .spp .tag{background:rgba(10,19,31,.45)}
+.acqctl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:2px 0 4px}.acqyr{display:flex;align-items:center;gap:8px;flex:1 1 200px}.acqyr span{min-width:58px;font-weight:600}.acqyr input{flex:1}
 .tag.edd{border-color:#C9A15A;color:#F1D7A6}.badge.edd{background:rgba(201,161,90,.25)}
 details.eddd{margin-top:8px}details.eddd>summary{cursor:pointer;font-size:14px}.eddt{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:4px}.eddt th{font-weight:500;color:var(--muted);text-align:left;padding:2px 6px 2px 0;border-bottom:1px solid var(--line)}.eddt td{padding:3px 6px 3px 0;border-bottom:1px solid var(--line);vertical-align:top}.eddt .n{text-align:right;white-space:nowrap}.eddt .yr{color:var(--muted);font-size:12.5px}
 .spp .edrr{border-color:#F08A55;color:#FFC9A8}
@@ -1724,11 +1725,13 @@ const wetAc = v => v == null ? '–' : v === 0 ? 'none' : v < 0.1 ? 'under 0.1 a
 const soilPct = x => x == null ? 'not rated' : x === 0 ? '0%' : pctLt1(x);
 const Q = [
  {id:'land', th:'lands', hue:HUE.lands, ramp:'land', title:'Who administers land here?',
-  use:'A count of the agencies and organizations that administer mapped land in each cell, to show how many parties a project may need to coordinate with. It is generalized to grid cells and does not show boundaries or who administers any particular spot. Check the tract records before relying on it.',
+  use:'A count of the agencies and organizations that administer mapped land in each cell, to show how many parties a project may need to coordinate with. It is generalized to grid cells and does not show boundaries or who administers any particular spot. Check the tract records before relying on it. Land protected over time maps the acres of A.T. tracts conveyed each year, from the conveyance date (CONVEYED) in the administrative areas layer; Play steps through the years. Tracts without a recorded date are left out.',
   m:[{id:'mgrs', label:'Number of land administrators', f:'N_MGR', int:1, noun:['administrator','administrators']},
      /* yes-or-no filter: cells where NPS - APPA administers at least one mapped acre are filled in a single color; all others are left empty */
      {id:'appa', label:'NPS - APPA lands', kind:'cat', f:'APPA_YN', yn:'NPS - APPA land', none:'No NPS - APPA land',
-      fn:(lv,c)=>{ const r = val('lands','MGRS',lv,c); if (!r) return null; const k = D.cats.MGR.indexOf('NPS - APPA'); for (let i = 0; i < r.length; i += 2) if (r[i] === k) return 0; return null; }}]},
+      fn:(lv,c)=>{ const r = val('lands','MGRS',lv,c); if (!r) return null; const k = D.cats.MGR.indexOf('NPS - APPA'); for (let i = 0; i < r.length; i += 2) if (r[i] === k) return 0; return null; }},
+     {id:'acq', label:'Land protected over time', int:1, noun:['acre','acres'], none:'None conveyed by then', fn:(lv,c)=>acqVal(lv,c), colorFn:(v,lv)=>acqCol(v,lv), legendFn:lv=>acqLegend(lv),
+      stripTop:()=>ACQ && ACQ.st === 'done' ? ACQ.stripMax : 1, note:'Acres of A.T. tracts conveyed by the year shown, from the conveyance dates in the administrative areas layer. Tracts without a recorded date are left out.'}]},
  {id:'veg', th:'veg', hue:HUE.veg, ramp:'veg', title:'What does the vegetation map say?',
   use:'Data from the NPS Vegetation Map. This is the finest scale vegetation information for the A.T. Corridor. The map covers only part of most cells, so vegetation types are shown in acres, and cells with under 10 mapped acres are faded.',
   m:[{id:'type', label:'Main vegetation type', kind:'cat', f:'DOM_TYPE', many:1, fade:1},
@@ -2291,6 +2294,83 @@ function featApply(){ if (FEATDONE || !FEATGOT || S.ext !== 'corr' || !D.themes.
       if (T.f.N_FAC) T.f.N_FAC[r] = TY.filter(t => t !== 'Vista').reduce((s, t) => s + (cnt[t] || 0), 0); }); }
   D.feat = feats; FIDX = null; BRK.clear(); for (const k in RESTC) delete RESTC[k];
   redraw(); if (S.cell != null || S.box) profile(); }
+let ACQ = null, acqTimer = null;
+const ACQURL = 'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/AT_Lands/FeatureServer/1';
+function acqLoad(){ if (ACQ) return; ACQ = {st:'loading', n:0};
+  (async () => { const fs = await arcQuery(ACQURL, {where:"CONVEYED > DATE '1901-01-01'", outFields:'CONVEYED,ACRES,ADMIN,TRACT1,ESTATE', geometryPrecision:5, maxAllowableOffset:0.0002}, 10);
+    const lvs = ['hex', 'cog', 'wheel'], cy = {hex:new Map(), cog:new Map(), wheel:new Map()}, tr = [];
+    const inPoly = (la, lo, rings) => { let ins = false; for (const r of rings) for (let i = 0, j = r.length - 1; i < r.length; j = i++){ const xi = r[i][0], yi = r[i][1], xj = r[j][0], yj = r[j][1];
+      if ((yi > la) !== (yj > la) && lo < (xj - xi) * (la - yi) / (yj - yi) + xi) ins = !ins; } return ins; };
+    for (let k = 0; k < fs.length; k++){ const f = fs[k], p = f.properties || {}, g = f.geometry; if (!g || p.CONVEYED == null) continue;
+      const y = new Date(p.CONVEYED).getUTCFullYear(), ac = +p.ACRES || 0; if (!(y > 1901) || !(ac > 0)) continue;
+      const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : []; if (!polys.length) continue;
+      tr.push({y, ac, adm:p.ADMIN || '', tract:p.TRACT1 || '', est:p.ESTATE || ''});
+      /* sample points on a grid inside the tract; its acres are shared among the cells the points fall in */
+      const hits = lvs.map(() => new Map()); let n = 0;
+      for (const rings of polys){ let s = 90, n0 = 90, w = 180, e = -180; rings[0].forEach(([x, yy]) => { s = Math.min(s, yy); n0 = Math.max(n0 === 90 ? -90 : n0, yy); w = Math.min(w, x); e = Math.max(e, x); });
+        const st = Math.max(0.0003, Math.sqrt((n0 - s) * (e - w) / 64));
+        for (let la = s + st / 2; la < n0; la += st) for (let lo = w + st / 2; lo < e; lo += st) if (inPoly(la, lo, rings)){ n++; lvs.forEach((lv, i) => { const c = phCell(lv, la, lo); if (c >= 0) hits[i].set(c, (hits[i].get(c) || 0) + 1); }); } }
+      if (!n){ const r0 = polys[0][0], la = r0.reduce((t, q) => t + q[1], 0) / r0.length, lo = r0.reduce((t, q) => t + q[0], 0) / r0.length; n = 1;
+        lvs.forEach((lv, i) => { const c = phCell(lv, la, lo); if (c >= 0) hits[i].set(c, 1); }); }
+      lvs.forEach((lv, i) => hits[i].forEach((m, c) => { let Y = cy[lv].get(c); if (!Y) cy[lv].set(c, Y = new Map()); Y.set(y, (Y.get(y) || 0) + ac * m / n); }));
+      if (k % 150 === 0){ ACQ.n = k; acqStatusOnly(); await new Promise(r => setTimeout(r)); } }
+    const ys = tr.map(t => t.y), y0 = Math.min(...ys), y1 = Math.max(...ys), by = new Map();
+    tr.forEach(t => { const e = by.get(t.y) || {ac:0, n:0}; e.ac += t.ac; e.n++; by.set(t.y, e); });
+    Object.assign(ACQ, {st:'done', cy, tracts:tr, y0, y1, by, cum:{}, total:tr.reduce((s, t) => s + t.ac, 0), at:new Date()});
+    if (!S.acqYr || S.acqYr > y1 || S.acqYr < y0) S.acqYr = y1;
+    /* fixed classes from the final totals, so colors mean the same thing in every year */
+    ACQ.brk = {}; for (const lv of lvs){ const a = [...acqCum(lv, y1)].filter(v => v >= 1).sort((p, q) => p - q), q = f => a[Math.min(a.length - 1, Math.floor(f * a.length))];
+      let b = a.length ? [.35, .6, .8, .93].map(f => Math.max(1, Math.round(niceNum(q(f))))) : []; b = b.filter((v, i) => i === 0 || v > b[i - 1]); ACQ.brk[lv] = b; }
+    { const a = [...acqCum('wheel', y1)].filter(v => v >= 1).sort((p, q) => p - q); ACQ.stripMax = a.length ? a[Math.min(a.length - 1, Math.floor(.95 * a.length))] : 1; }
+    if (S.q.id === 'land' && S.m.id === 'acq'){ BRK.clear(); redraw(); side(); } })()
+  .catch(e => { ACQ = {st:'error', msg:e.message}; if (S.q.id === 'land' && S.m.id === 'acq') side(); }); }
+function acqCum(lv, y){ const key = lv + y; if (ACQ.cum[key]) return ACQ.cum[key]; const n = D.levels[lv].id.length, a = new Float64Array(n);
+  ACQ.cy[lv].forEach((Y, c) => { let t = 0; Y.forEach((ac, yy) => { if (yy <= y) t += ac; }); a[c] = t; }); return ACQ.cum[key] = a; }
+function acqVal(lv, c){ if (S.ext !== 'corr') return null; if (!ACQ){ acqLoad(); return null; } if (ACQ.st !== 'done') return null;
+  const v = acqCum(lv, S.acqYr || ACQ.y1)[c]; return v >= 0.5 ? Math.round(v) : null; }
+function acqCol(v, lv){ const b = (ACQ && ACQ.brk && ACQ.brk[lv]) || [], cols = RAMP.land; let i = 0; while (i < b.length && v > b[i]) i++;
+  return cols[Math.round(i * (cols.length - 1) / Math.max(1, b.length))]; }
+function acqLegend(lv){ if (!ACQ || ACQ.st !== 'done') return `<p class="sub">${ACQ && ACQ.st === 'error' ? 'The administrative areas layer could not be reached.' : 'Loading the A.T. tracts…'}</p>`;
+  const b = ACQ.brk[lv] || [], cols = RAMP.land, lab = []; b.forEach((v, i) => lab.push(i === 0 ? `1 to ${fmt(v, 0)} acres` : `${fmt(b[i - 1] + 1, 0)} to ${fmt(v, 0)} acres`)); lab.push(b.length ? `over ${fmt(b[b.length - 1], 0)} acres` : 'any acres');
+  return lab.map((t, i) => `<div class="row"><i style="background:${cols[Math.round(i * (cols.length - 1) / Math.max(1, b.length))]}"></i><span>${t}</span></div>`).join('') +
+    `<p class="sub">Acres conveyed by ${S.acqYr || ACQ.y1}, per cell. Classes stay the same in every year.</p>`; }
+function acqStatus(){ if (!ACQ) return 'Loading the A.T. tracts…'; if (ACQ.st === 'loading') return `Loading the A.T. tracts from the administrative areas layer… ${ACQ.n ? fmt(ACQ.n, 0) + ' placed' : ''}`;
+  if (ACQ.st === 'error') return 'The administrative areas layer could not be reached just now (' + esc(ACQ.msg || '') + ').';
+  return `${fmt(ACQ.tracts.length, 0)} tracts with a conveyance date, ${fmt(ACQ.total, 0)} acres, ${ACQ.y0} to ${ACQ.y1}, loaded live from the A.T. administrative areas layer. Tracts without a recorded date are left out.`; }
+function acqStatusOnly(){ const e = $('#acqstat'); if (e) e.textContent = acqStatus(); }
+function acqBlock(){ if (S.ext !== 'corr') return '<p class="none">Land protection is mapped for the A.T. corridor only.</p>'; if (!ACQ) acqLoad();
+  const ok = ACQ && ACQ.st === 'done', y = ok ? S.acqYr || ACQ.y1 : 0;
+  return `<div class="acqctl">` + (ok ? `<button type="button" class="phplay" data-acqplay="1" aria-pressed="${!!acqTimer}">${acqTimer ? 'Pause' : 'Play'}</button>` +
+    `<label class="acqyr"><span id="acqyl">By ${y}</span><input type="range" id="acqyr" min="${ACQ.y0}" max="${ACQ.y1}" step="1" value="${y}" aria-label="Year"></label>` : '') + `</div>` +
+    `<p class="phstat" id="acqstat" role="status">${esc(acqStatus())}</p>`; }
+function acqChart(){ if (!ACQ || ACQ.st !== 'done') return '<p class="phstat">The chart appears once the tracts have loaded.</p>';
+  const ys = []; for (let y = ACQ.y0; y <= ACQ.y1; y++) ys.push(y); const sel = S.acqYr || ACQ.y1;
+  const W = 320, H = 150, pl = 34, pr = 34, pt = 12, pb = 18, pw = W - pl - pr, ph = H - pt - pb, bw = pw / ys.length, f = v => v.toFixed(1);
+  const per = ys.map(y => (ACQ.by.get(y) || {ac:0}).ac); let c = 0; const cum = per.map(v => c += v);
+  const mx = Math.max(1, ...per), sp = [100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000].find(s => mx / s <= 4) || 50000, top = Math.ceil(mx / sp) * sp, tot = cum[cum.length - 1] || 1;
+  const Y = v => pt + ph - ph * v / top, Yc = v => pt + ph - ph * v / tot, X = i => pl + bw * i + bw / 2;
+  let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Acres of A.T. tracts conveyed each year">`;
+  for (let v = 0; v <= top; v += sp) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="${v ? '#2E4460' : '#4A6182'}" stroke-width="${v ? .6 : .9}"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${v >= 1000 ? fmt(v / 1000, v % 1000 ? 1 : 0) + 'k' : v}</text>`;
+  [0, .5, 1].forEach(fr => { g += `<text x="${W - pr + 3}" y="${f(Yc(tot * fr) + 3)}" font-size="8.5" fill="#E8C7D8">${fmt(Math.round(tot * fr / 1000), 0)}k</text>`; });
+  ys.forEach((y, i) => { if (!per[i]) return; const y0 = Y(per[i]), on = y === sel;
+    g += `<rect x="${f(pl + bw * i + .4)}" y="${f(y0)}" width="${f(Math.max(.8, bw - .8))}" height="${f(Y(0) - y0)}" fill="${on ? '#FFFFFF' : RAMP.land[2]}" opacity="${y > sel ? .3 : 1}"><title>${y}: ${fmt(Math.round(per[i]), 0)} acres in ${(ACQ.by.get(y) || {n:0}).n} tracts</title></rect>`; });
+  g += `<polyline points="${ys.map((y, i) => f(X(i)) + ',' + f(Yc(cum[i]))).join(' ')}" fill="none" stroke="#E8C7D8" stroke-width="1.6"/>`;
+  { const i = ys.indexOf(sel); if (i >= 0) g += `<circle cx="${f(X(i))}" cy="${f(Yc(cum[i]))}" r="3" fill="#FFFFFF" stroke="#E8C7D8"/>`; }
+  ys.forEach((y, i) => { if ((y % 5 === 0 && Math.abs(y - sel) >= 5) || y === sel) g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${y === sel ? '#FFE014' : '#A8B8CA'}"${y === sel ? ' font-weight="700"' : ''}>${y === sel || y % 10 === 0 ? y : '’' + String(y).slice(2)}</text>`; });
+  const i = ys.indexOf(sel), byN = ACQ.tracts.filter(t => t.y <= sel).length;
+  return `<h4 class="phh">Acres conveyed each year, the whole trail</h4><p class="phflow">By ${sel}, ${fmt(Math.round(cum[i]), 0)} acres in ${fmt(byN, 0)} tracts (${Math.round(100 * cum[i] / tot)}% of the dated acres); ${fmt(Math.round(per[i]), 0)} acres in ${sel} itself.</p>` + g + '</svg>' +
+    `<div class="phkey"><span class="thin"><i style="background:${RAMP.land[2]}"></i>acres conveyed that year · <i style="background:#E8C7D8"></i>running total (right axis)</span></div>`; }
+function acqFrame(full){ const y = S.acqYr, l = $('#acqyl'), r = $('#acqyr'), v = $('#acqviz'); if (l) l.textContent = 'By ' + y; if (r) r.value = y;
+  if (v) v.innerHTML = acqChart(); BRK.clear(); restyle(); strip(); legend(); if (full) side(); }
+function acqPlay(on){ if (acqTimer){ clearInterval(acqTimer); acqTimer = null; }
+  if (on && ACQ && ACQ.st === 'done'){ if (S.acqYr >= ACQ.y1) S.acqYr = ACQ.y0 - 1;
+    acqTimer = setInterval(() => { if (S.q.id !== 'land' || S.m.id !== 'acq'){ clearInterval(acqTimer); acqTimer = null; return; }   /* another measure was picked */
+      if (S.acqYr >= ACQ.y1){ acqPlay(false); return; } S.acqYr++; acqFrame(); }, 650); }
+  const b = document.querySelector('[data-acqplay]'); if (b){ b.textContent = acqTimer ? 'Pause' : 'Play'; b.setAttribute('aria-pressed', String(!!acqTimer)); }
+  if (!on) acqFrame(true); }
+document.addEventListener('click', e => { if (e.target.closest('[data-acqplay]')) acqPlay(!acqTimer); });
+document.addEventListener('input', e => { if (e.target.id === 'acqyr'){ if (acqTimer) acqPlay(false); S.acqYr = +e.target.value; acqFrame(); } });
+document.addEventListener('change', e => { if (e.target.id === 'acqyr') side(); });
 async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZoom(); if (l.local) return histLayer(l, my);
   try {
     if (l.bbox){ if (z < l.minZoom){ l.group.clearLayers(); liveStatus(l, 'Zoom in to see these'); return; }
@@ -2390,7 +2470,7 @@ function keepPlace(el, sels, fn){ const t0 = el && el.isConnected ? el.getBoundi
   if (t0 == null) return; const nu = sels.map(s => document.querySelector(s)).find(Boolean); if (!nu) return; const d = nu.getBoundingClientRect().top - t0;
   if (Math.abs(d) >= 1){ const sc = scroller(nu); sc.scrollTop += d; } }
 /* a question or measure with its own choices (species, years, scale) opens the Selections block */
-const hasSel = () => PHQ() || (S.q.id === 'inv' && S.m.id === 'edrr');
+const hasSel = () => PHQ() || (S.q.id === 'inv' && S.m.id === 'edrr') || (S.q.id === 'land' && S.m.id === 'acq');
 function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
   let h = `<section class="blk qsblk"><h2><button type="button" class="blktog" data-blk="qs" aria-expanded="${!!S.side.qs}"><span>Guiding Questions${S.side.qs ? '' : ` <small class="mgsum">${esc(q.title)}</small>`}</span><i aria-hidden="true"></i></button></h2>` +
@@ -2402,10 +2482,10 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
     (S.herb ? '<p class="extnote">Cells are marked down by up to 10 points for the share of their A.T. lands in wetland, where herbicide use may be limited.</p>' : '') +
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
       (S.appa ? '<p class="extnote">Only NPS – APPA land counts: scores are scaled by the share of the cell’s corridor land that APPA administers. Cells without APPA land score 0.</p>' : ''));
-  const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : '';
-  h += `<div class="qbody${PHQ() && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
+  const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : '';
+  h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq') && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
-    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + '</div>';
+    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
   const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
