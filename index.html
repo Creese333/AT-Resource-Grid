@@ -1827,6 +1827,7 @@ function cultSpread(){ const L_ = D.levels.wheel, M = new Map(); if (!cultReady(
     a.forEach(i => { const e = cultOf(i); if (!e) return; const p = sppName(i), k = p.sci.toLowerCase(); let s = M.get(k);
       if (!s) M.set(k, s = {name:e[1] || p.common || p.sci, sci:p.sci, mi:[]}); s.mi.push(L_.mi[c]); }); }
   M.forEach(s => s.mi.sort((x, y) => x - y)); return [...M.values()]; }
+function cultSpreadAll(){ const k = S.sec; S.sec = 'all'; try { return cultSpread() || []; } finally { S.sec = k; } }
 function cultCharts(){ const S_ = cultSpread(); if (!S_) return '<p class="none">The charts fill in after the next quarterly iNaturalist rebuild.</p>';
   if (!S_.length) return '<p class="none">No listed species recorded in this section.</p>';
   const rng = secRange() || [0, D.totalMi], lo = rng[0], hi = rng[1], f = v => v.toFixed(1), esc2 = s => esc(s);
@@ -1834,19 +1835,18 @@ function cultCharts(){ const S_ = cultSpread(); if (!S_) return '<p class="none"
   const shown = (S.cultAll ? wide : wide.slice(0, 20)).slice().sort((a, b) => a.mi[a.mi.length >> 1] - b.mi[b.mi.length >> 1] || a.name.localeCompare(b.name));
   const W = 320, lab = 112, pr = 4, pw = W - lab - pr, rh = 14, top = 14, X = m => lab + pw * (m - lo) / Math.max(1, hi - lo), H = top + shown.length * rh + 14;
   const sel = S.m.find && S.m.find.ls;
-  let g = `<h4 class="phh">Where each species is recorded${S.sec === 'all' ? ' along the trail' : ', ' + esc(secName())}</h4>` +
-    `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Where each species is recorded along the trail">`;
-  D.regions.forEach((r, k) => { const a = Math.max(lo, r[1]), b = Math.min(hi, r[2]); if (b <= a) return;
-    g += `<rect x="${f(X(a))}" y="${top}" width="${f(Math.max(0, X(b) - X(a) - .6))}" height="${shown.length * rh}" fill="${k % 2 ? '#17294A' : '#1D3254'}"/>`;
-    if (X(b) - X(a) > 34) g += `<text x="${f(X(a) + 2)}" y="${top - 4}" font-size="7.5" fill="#A8B8CA">${esc(r[0])}</text>`; });
-  shown.forEach((s, k) => { const y = top + k * rh + rh / 2, on = sel === s.sci.toLowerCase(), col = on ? '#B9E08A' : HUE.cult;
-    g += `<g data-cultsp="${esc2(s.sci.toLowerCase())}" style="cursor:pointer"><rect x="0" y="${f(y - rh / 2)}" width="${W}" height="${rh}" fill="${on ? '#22385A' : 'transparent'}"/>` +
-      `<text x="${lab - 5}" y="${f(y + 3)}" text-anchor="end" font-size="8.5" fill="${on ? '#FFFFFF' : '#C9D4E2'}">${esc(s.name.length > 24 ? s.name.slice(0, 23) + '…' : s.name)}</text>` +
-      `<line x1="${f(X(s.mi[0]))}" x2="${f(X(s.mi[s.mi.length - 1]))}" y1="${f(y)}" y2="${f(y)}" stroke="${col}" stroke-opacity=".55" stroke-width="1.2"/>` +
-      s.mi.map(m => `<circle cx="${f(X(m))}" cy="${f(y)}" r="2.6" fill="${col}" stroke="#12223A" stroke-width=".6"/>`).join('') +
-      `<title>${esc(s.name)} (${esc(s.sci)}): recorded in ${s.mi.length} 49 sq mi ${s.mi.length === 1 ? 'cell' : 'cells'}, from mile ${fmt(s.mi[0], 0)} to mile ${fmt(s.mi[s.mi.length - 1], 0)}. Click to map it.</title></g>`; });
-  g += `<text x="${lab}" y="${H - 3}" font-size="7.5" fill="#A8B8CA">${S.sec === 'all' ? '◀ Georgia' : 'mile ' + fmt(lo, 0)}</text><text x="${W - pr}" y="${H - 3}" text-anchor="end" font-size="7.5" fill="#A8B8CA">${S.sec === 'all' ? 'Maine ▶' : 'mile ' + fmt(hi, 0)}</text></svg>`;
-  g += `<p class="phnote">Each dot is a 49 sq mi cell with a research-grade iNaturalist record; the line runs from the southernmost to the northernmost. Sorted from mostly southern to mostly northern. ${wide.length > 20 ? `<button type="button" class="linkbtn" data-cultall="1">${S.cultAll ? 'Show the 20 most widely recorded' : `Show all ${wide.length} species`}</button>` : ''}</p>`;
+  /* species recorded in each region, whole trail (the section filter picks out its region), and how many are recorded in no other region */
+  const all = cultSpreadAll(), reg = D.regions.map(r => ({name:r[0], n:0, only:0}));
+  all.forEach(s => { const hit = new Set(s.mi.map(m => D.regions.findIndex(r => m <= r[2])).map(k => k < 0 ? D.regions.length - 1 : k)); hit.forEach(k => { reg[k].n++; if (hit.size === 1) reg[k].only++; }); });
+  const cur = S.sec[0] === 'r' ? +S.sec.slice(1) : -1, mxR = Math.max(1, ...reg.map(r => r.n)), bhR = 18, WR = 320, labR = 80, pwR = WR - labR - 100;
+  let g = `<h4 class="phh">Species recorded in each region</h4><svg class="phch" viewBox="0 0 ${WR} ${reg.length * bhR + 4}" width="100%" role="img" aria-label="Species recorded in each region">`;
+  reg.forEach((r, k) => { const y = 2 + k * bhR, w = pwR * r.n / mxR, wo = pwR * r.only / mxR, dim = cur >= 0 && cur !== k;
+    g += `<g opacity="${dim ? .4 : 1}"><text x="${labR - 5}" y="${y + 12}" text-anchor="end" font-size="9" fill="#C9D4E2">${esc(r.name)}</text>` +
+      `<rect x="${labR}" y="${y + 3}" width="${Math.max(1, w).toFixed(1)}" height="11" rx="1.5" fill="${HUE.cult}"/>` +
+      (r.only ? `<rect x="${labR}" y="${y + 3}" width="${Math.max(1, wo).toFixed(1)}" height="11" rx="1.5" fill="#B9E08A"/>` : '') +
+      `<text x="${(labR + w + 4).toFixed(1)}" y="${y + 12}" font-size="9" fill="#E3EAF2">${r.n}${r.only ? ` <tspan fill="#B9E08A">(${r.only} only here)</tspan>` : ''}</text>` +
+      `<title>${esc(r.name)}: ${r.n} listed species recorded, ${r.only} of them in no other region</title></g>`; });
+  g += `</svg><p class="phnote">Listed species with a research-grade iNaturalist record in each region. The light part of each bar is species recorded in that region only.</p>`;
   const tp = wide.slice(0, 12), mx = Math.max(1, tp[0].mi.length), bh = 14, H2 = tp.length * bh + 4;
   g += `<h4 class="phh">Most widely recorded species${S.sec === 'all' ? '' : ', ' + esc(secName())}</h4><svg class="phch" viewBox="0 0 ${W} ${H2}" width="100%" role="img" aria-label="Most widely recorded species">`;
   tp.forEach((s, k) => { const y = 2 + k * bh, on = sel === s.sci.toLowerCase(), w = (pw - 26) * s.mi.length / mx;
@@ -1854,7 +1854,7 @@ function cultCharts(){ const S_ = cultSpread(); if (!S_) return '<p class="none"
       `<text x="${lab - 5}" y="${y + 10}" text-anchor="end" font-size="8.5" fill="${on ? '#FFFFFF' : '#C9D4E2'}">${esc(s.name.length > 24 ? s.name.slice(0, 23) + '…' : s.name)}</text>` +
       `<rect x="${lab}" y="${y + 2.5}" width="${f(Math.max(1, w))}" height="9" rx="1.5" fill="${on ? '#B9E08A' : HUE.cult}"/><text x="${f(lab + w + 4)}" y="${y + 10}" font-size="8.5" fill="#E3EAF2">${s.mi.length}</text>` +
       `<title>${esc(s.name)} (${esc(s.sci)}): ${s.mi.length} 49 sq mi ${s.mi.length === 1 ? 'cell' : 'cells'} with a record. Click to map it.</title></g>`; });
-  return g + `</svg><p class="phnote">Number of 49 sq mi cells with a research-grade iNaturalist record${S.sec === 'all' ? ', whole trail' : ''}. Records follow hikers, so a species recorded in few cells may simply be overlooked. Click a species in either chart to map where it is recorded.</p>`; }
+  return g + `</svg><p class="phnote">Number of 49 sq mi cells with a research-grade iNaturalist record${S.sec === 'all' ? ', whole trail' : ''}. Records follow hikers, so a species recorded in few cells may simply be overlooked. Click a species to map where it is recorded.</p>`; }
 document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-cultsp],[data-cultall]'); if (!t) return;
   if (t.dataset.cultall){ S.cultAll = !S.cultAll; const v = $('#cultviz'); if (v) v.innerHTML = cultCharts(); return; }
   const en = findIndex().get(t.dataset.cultsp); if (en) setFind(en, false); });
