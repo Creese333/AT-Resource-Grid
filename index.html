@@ -1917,7 +1917,7 @@ function geoBox(lv, cells){ const many = cells.length > 1; let b = `<div class="
   return b + '</div>'; }
 const geoSection = (lv, c) => geoBox(lv, [c]);
 /* share of cells in each class of the measure on show, whole trail or the trail section picked */
-function geoShareHTML(lv){ const m = S.m; if (m.kind !== 'cat' || !D.themes.geo[lv]) return '';
+function geoShareHTML(lv){ const m = S.m; if (m.kind !== 'cat' || m.id === 'lith' || !D.themes.geo[lv]) return '';
   const cnt = new Map(); let n = 0; const L_ = D.levels[lv];
   for (let c = 0; c < L_.id.length; c++){ if (!inSec(lv, c)) continue; const v = m.get(lv, c); if (v == null) continue; n++; cnt.set(v, (cnt.get(v) || 0) + 1); }
   if (!n) return '';
@@ -1934,7 +1934,7 @@ function geoLithHTML(lv){ if (!GEOT || !D.themes.geo[lv]) return '';
   const [sl, cells, where] = geoScope(lv), ci = cells.filter(c => has('geo', sl, c)), sum = new Map(); let n = 0, byMain = false;
   ci.forEach(c => { const p = val('geo','PCT_LITH',sl,c); if (!p) return; n++; for (let k = 0; k < p.length; k += 2) sum.set(p[k], (sum.get(p[k]) || 0) + p[k + 1]); });
   if (!n){ byMain = true; ci.forEach(c => { const v = val('geo','GEO_LITH',sl,c); if (v == null) return; n++; sum.set(v, (sum.get(v) || 0) + 100); }); }
-  let g = `<div id="geolith" style="margin-top:14px;padding-top:12px;border-top:1px solid #2E4460"><h4 class="phh">Bedrock by type, ${esc(where)}</h4>`;
+  let g = `<div id="geolith"${S.m.id === 'lith' ? '' : ' style="margin-top:14px;padding-top:12px;border-top:1px solid #2E4460"'}><h4 class="phh">Bedrock by type, ${esc(where)}</h4>`;
   if (!n) return g + `<p class="none">No bedrock summary for ${esc(where)}.</p></div>`;
   const rows = [...sum].map(([k, v]) => [k, v / n]).filter(r => r[1] > 0).sort((a, b) => b[1] - a[1]);
   const W = 320, lab = 174, pw = W - lab - 32, bh = 14, H2 = rows.length * bh + 4, mx = rows[0][1], f = v => v.toFixed(1);
@@ -2751,7 +2751,7 @@ function summary(lv){ SUMSEL = null; const m = S.m, L_ = D.levels[lv], n = L_.id
     h += `<div class="rank"><h3>Cells with ${esc(m.yn)}<span class="cnt">${rows.length > 400 ? 'first 400, ' : ''}south to north</span></h3><ol class="scroll" tabindex="0" aria-label="Cells with ${esc(m.yn)}, scrollable list">`;
     rows.slice(0, 400).forEach(r => { h += cellItem(lv, r[0]); });
     return h + '</ol></div>'; }
-  if (m.kind === 'cat' && S.q.id === 'geo') return h + '<p class="statline">The share of cells in each class is under Visualizations.</p>';
+  if (m.kind === 'cat' && S.q.id === 'geo') return h + `<p class="statline">${m.id === 'lith' ? 'The share of the bedrock area in each type' : 'The share of cells in each class'} is under Visualizations.</p>`;
   if (m.kind === 'cat'){ const cnt = new Map(); rows.forEach(r => cnt.set(r[1], (cnt.get(r[1]) || 0) + 1));
     h += '<div class="rank"><h3>Share of cells</h3>';
     const order = m.many ? [...cnt].sort((a,b) => b[1] - a[1]).slice(0, 10).map(x => CATMAP[m.f].get(D.cats[m.f][x[0]])) : CATCOL[m.f];
