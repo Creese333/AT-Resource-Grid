@@ -6,8 +6,8 @@ Quarterly iNaturalist and eBird summaries for the A.T. Resource Grid, without Ar
   2. Places every record in its 1, 7 and 49 sq mi cells, twice: the A.T. corridor grid (read from index.html) and the HUC10 shell
      grid (read from soils_wetlands_huc10.json).
   3. Summarizes each cell the way the ArcGIS notebooks did: counts, observers, species, coverage-based richness,
-     taxon groups, invasive / priority (EDRR) / forest pest lists from invasive_lookup.csv, the ten most-recorded
-     species; for birds, checklists, habitat guild counts and lists (bird_guilds.csv) and species of concern
+     taxon groups, invasive / priority (EDRR) / forest pest lists from invasive_lookup.csv, plants of cultural significance
+     from cultural_plants.csv, the ten most-recorded species; for birds, checklists, habitat guild counts and lists (bird_guilds.csv) and species of concern
      (bird_lookup.csv: federal listing, Birds of Conservation Concern, Partners in Flight for A.T. BCRs).
   4. Adds EDDMapS invasive species points (the public EDDMapS feature service), placed in the same cells and counted for the
      invasive plants and forest pests on the same lists. Duplicates are dropped: EDDMapS rows for the same species, date and spot
@@ -209,6 +209,34 @@ def load_canon():
     return canon, sci
 
 
+def load_cultural():
+    """cultural_plants.csv: any name (SCI_NAME or ALT_NAMES) -> (lookup name, sensitive); 'Genus spp.' rows match the whole genus"""
+    out, genus = {}, {}
+    path = os.path.join(HERE, 'cultural_plants.csv')
+    if not os.path.exists(path):
+        print('cultural_plants.csv not found: plants of cultural significance are left out', flush=True)
+        return out, genus
+    for r in csv.DictReader(open(path, encoding='utf-8-sig')):
+        sci = r['SCI_NAME'].strip(); sens = (r.get('SENSITIVE') or '').strip().upper() == 'Y'
+        if sci.endswith(' spp.'):
+            genus.setdefault(sci.split()[0].lower(), (sci, sens)); continue
+        for n in [sci] + [x for x in (r.get('ALT_NAMES') or '').split(';')]:
+            if n.strip():
+                out.setdefault(norm(n), (sci, sens)); out.setdefault(norm(binomial(n)), (sci, sens))
+    return out, genus
+
+
+def cult_of(r, sp, cult):
+    """the cultural-plant lookup entry for an iNaturalist plant record, or None"""
+    look, genus = cult
+    if not sp or r.get('kingdom') != 'Plantae':
+        return None
+    for n in (r.get('verbatimScientificName'), sp):
+        if n and (look.get(norm(n)) or look.get(norm(binomial(n)))):
+            return look.get(norm(n)) or look.get(norm(binomial(n)))
+    return genus.get(sp.split()[0].lower())
+
+
 def ckey(s, canon):
     return canon.get(norm(s)) or canon.get(norm(binomial(s))) or norm(binomial(s))
 
@@ -347,7 +375,7 @@ def vernacular(spp, keys, budget=25 * 60):
 def new_cell(kind):
     return {'n': 0, 'users': set(), 'units': set(), 'spp': defaultdict(int), 'inc': defaultdict(set) if kind == 'inat' else defaultdict(int),
             'last': '', 'recent': 0, 'grp': defaultdict(set), 'gobs': defaultdict(int), 'inv': defaultdict(int), 'pest': defaultdict(int),
-            'nonnat': set(), 'nnplant': set(), 'breed': set(), 'yr': defaultdict(int), 'pyr': defaultdict(int)}
+            'nonnat': set(), 'nnplant': set(), 'breed': set(), 'yr': defaultdict(int), 'pyr': defaultdict(int), 'cult': defaultdict(int)}
 
 
 YEARS_FROM = '2010'   # first year counted in OBS_BY_YEAR and PLANT_OBS_BY_YEAR (the dashboard's year buttons start in 2010)
@@ -358,6 +386,8 @@ def summarize(kind, zpath, grids, names):
     1 sq mi cells; its 7 and 49 sq mi cells then add up those square miles (as the ArcGIS summaries did)."""
     inv = load_invasive() if kind == 'inat' else None
     canon = load_canon()[0] if kind == 'inat' else None
+    cult = load_cultural() if kind == 'inat' else None
+    sens = set()     # dug or poached plants: listed only in 49 sq mi cells
     look, guild, common = load_birds() if kind == 'ebird' else (None, None, None)
     cells = {g: {lv: defaultdict(lambda: new_cell(kind)) for lv in L} for g, L in grids.items()}
     cutoff = str(date.today().year - RECENT_YEARS)
@@ -397,6 +427,8 @@ def summarize(kind, zpath, grids, names):
             grp = [g for g, test in GROUPS if test(r)]
             pest = sp and (sp in PESTS or binomial(r.get('verbatimScientificName')) in PESTS)
             iv = sp and r['kingdom'] == 'Plantae' and (inv.get(norm(r.get('verbatimScientificName'))) or inv.get(norm(sp)))
+            cu = cult_of(r, sp, cult)
+            if cu and cu[1]: sens.add(sp)
             if (pest or iv) and sp:
                 ck = ckey(sp, canon); INAT_SP.setdefault(ck, sp)
                 if len(d) == 10 and d[4] == '-':
@@ -421,6 +453,7 @@ def summarize(kind, zpath, grids, names):
                     if unit is not None: s['inc'][sp].add(unit)
                     for gg in grp: s['grp'][gg].add(sp)
                     if pest: s['pest'][sp] += 1
+                    if cu: s['cult'][sp] += 1
                     if iv:
                         s['nonnat'].add(sp)
                         if 'PLANT_SPP' in grp: s['nnplant'].add(sp)
@@ -456,6 +489,8 @@ def summarize(kind, zpath, grids, names):
                              PCT_INV_OBS=round(100 * sum(s['inv'].values()) / n, 1) if n else 0, N_EDRR_SPP=len(ed), N_PEST_OBS=sum(s['pest'].values()),
                              INVASIVE_LIST=sorted((nm(x) for x in s['inv']), key=str.lower), EDRR_LIST=sorted((nm(x) for x in ed), key=str.lower),
                              PEST_LIST=sorted((nm(x) for x in s['pest']), key=str.lower), TOP10_SPECIES=[nm(x) for x, _ in top], TOP10_COUNTS=[k for _, k in top])
+                    cu = {x: k for x, k in s['cult'].items() if lv == 'wheel' or x not in sens}   # sensitive plants only in 49 sq mi cells
+                    v.update(N_CULT_SPP=len(cu), N_CULT_OBS=sum(cu.values()), CULT_LIST=sorted((nm(x) for x in cu), key=str.lower))
                     for gg, _ in GROUPS:
                         v[gg] = len(s['grp'][gg]); v[gg.replace('_SPP', '_OBS')] = s['gobs'][gg]
                     if not (g == 'huc' and lv == 'hex'):   # [year, records, year, records, ...]; left off the HUC10 square miles to keep that file small
