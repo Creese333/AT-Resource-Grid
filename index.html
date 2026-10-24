@@ -1917,14 +1917,22 @@ function geoBox(lv, cells){ const many = cells.length > 1; let b = `<div class="
   return b + '</div>'; }
 const geoSection = (lv, c) => geoBox(lv, [c]);
 /* share of cells in each class of the measure on show, whole trail or the trail section picked */
+function geoBars(rows, label, tip){ const W = 320, lab = 174, pw = W - lab - 32, bh = 14, H2 = rows.length * bh + 4, mx = Math.max(...rows.map(r => r[2])), f = v => v.toFixed(1);
+  let g = `<svg class="phch" viewBox="0 0 ${W} ${H2}" width="100%" role="img" aria-label="${esc(label)}">`;
+  rows.forEach(([name, col, v], j) => { const y = 2 + j * bh, w = pw * v / mx, t = v === 0 ? '0' : v < 1 ? '<1' : Math.round(v);
+    g += `<g><text x="${lab - 5}" y="${y + 10}" text-anchor="end" font-size="8.5" fill="#C9D4E2">${esc(name)}</text>` +
+      `<rect x="${lab}" y="${y + 2.5}" width="${f(Math.max(v ? 1 : 0, w))}" height="9" rx="1.5" fill="${col}" stroke="#12223A" stroke-width=".5"/><text x="${f(lab + w + 4)}" y="${y + 10}" font-size="8.5" fill="#E3EAF2">${esc(String(t))}%</text>` +
+      `<title>${esc(name)}: ${t}% ${esc(tip)}</title></g>`; });
+  return g + '</svg>'; }
+/* share of cells in each class of the measure on show, for the selection or the cells in view */
 function geoShareHTML(lv){ const m = S.m; if (m.kind !== 'cat' || m.id === 'lith' || !D.themes.geo[lv]) return '';
-  const cnt = new Map(); let n = 0; const L_ = D.levels[lv];
-  for (let c = 0; c < L_.id.length; c++){ if (!inSec(lv, c)) continue; const v = m.get(lv, c); if (v == null) continue; n++; cnt.set(v, (cnt.get(v) || 0) + 1); }
-  if (!n) return '';
+  const [sl, cells, where] = geoScope(lv), cnt = new Map(); let n = 0;
+  cells.forEach(c => { const v = m.get(sl, c); if (v == null) return; n++; cnt.set(v, (cnt.get(v) || 0) + 1); });
+  let g = `<div id="geoshare"><h4 class="phh">Share of cells: ${esc(m.label.toLowerCase())}, ${esc(where)}</h4>`;
+  if (!n) return g + `<p class="none">No data for ${esc(where)}.</p></div>`;
   const order = m.many ? [...cnt].sort((a, b) => b[1] - a[1]).slice(0, 10).map(x => CATMAP[m.f].get(D.cats[m.f][x[0]])) : CATCOL[m.f];
-  let g = `<div id="geoshare"><h4 class="phh">${m.many ? 'Most common main types' : 'Share of cells'}: ${esc(m.label.toLowerCase())}, ${S.sec === 'all' ? 'whole trail' : esc(secName())}</h4>`;
-  order.forEach(e => { const i = D.cats[m.f].indexOf(e[0]), k = cnt.get(i); if (k) g += `<div class="catrow"><i style="background:${e[1]}"></i><span>${esc(e[2] || e[0])}</span><b>${fmt(100*k/n, k/n < .1 ? 1 : 0)}%</b></div>`; });
-  return g + `<p class="phnote">Share of the ${fmt(n, 0)} cells with data, by the class covering the most of each cell.</p></div>`; }
+  const rows = order.map(e => [String(e[2] || e[0]).replace(/ \(.*\)/, ''), e[1], 100 * (cnt.get(D.cats[m.f].indexOf(e[0])) || 0) / n]).filter(r => r[2] > 0);
+  return g + geoBars(rows, 'Share of cells, ' + where, `of ${n === 1 ? 'the cell' : 'the ' + n + ' cells'} in ${where}`) + `<p class="phnote">${n === 1 ? 'The selected cell, by' : `Share of the ${fmt(n, 0)} cells with data in ${esc(where)}, each counted by`} the class covering the most of ${n === 1 ? 'it' : 'the cell'}${where === 'the map view' ? ' (zoom or pan to change it, or select cells)' : ''}.</p></div>`; }
 /* the cells behind the bedrock chart: the selection, else the cells in view (and in the trail section picked) */
 function geoScope(lv){
   if (S.box && S.box.cells && S.box.cells.length) return [S.box.lv, S.box.cells, `the ${S.box.cells.length} selected cells`];
@@ -1945,7 +1953,7 @@ function geoLithHTML(lv){ if (!GEOT || !D.themes.geo[lv]) return '';
       `<title>${esc(e[0])}: ${t}% of ${byMain ? 'the cells (by main type)' : 'the mapped area'} in ${esc(where)}</title></g>`; });
   return g + `</svg><p class="phnote">${byMain ? 'Share of cells by their main bedrock type (the area split is given only for the 7 and 49 sq mi cells here)' : (n === 1 ? 'Share of the mapped area' : 'Share of the mapped area, averaged over ' + nCells(n) + ',')} in ${esc(where)}${where === 'the map view' ? ' (zoom or pan to change it, or select cells)' : ''}. USGS State Geologic Map Compilation.</p></div>`; }
 const geoCharts = lv => geoShareHTML(lv) + geoLithHTML(lv);
-function geoVizRefresh(){ const t = $('#geolith'); if (t && S.q.id === 'geo' && !S.m.find) t.outerHTML = geoLithHTML(dispLevel()); }
+function geoVizRefresh(){ if (S.q.id !== 'geo' || S.m.find) return; const t = $('#geolith'), u = $('#geoshare'); if (t) t.outerHTML = geoLithHTML(dispLevel()); if (u) u.outerHTML = geoShareHTML(dispLevel()); }
 const Q = [
  {id:'land', th:'lands', hue:HUE.lands, ramp:'land', title:'Who administers land here?',
   use:'Land protected over time maps the acres of A.T. tracts conveyed by each year, from the conveyance date (CONVEYED) in the A.T. administrative areas layer, loaded live; the slider and Play step from the first recorded conveyance to the latest. Tracts without a recorded conveyance date are left out. Number of land administrators counts the agencies and organizations that administer mapped land in each cell, to show how many parties a project may need to coordinate with, and NPS - APPA lands marks the cells with any APPA land. All three are generalized to grid cells and do not show boundaries or who administers any particular spot; check the tract records before relying on them.',
