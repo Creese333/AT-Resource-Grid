@@ -1151,7 +1151,7 @@ function phFirst(lv, c){ const A = phAgg(lv); if (!A || A.first[c] == null) retu
 const PHWAVE = [[0, ZERO, 'Recorded here, not these weeks'], [1, null, '1 record'], [2, null, '2 records'], [5, null, '3 to 5 records'], [10, null, '6 to 10 records'], [Infinity, null, 'over 10 records']];
 const PHWAVECOL = ['#FFE600','#FFC400','#FF9900','#F56A00','#D6430A'];   /* saturated, so the wave reads on topo maps and imagery alike */
 const phWaveCol = v => { if (v == null) return null; if (v === 0) return ZERO; const i = PHWAVE.findIndex(e => v <= e[0]); return PHWAVECOL[Math.max(0, Math.min(4, i - 1))]; };
-const phWaveLegend = () => `<div class="row"><i style="background:#fff;border:1.5px solid #14294A;border-radius:50%;width:9px;height:9px"></i><span>${PHWORD[phMain()] === 'records' ? 'Records' : PHWORD[phMain()][0].toUpperCase() + PHWORD[phMain()].slice(1) + ' records'} this week</span></div><div class="row"><i style="background:rgba(255,255,255,.45);border-radius:50%;width:7px;height:7px"></i><span>The week before</span></div><p class="sub">Cells:</p>` + PHWAVE.slice(1).map((e, i) => `<div class="row"><i style="background:${PHWAVECOL[i]}"></i><span>${e[2]}</span></div>`).join('') +
+const phWaveLegend = () => `<div class="row"><i style="background:#FFE600;border:1px solid #FFB46B;border-radius:50%;width:6px;height:6px"></i><span>${PHWORD[phMain()] === 'records' ? 'Records' : PHWORD[phMain()][0].toUpperCase() + PHWORD[phMain()].slice(1) + ' records'} this week</span></div><div class="row"><i style="background:rgba(255,230,0,.45);border-radius:50%;width:4px;height:4px"></i><span>The week before</span></div><p class="sub">Cells:</p>` + PHWAVE.slice(1).map((e, i) => `<div class="row"><i style="background:${PHWAVECOL[i]}"></i><span>${e[2]}</span></div>`).join('') +
   (phSelText() ? `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, ${phYear() ? phYear() + ' only' : 'years ' + esc(phSelText()) + ' together'}. Cells without records in these weeks are left blank.</p>`
     : `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, all years together.</p>`);
 /* dates by half month, early spring to late summer */
@@ -1184,7 +1184,7 @@ function phYrBlock(ys, y, multi){ const A = phAgg(dispLevel()); if (!A) return '
 function phPlay(on){ if (phTimer){ clearInterval(phTimer); phTimer = null; }
   if (on && S.m.yr === 'y'){ phTimer = setInterval(() => { const A = phAgg(dispLevel()); if (!A || !A.years.length) return; const ys = A.years, y = phYear();
       S.ph.yr = !y || y >= ys[ys.length - 1] ? ys[0] : y + 1; phFrame(); }, 1000); }
-  else if (on){ const sel = phSel(); if (sel.length > 1 && !sel.includes(S.ph.yr)) S.ph.yr = sel[0]; const yrs = phSelText() ? 1 : 0, [sw0, sw1] = phSeason(); if (S.ph.wk < sw0 || S.ph.wk > sw1){ S.ph.wk = sw0; phFrame(); } phTimer = setInterval(() => { if (S.ph.wk < sw1) S.ph.wk++; else { S.ph.wk = sw0;
+  else if (on){ const sel = phSel(); if (sel.length > 1 && !sel.includes(S.ph.yr)) S.ph.yr = sel[0]; const yrs = phSelText() ? 1 : 0, [sw0, sw1] = phSeason(); if (!S.ph.resume || S.ph.wk < sw0 || S.ph.wk > sw1){ S.ph.wk = sw0; phFrame(); } phTimer = setInterval(() => { if (S.ph.wk < sw1) S.ph.wk++; else { S.ph.wk = sw0;
         const sel = phSel(); if (sel.length > 1){ const i = sel.indexOf(S.ph.yr); S.ph.yr = sel[(i + 1) % sel.length]; } }
       phFrame(); }, yrs ? 380 : 550); }
   phCtl(); }
@@ -1208,8 +1208,8 @@ function phDots(){ const on = PHQ() && !SPREADQ() && S.m.id === 'wave' && !S.m.f
   const ok = v => y ? v === y : sel.length ? sel.includes(v) : true, now = [], prev = [];
   for (const [d, v, s, la, lo] of st.pts){ if (s !== ms || !ok(v)) continue; const w = wkOf(d); if (w !== wk && w !== wk - 1) continue;
     const c = phCell(lv, la, lo); if (c < 0 || !inSec(lv, c)) continue; (w === wk ? now : prev).push([la, lo]); }
-  for (const p of prev) L.circleMarker(p, {renderer:PHDOTS.r, radius:2.6, stroke:false, fillColor:'#FFFFFF', fillOpacity:.45, interactive:false}).addTo(PHDOTS);
-  for (const p of now) L.circleMarker(p, {renderer:PHDOTS.r, radius:3.8, color:'#14294A', weight:1.2, fillColor:'#FFFFFF', fillOpacity:1, interactive:false}).addTo(PHDOTS);
+  for (const p of prev) L.circleMarker(p, {renderer:PHDOTS.r, radius:1.8, stroke:false, fillColor:'#FFE600', fillOpacity:.45, interactive:false}).addTo(PHDOTS);
+  for (const p of now) L.circleMarker(p, {renderer:PHDOTS.r, radius:2.6, color:'#FFB46B', weight:1, fillColor:'#FFE600', fillOpacity:1, interactive:false}).addTo(PHDOTS);
   PHDOTS.n = now.length; }
 function phTick(){ phDots(); let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', on = acq || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
   if (!t){ if (!on) return; t = document.createElement('div'); t.id = 'phtick'; t.setAttribute('aria-live', 'off'); document.getElementById('map').appendChild(t); }
@@ -1339,8 +1339,8 @@ function phWire(){ const s = $('#phsp'); if (!s) return;
     BRK.clear(); redraw(); });
   document.querySelectorAll('[data-phgood]').forEach(x => x.onclick = () => { const A = phAgg(dispLevel()); if (!A) return; phPlay(false); S.ph.sel = phYearsOk(A); S.ph.yr = 0; BRK.clear(); redraw(); });
   s.onchange = () => keepPlace(s, ['#phsp', '#pinvsel'], () => { phPlay(false); if (!s.value){ S.m = S.q.m.find(x => x.id === 'edrr'); BRK.clear(); redraw(); return; } S.ph.sp = s.value; if (SPREADQ()) S.ph.pick = true; phLoad(phSp()); phFixM(); BRK.clear(); redraw(); });
-  const r = $('#phwk'); if (r){ r.oninput = () => { S.ph.wk = +r.value; phFrame(); }; r.onchange = () => { redraw(); }; }
-  const b = $('#phplay'); if (b) b.onclick = () => { phPlay(!phTimer); if (!phTimer) redraw(); };
+  const r = $('#phwk'); if (r){ r.oninput = () => { S.ph.wk = +r.value; S.ph.resume = true; phFrame(); }; r.onchange = () => { redraw(); }; }
+  const b = $('#phplay'); if (b) b.onclick = () => { const was = !!phTimer; phPlay(!phTimer); S.ph.resume = was; if (!phTimer) redraw(); };
   document.querySelectorAll('[data-phref]').forEach(x => x.onclick = phRefresh); phWireTrend(); }
 /* charts: a year maps that year's weeks (or, for the spread, where it was by then); a week on the calendar maps that week */
 function phWireTrend(){
