@@ -1814,13 +1814,50 @@ function cultBox(lv, cells){ let b = `<div class="sec" style="--hue:${HUE.cult}"
   const cnt = new Map(); ci.forEach(c => (val('inat','CULT_LIST',lv,c) || []).forEach(i => cnt.set(i, (cnt.get(i) || 0) + 1)));
   const obs = ci.reduce((s, c) => s + (val('inat','N_CULT_OBS',lv,c) || 0), 0);
   const items = [...cnt].map(([i, n]) => [i, n, cultOf(i)]).filter(x => x[2]).sort((a, b) => (a[2][1] || a[2][0]).localeCompare(b[2][1] || b[2][0]));
-  b += `<div class="facts"><div><b>${items.length || 'None'}</b>${items.length === 1 ? 'plant' : 'plants'}</div><div><b>${fmt(obs, 0)}</b>iNat ${obs === 1 ? 'record' : 'records'}</div>${many ? `<div><b>${ci.length}</b>of ${cells.length} cells with records</div>` : ''}</div>`;
+  b += `<div class="facts"><div><b>${items.length || 'None'}</b>${items.length === 1 ? 'species' : 'species'}</div><div><b>${fmt(obs, 0)}</b>iNat ${obs === 1 ? 'record' : 'records'}</div>${many ? `<div><b>${ci.length}</b>of ${cells.length} cells with records</div>` : ''}</div>`;
   if (items.length) b += (many ? '<p class="none" style="font-size:13.5px">With the number of selected cells each was found in.</p>' : '') + '<ul class="spp cultl">' + items.map(([i, n, e]) => `<li>${esc(e[1] || sppName(i).common || '')} <em>${esc(sppName(i).sci)}</em>${many ? `<span class="tag">${nCells(n)}</span>` : ''}` +
       `<small>${e[5] !== 'Native' ? esc(e[5]) + ' · ' : ''}${e[8] ? `<a href="${esc(e[8])}" target="_blank" rel="noopener">source</a>` : ''}</small></li>`).join('') + '</ul>';
   else b += `<p class="none">None of the listed plants has an iNaturalist record ${many ? 'in the selected cells' : 'here'} in the quarterly summary.</p>`;
   b += `<p class="none" style="font-size:13.5px;margin-top:8px">Research-grade iNaturalist records matched to ${CULTD.length} plants documented for Eastern Woodlands nations. ${lv === 'wheel' ? '' : 'Ginseng, goldenseal, ramps and lady’s slippers are listed only at the 49 sq mi scale. '}A blank list means no records, not that the plants are absent.</p>`;
   return b + '</div>'; }
 const cultSection = (lv, c) => cultBox(lv, [c]);
+/* 49 sq mi cells with records of each listed species, in the trail section picked: sci -> {name, sci, mi:[trail miles]} */
+function cultSpread(){ const L_ = D.levels.wheel, M = new Map(); if (!cultReady('wheel')) return null;
+  for (let c = 0; c < L_.id.length; c++){ if (!inSec('wheel', c)) continue; const a = cultL('wheel', c); if (!a) continue;
+    a.forEach(i => { const e = cultOf(i); if (!e) return; const p = sppName(i), k = p.sci.toLowerCase(); let s = M.get(k);
+      if (!s) M.set(k, s = {name:e[1] || p.common || p.sci, sci:p.sci, mi:[]}); s.mi.push(L_.mi[c]); }); }
+  M.forEach(s => s.mi.sort((x, y) => x - y)); return [...M.values()]; }
+function cultCharts(){ const S_ = cultSpread(); if (!S_) return '<p class="none">The charts fill in after the next quarterly iNaturalist rebuild.</p>';
+  if (!S_.length) return '<p class="none">No listed species recorded in this section.</p>';
+  const rng = secRange() || [0, D.totalMi], lo = rng[0], hi = rng[1], f = v => v.toFixed(1), esc2 = s => esc(s);
+  const wide = S_.slice().sort((a, b) => b.mi.length - a.mi.length || a.name.localeCompare(b.name));
+  const shown = (S.cultAll ? wide : wide.slice(0, 20)).slice().sort((a, b) => a.mi[a.mi.length >> 1] - b.mi[b.mi.length >> 1] || a.name.localeCompare(b.name));
+  const W = 320, lab = 112, pr = 4, pw = W - lab - pr, rh = 14, top = 14, X = m => lab + pw * (m - lo) / Math.max(1, hi - lo), H = top + shown.length * rh + 14;
+  const sel = S.m.find && S.m.find.ls;
+  let g = `<h4 class="phh">Where each species is recorded${S.sec === 'all' ? ' along the trail' : ', ' + esc(secName())}</h4>` +
+    `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Where each species is recorded along the trail">`;
+  D.regions.forEach((r, k) => { const a = Math.max(lo, r[1]), b = Math.min(hi, r[2]); if (b <= a) return;
+    g += `<rect x="${f(X(a))}" y="${top}" width="${f(Math.max(0, X(b) - X(a) - .6))}" height="${shown.length * rh}" fill="${k % 2 ? '#17294A' : '#1D3254'}"/>`;
+    if (X(b) - X(a) > 34) g += `<text x="${f(X(a) + 2)}" y="${top - 4}" font-size="7.5" fill="#A8B8CA">${esc(r[0])}</text>`; });
+  shown.forEach((s, k) => { const y = top + k * rh + rh / 2, on = sel === s.sci.toLowerCase(), col = on ? '#B9E08A' : HUE.cult;
+    g += `<g data-cultsp="${esc2(s.sci.toLowerCase())}" style="cursor:pointer"><rect x="0" y="${f(y - rh / 2)}" width="${W}" height="${rh}" fill="${on ? '#22385A' : 'transparent'}"/>` +
+      `<text x="${lab - 5}" y="${f(y + 3)}" text-anchor="end" font-size="8.5" fill="${on ? '#FFFFFF' : '#C9D4E2'}">${esc(s.name.length > 24 ? s.name.slice(0, 23) + '…' : s.name)}</text>` +
+      `<line x1="${f(X(s.mi[0]))}" x2="${f(X(s.mi[s.mi.length - 1]))}" y1="${f(y)}" y2="${f(y)}" stroke="${col}" stroke-opacity=".55" stroke-width="1.2"/>` +
+      s.mi.map(m => `<circle cx="${f(X(m))}" cy="${f(y)}" r="2.6" fill="${col}" stroke="#12223A" stroke-width=".6"/>`).join('') +
+      `<title>${esc(s.name)} (${esc(s.sci)}): recorded in ${s.mi.length} 49 sq mi ${s.mi.length === 1 ? 'cell' : 'cells'}, from mile ${fmt(s.mi[0], 0)} to mile ${fmt(s.mi[s.mi.length - 1], 0)}. Click to map it.</title></g>`; });
+  g += `<text x="${lab}" y="${H - 3}" font-size="7.5" fill="#A8B8CA">${S.sec === 'all' ? '◀ Georgia' : 'mile ' + fmt(lo, 0)}</text><text x="${W - pr}" y="${H - 3}" text-anchor="end" font-size="7.5" fill="#A8B8CA">${S.sec === 'all' ? 'Maine ▶' : 'mile ' + fmt(hi, 0)}</text></svg>`;
+  g += `<p class="phnote">Each dot is a 49 sq mi cell with a research-grade iNaturalist record; the line runs from the southernmost to the northernmost. Sorted from mostly southern to mostly northern. ${wide.length > 20 ? `<button type="button" class="linkbtn" data-cultall="1">${S.cultAll ? 'Show the 20 most widely recorded' : `Show all ${wide.length} species`}</button>` : ''}</p>`;
+  const tp = wide.slice(0, 12), mx = Math.max(1, tp[0].mi.length), bh = 14, H2 = tp.length * bh + 4;
+  g += `<h4 class="phh">Most widely recorded species${S.sec === 'all' ? '' : ', ' + esc(secName())}</h4><svg class="phch" viewBox="0 0 ${W} ${H2}" width="100%" role="img" aria-label="Most widely recorded species">`;
+  tp.forEach((s, k) => { const y = 2 + k * bh, on = sel === s.sci.toLowerCase(), w = (pw - 26) * s.mi.length / mx;
+    g += `<g data-cultsp="${esc2(s.sci.toLowerCase())}" style="cursor:pointer"><rect x="0" y="${y}" width="${W}" height="${bh}" fill="${on ? '#22385A' : 'transparent'}"/>` +
+      `<text x="${lab - 5}" y="${y + 10}" text-anchor="end" font-size="8.5" fill="${on ? '#FFFFFF' : '#C9D4E2'}">${esc(s.name.length > 24 ? s.name.slice(0, 23) + '…' : s.name)}</text>` +
+      `<rect x="${lab}" y="${y + 2.5}" width="${f(Math.max(1, w))}" height="9" rx="1.5" fill="${on ? '#B9E08A' : HUE.cult}"/><text x="${f(lab + w + 4)}" y="${y + 10}" font-size="8.5" fill="#E3EAF2">${s.mi.length}</text>` +
+      `<title>${esc(s.name)} (${esc(s.sci)}): ${s.mi.length} 49 sq mi ${s.mi.length === 1 ? 'cell' : 'cells'} with a record. Click to map it.</title></g>`; });
+  return g + `</svg><p class="phnote">Number of 49 sq mi cells with a research-grade iNaturalist record${S.sec === 'all' ? ', whole trail' : ''}. Records follow hikers, so a species recorded in few cells may simply be overlooked. Click a species in either chart to map where it is recorded.</p>`; }
+document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-cultsp],[data-cultall]'); if (!t) return;
+  if (t.dataset.cultall){ S.cultAll = !S.cultAll; const v = $('#cultviz'); if (v) v.innerHTML = cultCharts(); return; }
+  const en = findIndex().get(t.dataset.cultsp); if (en) setFind(en, false); });
 const Q = [
  {id:'land', th:'lands', hue:HUE.lands, ramp:'land', title:'Who administers land here?',
   use:'Land protected over time maps the acres of A.T. tracts conveyed by each year, from the conveyance date (CONVEYED) in the A.T. administrative areas layer, loaded live; the slider and Play step from the first recorded conveyance to the latest. Tracts without a recorded conveyance date are left out. Number of land administrators counts the agencies and organizations that administer mapped land in each cell, to show how many parties a project may need to coordinate with, and NPS - APPA lands marks the cells with any APPA land. All three are generalized to grid cells and do not show boundaries or who administers any particular spot; check the tract records before relying on them.',
@@ -1959,8 +1996,8 @@ const Q = [
   m:[{id:'tier', label:'Unique Species', kind:'cat', f:'review_tie'}]},
  {id:'cult', th:'inat', hue:HUE.cult, ramp:'cult', title:'Where are plants of cultural significance?',
   use:'Plants documented as culturally significant to Eastern Woodlands nations, where they have research-grade iNaturalist records in the quarterly summary. The list of ' + CULTD.length + ' plants comes from the Greenbelt Indigenous Botanical Survey, Mooney’s Sacred Formulas of the Cherokees, Tantaquidgeon’s Delaware study, the Haudenosaunee Confederacy and Cherokee and Wabanaki sources. Use it as a starting point for consultation with Tribal Historic Preservation Officers, not as a statement of any nation’s knowledge. Ginseng, goldenseal, ramps and lady’s slippers are shown only at the 49 sq mi scale. A blank cell means no records, not that the plants are absent.',
-  m:[{id:'spp', label:'Plants of cultural significance', int:1, zero:1, fade:1, noun:['plant','plants'], zeroText:'None recorded', note:'Species on the cultural plants list with research-grade iNaturalist records here.', fn:(lv,c)=>cultCount(lv,c)},
-     {id:'obs', label:'Records of these plants', f:'N_CULT_OBS', int:1, zero:1, fade:1, noun:['record','records'], zeroText:'None recorded', note:'Research-grade iNaturalist records of plants on the cultural plants list.'}]}
+  m:[{id:'spp', label:'Number of culturally significant species', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'No species recorded', note:'How many different species on the cultural plants list have research-grade iNaturalist records in each cell.', fn:(lv,c)=>cultCount(lv,c)},
+     {id:'obs', label:'Number of iNaturalist records of these species', f:'N_CULT_OBS', int:1, zero:1, fade:1, noun:['record','records'], zeroText:'No records', note:'How many research-grade iNaturalist observations of species on the cultural plants list there are in each cell, all species added together. Follows how often people photograph plants here, so busy trailheads score high.'}]}
 ];
 for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
 { const p = Q.find(q => q.id === 'phen'); Q.push(Object.assign({}, p, {id:'pest', hue:HUE.pest, title:'Where are forest pests turning up?',
@@ -2588,9 +2625,9 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
       (S.appa ? '<p class="extnote">Only NPS – APPA land counts: scores are scaled by the share of the cell’s corridor land that APPA administers. Cells without APPA land, or with too little to score, are left blank.</p>' : ''));
   const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : '';
-  h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq') && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
+  h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult') && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map(m => `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
-    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
+    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
   const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
@@ -2666,6 +2703,7 @@ function findIndex(){ if (FIDX) return FIDX; if (S.ext === 'huc') setExt('corr',
     lists('edd', lv, ['EDD_INV_LIST','EDD_EDRR_LIST'], 'Invasive plant', true);
     lists('edd', lv, ['EDD_PEST_LIST'], 'Forest pest', true);
     lists('inat', lv, ['TOP10_SPECIES'], 'iNaturalist species', false);
+    lists('inat', lv, ['CULT_LIST'], 'Culturally significant plant', true);
     const vg = D.themes.veg && D.themes.veg[lv]; if (vg && vg.f.COMP) for (let r = 0; r < vg.f.COMP.length; r++){ const a = vg.f.COMP[r]; for (let k = 0; k < a.length; k += 2){ const nm = D.cats.DOM_TYPE[a[k]]; add('veg:' + nm.toLowerCase(), nm, '', 'Vegetation type', 'veg', true, lv, vg.ix[r]); } } }
   PRIORITY.forEach(p => { const k = p.sci.toLowerCase(); let e = M.get(k);
     if (!e){ e = {key:k, th:'inat', complete:false, cells:{hex:new Set(), cog:new Set(), wheel:new Set()}}; M.set(k, e); }
