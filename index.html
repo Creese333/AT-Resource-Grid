@@ -1151,7 +1151,7 @@ function phFirst(lv, c){ const A = phAgg(lv); if (!A || A.first[c] == null) retu
 const PHWAVE = [[0, ZERO, 'Recorded here, not these weeks'], [1, null, '1 record'], [2, null, '2 records'], [5, null, '3 to 5 records'], [10, null, '6 to 10 records'], [Infinity, null, 'over 10 records']];
 const PHWAVECOL = ['#FFE600','#FFC400','#FF9900','#F56A00','#D6430A'];   /* saturated, so the wave reads on topo maps and imagery alike */
 const phWaveCol = v => { if (v == null) return null; if (v === 0) return ZERO; const i = PHWAVE.findIndex(e => v <= e[0]); return PHWAVECOL[Math.max(0, Math.min(4, i - 1))]; };
-const phWaveLegend = () => PHWAVE.slice(1).map((e, i) => `<div class="row"><i style="background:${PHWAVECOL[i]}"></i><span>${e[2]}</span></div>`).join('') +
+const phWaveLegend = () => `<div class="row"><i style="background:#fff;border:1.5px solid #14294A;border-radius:50%;width:9px;height:9px"></i><span>${PHWORD[phMain()] === 'records' ? 'Records' : PHWORD[phMain()][0].toUpperCase() + PHWORD[phMain()].slice(1) + ' records'} this week</span></div><div class="row"><i style="background:rgba(255,255,255,.45);border-radius:50%;width:7px;height:7px"></i><span>The week before</span></div><p class="sub">Cells:</p>` + PHWAVE.slice(1).map((e, i) => `<div class="row"><i style="background:${PHWAVECOL[i]}"></i><span>${e[2]}</span></div>`).join('') +
   (phSelText() ? `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, ${phYear() ? phYear() + ' only' : 'years ' + esc(phSelText()) + ' together'}. Cells without records in these weeks are left blank.</p>`
     : `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, all years together.</p>`);
 /* dates by half month, early spring to late summer */
@@ -1196,7 +1196,22 @@ function phCtl(){ const r = $('#phwk'), l = $('#phwkl'), b = $('#phplay'), y = p
   document.querySelectorAll('[data-phyr]').forEach(x => { const v = +x.dataset.phyr; x.setAttribute('aria-pressed', v ? sel.includes(v) : !sel.length); x.classList.toggle('now', multi && sel.length > 1 && v === y); });
   phTick(); }
 /* the year ticker on the map while a week or year view is showing */
-function phTick(){ let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', on = acq || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
+/* Week by week: that week's own records drawn as dots over the cells, with the week before fading behind them,
+   so Play shows the observations moving up the trail. Same years as the map (all, the years picked, or the year playing). */
+let PHDOTS = null, phDotKey = '';
+function phDots(){ const on = PHQ() && !SPREADQ() && S.m.id === 'wave' && !S.m.find, sp = on ? phSp() : null, st = sp && PHD[sp.key];
+  if (!on || !st || st.st !== 'done'){ if (PHDOTS && phDotKey){ PHDOTS.clearLayers(); phDotKey = ''; PHDOTS.n = 0; } return; }
+  if (!PHDOTS){ if (!map.getPane('phdots')){ map.createPane('phdots').style.zIndex = 425; map.getPane('phdots').style.pointerEvents = 'none'; }
+    PHDOTS = L.layerGroup().addTo(map); PHDOTS.r = L.canvas({pane:'phdots', padding:.4}); }
+  const lv = dispLevel(), wk = S.ph.wk, y = phYear(lv), sel = phSel(lv), ms = phMain(), key = [sp.key, wk, y, sel.join(','), lv, S.sec, S.ext, st.pts.length].join('|');
+  if (key === phDotKey) return; phDotKey = key; PHDOTS.clearLayers();
+  const ok = v => y ? v === y : sel.length ? sel.includes(v) : true, now = [], prev = [];
+  for (const [d, v, s, la, lo] of st.pts){ if (s !== ms || !ok(v)) continue; const w = wkOf(d); if (w !== wk && w !== wk - 1) continue;
+    const c = phCell(lv, la, lo); if (c < 0 || !inSec(lv, c)) continue; (w === wk ? now : prev).push([la, lo]); }
+  for (const p of prev) L.circleMarker(p, {renderer:PHDOTS.r, radius:2.6, stroke:false, fillColor:'#FFFFFF', fillOpacity:.45, interactive:false}).addTo(PHDOTS);
+  for (const p of now) L.circleMarker(p, {renderer:PHDOTS.r, radius:3.8, color:'#14294A', weight:1.2, fillColor:'#FFFFFF', fillOpacity:1, interactive:false}).addTo(PHDOTS);
+  PHDOTS.n = now.length; }
+function phTick(){ phDots(); let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', on = acq || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
   if (!t){ if (!on) return; t = document.createElement('div'); t.id = 'phtick'; t.setAttribute('aria-live', 'off'); document.getElementById('map').appendChild(t); }
   if (!on){ t.style.display = 'none'; return; }
   if (acq){ const yy = S.acqYr || ACQ.y1; let ac = 0; ACQ.by.forEach((e, y) => { if (y <= yy) ac += e.ac; });
@@ -1209,6 +1224,7 @@ function phTick(){ let t = document.getElementById('phtick'); const acq = S.q.id
   else if (phSelText()){ big = esc(wkLabel(S.ph.wk)); small = `${esc(phSelText())} together · ${PHWORD[S.m.st()]}`; }
   /* all years together: the week is what changes as it plays, so it is the big line */
   else { big = esc(wkLabel(S.ph.wk)); small = `all years (${span}) · ${PHWORD[S.m.st()]}`; }
+  if (S.m.id === 'wave' && PHDOTS && phDotKey) small += ` · ${fmt(PHDOTS.n || 0, 0)} ${PHDOTS.n === 1 ? 'record' : 'records'} this week`;
   t.innerHTML = `<b>${big}</b><span>${small}</span>`; t.style.display = 'block'; phTickPos(); }
 /* top left of the map, just below the map controls (which wrap to more rows on a phone or when Map tools opens) */
 function phTickPos(){ const t = document.getElementById('phtick'), c = document.getElementById('ctls'), m = document.getElementById('map'); if (!t || !m) return;
@@ -1863,7 +1879,7 @@ const Q = [
   m:[{id:'grass', label:'Grasslands and early successional', int:1, brkP:[.4,.7,.85,.95], get none(){ return S.appa ? 'No APPA land, or no open habitat mapped' : 'No open habitat mapped'; }, showFn:v => v + ' of 100', note:'Points: ' + restNote('grass'), fn:(lv,c) => restScore('grass', lv, c)},
      {id:'forest', label:'Forests', int:1, brkP:[.4,.7,.85,.95], get none(){ return S.appa ? 'No APPA land, or no forest mapped' : 'No forest mapped'; }, showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
  {id:'phen', th:'inat', hue:HUE.phen, ramp:'phen', title:'When does it flower here?',
-  use:'When nearly fifty plants flower along the trail, from research-grade iNaturalist records updated weekly: trail-wide species, A.T. Seasons (USA-NPN) focal plants, northern and southern indicators, and AMC focal species. Flowering, week by week shows when it is in flower, and Play moves the season north; first, peak and season length follow USA National Phenology Network measures, pooled across years. Year first recorded shows where it has been recorded. Visualizations add a flowering calendar by latitude, drawn like USA-NPN calendars: the middle 80% and 50% of flowering-record dates and the median for each band, north to south, and the weekly share of records for one band. Records follow hikers, so a blank cell means too few records, not absence.',
+  use:'When nearly fifty plants flower along the trail, from research-grade iNaturalist records updated weekly: trail-wide species, A.T. Seasons (USA-NPN) focal plants, northern and southern indicators, and AMC focal species. Flowering, week by week opens first: each week’s flowering records show as dots, with the week before fading, over cells colored by records in the three weeks around it, so Play shows flowering moving up the trail; first, peak and season length follow USA National Phenology Network measures, pooled across years. Year first recorded shows where it has been recorded. Visualizations add a flowering calendar by latitude, drawn like USA-NPN calendars: the middle 80% and 50% of flowering-record dates and the median for each band, north to south, and the weekly share of records for one band. Records follow hikers, so a blank cell means too few records, not absence.',
   m:[{id:'spread', label:'Year first recorded', yr:'y', hasTxt:() => phYear() ? `had a record by ${phYear()}` : 'have records', sumFn:phSum, asc:1, sumTitle:() => phYear() ? `Recorded by ${phYear()}, earliest first` : 'Recorded earliest', d:0, none:'No records (yet)', showFn:v => 'first recorded ' + v, fn:(lv, c) => phFirst(lv, c), colorFn:phFirstCol,
       stripCnt:(lv, c, all) => phRecBy(lv, c, all),
       legendFn:lv => phFirstPal().map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${phYear(lv) ? 'Cells with a record by ' + phYear(lv) + ', by the year of the first one.' : 'The year of the first record in each cell.'} Bars under the map: the same cells in the same colors, taller where there are more records by then (iNaturalist and EDDMapS; square-root scale).</p>`},
@@ -1928,6 +1944,8 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 /* ---------- state ---------- */
 /* The basemap the page opens on: USGS topo. */
 const DEFBASE = 'topo';
+/* When does it flower here? opens on Flowering, week by week, so Play shows the season moving north (Pest and invasives keep their own list) */
+{ const p = Q.find(q => q.id === 'phen'); if (p){ const w = p.m.find(m => m.id === 'wave'); if (w) p.m = [w, ...p.m.filter(m => m !== w)]; } }
 const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, sel:true, instr:false, sum:false, vsumr:false, vsums:false, about:false, measures:true, results:true, mgmt:false, hadm:false}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
