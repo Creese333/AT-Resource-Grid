@@ -1835,19 +1835,7 @@ function cultCharts(){ const S_ = cultSpread(); if (!S_) return '<p class="none"
   const shown = (S.cultAll ? wide : wide.slice(0, 20)).slice().sort((a, b) => a.mi[a.mi.length >> 1] - b.mi[b.mi.length >> 1] || a.name.localeCompare(b.name));
   const W = 320, lab = 112, pr = 4, pw = W - lab - pr, rh = 14, top = 14, X = m => lab + pw * (m - lo) / Math.max(1, hi - lo), H = top + shown.length * rh + 14;
   const sel = S.m.find && S.m.find.ls;
-  /* species recorded in each region, whole trail (the section filter picks out its region), and how many are recorded in no other region */
-  const all = cultSpreadAll(), reg = D.regions.map(r => ({name:r[0], n:0, only:0}));
-  all.forEach(s => { const hit = new Set(s.mi.map(m => D.regions.findIndex(r => m <= r[2])).map(k => k < 0 ? D.regions.length - 1 : k)); hit.forEach(k => { reg[k].n++; if (hit.size === 1) reg[k].only++; }); });
-  const cur = S.sec[0] === 'r' ? +S.sec.slice(1) : -1, mxR = Math.max(1, ...reg.map(r => r.n)), bhR = 18, WR = 320, labR = 80, pwR = WR - labR - 100;
-  let g = `<h4 class="phh">Species recorded in each region</h4><svg class="phch" viewBox="0 0 ${WR} ${reg.length * bhR + 4}" width="100%" role="img" aria-label="Species recorded in each region">`;
-  reg.forEach((r, k) => { const y = 2 + k * bhR, w = pwR * r.n / mxR, wo = pwR * r.only / mxR, dim = cur >= 0 && cur !== k;
-    g += `<g opacity="${dim ? .4 : 1}"><text x="${labR - 5}" y="${y + 12}" text-anchor="end" font-size="9" fill="#C9D4E2">${esc(r.name)}</text>` +
-      `<rect x="${labR}" y="${y + 3}" width="${Math.max(1, w).toFixed(1)}" height="11" rx="1.5" fill="${HUE.cult}"/>` +
-      (r.only ? `<rect x="${labR}" y="${y + 3}" width="${Math.max(1, wo).toFixed(1)}" height="11" rx="1.5" fill="#B9E08A"/>` : '') +
-      `<text x="${(labR + w + 4).toFixed(1)}" y="${y + 12}" font-size="9" fill="#E3EAF2">${r.n}${r.only ? ` <tspan fill="#B9E08A">(${r.only} only here)</tspan>` : ''}</text>` +
-      `<title>${esc(r.name)}: ${r.n} listed species recorded, ${r.only} of them in no other region</title></g>`; });
-  g += `</svg><p class="phnote">Listed species with a research-grade iNaturalist record in each region. The light part of each bar is species recorded in that region only.</p>`;
-  return g + cultTopHTML(); }
+  return cultTopHTML(); }
 /* the 1 sq mi cells inside the selection, else those in view (and in the trail section picked) */
 let CULTHEX = null;
 function cultHexIn(ids){ if (!CULTHEX){ CULTHEX = new Map(); D.levels.hex.id.forEach((id, c) => { const p = id.split('-'); [p.slice(0, 4).join('-'), p.slice(0, 3).join('-')].forEach(k => { let a = CULTHEX.get(k); if (!a) CULTHEX.set(k, a = []); a.push(c); }); }); }
