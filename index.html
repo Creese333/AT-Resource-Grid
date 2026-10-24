@@ -1847,14 +1847,30 @@ function cultCharts(){ const S_ = cultSpread(); if (!S_) return '<p class="none"
       `<text x="${(labR + w + 4).toFixed(1)}" y="${y + 12}" font-size="9" fill="#E3EAF2">${r.n}${r.only ? ` <tspan fill="#B9E08A">(${r.only} only here)</tspan>` : ''}</text>` +
       `<title>${esc(r.name)}: ${r.n} listed species recorded, ${r.only} of them in no other region</title></g>`; });
   g += `</svg><p class="phnote">Listed species with a research-grade iNaturalist record in each region. The light part of each bar is species recorded in that region only.</p>`;
-  const tp = wide.slice(0, 12), mx = Math.max(1, tp[0].mi.length), bh = 14, H2 = tp.length * bh + 4;
-  g += `<h4 class="phh">Most widely recorded species${S.sec === 'all' ? '' : ', ' + esc(secName())}</h4><svg class="phch" viewBox="0 0 ${W} ${H2}" width="100%" role="img" aria-label="Most widely recorded species">`;
-  tp.forEach((s, k) => { const y = 2 + k * bh, on = sel === s.sci.toLowerCase(), w = (pw - 26) * s.mi.length / mx;
-    g += `<g data-cultsp="${esc2(s.sci.toLowerCase())}" style="cursor:pointer"><rect x="0" y="${y}" width="${W}" height="${bh}" fill="${on ? '#22385A' : 'transparent'}"/>` +
+  return g + cultTopHTML(); }
+/* the 1 sq mi cells inside the selection, else those in view (and in the trail section picked) */
+let CULTHEX = null;
+function cultHexIn(ids){ if (!CULTHEX){ CULTHEX = new Map(); D.levels.hex.id.forEach((id, c) => { const p = id.split('-'); [p.slice(0, 4).join('-'), p.slice(0, 3).join('-')].forEach(k => { let a = CULTHEX.get(k); if (!a) CULTHEX.set(k, a = []); a.push(c); }); }); }
+  const out = []; ids.forEach(id => { const ix = D.levels.hex.id.indexOf(id); if (ix >= 0) out.push(ix); else (CULTHEX.get(id) || []).forEach(c => out.push(c)); }); return out; }
+function cultScope(){ const H = D.levels.hex;
+  if (S.box && S.box.cells && S.box.cells.length){ const L_ = D.levels[S.box.lv]; return [cultHexIn(S.box.cells.map(c => L_.id[c])), `the ${S.box.cells.length} selected cells`]; }
+  if (S.cell != null && D.levels[S.cellLv]) return [cultHexIn([D.levels[S.cellLv].id[S.cell]]), 'the selected cell'];
+  const b = map.getBounds(), out = []; for (let c = 0; c < H.id.length; c++) if (inSec('hex', c) && b.contains(H.c[c])) out.push(c); return [out, 'the map view']; }
+function cultTopHTML(){ if (!cultReady('hex')) return '';
+  const [cells, where] = cultScope(), M = new Map();
+  cells.forEach(c => (cultL('hex', c) || []).forEach(i => { const e = cultOf(i); if (!e) return; const p = sppName(i), k = p.sci.toLowerCase(); let s = M.get(k); if (!s) M.set(k, s = {name:e[1] || p.common || p.sci, sci:p.sci, n:0}); s.n++; }));
+  const tp = [...M.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)).slice(0, 10), sel = S.m.find && S.m.find.ls;
+  let g = `<div id="culttop"><h4 class="phh">Most widely recorded species, ${esc(where)}</h4>`;
+  if (!tp.length) return g + `<p class="none">No listed species recorded in ${esc(where)}.</p></div>`;
+  const W = 320, lab = 112, pw = W - lab - 34, bh = 14, H2 = tp.length * bh + 4, mx = tp[0].n, f = v => v.toFixed(1);
+  g += `<svg class="phch" viewBox="0 0 ${W} ${H2}" width="100%" role="img" aria-label="Most widely recorded species">`;
+  tp.forEach((s, k) => { const y = 2 + k * bh, on = sel === s.sci.toLowerCase(), w = pw * s.n / mx;
+    g += `<g data-cultsp="${esc(s.sci.toLowerCase())}" style="cursor:pointer"><rect x="0" y="${y}" width="${W}" height="${bh}" fill="${on ? '#22385A' : 'transparent'}"/>` +
       `<text x="${lab - 5}" y="${y + 10}" text-anchor="end" font-size="8.5" fill="${on ? '#FFFFFF' : '#C9D4E2'}">${esc(s.name.length > 24 ? s.name.slice(0, 23) + '…' : s.name)}</text>` +
-      `<rect x="${lab}" y="${y + 2.5}" width="${f(Math.max(1, w))}" height="9" rx="1.5" fill="${on ? '#B9E08A' : HUE.cult}"/><text x="${f(lab + w + 4)}" y="${y + 10}" font-size="8.5" fill="#E3EAF2">${s.mi.length}</text>` +
-      `<title>${esc(s.name)} (${esc(s.sci)}): ${s.mi.length} 49 sq mi ${s.mi.length === 1 ? 'cell' : 'cells'} with a record. Click to map it.</title></g>`; });
-  return g + `</svg><p class="phnote">Number of 49 sq mi cells with a research-grade iNaturalist record${S.sec === 'all' ? ', whole trail' : ''}. Records follow hikers, so a species recorded in few cells may simply be overlooked. Click a species to map where it is recorded.</p>`; }
+      `<rect x="${lab}" y="${y + 2.5}" width="${f(Math.max(1, w))}" height="9" rx="1.5" fill="${on ? '#B9E08A' : HUE.cult}"/><text x="${f(lab + w + 4)}" y="${y + 10}" font-size="8.5" fill="#E3EAF2">${s.n}</text>` +
+      `<title>${esc(s.name)} (${esc(s.sci)}): recorded in ${s.n} of the ${cells.length} square miles in ${esc(where)}. Click to map it.</title></g>`; });
+  return g + `</svg><p class="phnote">Square miles with a research-grade iNaturalist record, in ${esc(where)}${where === 'the map view' ? ' (zoom or pan to change it, or select cells)' : ''}. Ginseng, goldenseal, ramps and lady’s slippers are left out at this scale. Records follow hikers, so a species recorded in few square miles may simply be overlooked. Click a species to map where it is recorded.</p></div>`; }
+function cultVizRefresh(){ const t = $('#culttop'); if (t && S.q.id === 'cult' && !S.m.find) t.outerHTML = cultTopHTML(); }
 document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-cultsp],[data-cultall]'); if (!t) return;
   if (t.dataset.cultall){ S.cultAll = !S.cultAll; const v = $('#cultviz'); if (v) v.innerHTML = cultCharts(); return; }
   const en = findIndex().get(t.dataset.cultsp); if (en) setFind(en, false); });
@@ -2266,6 +2282,7 @@ const CORRSET = {}; function inCorr(lv, c){ if (!EXT.corr) return true; const s_
 function refreshProfile(){ if ((S.cell != null || S.box) && $('#profile').classList.contains('open')) profile(); }
 map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown) draw(); else if (shown) restyle(); });
 map.on('moveend', viewWindow);
+{ let ct; map.on('moveend', () => { clearTimeout(ct); ct = setTimeout(cultVizRefresh, 150); }); }
 
 $('#levels').innerHTML = [['auto','Auto'],['wheel','49 sq mi'],['cog','7 sq mi'],['hex','1 sq mi']].map(x => `<button type="button" data-lv="${x[0]}">${x[1]}</button>`).join('');
 $('#levels').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.level = b.dataset.lv; redraw(); });
@@ -2872,7 +2889,7 @@ function scaleRow(from, on){ const [lv, c] = from, i0 = SIZES.indexOf(lv);
 const L_bounds = (lv, c) => L.latLngBounds(ring(lv, c)).pad(lv === 'hex' ? 1.5 : .6);
 function parentOf(lv, c){ const id = D.levels[lv].id[c], up = lv === 'hex' ? 'cog' : lv === 'cog' ? 'wheel' : null; if (!up) return null;
   const pid = id.slice(0, id.lastIndexOf('-')); return IDX[up].has(pid) ? [up, IDX[up].get(pid)] : null; }
-function phLatRefresh(){ const t = $('#phtrend'); if (t && S.side.viz && PHQ() && !SPREADQ() && phSp().kind === 'plant'){ t.innerHTML = phTrendBlock(); phWireTrend(); } }
+function phLatRefresh(){ cultVizRefresh(); const t = $('#phtrend'); if (t && S.side.viz && PHQ() && !SPREADQ() && phSp().kind === 'plant'){ t.innerHTML = phTrendBlock(); phWireTrend(); } }
 function select(lv, c, fly){ S.box = null; boxRect.remove(); S.pinOff = false; S.cell = c; S.cellLv = lv; const r = ring(lv, c); selOuter.setLatLngs(r); selInner.setLatLngs(r);
   if (fly) map.fitBounds(L.latLngBounds(r).pad(lv === 'hex' ? 4 : 1.5), {maxZoom: lv === 'hex' ? 12 : lv === 'cog' ? 10 : 8});
   profile(); pinSync(); $('#clearbtn').hidden = false; writeHash(); phLatRefresh();
@@ -2908,7 +2925,7 @@ const vegRow = x => `<div><i style="background:${CATMAP.DOM_TYPE.get(x[0])[1]}">
 function coverHTML(shares){ const l = shares.filter(x => x[1] >= 1).sort((a,b) => b[1] - a[1]), un = 100 - l.reduce((s,x) => s + x[1], 0); if (un >= 1) l.push(['Unassigned', un, '#ECEFEA']);
   return '<p style="margin-top:10px">NLCD level 2 land cover:</p><div class="stack">' + l.map(x => `<span style="width:${x[1]}%;background:${x[2]}"></span>`).join('') + '</div><div class="keys">' +
     l.map(x => `<div><i style="background:${x[2]}"></i><span>${x[0]}</span><span>${fmt(x[1],0)}%</span></div>`).join('') + '</div>'; }
-function profile(){ if (S.box) return profileBox(); const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c); setSppBox([ring(lv, c)]);
+function profile(){ setTimeout(cultVizRefresh); if (S.box) return profileBox(); const lv = S.cellLv, c = S.cell, L_ = D.levels[lv], par = parentOf(lv, c); setSppBox([ring(lv, c)]);
   let h = `<h2>${LV[lv].name} cell near mile ${fmt(L_.mi[c],0)}</h2><p>${esc(cat('club', L_.club[c]) || '')}, ${esc(regionOf(L_.mi[c]))} region</p><p class="id">Grid ID ${esc(L_.id[c])}</p>`;
   h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(show(S.m, cellValue(lv, c)))}</b></p>`;
   const [scales, wireScales] = scaleRow([lv, c], lv);
