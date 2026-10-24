@@ -523,7 +523,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Soils</td><td>NRCS soil survey (gSSURGO), all 14 trail states</td><td>Area-weighted soil ratings. The trail vulnerability index averages three NRCS trail ratings, from 0 (best) to 1 (worst). It rates the soil, not the trail.</td></tr>
       <tr><td>Wetlands</td><td>USFWS National Wetlands Inventory, all 14 trail states</td><td>Wetland acres in each cell by type, and the part on A.T. lands. Small, forested and seasonal wetlands are often missed. “Possibly sensitive” flags likely bogs, fens, seeps and vernal pools for a field check. Not a delineation.</td></tr>
       <tr><td>Restoration targets</td><td>Built in this page from the layers above</td><td>Two 0 to 100 scores for grasslands and forests. How they are scored is set out under Restoration targets below.</td></tr>
-      <tr><td>Flowering</td><td>iNaturalist research-grade records, built weekly, with newer records fetched live</td><td>Nearly fifty plants: trail-wide, A.T. Seasons, northern and southern indicators, and AMC focal species. First, peak and season length follow USA National Phenology Network measures, pooled across years. Records follow hikers, so compare years by eye as leads for field checks; for measured change see A.T. Seasons (Nature’s Notebook).</td></tr>
+      <tr><td>Flowering</td><td>iNaturalist research-grade records, built weekly, with newer records fetched live</td><td>Nearly fifty plants: trail-wide, A.T. Seasons, northern and southern indicators, and AMC focal species. First, peak and season length follow USA National Phenology Network measures, pooled across years. The flowering calendar by latitude follows the USA-NPN calendar view: the middle 80% and 50% of flowering-record dates and the median for each band of latitude, from 2010 on; bands with fewer than 20 records are not drawn. These are dates of photographs of the plant in flower, not measured flowering periods. Records follow hikers, so compare years by eye as leads for field checks; for measured change see A.T. Seasons (Nature’s Notebook).</td></tr>
       <tr><td>Forest pests</td><td>iNaturalist research-grade records (all life stages) and EDDMapS reports, built weekly, with newer iNaturalist records fetched live</td><td>Spotted lanternfly, emerald ash borer, hemlock woolly adelgid, elongate hemlock scale, spongy moth and beech leaf disease; other pests (beech scale, chestnut blight, browntail moth, winter moth, Asian longhorned beetle, southern pine beetle, oak wilt, dogwood anthracnose, Sirex woodwasp) appear once the project has 100 or more records of them; any pest under 100 research-grade records is left off the list, which runs from most to fewest records. Shown from 2010 on: the cells with a record by each year, the share of each cell’s iNaturalist records by year, the range along the trail and the cells with records by year. Records follow observers; a blank cell means nothing reported, not absence.</td></tr>
       <tr><td>Historic resources</td><td>National Register of Historic Places (NPS) and OpenStreetMap cemeteries, rebuilt monthly</td><td>Two extents: A.T. corridor (records inside an A.T. administrative area) and HUC10 watershed (every record). The National Register and cemetery map layers use the same file and show at every zoom. Recorded sites only: small family cemeteries are often missing and some National Register locations are generalized. Find a Grave links open the cemetery’s page when its ID is known, otherwise a search.</td></tr>
       <tr><td>Unique species</td><td>Rare species priority zones</td><td>Rates how vulnerable the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
@@ -1331,6 +1331,7 @@ function phWireTrend(){
   document.querySelectorAll('[data-phab]').forEach(x => x.ontoggle = () => { S.ph.ab = S.ph.ab || {}; S.ph.ab[x.dataset.phab] = x.open; });
   document.querySelectorAll('[data-phy]').forEach(x => x.onclick = () => { phPlay(false); S.ph.yr = +x.dataset.phy; S.ph.sel = [+x.dataset.phy];
     if (!S.m.yr) S.m = S.q.m.find(m => m.id === 'wave'); BRK.clear(); redraw(); });
+  document.querySelectorAll('[data-phlat]').forEach(x => x.onclick = () => { S.ph.band = {i:+x.dataset.phlat, cell:S.cell == null ? null : S.cellLv + S.cell}; const t = $('#phtrend'); if (t){ t.innerHTML = phTrendBlock(); phWireTrend(); } });
   document.querySelectorAll('[data-phw]').forEach(x => x.onclick = () => { phPlay(false); S.ph.wk = Math.max(8, Math.min(44, +x.dataset.phw));
     if (S.m.yr !== 'wk') S.m = S.q.m.find(m => m.id === 'wave'); BRK.clear(); redraw(); }); }
 /* ---------- charts ---------- */
@@ -1392,14 +1393,59 @@ function phSpreadSvgOld(lv, cells){ const A = phAgg(lv), sp = phSp(); if (!A || 
   rows.forEach((r, i) => { if (i % every === 0 || i === rows.length - 1) g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${r.y === sel ? '#FFE014' : '#A8B8CA'}"${r.y === sel ? ' font-weight="700"' : ''}>${r.pre ? '&lt;’' + String(ys[0]).slice(2) : '’' + String(r.y).slice(2)}</text>`;
     g += `<rect x="${f(pl + bw * i)}" y="${pt}" width="${f(bw)}" height="${ph + pb}" fill="transparent" pointer-events="none"><title>${r.pre ? 'Before ' + ys[0] : r.y}: ${r.n} ${r.n === 1 ? 'cell' : 'cells'} first recorded${r.pre ? ` (the earliest in ${preMin})` : ''}, ${r.t} in all by then</title></rect>`; });
   return `<p class="phflow">${fmt(cum, 0)} cells (${({hex:'1 sq mi', cog:'7 sq mi', wheel:'49 sq mi'})[lv] || lv} each) have records, ${fmt(rows[rows.length - 1].n, 0)} of them first recorded in ${rows[rows.length - 1].y}.</p>` + g + '</svg><div class="phkey"><span class="thin">cells first recorded each year · <i style="background:linear-gradient(90deg,' + phFirstPal().map(e => e[1]).join(',') + ')"></i>earlier to recent</span></div>' + (pre ? `<p class="phstat" style="margin-top:2px">Not shown as bars: ${fmt(pre, 0)} ${pre === 1 ? 'cell' : 'cells'} first recorded before ${ys[0]} (the earliest in ${preMin}). They are in the totals and on the map.</p>` : ''); }
-function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) return ''; const where = S.sec === 'all' ? 'the whole trail' : secName(), noun = phNoun();
+/* Flowering calendar by latitude, drawn like the calendar view of the USA National Phenology Network's visualization tool:
+   for each band of latitude, north at the top, the middle 80% and middle 50% of flowering-record dates and the median, 2010 on,
+   pooled across years. iNaturalist records are presence-only, so this shows when the plant was photographed in flower, not a
+   measured flowering period; bands with fewer than PHLATMIN records are not drawn. */
+const PHLAT = [['GA · NC · TN', -90, 37.3], ['VA · WV · MD', 37.3, 39.72], ['PA · NJ · NY', 39.72, 41.6], ['CT · MA · VT', 41.6, 43.6], ['NH · ME', 43.6, 90]], PHLATMIN = 20;
+const phLatBand = la => PHLAT.findIndex(b => la >= b[1] && la < b[2]);
+const phDoy = d => new Date(2021, 0, d).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+function phLatCal(){ const A = phAgg('wheel'); if (!A) return ''; const L_ = D.levels.wheel, yy = S.m.yr === 'wk' ? phYear('wheel') : 0, B = PHLAT.map(() => []);
+  for (const [c, L] of (A.d[1] || new Map())){ if (!inSec('wheel', c)) continue; const b = phLatBand(L_.c[c][0]); if (b < 0) continue;
+    for (const [d, y] of L) if (y >= PHY0 && (!yy || y === yy)) B[b].push(d); }
+  const R = B.map((a, i) => { a.sort((p, q) => p - q); return {i, n:a.length, a, p:a.length >= PHLATMIN ? [.1, .25, .5, .75, .9].map(q => phPct(a, q)) : null}; });
+  const has = R.filter(r => r.n); if (!has.length) return '<p class="phstat">No flowering records here since 2010.</p>';
+  const P = R.filter(r => r.p), lo = P.length ? Math.min(...P.map(r => r.p[0])) : Math.min(...has.map(r => r.a[0])), hi = P.length ? Math.max(...P.map(r => r.p[4])) : Math.max(...has.map(r => r.a[r.n - 1]));
+  const MS = [[1, 'Jan'], [32, 'Feb'], [60, 'Mar'], [91, 'Apr'], [121, 'May'], [152, 'Jun'], [182, 'Jul'], [213, 'Aug'], [244, 'Sep'], [274, 'Oct'], [305, 'Nov'], [335, 'Dec'], [366, '']];
+  let d0 = 1; for (const m of MS) if (m[0] <= lo - 5) d0 = m[0]; const d1 = (MS.find(m => m[0] >= hi + 5) || [366])[0];
+  const here = S.cell != null && D.levels[S.cellLv] ? phLatBand(D.levels[S.cellLv].c[S.cell][0]) : -1;
+  const bp = S.ph.band && S.ph.band.cell === (S.cell == null ? null : S.cellLv + S.cell) ? S.ph.band.i : null;
+  let pk = bp != null && R[bp].n ? bp : here >= 0 && R[here].n ? here : has.reduce((m, r) => r.n > m.n ? r : m).i;
+  const W = 320, lab = 76, pr = 6, rh = 24, pw = W - lab - pr, f = v => v.toFixed(1), X = d => lab + pw * (d - d0) / (d1 - d0), order = R.slice().reverse(), H = order.length * rh + 16;
+  let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Flowering calendar by latitude">`;
+  for (const [d, m] of MS) if (d >= d0 && d <= d1){ g += `<line x1="${f(X(d))}" x2="${f(X(d))}" y1="0" y2="${order.length * rh}" stroke="#2E4460" stroke-width=".6"/>`; if (m && d < d1) g += `<text x="${f(X(d) + 2)}" y="${H - 4}" font-size="8.5" fill="#A8B8CA">${m}</text>`; }
+  order.forEach((r, k) => { const y = k * rh, on = r.i === pk, me = r.i === here;
+    g += `<g data-phlat="${r.i}" style="cursor:pointer"><rect x="0" y="${y}" width="${W}" height="${rh}" fill="${on ? '#1E3352' : 'transparent'}"/>` +
+      `<text x="4" y="${y + 10.5}" font-size="8.5" fill="${me ? '#FFFFFF' : '#C9D4E2'}"${me ? ' font-weight="700"' : ''}>${PHLAT[r.i][0]}</text>` +
+      `<text x="4" y="${y + 20}" font-size="7.5" fill="#A8B8CA">${r.n ? fmt(r.n, 0) + (r.n === 1 ? ' record' : ' records') : 'none'}${me ? ' · this cell' : ''}</text>`;
+    if (r.p) g += `<rect x="${f(X(r.p[0]))}" y="${y + 7}" width="${f(Math.max(1, X(r.p[4]) - X(r.p[0])))}" height="10" rx="1.5" fill="#E0B400" fill-opacity=".32"/>` +
+      `<rect x="${f(X(r.p[1]))}" y="${y + 7}" width="${f(Math.max(1, X(r.p[3]) - X(r.p[1])))}" height="10" rx="1.5" fill="#E0B400"/>` +
+      `<rect x="${f(X(r.p[2]) - 1)}" y="${y + 4}" width="2" height="16" fill="#FFFFFF"/>`;
+    else g += `<text x="${lab + 4}" y="${y + 15}" font-size="8" fill="#A8B8CA">${r.n ? 'Too few records to draw (' + r.n + ')' : 'No flowering records'}</text>`;
+    g += `<title>${PHLAT[r.i][0]}: ${r.p ? `middle 80% of ${fmt(r.n, 0)} flowering records ${phDoy(r.p[0])}–${phDoy(r.p[4])}, middle 50% ${phDoy(r.p[1])}–${phDoy(r.p[3])}, median ${phDoy(r.p[2])}` : r.n ? `${r.n} flowering ${r.n === 1 ? 'record' : 'records'}, fewer than ${PHLATMIN}` : 'no flowering records'}. Click for the weekly chart.</title></g>`; });
+  g += '</svg><div class="phkey"><span><i style="background:rgba(224,180,0,.32)"></i>middle 80% of dates</span><span><i style="background:#E0B400"></i>middle 50%</span><span><i style="background:#FFFFFF;width:2px"></i>median</span></div>';
+  /* the band picked: share of its flowering records in each week */
+  const r = R[pk], w0 = wkOf(d0), w1 = wkOf(Math.min(365, d1 - 1)), wk = new Array(53).fill(0); r.a.forEach(d => wk[wkOf(d)]++);
+  const mx = Math.max(1, ...wk), HH = 70, bw = pw / (w1 - w0 + 1);
+  let hg = `<svg class="phch" viewBox="0 0 ${W} ${HH + 16}" width="100%" role="img" aria-label="Share of flowering records by week">`;
+  for (const [d, m] of MS) if (d >= d0 && d < d1 && m) hg += `<text x="${f(X(d) + 2)}" y="${HH + 12}" font-size="8.5" fill="#A8B8CA">${m}</text>`;
+  hg += `<line x1="${lab}" x2="${W - pr}" y1="${HH}" y2="${HH}" stroke="#4A6182" stroke-width=".8"/>`;
+  for (let w = w0; w <= w1; w++){ if (!wk[w]) continue; const h_ = Math.max(1, (HH - 4) * wk[w] / mx), x = lab + (w - w0) * bw;
+    hg += `<rect data-phw="${w}" x="${f(x + .3)}" y="${f(HH - h_)}" width="${f(Math.max(.8, bw - .6))}" height="${f(h_)}" fill="#E0B400" style="cursor:pointer"><title>${wkLabel(w)}: ${fmt(wk[w], 0)} of ${fmt(r.n, 0)} flowering records (${Math.round(100 * wk[w] / r.n)}%). Click to map this week.</title></rect>`; }
+  hg += `<text x="${lab - 4}" y="10" text-anchor="end" font-size="8" fill="#A8B8CA">${Math.round(100 * mx / r.n)}%</text><text x="${lab - 4}" y="${HH}" text-anchor="end" font-size="8" fill="#A8B8CA">0</text></svg>`;
+  const mids = P.map(x => x), a = mids[0], z = mids[mids.length - 1];
+  const lead = mids.length >= 2 ? `Median flowering record: ${phDoy(a.p[2])} in ${PHLAT[a.i][0]}, ${phDoy(z.p[2])} in ${PHLAT[z.i][0]}.` : mids.length ? `Median flowering record in ${PHLAT[a.i][0]}: ${phDoy(a.p[2])}.` : '';
+  return g + `<h4 class="phh">${PHLAT[pk][0]}: share of flowering records by week</h4>` + hg +
+    sumD('vsuml', (lead ? `<p class="phflow">${lead}</p>` : '') + `<p class="phnote">Dates of research-grade iNaturalist records annotated as flowering${yy ? ' in ' + yy : ', 2010 on, pooled across years'}, grouped by latitude${S.sec === 'all' ? '' : ' within ' + esc(secName())}. They show when people photographed the plant in flower, not a measured flowering period or the share of plants in flower. Bands with fewer than ${PHLATMIN} records are not drawn. Click a band for its weekly chart, or a week to map it.</p>`); }
+function phTrendBlock(){ const sp = phSp(), A = phAgg(dispLevel()); if (!A) return ''; const yyLab = () => (S.m.yr === 'wk' && phYear('wheel') ? phYear('wheel') : 'since 2010') + (S.sec === 'all' ? '' : ', ' + esc(secName())); const where = S.sec === 'all' ? 'the whole trail' : secName(), noun = phNoun();
   let h = '';
   if (SPREADQ()) h += phRangeBlock(dispLevel());
   else {
     h += `<h4 class="phh">When it is ${sp.kind === 'plant' ? 'in flower' : sp.kind === 'adult' ? 'out as adults' : 'recorded'} along the trail${S.m.yr === 'wk' && phYear('wheel') ? ', ' + phYear('wheel') : S.m.yr === 'wk' && phSelText() ? ', ' + esc(phSelText()) : ', all years'}</h4>` + phCalendar() +
       `<details class="phabout" data-phab="cal"${S.ph.ab && S.ph.ab.cal ? ' open' : ''}><summary>About this graph</summary><p class="phnote">${sp.kind === 'plant' ? 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks. Brighter boxes: more flowering records that week, against the stretch’s busiest week, so each stretch shows its season start, peak and end, and the peak moves north.' : 'Rows are 200-mile stretches by starting trail mile, north at the top; columns are weeks.'} Click a week to map it.</p></details>`;
    }
-  { const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
+  if (!SPREADQ() && sp.kind === 'plant') h += `<h4 class="phh">Flowering by latitude, ${yyLab()}</h4>` + phLatCal();
+  else { const lv = dispLevel(), L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) cells.push(c);
     const sv = phSpreadSvg(lv, cells), m1 = sv.match(/^<p class="phflow">[\s\S]*?<\/p>/), rest = m1 ? sv.slice(m1[0].length) : sv, m2 = rest.match(/<p class="phstat" style="margin-top:2px">[\s\S]*?<\/p>$/);
     h += `<h4 class="phh">Cells with records, by year, ${esc(where)}</h4>` + (m2 ? rest.slice(0, -m2[0].length) : rest) +
       sumD('vsums', (m1 ? m1[0] : '') + (m2 ? m2[0] : '') + '<p class="phnote">Records follow hikers, so a first record marks when it was noticed, not when it arrived.</p>'); }
@@ -1817,7 +1863,7 @@ const Q = [
   m:[{id:'grass', label:'Grasslands and early successional', int:1, brkP:[.4,.7,.85,.95], get none(){ return S.appa ? 'No APPA land, or no open habitat mapped' : 'No open habitat mapped'; }, showFn:v => v + ' of 100', note:'Points: ' + restNote('grass'), fn:(lv,c) => restScore('grass', lv, c)},
      {id:'forest', label:'Forests', int:1, brkP:[.4,.7,.85,.95], get none(){ return S.appa ? 'No APPA land, or no forest mapped' : 'No forest mapped'; }, showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
  {id:'phen', th:'inat', hue:HUE.phen, ramp:'phen', title:'When does it flower here?',
-  use:'When nearly fifty plants flower along the trail, from research-grade iNaturalist records updated weekly: trail-wide species, A.T. Seasons (USA-NPN) focal plants, northern and southern indicators, and AMC focal species. Flowering, week by week shows when it is in flower, and Play moves the season north; first, peak and season length follow USA National Phenology Network measures, pooled across years. Year first recorded shows where it has been recorded. Records follow hikers, so a blank cell means too few records, not absence.',
+  use:'When nearly fifty plants flower along the trail, from research-grade iNaturalist records updated weekly: trail-wide species, A.T. Seasons (USA-NPN) focal plants, northern and southern indicators, and AMC focal species. Flowering, week by week shows when it is in flower, and Play moves the season north; first, peak and season length follow USA National Phenology Network measures, pooled across years. Year first recorded shows where it has been recorded. Visualizations add a flowering calendar by latitude, drawn like USA-NPN calendars: the middle 80% and 50% of flowering-record dates and the median for each band, north to south, and the weekly share of records for one band. Records follow hikers, so a blank cell means too few records, not absence.',
   m:[{id:'spread', label:'Year first recorded', yr:'y', hasTxt:() => phYear() ? `had a record by ${phYear()}` : 'have records', sumFn:phSum, asc:1, sumTitle:() => phYear() ? `Recorded by ${phYear()}, earliest first` : 'Recorded earliest', d:0, none:'No records (yet)', showFn:v => 'first recorded ' + v, fn:(lv, c) => phFirst(lv, c), colorFn:phFirstCol,
       stripCnt:(lv, c, all) => phRecBy(lv, c, all),
       legendFn:lv => phFirstPal().map(e => `<div class="row"><i style="background:${e[1]}"></i><span>${e[2]}</span></div>`).join('') + `<p class="sub">${phYear(lv) ? 'Cells with a record by ' + phYear(lv) + ', by the year of the first one.' : 'The year of the first record in each cell.'} Bars under the map: the same cells in the same colors, taller where there are more records by then (iNaturalist and EDDMapS; square-root scale).</p>`},
@@ -2735,12 +2781,13 @@ function scaleRow(from, on){ const [lv, c] = from, i0 = SIZES.indexOf(lv);
 const L_bounds = (lv, c) => L.latLngBounds(ring(lv, c)).pad(lv === 'hex' ? 1.5 : .6);
 function parentOf(lv, c){ const id = D.levels[lv].id[c], up = lv === 'hex' ? 'cog' : lv === 'cog' ? 'wheel' : null; if (!up) return null;
   const pid = id.slice(0, id.lastIndexOf('-')); return IDX[up].has(pid) ? [up, IDX[up].get(pid)] : null; }
+function phLatRefresh(){ const t = $('#phtrend'); if (t && S.side.viz && PHQ() && !SPREADQ() && phSp().kind === 'plant'){ t.innerHTML = phTrendBlock(); phWireTrend(); } }
 function select(lv, c, fly){ S.box = null; boxRect.remove(); S.pinOff = false; S.cell = c; S.cellLv = lv; const r = ring(lv, c); selOuter.setLatLngs(r); selInner.setLatLngs(r);
   if (fly) map.fitBounds(L.latLngBounds(r).pad(lv === 'hex' ? 4 : 1.5), {maxZoom: lv === 'hex' ? 12 : lv === 'cog' ? 10 : 8});
-  profile(); pinSync(); $('#clearbtn').hidden = false; writeHash();
+  profile(); pinSync(); $('#clearbtn').hidden = false; writeHash(); phLatRefresh();
   setTimeout(() => { if (S.cell === c && S.cellLv === lv) keepClear(pin.getElement && pin.getElement()); }, fly ? 750 : 60);
   if (isPhone()){ placeProfile(); sheet(S.sheetFull ? 'full' : 'peek'); if (fly) $('#mapwrap').scrollIntoView({block:'start'}); showBar(); } }
-function clearSel(){ S.cell = null; S.box = null; boxRect.remove(); pin.remove(); $('#clearbtn').hidden = true; selOuter.setLatLngs([]); selInner.setLatLngs([]); $('#profile').classList.remove('open', 'peek', 'full'); S.sheetFull = false; writeHash(); }
+function clearSel(){ S.cell = null; S.box = null; boxRect.remove(); pin.remove(); $('#clearbtn').hidden = true; selOuter.setLatLngs([]); selInner.setLatLngs([]); $('#profile').classList.remove('open', 'peek', 'full'); S.sheetFull = false; writeHash(); phLatRefresh(); }
 /* Phones only: the cell details sit in the page under the graph, as a short summary that expands in place.
    Wide screens keep the popup inside the map and never get the peek/full classes. */
 const isPhone = () => VW() <= 860;
