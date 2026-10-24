@@ -448,6 +448,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .phstat{font-size:13px;color:var(--muted);margin:0}
 .phstat button{background:none;border:0;color:inherit;text-decoration:underline;padding:0;font:inherit;cursor:pointer}
 .hlist li{display:block!important}.hlist li span{display:block}.hlist li em{display:block;font-style:normal;font-size:12.5px;color:var(--muted);margin-top:1px}.hlist li em a{color:#9EC9FF}
+.geol small{display:block;color:#A8B8CA;font-size:12.5px;line-height:1.35;margin-top:1px}.geol li{margin-bottom:6px}.geol a{color:#B9C9DA}
 .cultl small{display:block;color:#A8B8CA;font-size:12.5px;line-height:1.35;margin-top:1px}.cultl small a{color:#9CD06A}.cultl li{margin-bottom:6px}
 </style>
 </head>
@@ -525,6 +526,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <tr><td>Wetlands</td><td>USFWS National Wetlands Inventory, all 14 trail states</td><td>Wetland acres in each cell by type, and the part on A.T. lands. Small, forested and seasonal wetlands are often missed. “Possibly sensitive” flags likely bogs, fens, seeps and vernal pools for a field check. Not a delineation.</td></tr>
       <tr><td>Restoration targets</td><td>Built in this page from the layers above</td><td>Two 0 to 100 scores for grasslands and forests. How they are scored is set out under Restoration targets below.</td></tr>
       <tr><td>Flowering</td><td>iNaturalist research-grade records, built weekly, with newer records fetched live</td><td>Nearly fifty plants: trail-wide, A.T. Seasons, northern and southern indicators, and AMC focal species. First, peak and season length follow USA National Phenology Network measures, pooled across years. The flowering calendar by latitude follows the USA-NPN calendar view: the middle 80% and 50% of flowering-record dates and the median for each band of latitude, from 2010 on; bands with fewer than 20 records are not drawn. These are dates of photographs of the plant in flower, not measured flowering periods. Records follow hikers, so compare years by eye as leads for field checks; for measured change see A.T. Seasons (Nature’s Notebook).</td></tr>
+      <tr><td>Geology</td><td>USGS State Geologic Map Compilation (Horton, San Juan and Stoeser, 2017, <a href="https://doi.org/10.5066/F7WH2N65" target="_blank" rel="noopener">doi.org/10.5066/F7WH2N65</a>) and NPS Geologic Resources Inventory geologic map footprints (July 2024), rebuilt yearly</td><td>Bedrock type, carbonate and mafic/ultramafic rock, age and number of map units come from the seamless state-map compilation, mostly 1:100,000 to 1:500,000 scale, so small units and exact contacts are not shown. Map coverage measures come from approximate footprints of the published and in-progress geologic maps the GRI found around the trail; in the HUC10 watersheds further from the trail, some maps may be missing.</td></tr>
       <tr><td>Plants of cultural significance</td><td>iNaturalist research-grade records in the quarterly summary, matched to cultural_plants.csv (136 plants)</td><td>Compiled from the Greenbelt Indigenous Botanical Survey (Plenty Canada, J. Dolan and Y. Z. Ni), Mooney 1891, Tantaquidgeon 1942, the Haudenosaunee Confederacy and Cherokee and Wabanaki sources. Not exhaustive: the Native American Ethnobotany database and the longer ethnographies are not yet included. Ginseng, goldenseal, ramps and lady’s slippers are shown only at the 49 sq mi scale. A starting point for consultation, not a statement of any nation’s knowledge.</td></tr>
       <tr><td>Forest pests</td><td>iNaturalist research-grade records (all life stages) and EDDMapS reports, built weekly, with newer iNaturalist records fetched live</td><td>Spotted lanternfly, emerald ash borer, hemlock woolly adelgid, elongate hemlock scale, spongy moth and beech leaf disease; other pests (beech scale, chestnut blight, browntail moth, winter moth, Asian longhorned beetle, southern pine beetle, oak wilt, dogwood anthracnose, Sirex woodwasp) appear once the project has 100 or more records of them; any pest under 100 research-grade records is left off the list, which runs from most to fewest records. Shown from 2010 on: the cells with a record by each year, the share of each cell’s iNaturalist records by year, the range along the trail and the cells with records by year. Records follow observers; a blank cell means nothing reported, not absence.</td></tr>
       <tr><td>Historic resources</td><td>National Register of Historic Places (NPS) and OpenStreetMap cemeteries, rebuilt monthly</td><td>Two extents: A.T. corridor (records inside an A.T. administrative area) and HUC10 watershed (every record). The National Register and cemetery map layers use the same file and show at every zoom. Recorded sites only: small family cemeteries are often missing and some National Register locations are generalized. Find a Grave links open the cemetery’s page when its ID is known, otherwise a search.</td></tr>
@@ -833,7 +835,8 @@ const RAMP = {
   rest:['#E8A097','#D0605B','#AE2C35','#821225','#4C0613'],
   phen:['#FFF06A','#FFE014','#F2C200','#C99A00','#8A6800'],
   hist:['#E2CFA4','#CBAE74','#AE8D4E','#876A33','#5A4622'],
-  cult:['#E0EBCB','#BCD591','#92BA58','#5E8C31','#36561A']
+  cult:['#E0EBCB','#BCD591','#92BA58','#5E8C31','#36561A'],
+  geo:['#E1E6EA','#B9C4CE','#8C9DAD','#5F7488','#38495B']
 };
 const ZERO = '#E3E7E1';
 const CATCOL = {
@@ -864,9 +867,21 @@ CATCOL.WET_DOM = [['Freshwater Forested/Shrub Wetland','#008837'],['Freshwater E
 CATCOL.WET_LDOM = CATCOL.WET_DOM;
 const FINDCOL = '#FFC233'; CATCOL.FIND = [['Recorded here', FINDCOL]]; D.cats.FIND = ['Recorded here'];
 CATCOL.APPA_YN = [['NPS - APPA land', '#1C58A8']]; D.cats.APPA_YN = ['NPS - APPA land'];
+/* geology categories: the names are fixed in build_geology.py, in this order */
+CATCOL.GEO_LITH = [['Carbonate rock (limestone, dolostone, marble)','#4A90C2'],['Mafic and ultramafic rock','#2F7D4E'],['Volcanic and metavolcanic rock','#B5453A'],
+  ['Gneiss','#8E6BB8'],['Schist','#C08BC4'],['Granite and other intrusive rock','#E39AA0'],['Shale, slate and phyllite','#7F8C8D'],
+  ['Sandstone, quartzite and conglomerate','#D8B66A'],['Unconsolidated deposits','#F2E6A0'],['Other sedimentary rock','#B9A27C'],['Other metamorphic rock','#9C8FA8'],
+  ['Water','#9CC9E8'],['Other or undivided','#CFCFCF']];
+CATCOL.GEO_AGE = [['Precambrian (Proterozoic or older)','#9E3D5E'],['Cambrian','#7FA056'],['Ordovician','#2E9C83'],['Silurian','#9FD3B4'],['Devonian','#C79A5B'],
+  ['Mississippian','#6E86A6'],['Pennsylvanian','#93AFC2'],['Permian','#E07B53'],['Triassic or Jurassic','#A86ABD'],['Cretaceous to Neogene','#D9C24A'],['Quaternary','#F4EFB0'],['Unknown','#CFCFCF']];
+CATCOL.MAP_BEST = [['1:24,000 or more detailed','#38495B'],['1:25,000 to 1:62,500','#5F7488'],['1:100,000','#9AA9B8'],['Regional or statewide only','#DCE2E8']];
+CATCOL.SURF = [['Detailed surficial map (1:24,000 or more detailed)','#38495B','Detailed (1:24,000 or more detailed)'],['Regional surficial map','#8C9DAD','Regional'],['No surficial map','#DCE2E8','None']];
+CATCOL.GIS_BEST = [['GIS data at 1:24,000 or more detailed','#38495B','1:24,000 or more detailed'],['GIS data at 1:25,000 to 1:100,000','#6E8296','1:25,000 to 1:100,000'],['Statewide GIS data only','#AEBBC8','Statewide only'],['No GIS data','#E6E9EC','None']];
+CATCOL.GEO_NEWEST = [['2010 or later','#38495B'],['1990 to 2009','#6E8296'],['1970 to 1989','#AEBBC8'],['Before 1970','#E6E9EC']];
+['GEO_LITH','GEO_AGE','MAP_BEST','SURF','GIS_BEST','GEO_NEWEST'].forEach(k => { D.cats[k] = CATCOL[k].map(e => e[0]); });
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 /* Blue Ridge color scheme */
-const HUE = {lands:'#B03A73', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31'};
+const HUE = {lands:'#B03A73', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -1862,6 +1877,44 @@ function cultVizRefresh(){ const t = $('#culttop'); if (t && S.q.id === 'cult' &
 document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-cultsp],[data-cultall]'); if (!t) return;
   if (t.dataset.cultall){ S.cultAll = !S.cultAll; const v = $('#cultviz'); if (v) v.innerHTML = cultCharts(); return; }
   const en = findIndex().get(t.dataset.cultsp); if (en) setFind(en, false); });
+if (!D.themes.geo) D.themes.geo = {};
+/* geologic maps and bedrock units shared by both extents: GEOT = {maps:[[id, name, year, scale, type, gis, reference, url, notes]],
+   units:[[name, label, age, lithology class, age class, major lithologies, carbonate, mafic, state]], meta} */
+let GEOT = null;
+const geoNewest = (lv, c) => { const y = val('geo','MAP_NEWEST',lv,c); return y == null ? null : y >= 2010 ? 0 : y >= 1990 ? 1 : y >= 1970 ? 2 : 3; };
+function geoMapItem(i, extra){ const m = GEOT.maps[i]; if (!m) return '';
+  return `<li>${m[7] ? `<a href="${esc(m[7])}" target="_blank" rel="noopener">${esc(m[1])}</a>` : esc(m[1])}${extra || ''}<small>${m[2]} · 1:${fmt(m[3], 0)} · ${esc(m[4])}${m[5] === 'yes' ? ' · GIS data' : ''}${m[8] ? ' · ' + esc(m[8]) : ''}</small></li>`; }
+function geoUnitItem(i, pct, extra){ const u = GEOT.units[i]; if (!u) return '';
+  return `<li>${esc(u[0])}${u[1] && u[1] !== u[0] ? ` <span class="tag">${esc(u[1])}</span>` : ''}${extra || ''}${pct != null ? `<span class="tag">${pct < 1 ? '<1' : pct}%</span>` : ''}<small>${esc(u[2] || 'Age not given')}${u[5] ? ' · ' + esc(u[5]) : ''}</small></li>`; }
+function geoLithRows(pairs){ const mx = Math.max(1, ...pairs.map(p => p[1]));
+  return '<div class="keys">' + pairs.map(([k, v]) => { const e = CATCOL.GEO_LITH[k] || ['Other', '#ccc']; return `<div><i style="background:${e[1]}"></i><span>${esc(e[0])}</span><span>${v < 1 ? '<1' : Math.round(v)}%</span></div>`; }).join('') + '</div>'; }
+function geoBox(lv, cells){ const many = cells.length > 1; let b = `<div class="sec" style="--hue:${HUE.geo}"><h3>Geology</h3>`;
+  if (!GEOT || !D.themes.geo[lv]) return b + '<p class="none">The geology summaries (geology.json) have not been built yet.</p></div>';
+  const ci = cells.filter(c => has('geo', lv, c)); if (!ci.length) return b + `<p class="none">No geology summary for ${many ? 'the selected cells' : 'this cell'}.</p></div>`;
+  const mean = f => { const a = ci.map(c => val('geo', f, lv, c)).filter(x => x != null); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : null; };
+  const carb = mean('PCT_CARB'), maf = mean('PCT_MAFIC');
+  /* bedrock: lithology mix averaged over the cells, units with their share (one cell) or the number of cells they are in */
+  const lith = new Map(); let nl = 0; ci.forEach(c => { const p = val('geo','PCT_LITH',lv,c); if (!p) return; nl++; for (let k = 0; k < p.length; k += 2) lith.set(p[k], (lith.get(p[k]) || 0) + p[k + 1]); });
+  if (carb != null || nl){
+    const main = !many ? val('geo','GEO_LITH',lv,ci[0]) : (nl ? [...lith].sort((a, b) => b[1] - a[1])[0][0] : null);
+    b += `<div class="facts"><div><b>${carb == null ? '–' : (carb > 0 && carb < 1 ? '<1' : Math.round(carb)) + '%'}</b>carbonate</div><div><b>${maf == null ? '–' : (maf > 0 && maf < 1 ? '<1' : Math.round(maf)) + '%'}</b>mafic, ultramafic</div><div><b>${fmt(many ? new Set(ci.flatMap(c => { const u = val('geo','UNITS',lv,c) || []; return u.filter((_, k) => k % 2 === 0); })).size || mean('N_UNITS') || 0 : val('geo','N_UNITS',lv,ci[0]) || 0, 0)}</b>map units</div></div>`;
+    if (main != null) b += `<p>Mostly <b>${esc((CATCOL.GEO_LITH[main] || [''])[0].toLowerCase())}</b>${!many && val('geo','GEO_AGE',lv,ci[0]) != null ? `; the main unit is ${esc(D.cats.GEO_AGE[val('geo','GEO_AGE',lv,ci[0])])} in age` : ''}.</p>`;
+    if (nl) b += '<p style="margin-top:8px">Bedrock by type, share of the mapped area:</p>' + geoLithRows([...lith].map(([k, v]) => [k, v / nl]).sort((a, b) => b[1] - a[1]));
+    if (!many){ const u = val('geo','UNITS',lv,ci[0]) || []; if (u.length) b += `<p style="margin-top:8px">Main bedrock units:</p><ul class="spp geol">${u.filter((_, k) => k % 2 === 0).map((i, k) => geoUnitItem(i, u[2 * k + 1])).join('')}</ul>`; }
+    else { const cnt = new Map(); ci.forEach(c => { const u = val('geo','UNITS',lv,c) || []; for (let k = 0; k < u.length; k += 2) cnt.set(u[k], (cnt.get(u[k]) || 0) + 1); });
+      const top = [...cnt].sort((a, b) => b[1] - a[1]).slice(0, 10); if (top.length) b += `<p style="margin-top:8px">Main bedrock units, with the number of selected cells where each is among the largest:</p><ul class="spp geol">${top.map(([i, n]) => geoUnitItem(i, null, `<span class="tag">${nCells(n)}</span>`)).join('')}</ul>`; }
+  } else if (lv === 'hex' && S.ext === 'huc') b += '<p class="none">Bedrock types are listed for the 7 and 49 sq mi cells in the HUC10 shell.</p>';
+  else b += '<p class="none">No bedrock summary for this cell.</p>';
+  /* maps */
+  const mc = new Map(); ci.forEach(c => (val('geo','MAPS',lv,c) || []).forEach(i => mc.set(i, (mc.get(i) || 0) + 1)));
+  const best = !many ? val('geo','MAP_BEST',lv,ci[0]) : Math.min(...ci.map(c => val('geo','MAP_BEST',lv,c)).filter(x => x != null)), surf = !many ? val('geo','SURF',lv,ci[0]) : Math.min(...ci.map(c => val('geo','SURF',lv,c)).filter(x => x != null)), gis = !many ? val('geo','GIS_BEST',lv,ci[0]) : Math.min(...ci.map(c => val('geo','GIS_BEST',lv,c)).filter(x => x != null));
+  b += `<p style="margin-top:12px;font-weight:600">Geologic maps</p>`;
+  b += `<div class="keys nosw"><div><span>Most detailed geologic map${many ? ' (best cell)' : ''}</span><span>${isFinite(best) ? esc(D.cats.MAP_BEST[best]) : '–'}</span></div><div><span>Surficial geologic map</span><span>${isFinite(surf) ? esc(show(Q.find(q => q.id === 'geo').m.find(m => m.id === 'surf'), surf)) : '–'}</span></div><div><span>Digital (GIS) data</span><span>${isFinite(gis) ? esc(show(Q.find(q => q.id === 'geo').m.find(m => m.id === 'gis'), gis)) : '–'}</span></div>${!many && val('geo','PCT_DETAIL',lv,ci[0]) != null ? `<div><span>Area mapped at 1:24,000</span><span>${val('geo','PCT_DETAIL',lv,ci[0])}%</span></div>` : ''}</div>`;
+  const ms = [...mc].sort((a, b) => GEOT.maps[a[0]][3] - GEOT.maps[b[0]][3] || GEOT.maps[b[0]][2] - GEOT.maps[a[0]][2]);
+  if (ms.length) b += `<details${ms.length <= 6 ? ' open' : ''}><summary>${ms.length} geologic ${ms.length === 1 ? 'map covers' : 'maps cover'} ${many ? 'the selected cells' : 'this cell'}, most detailed first</summary><ul class="spp geol">${ms.map(([i, n]) => geoMapItem(i, many ? `<span class="tag">${nCells(n)}</span>` : '')).join('')}</ul></details>`;
+  b += `<p class="none" style="font-size:13.5px;margin-top:8px">Bedrock from the USGS State Geologic Map Compilation (Horton and others, 2017), compiled from the state geologic maps at 1:50,000 to 1:1,000,000 scale; for detail, use the maps listed. Map footprints from the NPS Geologic Resources Inventory are approximate${S.ext === 'huc' ? ', and maps were searched for only around the trail, so some further out may be missing' : ''}.</p>`;
+  return b + '</div>'; }
+const geoSection = (lv, c) => geoBox(lv, [c]);
 const Q = [
  {id:'land', th:'lands', hue:HUE.lands, ramp:'land', title:'Who administers land here?',
   use:'Land protected over time maps the acres of A.T. tracts conveyed by each year, from the conveyance date (CONVEYED) in the A.T. administrative areas layer, loaded live; the slider and Play step from the first recorded conveyance to the latest. Tracts without a recorded conveyance date are left out. Number of land administrators counts the agencies and organizations that administer mapped land in each cell, to show how many parties a project may need to coordinate with, and NPS - APPA lands marks the cells with any APPA land. All three are generalized to grid cells and do not show boundaries or who administers any particular spot; check the tract records before relying on them.',
@@ -1998,6 +2051,18 @@ const Q = [
  {id:'pri', th:'nrpz', hue:HUE.nrpz, ramp:'pri', title:'Where do projects need to take a closer look?',
   use:'Shows where unique species have vulnerable populations, based on plant and animal records. Use it to screen a proposed project site early, and bring in resource staff before plans firm up where populations are highly or very highly vulnerable.',
   m:[{id:'tier', label:'Unique Species', kind:'cat', f:'review_tie'}]},
+ {id:'geo', th:'geo', hue:HUE.geo, ramp:'geo', title:'What are the geologic resources here?',
+  use:'The bedrock under each cell, from the USGS State Geologic Map Compilation (one seamless map built from the state geologic maps), and how well the geology is mapped, from the NPS Geologic Resources Inventory’s footprints of published and in-progress geologic maps. Use it to spot carbonate bedrock where caves, sinkholes and sensitive groundwater are likely, mafic and ultramafic rock that often carries rare plants, and places where detailed geologic mapping exists or is still needed. Select a cell for its bedrock units and the geologic maps that cover it, with links to the National Geologic Map Database.',
+  m:[{id:'lith', label:'Main bedrock type', kind:'cat', f:'GEO_LITH', note:'The bedrock type covering the most area in each cell (USGS State Geologic Map Compilation).'},
+     {id:'carb', label:'Carbonate bedrock (karst potential)', f:'PCT_CARB', unit:'%', d:0, zero:1, zeroText:'None mapped', note:'Share of the cell underlain by map units whose main rock types include limestone, dolostone or marble. Caves, sinkholes, springs and easily polluted groundwater are most likely here.'},
+     {id:'maf', label:'Mafic and ultramafic rock', f:'PCT_MAFIC', unit:'%', d:0, zero:1, zeroText:'None mapped', note:'Share of the cell underlain by map units whose main rock types include serpentinite, amphibolite, gabbro, metabasalt or similar rock, often home to rare plants.'},
+     {id:'age', label:'Age of the main bedrock unit', kind:'cat', f:'GEO_AGE', note:'Geologic age of the largest bedrock unit in each cell (its older age, where a range is given).'},
+     {id:'units', label:'Number of bedrock map units', f:'N_UNITS', int:1, noun:['unit','units'], note:'How many different bedrock map units the cell crosses, a simple measure of geologic variety.'},
+     {id:'best', label:'Most detailed geologic map', kind:'cat', f:'MAP_BEST', note:'The most detailed scale of bedrock or general geologic mapping covering at least half the cell (NPS Geologic Resources Inventory map footprints).'},
+     {id:'det', label:'Mapped at 1:24,000 or more detail', f:'PCT_DETAIL', unit:'%', d:0, zero:1, zeroText:'None', note:'Share of the cell covered by bedrock or general geologic maps at 1:24,000 or more detail.'},
+     {id:'surf', label:'Surficial geologic mapping', kind:'cat', f:'SURF', note:'Mapping of surface materials such as glacial, river and landslide deposits covering at least half the cell.'},
+     {id:'gis', label:'Digital geologic map data', kind:'cat', f:'GIS_BEST', note:'The most detailed geologic mapping covering at least half the cell that is available as GIS data.'},
+     {id:'new', label:'Newest geologic map', kind:'cat', f:'GEO_NEWEST', fn:(lv,c) => geoNewest(lv, c), note:'Publication year of the newest published geologic map covering at least a tenth of the cell. Maps still in progress are listed when you select a cell.'}]},
  {id:'cult', th:'inat', hue:HUE.cult, ramp:'cult', title:'Where are plants of cultural significance?',
   use:'Plants documented as culturally significant to Eastern Woodlands nations, where they have research-grade iNaturalist records in the quarterly summary. The list of ' + CULTD.length + ' plants comes from the Greenbelt Indigenous Botanical Survey, Mooney’s Sacred Formulas of the Cherokees, Tantaquidgeon’s Delaware study, the Haudenosaunee Confederacy and Cherokee and Wabanaki sources. Use it as a starting point for consultation with Tribal Historic Preservation Officers, not as a statement of any nation’s knowledge. Ginseng, goldenseal, ramps and lady’s slippers are shown only at the 49 sq mi scale. A blank cell means no records, not that the plants are absent.',
   m:[{id:'spp', label:'Number of culturally significant species', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'No species recorded', note:'How many different species on the cultural plants list have research-grade iNaturalist records in each cell.', fn:(lv,c)=>cultCount(lv,c)},
@@ -2011,7 +2076,7 @@ for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
   if (inv && ph) ph.m.filter(m => m.id === 'spread' || m.id === 'share').forEach(m => inv.m.push(Object.create(m, {pinv:{value:true}}))); }
 { const lq = Q.find(q => q.id === 'land'); if (lq){ const k = lq.m.findIndex(m => m.id === 'acq'); if (k > 0) lq.m.unshift(lq.m.splice(k, 1)[0]); } }
 { const iq = Q.find(q => q.id === 'inv'); if (iq){ const k = iq.m.findIndex(m => m.id === 'edrr'); if (k > 0) iq.m.unshift(iq.m.splice(k, 1)[0]); } }
-{ const ord = ['rest','inv','pinv','rec','pest','phen','cult','bird','pri','veg','soil','wet','feat','hist','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','inv','pinv','rec','pest','phen','cult','bird','pri','veg','soil','wet','geo','feat','hist','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
@@ -2202,6 +2267,7 @@ function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
   if (S.q.id === 'hist') histLoad();
   phTick();
   if (BIO && !BIO.done && S.ext === 'corr') bioApply();
+  if (GEO && !GEO.done && S.ext === 'corr') geoApply();
   const lv = dispLevel();
   if (shown !== lv){ if (shown) map.removeLayer(GROUP[shown]); group(lv); shown = lv; restyle(); if (S.cells) GROUP[lv].addTo(map); }
   else restyle();
@@ -2217,7 +2283,7 @@ function redraw(){ draw(); strip(); writeHash(); }
    for soils and wetlands only. Those cells are in soils_wetlands_huc10.json beside this page and load the first time they are asked for.
    Switching swaps the grid and the soils data under the page, so the map, rankings, strip, selection and export all follow.
    Choosing another question, or searching for a species, switches back to the corridor. */
-const EXTFILE = 'soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest','pinv','cult'];
+const EXTFILE = 'soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest','pinv','cult','geo'];
 const SOILCATS = ['VULN_DOM','SOIL_SERIES','SOIL_TEXTURE','SOIL_ORDER','SOIL_DRAIN','SOIL_HSG','SOIL_FARM','SOIL_ECOSITE','SOIL_MAPUNIT','WET_DOM','WET_LDOM'];
 let extLoading = null;
 function extSnapshot(){ const cats = {}; SOILCATS.forEach(k => { if (D.cats[k]) cats[k] = D.cats[k]; });
@@ -2227,10 +2293,11 @@ function extLoad(){ if (EXT.huc) return Promise.resolve(); if (extLoading) retur
     const themes = {}; for (const th in D.themes) themes[th] = {}; themes.soil = j.soil; if (j.wet) themes.wet = j.wet;
     const H = {levels:j.levels, themes, cats:j.cats, group:{}, poly:{}};
     /* the watershed iNaturalist and eBird summaries load with the cells, so both are ready together */
-    return fetch(BIOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(b => { if (b && b.themes) bioHuc(b, H); }).catch(() => {}).then(() => { EXT.huc = H; }); });
+    return Promise.all([fetch(BIOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(b => { if (b && b.themes) bioHuc(b, H); }).catch(() => {}),
+      fetch(GEOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(g => { if (g && g.themes) { geoTables(g); H.themes.geo = geoConv(g, H.levels); } }).catch(() => {})]).then(() => { EXT.huc = H; }); });
   extLoading.catch(() => {}).then(() => { extLoading = null; });
   return extLoading; }
-function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
+function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.geo) D.themes.geo = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
   for (const th in D.themes){ ROW[th] = {}; for (const lv in D.themes[th]){ const a = new Int32Array(D.levels[lv].id.length).fill(-1); D.themes[th][lv].ix.forEach((c,k) => a[c] = k); ROW[th][lv] = a; } }
   for (const lv in D.levels){ const m = new Map(); D.levels[lv].id.forEach((id,i) => m.set(id,i)); IDX[lv] = m; }
   BRK.clear(); for (const k in COVER) delete COVER[k]; for (const k in RINGS) delete RINGS[k]; }
@@ -2922,7 +2989,7 @@ function profile(){ setTimeout(cultVizRefresh); if (S.box) return profileBox(); 
   const v = (th, f) => val(th, f, lv, c); let b = '';
   if (S.ext === 'huc'){ const note = S.q.id === 'hist' ? `${inCorr(lv, c) ? 'This cell is in the A.T. corridor grid.' : 'Outside the A.T. corridor grid, in the HUC10 shell.'} Switch the extent to A.T. corridor to see the corridor's other layers.`
       : (inCorr(lv, c) ? 'This cell is in the A.T. corridor grid. ' : 'Outside the A.T. corridor grid, in the HUC10 shell. ') + HUCONLY;
-    b = recSection(lv, c) + invSection(lv, c) + cultSection(lv, c) + birdSection(lv, c) + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c)) + histSection(lv, c) + phSection(lv, c);
+    b = recSection(lv, c) + invSection(lv, c) + cultSection(lv, c) + birdSection(lv, c) + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c)) + geoSection(lv, c) + histSection(lv, c) + phSection(lv, c);
     finishProfile(`<p class="none" style="font-size:13.5px;margin:0 0 10px">${note}</p>` + b); inatLive([ring(lv, c)], L_.id[c]); return; }
 
   // land
@@ -2959,6 +3026,7 @@ function profile(){ setTimeout(cultVizRefresh); if (S.box) return profileBox(); 
   } else b += `<p class="none">No rare species priority zone ${viaParent ? 'in the surrounding 7 sq mi cell' : 'in this cell'}.</p>`;
   b += '</div>';
   b += S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c);
+  b += geoSection(lv, c);
   b += featSection(lv, c);
   b += histSection(lv, c);
   b += phSection(lv, c);
@@ -3222,15 +3290,15 @@ function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerC
 /* records of a species in one cell once its full load is done; null before that */
 function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'done' ? st.counts[lv].get(c) || 0 : null; }
 /* panel sections follow the order of the questions; each question opens its own sections (survey effort has none of its own) */
-const SECORDER = ['cells','rest','inat','cult','live','phen','ebird','nrpz','veg','soil','wet','feat','hist','lands'];
-const QSEC = {cult:['cult'], rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:[], land:['lands'], phen:['phen'], pest:['phen']};
+const SECORDER = ['cells','rest','geo','inat','cult','live','phen','ebird','nrpz','veg','soil','wet','feat','hist','lands'];
+const QSEC = {geo:['geo'], cult:['cult'], rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:[], land:['lands'], phen:['phen'], pest:['phen']};
 function finishProfile(html){ $('#pbody').innerHTML = html;
-  { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Land administrators':'lands'};
+  { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Land administrators':'lands'};
     const secs = [...document.querySelectorAll('#pbody .sec')]; if (secs.length > 1){ const par = secs[0].parentNode, anchor = document.createComment('secs'); par.insertBefore(anchor, secs[0]);
       const rank = el => { const i = SECORDER.indexOf(KEY[(el.querySelector('h3') || {}).textContent]); return i < 0 ? 99 : i; };
       secs.map((el, i) => [rank(el), i, el]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([, , el]) => par.insertBefore(el, anchor)); anchor.remove(); } }
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
-  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Historic resources':'hist', 'Land administrators':'lands'};
+  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'iNaturalist Records':'live', 'Birds':'ebird', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Historic resources':'hist', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
     const open = key in S.secOpen ? S.secOpen[key] : S.m.find ? key === S.m.th : (QSEC[S.q.id] || []).includes(key);
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
@@ -3509,6 +3577,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
     b += '</div>'; }
 
   b += S.q.id === 'wet' ? wetBox(lv, cells) + soilBox(lv, cells) : soilBox(lv, cells) + wetBox(lv, cells);
+  b += geoBox(lv, cells);
   if (!huc){ b += featBox(lv, cells); b = S.q.id === 'rest' ? restBox(lv, cells) + b : b + restBox(lv, cells); }
 
   // land administrators
@@ -3787,6 +3856,17 @@ if (S.sec !== 'all') fitSection();
    Built on GitHub from GBIF downloads (build_inat_ebird.py). When the file is there, its summaries replace the ones built into
    this page; species strings are merged into D.spp and cells are matched by grid ID. Applied once the corridor cells are shown. */
 var BIO = null;   // var: draw() may run before this line
+/* geology.json and geology_huc10.json, built on GitHub (build_geology.py): cells matched by grid ID */
+var GEO = null; const GEOHUC = 'geology_huc10.json';
+function geoTables(j){ if (!GEOT) GEOT = {maps:j.maps || [], units:j.units || [], meta:j.meta || {}};
+  ['GEO_LITH','GEO_AGE','MAP_BEST','SURF','GIS_BEST'].forEach(k => { if (j.cats && j.cats[k] && j.cats[k].join('|') !== D.cats[k].join('|')) console.warn('geology categories differ from the page:', k); }); }
+function geoConv(j, levels){ const out = {}, src = j.themes.geo || {};
+  for (const lv in src){ if (!levels[lv]) continue; const m = new Map(); levels[lv].id.forEach((id, i) => m.set(id, i)); const t = src[lv], keep = [], ix = [];
+    t.ids.forEach((id, k) => { const c = m.get(id); if (c != null){ keep.push(k); ix.push(c); } });
+    const f = {}; for (const name in t.f) f[name] = keep.map(k => t.f[name][k]); out[lv] = {ix, f}; }
+  return out; }
+function geoApply(){ const j = GEO; if (!j || j.done || S.ext !== 'corr') return; j.done = true; geoTables(j); D.themes.geo = geoConv(j, D.levels); extIndex(); }
+fetch('geology.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ GEO = j; if (S.ext === 'corr'){ geoApply(); redraw(); } } }).catch(() => {});
 fetch('inat_ebird.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ BIO = j; if (S.ext === 'corr'){ bioApply(); redraw(); } } }).catch(() => {});
 /* the file's cells matched to a set of grid levels by ID (idx: level -> Map(id -> cell)); species merged into D.spp */
 function bioConv(j, idx){ const si = new Map(D.spp.map((s, i) => [s, i])), sp = i => { const s = j.spp[i]; let k = si.get(s); if (k == null){ k = D.spp.length; D.spp.push(s); si.set(s, k); } return k; };
