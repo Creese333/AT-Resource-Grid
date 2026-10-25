@@ -63,6 +63,9 @@ header p{margin:0;color:#BCCDE0;font-size:14px;flex:1 1 260px;min-width:0}
 .hctl select{background:var(--ink2);color:#fff;border:1px solid #5578A0;border-radius:4px;padding:5px 8px;max-width:240px}
 .hctl button{background:none;border:1px solid #5578A0;color:#fff;border-radius:4px;padding:5px 10px}
 .hctl button:hover{background:var(--ink2)}
+.hctl #jerrybtn{padding:0;border:2px solid #F0C419;border-radius:50%;overflow:hidden;width:44px;height:44px;flex:none;animation:jerryin .5s ease-out}.hctl #jerrybtn[hidden]{display:none}.hctl #jerrybtn img{display:block;width:100%;height:100%;object-fit:cover}
+@keyframes jerryin{from{transform:scale(.2) rotate(-40deg);opacity:0}to{transform:none;opacity:1}}
+body:not(.jerry) tr.jerryrow{display:none}
 
 /* side */
 aside{grid-area:side;background:var(--panel);border-right:1px solid #0A131F;overflow-y:auto;min-height:0;color-scheme:dark}
@@ -459,6 +462,7 @@ h4.mgrp{margin:12px 0 8px;padding-top:10px;border-top:1px solid #2E4460;font-siz
   <h1>A.T. Resource Grid</h1>
   <p>What we know about the Appalachian Trail corridor, one square mile at a time.</p>
   <div class="hctl">
+    <button id="jerrybtn" type="button" hidden aria-label="Jerry" title="Jerry"><img src="data:image/jpeg;base64,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" alt="Jerry Garcia"></button>
     <button id="aboutbtn" type="button">About the data</button>
   </div>
 </header>
@@ -531,7 +535,7 @@ h4.mgrp{margin:12px 0 8px;padding-top:10px;border-top:1px solid #2E4460;font-siz
       <tr><td>Plants of cultural significance</td><td>iNaturalist research-grade records in the quarterly summary, matched to cultural_plants.csv (136 plants)</td><td>Compiled from the Greenbelt Indigenous Botanical Survey (Plenty Canada, J. Dolan and Y. Z. Ni), Mooney 1891, Tantaquidgeon 1942, the Haudenosaunee Confederacy and Cherokee and Wabanaki sources. Not exhaustive: the Native American Ethnobotany database and the longer ethnographies are not yet included. Ginseng, goldenseal, ramps and lady’s slippers are shown only at the 49 sq mi scale. A starting point for consultation, not a statement of any nation’s knowledge.</td></tr>
       <tr><td>Forest pests</td><td>iNaturalist research-grade records (all life stages) and EDDMapS reports, built weekly, with newer iNaturalist records fetched live</td><td>Spotted lanternfly, emerald ash borer, hemlock woolly adelgid, elongate hemlock scale, spongy moth and beech leaf disease; other pests (beech scale, chestnut blight, browntail moth, winter moth, Asian longhorned beetle, southern pine beetle, oak wilt, dogwood anthracnose, Sirex woodwasp) appear once the project has 100 or more records of them; any pest under 100 research-grade records is left off the list, which runs from most to fewest records. Shown from 2010 on: the cells with a record by each year, the share of each cell’s iNaturalist records by year, the range along the trail and the cells with records by year. Records follow observers; a blank cell means nothing reported, not absence.</td></tr>
       <tr><td>Historic resources</td><td>National Register of Historic Places (NPS) and OpenStreetMap cemeteries, rebuilt monthly</td><td>Two extents: A.T. corridor (records inside an A.T. administrative area) and HUC10 watershed (every record). The National Register and cemetery map layers use the same file and show at every zoom. Recorded sites only: small family cemeteries are often missing and some National Register locations are generalized. Find a Grave links open the cemetery’s page when its ID is known, otherwise a search.</td></tr>
-      <tr><td>Unique species</td><td>Rare species priority zones</td><td>Rates how vulnerable the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
+      <tr class="jerryrow"><td>Unique species</td><td>Rare species priority zones</td><td>Rates how vulnerable the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
     </table>
     <h3>Restoration targets</h3>
     <p>Where do we target restoration? gives each corridor cell two scores out of 100 for restoration on A.T. corridor lands, one for grasslands and early successional habitat and one for forests. A higher score means more of the things that make a cell worth restoring. Results lists the highest-scoring cells first. The scores are a shortlist for site visits, not a site assessment.</p>
@@ -2112,6 +2116,9 @@ for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
   if (inv && ph) ph.m.filter(m => m.id === 'spread' || m.id === 'share').forEach(m => inv.m.push(Object.create(m, {pinv:{value:true}}))); }
 { const lq = Q.find(q => q.id === 'land'); if (lq){ const k = lq.m.findIndex(m => m.id === 'acq'); if (k > 0) lq.m.unshift(lq.m.splice(k, 1)[0]); } }
 { const iq = Q.find(q => q.id === 'inv'); if (iq){ const k = iq.m.findIndex(m => m.id === 'edrr'); if (k > 0) iq.m.unshift(iq.m.splice(k, 1)[0]); } }
+let JERRY = false; try { JERRY = sessionStorage.getItem('jerry') === '1'; } catch (e) {}
+if (JERRY) document.body.classList.add('jerry');
+const qVis = x => x.id !== 'pri' || JERRY;
 { const ord = ['rest','inv','pinv','rec','pest','phen','cult','bird','pri','veg','geo','soil','wet','feat','hist','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
@@ -2125,7 +2132,7 @@ const DEFBASE = 'topo';
 { const p = Q.find(q => q.id === 'phen'); if (p){ const w = p.m.find(m => m.id === 'wave'); if (w) p.m = [w, ...p.m.filter(m => m !== w)]; } }
 const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, sel:true, instr:false, sum:false, vsumr:false, vsums:false, about:false, measures:true, results:true, mgmt:false, hadm:false}};
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
-  const q = Q.find(x => x.id === h.get('q')); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
+  const q = Q.find(x => x.id === h.get('q') && qVis(x)); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
   if (h.get('base')) S.base = h.get('base');
   if (h.get('sec')) S.sec = h.get('sec');
@@ -2373,6 +2380,8 @@ const CORRSET = {}; function inCorr(lv, c){ if (!EXT.corr) return true; const s_
 function refreshProfile(){ if ((S.cell != null || S.box) && $('#profile').classList.contains('open')) profile(); }
 map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown) draw(); else if (shown) restyle(); });
 map.on('moveend', viewWindow);
+$('#jerrybtn').addEventListener('click', () => { JERRY = true; try { sessionStorage.setItem('jerry', '1'); } catch (e) {} document.body.classList.add('jerry');
+  $('#jerrybtn').hidden = true; fin.value = ''; closeFind(); const q = Q.find(x => x.id === 'pri'); S.q = q; S.m = q.m[0]; S.secOpen = {}; S.side.qs = true; redraw(); });
 { let ct; map.on('moveend', () => { clearTimeout(ct); ct = setTimeout(cultVizRefresh, 150); }); }
 
 $('#levels').innerHTML = [['auto','Auto'],['wheel','49 sq mi'],['cog','7 sq mi'],['hex','1 sq mi']].map(x => `<button type="button" data-lv="${x[0]}">${x[1]}</button>`).join('');
@@ -2724,7 +2733,7 @@ const hasSel = () => PHQ() || (S.q.id === 'inv' && S.m.id === 'edrr') || (S.q.id
 function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
   let h = `<section class="blk qsblk"><h2><button type="button" class="blktog" data-blk="qs" aria-expanded="${!!S.side.qs}"><span>Guiding Questions${S.side.qs ? '' : ` <small class="mgsum">${esc(q.title)}</small>`}</span><i aria-hidden="true"></i></button></h2>` +
-    `<nav class="qs" aria-label="Guiding questions"${S.side.qs ? '' : ' hidden'}>` + Q.map(x => `<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${x === q && !S.m.find}">${esc(x.title)}</button>`).join('') + '</nav></section>';
+    `<nav class="qs" aria-label="Guiding questions"${S.side.qs ? '' : ' hidden'}>` + Q.filter(qVis).map(x => `<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${x === q && !S.m.find}">${esc(x.title)}</button>`).join('') + '</nav></section>';
   if (S.m.find){ const fs = findSummary(lv); el.innerHTML = h + `<div class="qbody">${fs[0]}${blk('results', 'Results', fs[1], 'res')}</div>`; return; }
   const extBlk = q.id === 'hist' && !S.m.find ? `<section class="blk extblk">${histAdmBlock().replace('<span>Extent</span>', '<h2>Extent</h2>')}${histBlock()}</section>` : !EXTQ.includes(q.id) ? '' : `<section class="blk extblk"><div class="extsw" role="group" aria-label="Extent"><h2>Extent</h2><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
     (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow once you zoom in. Trail miles are those of the nearest corridor cell.' + '</p>' : '') + '</section>';
@@ -2920,7 +2929,7 @@ function listFind(){ const q = fin.value.trim().toLowerCase(); if (q.length < 2)
   if (/\d/.test(q) && TRACTQ !== q) h = '<li class="fgrp" role="presentation">Tracts</li><li class="none">Looking up tract numbers…</li>' + h;
   fl.innerHTML = h || '<li class="none">No match. Try a species, a shelter or other trail feature, a cemetery, a tract number, a trail mile or a trail club.</li>';
   fl.hidden = false; fin.setAttribute('aria-expanded', 'true'); if (fsel >= 0) fin.setAttribute('aria-activedescendant', 'fo' + fsel); }
-fin.addEventListener('input', () => { fsel = -1; if (!fin.value && S.m.find) clearFind(); listFind(); });
+fin.addEventListener('input', () => { $('#jerrybtn').hidden = JERRY || fin.value.trim().toLowerCase() !== 'jerry'; fsel = -1; if (!fin.value && S.m.find) clearFind(); listFind(); });
 fin.addEventListener('keydown', e => { if (e.key === 'Enter' && fl.hidden && fin.value.trim().length >= 2) listFind(); });
 fin.addEventListener('focus', () => { if (fin.value.trim().length >= 2) listFind(); });
 fin.addEventListener('blur', () => setTimeout(closeFind, 150));
@@ -3053,7 +3062,8 @@ function profile(){ setTimeout(cultVizRefresh); if (S.box) return profileBox(); 
 
   b += recSection(lv, c) + invSection(lv, c) + cultSection(lv, c) + birdSection(lv, c);
 
-  // review priority
+  // review priority (shown only once unlocked)
+  const jStart = b.length;
   let plv = lv, pc = c, viaParent = false;
   if (!D.themes.nrpz[lv] && par){ plv = par[0]; pc = par[1]; viaParent = true; }
   b += `<div class="sec" style="--hue:${HUE.nrpz}"><h3>Unique species</h3>`;
@@ -3061,7 +3071,7 @@ function profile(){ setTimeout(cultVizRefresh); if (S.box) return profileBox(); 
     b += `<p><span class="badge" style="background:${e[1]};color:${t === 'Avoid' ? '#fff' : '#142235'}">${esc(e[2] || t)}</span></p>`;
     if (viaParent) b += '<p class="none">Shown for the 7 sq mi cell this square mile sits in.</p>';
   } else b += `<p class="none">No rare species priority zone ${viaParent ? 'in the surrounding 7 sq mi cell' : 'in this cell'}.</p>`;
-  b += '</div>';
+  b += '</div>'; if (!JERRY) b = b.slice(0, jStart);
   b += S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c);
   b += geoSection(lv, c);
   b += featSection(lv, c);
@@ -3390,7 +3400,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
       out.layers.push({id:l.id, name:l.name, type:l.type, rows, state:!T ? 'missing' : T.skipped ? 'skipped' : T.error ? 'error' : 'loaded'}); }); }
   cells.slice().sort((a,b) => L_.mi[a] - L_.mi[b]).forEach(c => { const id = L_.id[c], base = {grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c], trail_club:cat('club', L_.club[c]) || '', region:regionOf(L_.mi[c])};
     let plv = lv, pc = c; if (!D.themes.nrpz[lv]){ const p = parentOf(lv, c); if (p){ plv = p[0]; pc = p[1]; } }
-    const tier = D.themes.nrpz[plv] ? val('nrpz','review_tie',plv,pc) : null, te = tier == null ? null : CATCOL.review_tie.find(x => x[0] === D.cats.review_tie[tier]);
+    const tier = JERRY && D.themes.nrpz[plv] ? val('nrpz','review_tie',plv,pc) : null, te = tier == null ? null : CATCOL.review_tie.find(x => x[0] === D.cats.review_tie[tier]);
     /* n: a value, blank when missing. k: a category field, written as its name */
     const n = (th, f) => { const x = v(th, f, c); return x == null ? '' : x; }, k = (th, f) => { const x = v(th, f, c); return x == null || !D.cats[f] ? '' : D.cats[f][x]; };
     out.cells.push(Object.assign({}, base, {
@@ -3605,7 +3615,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
     b += '</div>'; }
 
   // unique species
-  if (!huc){ b += `<div class="sec" style="--hue:${HUE.nrpz}"><h3>Unique species</h3>`; let plv = lv, pcs = cells, via = false;
+  if (!huc && JERRY){ b += `<div class="sec" style="--hue:${HUE.nrpz}"><h3>Unique species</h3>`; let plv = lv, pcs = cells, via = false;
     if (!D.themes.nrpz[lv]){ const s = new Set(); cells.forEach(c => { const p = parentOf(lv, c); if (p) s.add(p[1]); }); plv = 'cog'; pcs = [...s]; via = true; }
     const cnt = new Map(); pcs.forEach(c => { const v = val('nrpz','review_tie',plv,c); if (v != null) cnt.set(v, (cnt.get(v) || 0) + 1); });
     if (cnt.size){ b += '<div class="keys">' + CATCOL.review_tie.map(e => { const k = cnt.get(D.cats.review_tie.indexOf(e[0])) || 0; return k ? `<div><i style="background:${e[1]}"></i><span>${esc(e[2] || e[0])}</span><span>${nCells(k)}</span></div>` : ''; }).join('') + '</div>';
