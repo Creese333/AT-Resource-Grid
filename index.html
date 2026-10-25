@@ -3030,12 +3030,21 @@ function profile(){ setTimeout(cultVizRefresh); if (S.box) return profileBox(); 
   const [scales, wireScales] = scaleRow([lv, c], lv);
   h += scales + `<div class="pnav">${EXPORTBTNS}</div>`;
   $('#phead').innerHTML = h; wireScales($('#phead')); exportWire();
-  const v = (th, f) => val(th, f, lv, c); let b = '';
+  if (S.ext === 'huc' && EXT.corr && inCorr(lv, c)){ withCorr(lv, L_.id[c], cc => profileCorr(lv, cc, true)); return; }
+  let b = '';
   if (S.ext === 'huc'){ const note = S.q.id === 'hist' ? `${inCorr(lv, c) ? 'This cell is in the A.T. corridor grid.' : 'Outside the A.T. corridor grid, in the HUC10 shell.'} Switch the extent to A.T. corridor to see the corridor's other layers.`
       : (inCorr(lv, c) ? 'This cell is in the A.T. corridor grid. ' : 'Outside the A.T. corridor grid, in the HUC10 shell. ') + HUCONLY;
     b = recSection(lv, c) + invSection(lv, c) + cultSection(lv, c) + birdSection(lv, c) + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c)) + geoSection(lv, c) + histSection(lv, c) + phSection(lv, c);
     finishProfile(`<p class="none" style="font-size:13.5px;margin:0 0 10px">${note}</p>` + b); inatLive([ring(lv, c)], L_.id[c]); return; }
-
+  profileCorr(lv, c, false); }
+/* run fn with the A.T. corridor cells and layers in place (while the HUC10 extent is on), then put the watershed cells back.
+   fn gets the corridor index of the cell with grid ID id at level lv. */
+function withCorr(lv, id, fn){ const H = extSnapshot(), ext = S.ext, cell = S.cell, corr = EXT.corr;
+  D.levels = corr.levels; D.themes = corr.themes; SOILCATS.forEach(k => { if (corr.cats[k]) D.cats[k] = corr.cats[k]; }); S.ext = 'corr'; extIndex();
+  try { S.cell = IDX[lv].get(id); return fn(S.cell); }
+  finally { S.cell = cell; D.levels = H.levels; D.themes = H.themes; SOILCATS.forEach(k => { if (H.cats[k]) D.cats[k] = H.cats[k]; }); S.ext = ext; extIndex(); } }
+/* the details of one corridor cell; fromHuc: shown while the HUC10 extent is on */
+function profileCorr(lv, c, fromHuc){ const L_ = D.levels[lv], par = parentOf(lv, c), v = (th, f) => val(th, f, lv, c); let b = '';
   // land
   let landSec = '';
   if (D.themes.lands){ landSec = `<div class="sec" style="--hue:${HUE.lands}"><h3>Land administrators</h3>`;
@@ -3076,7 +3085,7 @@ function profile(){ setTimeout(cultVizRefresh); if (S.box) return profileBox(); 
   b += histSection(lv, c);
   b += phSection(lv, c);
   b = S.q.id === 'rest' ? restSection(lv, c) + b : b + restSection(lv, c);
-  finishProfile(b + landSec); inatLive([ring(lv, c)], L_.id[c]); }
+  finishProfile((fromHuc ? '<p class="none" style="font-size:13.5px;margin:0 0 10px">This cell is in the A.T. corridor grid, so every layer mapped for the corridor is shown. Cells outside the corridor show the watershed layers only.</p>' : '') + b + landSec); inatLive([ring(lv, c)], L_.id[c]); }
 /* Trail features section: facility lists by type, side trails, maintained landscapes, and estimated trail structures */
 const FTYPES = [['Shelter','Shelters'],['Campsite','Campsites'],['Privy','Privies'],['Parking','Parking areas'],['Bridge','Bridges'],['Vista','Vistas'],['Building','Buildings'],['Dam','Dams'],['Tunnel','Tunnels']];
 const SGROUPS = [['S_DRAIN','Drainage','Drainage'],['S_STEPS','Steps and climbs','Steps and climbs'],['S_SIGNS','Signs','Signs'],['S_BARR','Barriers and crossings','Barriers and crossings']];
