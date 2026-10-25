@@ -2378,7 +2378,7 @@ function corrSync(lv){ corrLast = lv; const want = S.ext === 'huc' && S.cells &&
 map.on('zoomend', () => { if (corrLast) corrSync(corrLast); });
 const CORRSET = {}; function inCorr(lv, c){ if (!EXT.corr) return true; const s_ = CORRSET[lv] = CORRSET[lv] || new Set(EXT.corr.levels[lv].id); return s_.has(D.levels[lv].id[c]); }
 function refreshProfile(){ if ((S.cell != null || S.box) && $('#profile').classList.contains('open')) profile(); }
-map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown) draw(); else if (shown) restyle(); });
+map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown){ draw(); strip(); } else if (shown) restyle(); });
 map.on('moveend', viewWindow);
 $('#jerrybtn').addEventListener('click', () => { JERRY = true; try { sessionStorage.setItem('jerry', '1'); } catch (e) {} document.body.classList.add('jerry');
   $('#jerrybtn').hidden = true; fin.value = ''; closeFind(); const q = Q.find(x => x.id === 'pri'); S.q = q; S.m = q.m[0]; S.secOpen = {}; S.side.qs = true; redraw(); });
@@ -3837,7 +3837,8 @@ function elevSvg(pl, bw, top, base, W, pr, labels){ if (!ELEV) return ''; const 
   let g = `<path d="${d}" fill="#9FB6CF" fill-opacity=".16" stroke="#C9D6E3" stroke-opacity=".6" stroke-width="1.2" stroke-linejoin="round"/>`;
   [2000, 4000, 6000].forEach(f => { g += `<line x1="${pl}" x2="${W - pr}" y1="${Y(f).toFixed(1)}" y2="${Y(f).toFixed(1)}" stroke="#B9CBE0" stroke-opacity=".08"/>`; });
   return g; }
-function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stripsvg');
+let stripLv = 'wheel';
+function strip(){ const m = S.m, lv = stripLv = dispLevel(), L_ = D.levels[lv], svg = $('#stripsvg');
   const W = svg.clientWidth || 800, H = 136, pl = 4, pr = 4, top = ELEV && W > 568 ? 36 : 6, base = 92, pw = W - pl - pr, bw = pw / NB;
   const bins = Array.from({length:NB}, () => ({v:[], clubs:new Map()}));
   for (let c = 0; c < L_.id.length; c++){ const b = bins[Math.min(NB-1, Math.floor(L_.mi[c] / BIN))]; const v = m.get(lv, c);
@@ -3879,7 +3880,7 @@ function strip(){ const m = S.m, lv = 'wheel', L_ = D.levels[lv], svg = $('#stri
   if (W > 620) [500,1000,1500].filter(mi => x(mi) - 32 > pl + endL && x(mi) + 32 < W - pr - endR).forEach(mi => { h += `<text x="${x(mi)}" y="${H-4}" text-anchor="middle">mile ${fmt(mi,0)}</text><line x1="${x(mi)}" x2="${x(mi)}" y1="${base}" y2="${base+4}" stroke="#71849B"/>`; });
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = h;
   svg._geo = {pl, pw, bw};
-  $('#striptitle').textContent = m.label + ', south to north';
+  $('#striptitle').textContent = `${m.label}, south to north (${LV[lv].name} cells)`;
   $('#stripread').textContent = 'Click to go there';
   viewWindow(); }
 function binAt(e){ const svg = $('#stripsvg'), r = svg.getBoundingClientRect(), g = svg._geo; if (!g) return -1;
@@ -3888,7 +3889,7 @@ $('#stripsvg').addEventListener('pointermove', e => { const i = binAt(e); if (i 
   hv.setAttribute('x', g.pl + i*g.bw); hv.setAttribute('opacity', .16);
   const where = `Miles ${fmt(i*BIN,0)} to ${fmt(Math.min(D.totalMi,(i+1)*BIN),0)}`;
   const club = b.club != null ? ', ' + shortClub(cat('club', b.club) || '') : '';
-  let txt = S.m.find ? 'not recorded' : (S.m.none ? S.m.none.toLowerCase().replace('nps - appa', 'NPS - APPA') : 'no data'); if (b.val != null) txt = S.m.find ? 'recorded in this stretch' : S.m.yn ? S.m.yn + ' in this stretch' : S.m.kind === 'cat' ? 'mostly ' + show(S.m, b.val) : (S.m.unit === '%' ? fmt(b.val, 1) + '%' : fmt(b.val, b.val < 10 ? 1 : 0)) + ' on average per 49 sq mi cell';
+  let txt = S.m.find ? 'not recorded' : (S.m.none ? S.m.none.toLowerCase().replace('nps - appa', 'NPS - APPA') : 'no data'); if (b.val != null) txt = S.m.find ? 'recorded in this stretch' : S.m.yn ? S.m.yn + ' in this stretch' : S.m.kind === 'cat' ? 'mostly ' + show(S.m, b.val) : (S.m.unit === '%' ? fmt(b.val, 1) + '%' : fmt(b.val, b.val < 10 ? 1 : 0)) + ` on average per ${LV[stripLv].name} cell`;
   $('#stripread').textContent = `${where}${club}: ${txt}` + (ELEV ? `; trail about ${fmt(Math.round(elevAt((i + .5) * BIN) / 100) * 100, 0)} ft` : ''); });
 $('#stripsvg').addEventListener('pointerleave', () => { $('#shover').setAttribute('opacity', 0); });
 $('#stripsvg').addEventListener('click', e => { const i = binAt(e); if (i < 0) return; const L_ = D.levels.wheel, pts = [];
