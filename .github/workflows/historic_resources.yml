@@ -13,7 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 150      # OpenStreetMap cemeteries are fetched slowly, one small stretch at a time (up to 75 minutes)
+    timeout-minutes: 90       # about 3 GB of OpenStreetMap state extracts are downloaded and filtered for cemeteries
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,6 +21,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install osmium-tool and shapely
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq osmium-tool
+          pip install shapely
       - name: Build historic_resources.json
         run: python build_historic_resources.py
       - name: Build place_names.json
