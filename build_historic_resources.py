@@ -4,17 +4,17 @@ Builds historic_resources.json for the A.T. Resource Grid.
 Fetches, out to the HUC10 shell (the 49 sq mi watershed grid cells in soils_wetlands_huc10.json; the corridor cells in
 at_wheel_cells.json when that file is missing):
   - National Register of Historic Places points (National Park Service)
-  - Cemeteries from OpenStreetMap (Overpass API), with Find a Grave cemetery IDs where OpenStreetMap or Wikidata has one.
-    The public Overpass servers often turn busy clients away, so cemeteries are asked for one small stretch at a time
-    (OSM_CELLS cells), with pauses, and the file remembers when each stretch was last fetched (osm_done). Each run does
-    the stretches never fetched first, then the oldest, until OSM_BUDGET runs out; stretches not reached keep the
-    cemeteries from the previous file. A few runs fill in the whole HUC10 shell, and later runs keep it current.
+  - Cemeteries from OpenStreetMap, with Find a Grave cemetery IDs where OpenStreetMap or Wikidata has one. They are read
+    from the Geofabrik state extracts (one download per state the trail's watersheds touch), filtered with osmium-tool,
+    so the whole HUC10 shell is covered in every run. (The public Overpass servers turned the GitHub runners away so
+    often that a run reached only a few dozen of the 300 stretches, from Georgia north.) If a state's extract cannot be
+    read, the cemeteries the previous file had are kept, and the file's err note names the state.
   - the A.T. administrative area (AT_Lands tract) each record falls in, for the dashboard's scale filter
 and writes historic_resources.json next to this script. The dashboard reads that file.
 
-Standard library only. Runs in GitHub Actions (see .github/workflows/historic_resources.yml) or anywhere with Python 3.
+Needs osmium-tool (apt) and shapely (pip) for the cemeteries. Runs in GitHub Actions (see .github/workflows/historic_resources.yml) or anywhere with Python 3.
 """
-import json, math, os, re, sys, time, urllib.parse, urllib.request
+import json, math, os, re, shutil, subprocess, sys, tempfile, time, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
@@ -30,13 +30,10 @@ SRC = {
            'fields': 'OBJECTID,RESNAME,ResType,NRIS_Refnum,CertDate,Is_NHL,NARA_URL,Address,City,County,State,MultiName,IS_EXTANT'},
 }
 LANDS = 'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/AT_Lands/FeatureServer/1'
-OSM_TIMEOUT = 60          # seconds per Overpass request
-OSM_BUDGET = 75 * 60      # all OpenStreetMap work stops after this many seconds; stretches left keep the previous file's cemeteries
-OSM_CELLS = 4             # 49 sq mi cells per Overpass request: small areas answer far more reliably than large ones
-OSM_PAUSE = 2             # seconds between requests (Overpass asks for no parallel requests from one client)
-# public Overpass servers; each stretch tries them in turn
-OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter',
-            'https://maps.mail.ru/osm/tools/overpass/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
+# OpenStreetMap state extracts from Geofabrik: every state (and D.C.) with grid cells in the trail's HUC10 watersheds
+GEOFABRIK = 'https://download.geofabrik.de/north-america/us/{}-latest.osm.pbf'
+OSM_STATES = ['georgia', 'north-carolina', 'tennessee', 'virginia', 'west-virginia', 'maryland', 'district-of-columbia', 'pennsylvania',
+              'new-jersey', 'new-york', 'connecticut', 'massachusetts', 'vermont', 'new-hampshire', 'maine']
 
 
 def get_json(url, data=None, tries=3, timeout=90):
@@ -160,34 +157,6 @@ def arc_query(src, ch):
     raise RuntimeError('all URLs failed')
 
 
-def osm_query(ch, rounds=1, pause=5, deadline=None, servers=None):
-    box = f"{ch['s']},{ch['w']},{ch['n']},{ch['e']}"
-    q = f'[out:json][timeout:50];(nwr["landuse"="cemetery"]({box});nwr["amenity"="grave_yard"]({box}););out center tags;'
-    data = urllib.parse.urlencode({'data': q}).encode()
-    last = None
-    for r in range(rounds):
-        for ep in servers or OVERPASS:
-            if deadline and time.time() > deadline:
-                raise RuntimeError('time budget used up')
-            try:
-                req = urllib.request.Request(ep, data=data, headers=dict(UA, **{'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded'}))
-                with urllib.request.urlopen(req, timeout=OSM_TIMEOUT) as resp:
-                    j = json.load(resp)
-                res = []
-                for e in j.get('elements', []):
-                    la = e.get('lat', (e.get('center') or {}).get('lat')); lo = e.get('lon', (e.get('center') or {}).get('lon'))
-                    if la is not None:
-                        res.append({'id': f"{e['type']}/{e['id']}", 'la': la, 'lo': lo, 'tags': e.get('tags') or {}})
-                return res
-            except Exception as e:
-                last = f'{ep.split("/")[2]}: {e}'
-                print(f'   Overpass {last}', flush=True)
-                time.sleep(pause)
-        if rounds > 1:
-            time.sleep(pause * 4)
-    raise RuntimeError(last or 'Overpass did not answer')
-
-
 def osm_cem(osm):
     out = []
     for o in osm:
@@ -236,67 +205,86 @@ def load_cells():
         return json.load(open(CELLS)), 'corridor'
 
 
-def osm_pass(cells, scope):
-    """cemeteries from OpenStreetMap, one small stretch at a time (see the top of this file).
-    Returns {osm id: point}, {stretch key: date last fetched}, and an error note or ''."""
-    try:
-        prev = json.load(open(OUT))
-    except Exception:
-        prev = {}
-    # a stretch counts as fetched only if it was fetched over this same extent (the corridor-only builds do not count)
-    done_map = dict(prev.get('osm_done') or {}) if prev.get('scope') == scope else {}
-    stretches = []
-    for i in range(0, len(cells), OSM_CELLS):
-        rings = [c['ring'] for c in cells[i:i + OSM_CELLS]]; pts = [p for r in rings for p in r]
-        key = '+'.join(str(c.get('id') or f"{c['mi']:.2f}") for c in cells[i:i + OSM_CELLS])   # the stretch's cells, so a key never repeats
-        stretches.append({'key': key, 'mi': cells[i]['mi'], 'rings': rings,
-                          's': min(p[0] for p in pts) - .005, 'n': max(p[0] for p in pts) + .005,
-                          'w': min(p[1] for p in pts) - .005, 'e': max(p[1] for p in pts) + .005})
-    keys = {ch['key'] for ch in stretches}
-    done_map = {k: v for k, v in done_map.items() if k in keys}
-    order = sorted(stretches, key=lambda ch: (done_map.get(ch['key'], ''), ch['mi']))   # never fetched first, then the oldest
-    print(f'OpenStreetMap: {len(stretches)} stretches of {OSM_CELLS} cells; {len(stretches) - len(done_map)} never fetched over the {scope} extent', flush=True)
-    inside = lambda ch, p: any(in_ring(p['la'], p['lo'], r) for r in ch['rings'])
-    osm, fresh, t0, deadline, ep, misses = {}, set(), time.time(), time.time() + OSM_BUDGET, 0, 0
-    today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-    for n, ch in enumerate(order, 1):
-        if time.time() > deadline:
-            print('OpenStreetMap: time budget used up', flush=True); break
-        if misses >= 15 and not fresh:
-            print('OpenStreetMap: no Overpass server is answering; stopping', flush=True); break
-        got = None
-        for attempt in range(2 * len(OVERPASS)):
-            if time.time() > deadline:
-                break
-            url = OVERPASS[ep % len(OVERPASS)]
+def fetch_file(url, path, tries=3):
+    for k in range(tries):
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            with urllib.request.urlopen(req, timeout=300) as r, open(path, 'wb') as f:
+                shutil.copyfileobj(r, f, 1 << 20)
+            return
+        except Exception as e:
+            print(f'   {url.rsplit("/", 1)[1]}: {e}', flush=True)
+            time.sleep(20 * (k + 1))
+    raise RuntimeError('download failed')
+
+
+def cemeteries_from_pbf(pbf, work):
+    """[{id, la, lo, tags}] for every landuse=cemetery and amenity=grave_yard node, way and relation in an .osm.pbf file
+    (areas at a point inside them, as Overpass's "center" would be)."""
+    from shapely.geometry import shape
+    flt, gj = os.path.join(work, 'cem.osm.pbf'), os.path.join(work, 'cem.geojsonseq')
+    subprocess.run(['osmium', 'tags-filter', pbf, 'nwr/landuse=cemetery', 'nwr/amenity=grave_yard', '-o', flt, '--overwrite', '--no-progress'], check=True)
+    subprocess.run(['osmium', 'export', flt, '-f', 'geojsonseq', '-a', 'type,id', '-o', gj, '--overwrite', '--no-progress'], check=True)
+    out = {}
+    with open(gj, encoding='utf-8') as f:
+        for line in f:
+            line = line.strip().lstrip('\x1e')
+            if not line:
+                continue
+            ft = json.loads(line); p = ft.get('properties') or {}
+            tags = {k: v for k, v in p.items() if not k.startswith('@')}
+            if tags.get('landuse') != 'cemetery' and tags.get('amenity') != 'grave_yard':
+                continue                                   # member ways and nodes pulled in only to build an area
             try:
-                got = osm_query(ch, rounds=1, pause=0, deadline=deadline, servers=[url]); break
+                g = shape(ft['geometry']); pt = g if g.geom_type == 'Point' else g.representative_point()
+            except Exception:
+                continue
+            oid = f"{p.get('@type', 'way')}/{p.get('@id')}"
+            if oid not in out or g.geom_type in ('Polygon', 'MultiPolygon'):   # an area beats a stray line for the same object
+                out[oid] = {'id': oid, 'la': pt.y, 'lo': pt.x, 'tags': tags}
+    return list(out.values())
+
+
+def osm_extracts(cells, fetch=fetch_file):
+    """cemeteries from the Geofabrik state extracts, kept when they fall in a grid cell. Returns {osm id: point}, error note."""
+    from shapely.geometry import Point, Polygon
+    from shapely.strtree import STRtree
+    polys = [Polygon([(lo, la) for la, lo in c['ring']]) for c in cells]; tree = STRtree(polys)
+    osm, failed, t0 = {}, [], time.time()
+    work = tempfile.mkdtemp(prefix='osm_')
+    try:
+        for st in OSM_STATES:
+            pbf = os.path.join(work, st + '.osm.pbf')
+            try:
+                fetch(GEOFABRIK.format(st), pbf)
+                pts = cemeteries_from_pbf(pbf, work); n = 0
+                for p in pts:
+                    if len(tree.query(Point(p['lo'], p['la']), predicate='intersects')):
+                        osm[p['id']] = p; n += 1
+                print(f'OpenStreetMap {st}: {len(pts)} cemeteries in the state extract, {n} in the grid ({time.time() - t0:.0f} s)', flush=True)
             except Exception as e:
-                ep += 1                                   # next server, and back off longer each time
-                time.sleep(min(60, 8 * (attempt + 1)))
-        if got is None:
-            misses += 1
-        else:
-            misses = 0; fresh.add(ch['key']); done_map[ch['key']] = today
-            for p in got:
-                if inside(ch, p):
-                    osm[p['id']] = p
-        if n % 20 == 0 or n == len(order):
-            print(f'OpenStreetMap: {n} of {len(order)} stretches tried, {len(fresh)} fetched, {len(osm)} cemeteries ({time.time() - t0:.0f} s)', flush=True)
-        time.sleep(OSM_PAUSE)
-    # stretches not fetched this run keep the previous file's OpenStreetMap cemeteries
-    left = [ch for ch in stretches if ch['key'] not in fresh]; kept = 0
-    for x in prev.get('items', []):
-        o = x.get('a', {}).get('osm')
-        if x.get('t') == 'cem' and o and o not in osm and any(inside(ch, x) for ch in left):
-            osm[o] = {'id': o, 'la': x['la'], 'lo': x['lo'], 'tags': {'name': x.get('nm', ''), 'denomination': x['a'].get('denomination', ''), 'operator': x['a'].get('operator', ''),
-                                                            'ref:find_a_grave': x['a'].get('fag', ''), 'wikidata': x['a'].get('wikidata', '')}}; kept += 1
-    never = sum(1 for ch in stretches if ch['key'] not in done_map)
-    print(f'OpenStreetMap: {len(fresh)} stretches fetched this run; {never} of {len(stretches)} never fetched over the {scope} extent yet; {kept} cemeteries kept from the previous file', flush=True)
+                failed.append(st); print(f'OpenStreetMap {st}: not read ({e})', flush=True)
+            finally:
+                for x in os.listdir(work):
+                    os.remove(os.path.join(work, x))
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    if len(failed) == len(OSM_STATES):
+        raise RuntimeError('no state extract could be read')
     note = ''
-    if never:
-        note = f'{never} of {len(stretches)} stretches not yet fetched over the full extent' + (f'; {kept} OpenStreetMap cemeteries kept from the previous build there' if kept else '')
-    return osm, done_map, note
+    if failed:   # keep the previous file's cemeteries (there is no state outline to tell which ones lie in the states missed)
+        try:
+            prev = json.load(open(OUT))
+        except Exception:
+            prev = {}
+        kept = 0
+        for x in prev.get('items', []):
+            o = x.get('a', {}).get('osm')
+            if x.get('t') == 'cem' and o and o not in osm:
+                osm[o] = {'id': o, 'la': x['la'], 'lo': x['lo'], 'tags': {'name': x.get('nm', ''), 'denomination': x['a'].get('denomination', ''), 'operator': x['a'].get('operator', ''),
+                                                                'ref:find_a_grave': x['a'].get('fag', ''), 'wikidata': x['a'].get('wikidata', '')}}; kept += 1
+        note = f"state extracts not read: {', '.join(failed)}; {kept} cemeteries kept from the previous build"
+    return osm, note
 
 
 def main():
@@ -326,7 +314,19 @@ def main():
             done += 1
             if done % 10 == 0 or done == len(chunks) * len(SRC):
                 print(f'National Register: stretch {done // len(SRC)} of {len(chunks)} ({time.time() - t0:.0f} s)', flush=True)
-    osm, osm_done, oe = osm_pass(cells, scope)
+    try:
+        osm, oe = osm_extracts(cells)
+    except Exception as e:
+        # no extract at all: keep every cemetery the previous file had
+        print(f'OpenStreetMap: {e}; keeping the previous cemeteries', flush=True)
+        try:
+            prev = json.load(open(OUT))
+        except Exception:
+            prev = {}
+        osm = {x['a']['osm']: {'id': x['a']['osm'], 'la': x['la'], 'lo': x['lo'], 'tags': {'name': x.get('nm', ''), 'denomination': x['a'].get('denomination', ''),
+               'operator': x['a'].get('operator', ''), 'ref:find_a_grave': x['a'].get('fag', ''), 'wikidata': x['a'].get('wikidata', '')}}
+               for x in prev.get('items', []) if x.get('t') == 'cem' and x.get('a', {}).get('osm')}
+        oe = f'{e}; {len(osm)} cemeteries kept from the previous build'
     if oe:
         err['osm'] = oe
     items = []
@@ -346,7 +346,7 @@ def main():
     le = tag_lands(items, chunks)
     if le:
         err['lands'] = le
-    json.dump({'at': int(time.time() * 1000), 'items': items, 'err': err, 'lands': not le, 'scope': scope, 'osm_done': osm_done}, open(OUT, 'w'), separators=(',', ':'))
+    json.dump({'at': int(time.time() * 1000), 'items': items, 'err': err, 'lands': not le, 'scope': scope}, open(OUT, 'w'), separators=(',', ':'))
     counts = {t: sum(1 for x in items if x['t'] == t) for t in ('nr', 'cem')}
     print('wrote', OUT, counts, 'errors:', err or 'none')
 
