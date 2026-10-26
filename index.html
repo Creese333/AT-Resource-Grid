@@ -1986,7 +1986,7 @@ const QVIZ = {
     return vTop(vSpp(lv, cells, c => invL('INVASIVE_LIST', lv, c) || [])).map(([i, n]) => vSpRow(i, n, HUE.inat, `reported in ${nCells(n)}`)); }},
   eff: {title:'iNaturalist records per year', note:'Research-grade records each year since 2010, from the quarterly summary. The latest year is partial.', fn(lv, cells){
     const m = new Map(); cells.forEach(c => { const a = val('inat','OBS_BY_YEAR',lv,c); if (!a) return; for (let k = 0; k < a.length; k += 2) if (a[k] >= 2010) m.set(a[k], (m.get(a[k]) || 0) + a[k + 1]); });
-    return [...m].sort((a, b) => a[0] - b[0]).map(([y, n]) => [String(y), '#6E8FD8', n, fmt(n, 0), `${y}: ${fmt(n, 0)} records`]); }},
+    return [...m].sort((a, b) => a[0] - b[0]).map(([y, n]) => [String(y), HUE.eff, n, fmt(n, 0), `${y}: ${fmt(n, 0)} records`]); }},
   bird: {title:'Top 10 birds of conservation concern', note:'Cells with eBird checklists that recorded each species on the USFWS Birds of Conservation Concern or Partners in Flight watch lists. Click a species to map it.', fn(lv, cells){
     return vTop(vSpp(lv, cells, c => val('ebird','SOC_LIST',lv,c) || [])).map(([i, n]) => vSpRow(i, n, HUE.ebird, `recorded in ${nCells(n)}`)); }},
   soil: {title:'Cells by trail vulnerability', note:'Each cell’s trail vulnerability index (NRCS gSSURGO): low under 0.33, high over 0.67.', fn(lv, cells){
@@ -1999,14 +1999,14 @@ const QVIZ = {
   rest: {title:'What drives the score', note:'Average points from each factor, over the cells with a score. Herbicide use and the lands setting apply as on the map.', fn(lv, cells){
     const kind = S.m.id === 'forest' ? 'forest' : 'grass', d = RESTDEF[kind], s = d.parts.map(() => 0); let n = 0;
     cells.forEach(c => { if (!has('veg', lv, c)) return; const r = restParts(kind, lv, c); if (r[0] == null) return; n++; r[1].forEach((p, k) => s[k] += p[2]); });
-    return n ? d.parts.map(([k, lab, w], i) => [lab, '#C9506B', s[i] / n, `${fmt(s[i] / n, 1)} of ${w}`, `${lab}: ${fmt(s[i] / n, 1)} of ${w} points on average, over ${nCells(n)}`]) : []; }},
+    return n ? d.parts.map(([k, lab, w], i) => [lab, HUE.rest, s[i] / n, `${fmt(s[i] / n, 1)} of ${w}`, `${lab}: ${fmt(s[i] / n, 1)} of ${w} points on average, over ${nCells(n)}`]) : []; }},
   hist: {title:'Historic resources by type', note:'National Register of Historic Places (NPS) by property type, and cemeteries mapped in OpenStreetMap.', fn(lv, cells){
     const A = hAgg(lv); if (!A) return []; const m = new Map(), lab = {building:'Buildings', structure:'Structures', district:'Districts', site:'Sites', object:'Objects'};
     cells.forEach(c => (A.list.get(c) || []).forEach(i => { const x = HIST.items[i], k = x.t === 'cem' ? 'Cemeteries' : lab[String(x.a.type || '').toLowerCase()] || 'Other National Register'; m.set(k, (m.get(k) || 0) + 1); }));
     return vTop(m).map(([k, n]) => [k, k === 'Cemeteries' ? '#7C8C7A' : HUE.hist, n, fmt(n, 0), `${k}: ${fmt(n, 0)}`]); }},
   feat: {title:'Facilities by type', note:'A.T. facilities inventory, official and additional features.', fn(lv, cells){
     const T = [['N_SHELTER','Shelters'],['N_CAMPSITE','Campsites'],['N_PRIVY','Privies'],['N_PARKING','Parking areas'],['N_BRIDGE','Bridges'],['N_VISTA','Vistas'],['N_BUILDING','Buildings'],['N_DAM','Dams'],['N_TUNNEL','Tunnels']];
-    return T.map(([f, nm]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, '#57A865', n, fmt(n, 0), `${nm}: ${fmt(n, 0)}`]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]); }}
+    return T.map(([f, nm]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, HUE.feat, n, fmt(n, 0), `${nm}: ${fmt(n, 0)}`]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]); }}
 };
 const qVizOn = q => !!QVIZ[q.id] && !(q.id === 'land' && S.m.id === 'acq');
 function qVizHTML(){ const d = QVIZ[S.q.id]; if (!d) return ''; const lv = dispLevel(), th = S.q.th; const [sl, cells, where] = geoScope(lv);
@@ -2694,13 +2694,13 @@ function acqChart(){ if (!ACQ || ACQ.st !== 'done') return '<p class="phstat">Th
   for (let v = 0; v <= top; v += sp) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="${v ? '#2E4460' : '#4A6182'}" stroke-width="${v ? .6 : .9}"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${v >= 1000 ? fmt(v / 1000, v % 1000 ? 1 : 0) + 'k' : v}</text>`;
   [0, .5, 1].forEach(fr => { g += `<text x="${W - pr + 3}" y="${f(Yc(tot * fr) + 3)}" font-size="8.5" fill="#DD8FB3">${fmt(Math.round(tot * fr / 1000), 0)}k</text>`; });
   ys.forEach((y, i) => { if (!per[i]) return; const y0 = Y(per[i]), on = y === sel;
-    g += `<rect x="${f(pl + bw * i + .4)}" y="${f(y0)}" width="${f(Math.max(.8, bw - .8))}" height="${f(Y(0) - y0)}" fill="${on ? '#FFFFFF' : RAMP.land[2]}" opacity="${y > sel ? .3 : 1}"><title>${y}: ${fmt(Math.round(per[i]), 0)} acres in ${(ACQ.by.get(y) || {n:0}).n} tracts</title></rect>`; });
+    g += `<rect x="${f(pl + bw * i + .4)}" y="${f(y0)}" width="${f(Math.max(.8, bw - .8))}" height="${f(Y(0) - y0)}" fill="${on ? '#FFFFFF' : HUE.lands}" opacity="${y > sel ? .3 : 1}"><title>${y}: ${fmt(Math.round(per[i]), 0)} acres in ${(ACQ.by.get(y) || {n:0}).n} tracts</title></rect>`; });
   g += `<polyline points="${ys.map((y, i) => f(X(i)) + ',' + f(Yc(cum[i]))).join(' ')}" fill="none" stroke="#DD8FB3" stroke-width="1.6"/>`;
   { const i = ys.indexOf(sel); if (i >= 0) g += `<circle cx="${f(X(i))}" cy="${f(Yc(cum[i]))}" r="3" fill="#FFFFFF" stroke="#DD8FB3"/>`; }
   ys.forEach((y, i) => { if ((y % 5 === 0 && Math.abs(y - sel) >= 5) || y === sel) g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${y === sel ? '#FFE014' : '#A8B8CA'}"${y === sel ? ' font-weight="700"' : ''}>${y === sel || y % 10 === 0 ? y : '’' + String(y).slice(2)}</text>`; });
   const i = ys.indexOf(sel), byN = ACQ.tracts.filter(t => t.y <= sel).length;
   return `<h4 class="phh">Acres conveyed each year, the whole trail</h4><p class="phflow">By ${sel}, ${fmt(Math.round(cum[i]), 0)} acres in ${fmt(byN, 0)} tracts (${Math.round(100 * cum[i] / tot)}% of the dated acres); ${fmt(Math.round(per[i]), 0)} acres in ${sel} itself.</p>` + g + '</svg>' +
-    `<div class="phkey"><span class="thin"><i style="background:${RAMP.land[2]}"></i>acres conveyed that year · <i style="background:#DD8FB3"></i>running total (right axis)</span></div>`; }
+    `<div class="phkey"><span class="thin"><i style="background:${HUE.lands}"></i>acres conveyed that year · <i style="background:#DD8FB3"></i>running total (right axis)</span></div>`; }
 function acqFrame(full){ const y = S.acqYr, l = $('#acqyl'), r = $('#acqyr'), v = $('#acqviz'); if (l) l.textContent = 'By ' + y; if (r) r.value = y;
   if (v) v.innerHTML = acqChart(); BRK.clear(); restyle(); strip(); legend(); phTick(); if (full) side(); }
 function acqPlay(on){ if (acqTimer){ clearInterval(acqTimer); acqTimer = null; }
