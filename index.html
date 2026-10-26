@@ -2260,7 +2260,7 @@ const cellRenderer = L.canvas({pane:'cells', padding:.4});
 const trailR = L.svg({pane:'trail'}), selR = L.svg({pane:'sel'});
 const trailCase = L.polyline(D.trail, {renderer:trailR, color:'#fff', weight:4, opacity:.9, interactive:false}).addTo(map);
 const trailLine = L.polyline(D.trail, {renderer:trailR, color:'#14294A', weight:1.5, interactive:false}).addTo(map);
-function trailStyle(){ const z = map.getZoom(), far = z < 9, dk = DARKBASE[S.base]; trailCase.setStyle({color: dk ? '#14294A' : '#fff', weight: far ? 4 : 5.2, opacity: far ? .75 : .9}); trailLine.setStyle({color: dk ? '#fff' : '#14294A', weight: far ? 2 : 2.6, opacity: 1}); }
+function trailStyle(){ const z = map.getZoom(), far = z < 9, dk = DARKBASE[S.base]; const wide = z < 7; trailCase.setStyle({color: dk ? '#14294A' : '#fff', weight: wide ? 2.6 : far ? 3.4 : 4.6, opacity: wide ? .6 : far ? .75 : .9}); trailLine.setStyle({color: dk ? '#fff' : '#14294A', weight: wide ? 1.2 : far ? 1.6 : 2.2, opacity: 1}); }
 const selOuter = L.polygon([], {renderer:selR, color:'#fff', weight:6, fill:false, interactive:false}).addTo(map);
 const selInner = L.polygon([], {renderer:selR, color:'#14294A', weight:2.5, fill:false, interactive:false}).addTo(map);
 const boxRect = L.rectangle([[0,0],[0,0]], {renderer:selR, color:'#fff', weight:2, dashArray:'7 5', fill:false, interactive:false});
