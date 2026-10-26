@@ -2391,14 +2391,6 @@ const CORRSET = {}; function inCorr(lv, c){ if (!EXT.corr) return true; const s_
 function refreshProfile(){ if ((S.cell != null || S.box) && $('#profile').classList.contains('open')) profile(); }
 map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown){ draw(); strip(); } else if (shown) restyle(); });
 map.on('moveend', viewWindow);
-map.createPane('states').style.zIndex = 412; map.getPane('states').style.pointerEvents = 'none';
-let STL = null, stOn = true; try { stOn = localStorage.getItem('atgrid_states') !== '0'; } catch (e) {}
-function statesShow(){ const cb = $('#stlines'); if (cb) cb.checked = stOn; if (!STL) return; if (stOn) STL.addTo(map); else map.removeLayer(STL); }
-fetch('states.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (!j || !j.features) return; const R = L.svg({pane:'states', padding:.5});
-  STL = L.layerGroup([L.geoJSON(j, {renderer:R, interactive:false, style:() => ({color:'#FFFFFF', weight:5, opacity:.4, lineCap:'round', lineJoin:'round'})}),
-    L.geoJSON(j, {renderer:R, interactive:false, style:() => ({color:'#A3ABB4', weight:1.4, opacity:.95, lineCap:'round', lineJoin:'round'})})]); statesShow();
-  const ss = $('#stsrc'); if (ss) ss.textContent = /arcgis/i.test(j.source || '') ? 'State lines: Esri USA Boundaries 2023 (U.S. Census Bureau data).' : 'State lines: U.S. Census Bureau, 1:500,000.'; }).catch(() => {});
-document.addEventListener('change', e => { if (e.target.id === 'stlines'){ stOn = e.target.checked; try { localStorage.setItem('atgrid_states', stOn ? '1' : '0'); } catch (x) {} statesShow(); } });
 $('#jerrybtn').addEventListener('click', () => { JERRY = true; try { sessionStorage.setItem('jerry', '1'); } catch (e) {} document.body.classList.add('jerry');
   $('#jerrybtn').hidden = true; fin.value = ''; closeFind(); const q = Q.find(x => x.id === 'pri'); S.q = q; S.m = q.m[0]; S.secOpen = {}; S.side.qs = true; redraw(); });
 { let ct; map.on('moveend', () => { clearTimeout(ct); ct = setTimeout(cultVizRefresh, 150); }); }
@@ -2660,9 +2652,9 @@ async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZo
 function liveToggle(l, on){ l.on = on; if (on){ l.group.addTo(map); liveLoad(l); if (l.type === 'pt' && l.loaded) liveDraw(l); } else { map.removeLayer(l.group); l.req++; liveStatus(l, ''); } labelSync(); layersUI(); writeHash(); }
 function layersUI(){ const n = LIVE.filter(l => l.on).length; $('#layerstog span').innerHTML = 'Map layers' + (n ? ` <b>${n}</b>` : '');
   const lk = $('#landkey'); if (lk) lk.hidden = !LIVE.find(l => l.id === 'lands').on; }
-$('#layerspanel').innerHTML = `<label><input type="checkbox" id="stlines"${stOn ? ' checked' : ''}><i class="ln" style="background:#A3ABB4;box-shadow:0 0 0 2px rgba(255,255,255,.55);justify-self:center"></i><span>State lines</span><span class="st"></span></label>` + LIVE.map(l => `<label><input type="checkbox" data-live="${l.id}">${l.type === 'pt' ? glyphHTML(l, 18) : `<i class="${l.type === 'poly' ? 'sq' : 'ln'}" style="background:${l.color};justify-self:center"></i>`}<span>${l.name}</span><span class="st" data-st="${l.id}"></span></label>` +
+$('#layerspanel').innerHTML = LIVE.map(l => `<label><input type="checkbox" data-live="${l.id}">${l.type === 'pt' ? glyphHTML(l, 18) : `<i class="${l.type === 'poly' ? 'sq' : 'ln'}" style="background:${l.color};justify-self:center"></i>`}<span>${l.name}</span><span class="st" data-st="${l.id}"></span></label>` +
   (l.id === 'lands' ? `<div class="lk" id="landkey" hidden>${LANDKEY.map(k => `<div><i style="background:${k[2]}"></i><span>${k[1]}</span></div>`).join('')}</div>` : '')).join('') +
-  '<p><span id="stsrc">State lines: U.S. Census Bureau.</span> The other layers load live from the National Park Service and Appalachian Trail Conservancy map services.</p>';
+  '<p>Live from the National Park Service and Appalachian Trail Conservancy map services.</p>';
 $('#layerspanel').addEventListener('change', e => { const l = LIVE.find(x => x.id === e.target.dataset.live); if (l) liveToggle(l, e.target.checked); });
 $('#layerstog').onclick = () => { const p = $('#layerspanel'); p.hidden = !p.hidden; $('#layerstog').setAttribute('aria-expanded', !p.hidden); };
 { let lt; map.on('moveend', () => { clearTimeout(lt); lt = setTimeout(() => LIVE.forEach(l => { if (!l.on) return; if (l.bbox) liveLoad(l); else if (l.type === 'pt' && l.loaded){ liveDraw(l); } else labelSync(l); }), 350); }); }
