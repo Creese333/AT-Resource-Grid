@@ -2260,7 +2260,7 @@ const cellRenderer = L.canvas({pane:'cells', padding:.4});
 const trailR = L.svg({pane:'trail'}), selR = L.svg({pane:'sel'});
 const trailCase = L.polyline(D.trail, {renderer:trailR, color:'#fff', weight:4, opacity:.9, interactive:false}).addTo(map);
 const trailLine = L.polyline(D.trail, {renderer:trailR, color:'#14294A', weight:1.5, interactive:false}).addTo(map);
-function trailStyle(){ const z = map.getZoom(), far = z < 9, dk = DARKBASE[S.base]; trailCase.setStyle({color: dk ? '#14294A' : '#fff', opacity: far ? 0 : .9}); trailLine.setStyle({color: dk ? '#fff' : '#14294A', weight: far ? 1 : 1.6, opacity: far ? .9 : 1}); }
+function trailStyle(){ const z = map.getZoom(), far = z < 9, dk = DARKBASE[S.base]; trailCase.setStyle({color: dk ? '#14294A' : '#fff', weight: far ? 4 : 5.2, opacity: far ? .75 : .9}); trailLine.setStyle({color: dk ? '#fff' : '#14294A', weight: far ? 2 : 2.6, opacity: 1}); }
 const selOuter = L.polygon([], {renderer:selR, color:'#fff', weight:6, fill:false, interactive:false}).addTo(map);
 const selInner = L.polygon([], {renderer:selR, color:'#14294A', weight:2.5, fill:false, interactive:false}).addTo(map);
 const boxRect = L.rectangle([[0,0],[0,0]], {renderer:selR, color:'#fff', weight:2, dashArray:'7 5', fill:false, interactive:false});
@@ -2398,7 +2398,7 @@ map.createPane('states').style.zIndex = 412; map.getPane('states').style.pointer
 let STL = null, stOn = true; try { stOn = localStorage.getItem('atgrid_states') !== '0'; } catch (e) {}
 function statesShow(){ const cb = $('#stlines'); if (cb) cb.checked = stOn; if (!STL) return; if (stOn) STL.addTo(map); else map.removeLayer(STL); }
 fetch('states.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (!j || !j.features) return;
-  STL = L.geoJSON(j, {renderer:L.canvas({pane:'states', padding:.3}), interactive:false, smoothFactor:1.5, style:() => ({color:'#DADFE4', weight:1, opacity:.9})}); statesShow(); }).catch(() => {});
+  STL = L.geoJSON(j, {renderer:L.canvas({pane:'states', padding:.3}), interactive:false, smoothFactor:1.5, style:() => ({color:'#C4A57C', weight:1.2, opacity:.9})}); statesShow(); }).catch(() => {});
 document.addEventListener('change', e => { if (e.target.id === 'stlines'){ stOn = e.target.checked; try { localStorage.setItem('atgrid_states', stOn ? '1' : '0'); } catch (x) {} statesShow(); } });
 $('#jerrybtn').addEventListener('click', () => { JERRY = true; try { sessionStorage.setItem('jerry', '1'); } catch (e) {} document.body.classList.add('jerry');
   $('#jerrybtn').hidden = true; fin.value = ''; closeFind(); const q = Q.find(x => x.id === 'pri'); S.q = q; S.m = q.m[0]; S.secOpen = {}; S.side.qs = true; redraw(); });
@@ -2666,7 +2666,7 @@ async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZo
 function liveToggle(l, on){ l.on = on; if (on){ l.group.addTo(map); liveLoad(l); if (l.type === 'pt' && l.loaded) liveDraw(l); } else { map.removeLayer(l.group); l.req++; liveStatus(l, ''); } labelSync(); layersUI(); writeHash(); }
 function layersUI(){ const n = LIVE.filter(l => l.on).length; $('#layerstog span').innerHTML = 'Map layers' + (n ? ` <b>${n}</b>` : '');
   const lk = $('#landkey'); if (lk) lk.hidden = !LIVE.find(l => l.id === 'lands').on; }
-$('#layerspanel').innerHTML = `<label><input type="checkbox" id="stlines"${stOn ? ' checked' : ''}><i class="ln" style="background:#C3C9CF;justify-self:center"></i><span>State lines</span><span class="st"></span></label>` + LIVE.map(l => `<label><input type="checkbox" data-live="${l.id}">${l.type === 'pt' ? glyphHTML(l, 18) : `<i class="${l.type === 'poly' ? 'sq' : 'ln'}" style="background:${l.color};justify-self:center"></i>`}<span>${l.name}</span><span class="st" data-st="${l.id}"></span></label>` +
+$('#layerspanel').innerHTML = `<label><input type="checkbox" id="stlines"${stOn ? ' checked' : ''}><i class="ln" style="background:#C4A57C;justify-self:center"></i><span>State lines</span><span class="st"></span></label>` + LIVE.map(l => `<label><input type="checkbox" data-live="${l.id}">${l.type === 'pt' ? glyphHTML(l, 18) : `<i class="${l.type === 'poly' ? 'sq' : 'ln'}" style="background:${l.color};justify-self:center"></i>`}<span>${l.name}</span><span class="st" data-st="${l.id}"></span></label>` +
   (l.id === 'lands' ? `<div class="lk" id="landkey" hidden>${LANDKEY.map(k => `<div><i style="background:${k[2]}"></i><span>${k[1]}</span></div>`).join('')}</div>` : '')).join('') +
   '<p>State lines: APPA AT_States layer. The other layers load live from the National Park Service and Appalachian Trail Conservancy map services.</p>';
 $('#layerspanel').addEventListener('change', e => { const l = LIVE.find(x => x.id === e.target.dataset.live); if (l) liveToggle(l, e.target.checked); });
