@@ -605,7 +605,7 @@ h4.mgrp{margin:12px 0 8px;padding-top:10px;border-top:1px solid #2E4460;font-siz
 <li><b>Find a Grave IDs.</b> OpenStreetMap and Wikidata (property P2025); links open Find a Grave. <a href="https://www.wikidata.org/wiki/Property:P2025" target="_blank" rel="noopener">wikidata.org</a></li>
 <li><b>Place names in the search.</b> U.S. Geological Survey, Geographic Names Information System (GNIS), via The National Map. <a href="https://www.usgs.gov/tools/geographic-names-information-system-gnis" target="_blank" rel="noopener">usgs.gov</a></li>
 <li><b>HUC10 watersheds.</b> U.S. Geological Survey, Watershed Boundary Dataset. <a href="https://www.usgs.gov/national-hydrography/watershed-boundary-dataset" target="_blank" rel="noopener">usgs.gov</a></li>
-<li><b>Basemaps.</b> USGS The National Map; OpenTopoMap; Mapbox; © OpenStreetMap contributors. <a href="https://basemap.nationalmap.gov" target="_blank" rel="noopener">basemap.nationalmap.gov</a></li>
+<li><b>Basemaps.</b> USGS The National Map; NAIP aerial imagery (USDA Farm Service Agency, served by the USGS); OpenTopoMap; © OpenStreetMap contributors. <a href="https://basemap.nationalmap.gov" target="_blank" rel="noopener">basemap.nationalmap.gov</a></li>
 <li id="biodl" hidden></li>
 </ul>
     <button class="close" type="button" id="aboutclose">Close</button>
@@ -2219,9 +2219,19 @@ const map = L.map('map', {preferCanvas:true, zoomSnap:0, zoomDelta:.5, wheelPxPe
 map.attributionControl.setPrefix(false);
 const ATTR = 'Basemap: USGS The National Map';
 const TNM = 'https://basemap.nationalmap.gov/arcgis/rest/services/', OSMA = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+/* NAIP: the USDA's National Agriculture Imagery Program aerial photos (about 0.6 m), drawn by the USGS image service for each map tile.
+   ImgLayer uses the cached USGS imagery tiles below zoom naipFrom (quick, and the image service is slow for wide views) and NAIP from there in. */
+const NAIPX = 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage';
+const NAIPA = 'Imagery: USDA NAIP via <a href="https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer" target="_blank" rel="noopener">USGS The National Map</a>';
+function naipUrl(lyr, c){ const ts = lyr.getTileSize(), m = lyr._map, crs = m.options.crs, p0 = c.scaleBy(ts), p1 = p0.add(ts);
+  const nw = crs.project(m.unproject(p0, c.z)), se = crs.project(m.unproject(p1, c.z));
+  return NAIPX + '?' + new URLSearchParams({bbox:[nw.x, se.y, se.x, nw.y].map(v => v.toFixed(2)).join(','), bboxSR:3857, imageSR:3857, size:ts.x + ',' + ts.y,
+    format:'jpg', compressionQuality:85, interpolation:'RSP_BilinearInterpolation', f:'image'}); }
+const ImgLayer = L.TileLayer.extend({ getTileUrl(c){ return c.z >= this.options.naipFrom ? naipUrl(this, c) : L.Util.template(this._url, {z:c.z, x:c.x, y:c.y}); } });
 const BASEDEF = [
   ['topo', 'USGS topo', L.tileLayer(TNM + 'USGSTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR, className:'muted-tiles'})],
-  ['img', 'USGS imagery', L.tileLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR}), 1],
+  ['naip', 'NAIP aerial (USDA)', new ImgLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {naipFrom:12, maxNativeZoom:18, attribution:NAIPA}), 1],
+  ['img', 'USGS imagery', new ImgLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {naipFrom:17, maxNativeZoom:18, attribution:ATTR}), 1],
   ['imgl', 'USGS imagery with labels', L.tileLayer(TNM + 'USGSImageryTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR}), 1],
   ['relief', 'USGS shaded relief', L.tileLayer(TNM + 'USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR})],
   ['hydro', 'USGS hydrography', L.tileLayer(TNM + 'USGSHydroCached/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR})],
@@ -2231,7 +2241,8 @@ const BASEDEF = [
 /* Mapbox basemaps: paste a Mapbox public access token (it starts with pk.) between the quotes below.
    With no token the Mapbox options stay hidden and the page works as before. */
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiY3JlZXNlMzMzIiwiYSI6ImNtdXNwMWoxdTAzcWMyeXEwbWFiMXZzbHEifQ.bFsp9wzSfpJ5BPzcwc8_UA';
-if (MAPBOX_TOKEN){ const MBA = '&copy; <a href="https://www.mapbox.com/about/maps/" target="_blank" rel="noopener">Mapbox</a> ' + OSMA + ' <a href="https://www.mapbox.com/map-feedback/" target="_blank" rel="noopener">Improve this map</a>';
+const MAPBOX_ON = false;   /* set to true to offer the Mapbox basemaps again (they need Mapbox credits) */
+if (MAPBOX_TOKEN && MAPBOX_ON){ const MBA = '&copy; <a href="https://www.mapbox.com/about/maps/" target="_blank" rel="noopener">Mapbox</a> ' + OSMA + ' <a href="https://www.mapbox.com/map-feedback/" target="_blank" rel="noopener">Improve this map</a>';
   const mb = id => L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/' + id + '/tiles/512/{z}/{x}/{y}' + (L.Browser.retina ? '@2x' : '') + '?access_token=' + MAPBOX_TOKEN, {tileSize:512, zoomOffset:-1, maxNativeZoom:21, attribution:MBA});
   BASEDEF.push(['mbout', 'Mapbox outdoors', mb('outdoors-v12')], ['mbsat', 'Mapbox satellite streets', mb('satellite-streets-v12'), 1], ['mblight', 'Mapbox light', mb('light-v11')]); }
 const BASES = {}, DARKBASE = {}; BASEDEF.forEach(b => { BASES[b[0]] = b[2]; DARKBASE[b[0]] = !!b[3]; });
