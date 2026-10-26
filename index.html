@@ -431,8 +431,8 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 #phtick b{display:block;font-size:22px;line-height:1.05;color:#FFE014;font-variant-numeric:tabular-nums;letter-spacing:.3px}
 #phtick span{font-size:12px;color:#E3EAF2}
 @media (max-width:700px){#phtick{padding:2px 8px 3px;border-radius:6px}#phtick b{font-size:16px}#phtick span{font-size:10.5px}}
-#phtick.acqtick{padding:5px 14px 6px}#phtick.acqtick b{font-size:30px}#phtick.acqtick span{font-size:14.5px}
-@media (max-width:700px){#phtick.acqtick{padding:3px 10px 4px}#phtick.acqtick b{font-size:21px}#phtick.acqtick span{font-size:12px}}
+#phtick{padding:5px 14px 6px}#phtick b{font-size:30px}#phtick span{font-size:14.5px}
+@media (max-width:700px){#phtick{padding:3px 10px 4px}#phtick b{font-size:21px}#phtick span{font-size:12px}}
 .phh{font-size:13.5px;color:#fff;margin:10px 0 2px;font-weight:600}
 .phch{display:block;margin:2px 0}
 .phkey{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:#E3EAF2}
@@ -2312,8 +2312,8 @@ function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv]
     if (m.colorFn === phWaveCol){ const on = v != null && v > 0, col = on ? phWaveCol(v) : null;
       put(c, on ? {fill:true, fillColor:col, fillOpacity:ins ? .95 : .15, stroke:true, color:tiny ? col : '#3A2600', weight:tiny ? 1.2 : lv === 'hex' ? .8 : 1.1, opacity:ins ? .95 : .2}
         : {fill:true, fillOpacity:0, stroke:false}); continue; }
-    if (v == null || (v === 0 && zClear(m))) put(c, {fill:true, fillOpacity:0, stroke:!tiny, color:DARKBASE[S.base] ? '#C9D3CC' : strong ? '#5F6E66' : '#7F8C84', weight:strong ? .8 : .5, opacity:ins ? (strong ? .7 : .4) : .12});
-    else if (strong) put(c, {fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : .9) * Math.max(zf, .85), stroke:true, color:'#0B2410', weight:lv === 'hex' ? 1.6 : 2, opacity:ins ? 1 : .2});
+    if (v == null || (v === 0 && zClear(m))) put(c, {fill:true, fillOpacity:0, stroke:!tiny, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
+    else if (strong){ const fc = colorOf(m, lv, v); put(c, {fill:true, fillColor:fc, fillOpacity:(!ins ? .1 : .9) * Math.max(zf, .85), stroke:true, color:px < 28 ? fc : m.th === 'hist' ? '#3B2C12' : '#0B2410', weight:px < 28 ? 1 : lv === 'hex' ? .7 : .9, opacity:ins ? .9 : .2}); }
     else put(c, {fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf, stroke:true, color:tiny ? colorOf(m, lv, v) : '#fff', weight:w, opacity:tiny ? (!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf : ins ? .9 : .2}); } }
 function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
     if (sc === 'huc' && S.ext !== 'huc' && !S.histHucFail) setExt('huc', true).then(() => { if (S.ext !== 'huc'){ S.histHucFail = true; S.extMsg = ''; redraw(); } });
