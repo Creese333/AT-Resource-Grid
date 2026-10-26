@@ -2602,10 +2602,11 @@ function acqCum(lv, y){ const key = lv + y; if (ACQ.cum[key]) return ACQ.cum[key
   ACQ.cy[lv].forEach((Y, c) => { let t = 0; Y.forEach((ac, yy) => { if (yy <= y) t += ac; }); a[c] = t; }); return ACQ.cum[key] = a; }
 function acqVal(lv, c){ if (S.ext !== 'corr') return null; if (!ACQ){ acqLoad(); return null; } if (ACQ.st !== 'done') return null;
   const v = acqCum(lv, S.acqYr || ACQ.y1)[c]; return v >= 0.5 ? Math.round(v) : null; }
-function acqCol(v, lv){ const b = (ACQ && ACQ.brk && ACQ.brk[lv]) || [], cols = RAMP.land; let i = 0; while (i < b.length && v > b[i]) i++;
+const ACQRAMP = ['#C97FA6','#B05A88','#93376C','#701E51','#470B33'];
+function acqCol(v, lv){ const b = (ACQ && ACQ.brk && ACQ.brk[lv]) || [], cols = ACQRAMP; let i = 0; while (i < b.length && v > b[i]) i++;
   return cols[Math.round(i * (cols.length - 1) / Math.max(1, b.length))]; }
 function acqLegend(lv){ if (!ACQ || ACQ.st !== 'done') return `<p class="sub">${ACQ && ACQ.st === 'error' ? 'The administrative areas layer could not be reached.' : 'Loading the A.T. tracts…'}</p>`;
-  const b = ACQ.brk[lv] || [], cols = RAMP.land, lab = []; b.forEach((v, i) => lab.push(i === 0 ? `1 to ${fmt(v, 0)} acres` : `${fmt(b[i - 1] + 1, 0)} to ${fmt(v, 0)} acres`)); lab.push(b.length ? `over ${fmt(b[b.length - 1], 0)} acres` : 'any acres');
+  const b = ACQ.brk[lv] || [], cols = ACQRAMP, lab = []; b.forEach((v, i) => lab.push(i === 0 ? `1 to ${fmt(v, 0)} acres` : `${fmt(b[i - 1] + 1, 0)} to ${fmt(v, 0)} acres`)); lab.push(b.length ? `over ${fmt(b[b.length - 1], 0)} acres` : 'any acres');
   return lab.map((t, i) => `<div class="row"><i style="background:${cols[Math.round(i * (cols.length - 1) / Math.max(1, b.length))]}"></i><span>${t}</span></div>`).join('') +
     `<p class="sub">Acres conveyed by ${S.acqYr || ACQ.y1}, per cell. Classes stay the same in every year.</p>`; }
 function acqStatus(){ if (!ACQ) return 'Loading the A.T. tracts…'; if (ACQ.st === 'loading') return `Loading the A.T. tracts from the administrative areas layer… ${ACQ.n ? fmt(ACQ.n, 0) + ' placed' : ''}`;
