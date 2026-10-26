@@ -431,6 +431,8 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 #phtick b{display:block;font-size:22px;line-height:1.05;color:#FFE014;font-variant-numeric:tabular-nums;letter-spacing:.3px}
 #phtick span{font-size:12px;color:#E3EAF2}
 @media (max-width:700px){#phtick{padding:2px 8px 3px;border-radius:6px}#phtick b{font-size:16px}#phtick span{font-size:10.5px}}
+#phtick.acqtick{padding:5px 14px 6px}#phtick.acqtick b{font-size:30px}#phtick.acqtick span{font-size:14.5px}
+@media (max-width:700px){#phtick.acqtick{padding:3px 10px 4px}#phtick.acqtick b{font-size:21px}#phtick.acqtick span{font-size:12px}}
 .phh{font-size:13.5px;color:#fff;margin:10px 0 2px;font-weight:600}
 .phch{display:block;margin:2px 0}
 .phkey{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:#E3EAF2}
@@ -1238,6 +1240,7 @@ function phDots(){ const on = PHQ() && !SPREADQ() && S.m.id === 'wave' && !S.m.f
 function phTick(){ phDots(); let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', on = acq || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
   if (!t){ if (!on) return; t = document.createElement('div'); t.id = 'phtick'; t.setAttribute('aria-live', 'off'); document.getElementById('map').appendChild(t); }
   if (!on){ t.style.display = 'none'; return; }
+  t.classList.toggle('acqtick', !!acq);
   if (acq){ const yy = S.acqYr || ACQ.y1; let ac = 0; ACQ.by.forEach((e, y) => { if (y <= yy) ac += e.ac; });
     t.innerHTML = `<b>by ${yy}</b><span>${fmt(Math.round(ac), 0)} acres of A.T. land protected</span>`; t.style.display = 'block'; phTickPos(); return; }
   const y = phYear(), A = phAgg(dispLevel()), ys = A.years, span = ys.length ? ys[0] + '–' + String(ys[ys.length - 1]).slice(2) : 'All years';
@@ -2126,7 +2129,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 
 /* ---------- state ---------- */
 /* The basemap the page opens on: USGS topo. */
-const DEFBASE = 'topo';
+const DEFBASE = 'naip';
 /* When does it flower here? opens on Flowering, week by week, so Play shows the season moving north (Pest and invasives keep their own list) */
 { const p = Q.find(q => q.id === 'phen'); if (p){ const w = p.m.find(m => m.id === 'wave'); if (w) p.m = [w, ...p.m.filter(m => m !== w)]; } }
 const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, sel:true, instr:false, sum:false, vsumr:false, vsums:false, about:false, measures:true, results:true, mgmt:false, hadm:false}};
@@ -2232,8 +2235,8 @@ function naipUrl(lyr, c){ const ts = lyr.getTileSize(), m = lyr._map, crs = m.op
 const ImgLayer = L.TileLayer.extend({ getTileUrl(c){ return c.z >= this.options.naipFrom ? naipUrl(this, c) : L.Util.template(this._url, {z:c.z, x:c.x, y:c.y}); } });
 const BASEDEF = [
   ['topo', 'USGS topo', L.tileLayer(TNM + 'USGSTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR, className:'muted-tiles'})],
-  ['naip', 'NAIP aerial (USDA)', new ImgLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {naipFrom:12, maxNativeZoom:18, attribution:NAIPA}), 1],
-  ['img', 'USGS imagery', new ImgLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {naipFrom:17, maxNativeZoom:18, attribution:ATTR}), 1],
+  ['naip', 'NAIP aerial (USDA)', new ImgLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {naipFrom:16, maxNativeZoom:18, updateWhenZooming:false, keepBuffer:3, attribution:NAIPA}), 1],
+  ['img', 'USGS imagery', new ImgLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {naipFrom:17, maxNativeZoom:18, updateWhenZooming:false, keepBuffer:3, attribution:ATTR}), 1],
   ['imgl', 'USGS imagery with labels', L.tileLayer(TNM + 'USGSImageryTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR}), 1],
   ['relief', 'USGS shaded relief', L.tileLayer(TNM + 'USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR})],
   ['hydro', 'USGS hydrography', L.tileLayer(TNM + 'USGSHydroCached/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR})],
@@ -2248,7 +2251,7 @@ if (MAPBOX_TOKEN && MAPBOX_ON){ const MBA = '&copy; <a href="https://www.mapbox.
   const mb = id => L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/' + id + '/tiles/512/{z}/{x}/{y}' + (L.Browser.retina ? '@2x' : '') + '?access_token=' + MAPBOX_TOKEN, {tileSize:512, zoomOffset:-1, maxNativeZoom:21, attribution:MBA});
   BASEDEF.push(['mbout', 'Mapbox outdoors', mb('outdoors-v12')], ['mbsat', 'Mapbox satellite streets', mb('satellite-streets-v12'), 1], ['mblight', 'Mapbox light', mb('light-v11')]); }
 const BASES = {}, DARKBASE = {}; BASEDEF.forEach(b => { BASES[b[0]] = b[2]; DARKBASE[b[0]] = !!b[3]; });
-if (!BASES[S.base]) S.base = 'topo';
+if (!BASES[S.base]) S.base = DEFBASE;
 BASES[S.base].addTo(map);
 map.createPane('cells').style.zIndex = 410;
 map.createPane('trail').style.zIndex = 420; map.getPane('trail').style.pointerEvents = 'none';
@@ -2391,6 +2394,12 @@ const CORRSET = {}; function inCorr(lv, c){ if (!EXT.corr) return true; const s_
 function refreshProfile(){ if ((S.cell != null || S.box) && $('#profile').classList.contains('open')) profile(); }
 map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown){ draw(); strip(); } else if (shown) restyle(); });
 map.on('moveend', viewWindow);
+map.createPane('states').style.zIndex = 412; map.getPane('states').style.pointerEvents = 'none';
+let STL = null, stOn = true; try { stOn = localStorage.getItem('atgrid_states') !== '0'; } catch (e) {}
+function statesShow(){ const cb = $('#stlines'); if (cb) cb.checked = stOn; if (!STL) return; if (stOn) STL.addTo(map); else map.removeLayer(STL); }
+fetch('states.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (!j || !j.features) return;
+  STL = L.geoJSON(j, {renderer:L.canvas({pane:'states', padding:.3}), interactive:false, smoothFactor:1.5, style:() => ({color:'#DADFE4', weight:1, opacity:.9})}); statesShow(); }).catch(() => {});
+document.addEventListener('change', e => { if (e.target.id === 'stlines'){ stOn = e.target.checked; try { localStorage.setItem('atgrid_states', stOn ? '1' : '0'); } catch (x) {} statesShow(); } });
 $('#jerrybtn').addEventListener('click', () => { JERRY = true; try { sessionStorage.setItem('jerry', '1'); } catch (e) {} document.body.classList.add('jerry');
   $('#jerrybtn').hidden = true; fin.value = ''; closeFind(); const q = Q.find(x => x.id === 'pri'); S.q = q; S.m = q.m[0]; S.secOpen = {}; S.side.qs = true; redraw(); });
 { let ct; map.on('moveend', () => { clearTimeout(ct); ct = setTimeout(cultVizRefresh, 150); }); }
@@ -2657,9 +2666,9 @@ async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZo
 function liveToggle(l, on){ l.on = on; if (on){ l.group.addTo(map); liveLoad(l); if (l.type === 'pt' && l.loaded) liveDraw(l); } else { map.removeLayer(l.group); l.req++; liveStatus(l, ''); } labelSync(); layersUI(); writeHash(); }
 function layersUI(){ const n = LIVE.filter(l => l.on).length; $('#layerstog span').innerHTML = 'Map layers' + (n ? ` <b>${n}</b>` : '');
   const lk = $('#landkey'); if (lk) lk.hidden = !LIVE.find(l => l.id === 'lands').on; }
-$('#layerspanel').innerHTML = LIVE.map(l => `<label><input type="checkbox" data-live="${l.id}">${l.type === 'pt' ? glyphHTML(l, 18) : `<i class="${l.type === 'poly' ? 'sq' : 'ln'}" style="background:${l.color};justify-self:center"></i>`}<span>${l.name}</span><span class="st" data-st="${l.id}"></span></label>` +
+$('#layerspanel').innerHTML = `<label><input type="checkbox" id="stlines"${stOn ? ' checked' : ''}><i class="ln" style="background:#C3C9CF;justify-self:center"></i><span>State lines</span><span class="st"></span></label>` + LIVE.map(l => `<label><input type="checkbox" data-live="${l.id}">${l.type === 'pt' ? glyphHTML(l, 18) : `<i class="${l.type === 'poly' ? 'sq' : 'ln'}" style="background:${l.color};justify-self:center"></i>`}<span>${l.name}</span><span class="st" data-st="${l.id}"></span></label>` +
   (l.id === 'lands' ? `<div class="lk" id="landkey" hidden>${LANDKEY.map(k => `<div><i style="background:${k[2]}"></i><span>${k[1]}</span></div>`).join('')}</div>` : '')).join('') +
-  '<p>Live from the National Park Service and Appalachian Trail Conservancy map services.</p>';
+  '<p>State lines: APPA AT_States layer. The other layers load live from the National Park Service and Appalachian Trail Conservancy map services.</p>';
 $('#layerspanel').addEventListener('change', e => { const l = LIVE.find(x => x.id === e.target.dataset.live); if (l) liveToggle(l, e.target.checked); });
 $('#layerstog').onclick = () => { const p = $('#layerspanel'); p.hidden = !p.hidden; $('#layerstog').setAttribute('aria-expanded', !p.hidden); };
 { let lt; map.on('moveend', () => { clearTimeout(lt); lt = setTimeout(() => LIVE.forEach(l => { if (!l.on) return; if (l.bbox) liveLoad(l); else if (l.type === 'pt' && l.loaded){ liveDraw(l); } else labelSync(l); }), 350); }); }
