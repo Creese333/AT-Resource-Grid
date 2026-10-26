@@ -1967,7 +1967,7 @@ const Q = [
      {id:'appa', label:'NPS - APPA lands', kind:'cat', f:'APPA_YN', yn:'NPS - APPA land', none:'No NPS - APPA land',
       fn:(lv,c)=>{ const r = val('lands','MGRS',lv,c); if (!r) return null; const k = D.cats.MGR.indexOf('NPS - APPA'); for (let i = 0; i < r.length; i += 2) if (r[i] === k) return 0; return null; }},
      {id:'acq', label:'Land protected over time', int:1, noun:['acre','acres'], none:'None conveyed by then', fn:(lv,c)=>acqVal(lv,c), colorFn:(v,lv)=>acqCol(v,lv), legendFn:lv=>acqLegend(lv),
-      stripTop:()=>ACQ && ACQ.st === 'done' ? ACQ.stripMax : 1, note:'Acres of A.T. tracts conveyed by the year shown, from the conveyance dates in the administrative areas layer. Tracts without a recorded date are left out.'}]},
+      stripTop:lv=>acqTop(lv), note:'Acres of A.T. tracts conveyed by the year shown, from the conveyance dates in the administrative areas layer. Tracts without a recorded date are left out.'}]},
  {id:'veg', th:'veg', hue:HUE.veg, ramp:'veg', title:'What does the vegetation map say?',
   use:'Data from the NPS Vegetation Map. This is the finest scale vegetation information for the A.T. Corridor. The map covers only part of most cells, so vegetation types are shown in acres, and cells with under 10 mapped acres are faded.',
   m:[{id:'type', label:'Main vegetation type', kind:'cat', f:'DOM_TYPE', many:1, fade:1},
@@ -2594,6 +2594,10 @@ function acqLoad(){ if (ACQ) return; ACQ = {st:'loading', n:0};
     { const a = [...acqCum('wheel', y1)].filter(v => v >= 1).sort((p, q) => p - q); ACQ.stripMax = a.length ? a[Math.min(a.length - 1, Math.floor(.95 * a.length))] : 1; }
     if (S.q.id === 'land' && S.m.id === 'acq'){ BRK.clear(); redraw(); side(); phTick(); } })()
   .catch(e => { ACQ = {st:'error', msg:e.message}; if (S.q.id === 'land' && S.m.id === 'acq') side(); }); }
+function acqTop(lv){ if (!ACQ || ACQ.st !== 'done') return 1; ACQ.top = ACQ.top || {}; if (ACQ.top[lv]) return ACQ.top[lv];
+  const a = acqCum(lv, ACQ.y1), L_ = D.levels[lv], s = new Float64Array(NB), n = new Uint32Array(NB);
+  for (let c = 0; c < L_.id.length; c++){ if (a[c] < 0.5) continue; const i = Math.min(NB - 1, Math.floor(L_.mi[c] / BIN)); s[i] += Math.round(a[c]); n[i]++; }
+  let mx = 1; for (let i = 0; i < NB; i++) if (n[i]) mx = Math.max(mx, s[i] / n[i]); return ACQ.top[lv] = mx; }
 function acqCum(lv, y){ const key = lv + y; if (ACQ.cum[key]) return ACQ.cum[key]; const n = D.levels[lv].id.length, a = new Float64Array(n);
   ACQ.cy[lv].forEach((Y, c) => { let t = 0; Y.forEach((ac, yy) => { if (yy <= y) t += ac; }); a[c] = t; }); return ACQ.cum[key] = a; }
 function acqVal(lv, c){ if (S.ext !== 'corr') return null; if (!ACQ){ acqLoad(); return null; } if (ACQ.st !== 'done') return null;
@@ -3877,15 +3881,17 @@ function strip(){ const m = S.m, lv = stripLv = dispLevel(), L_ = D.levels[lv], 
     else if (m.unit === '%') mx = 100;
     if (m.stripTop) mx = m.stripTop(lv); }
   const x = mi => pl + pw * mi / D.totalMi, rng = secRange();
+  /* full bar height: up to the highest point of the elevation profile (its scale tops out at 7,000 ft) */
+  const full = ELEV ? (base - top) * Math.min(1, Math.max(...ELEV.map(e => e[1])) / 7000) : base - top;
   let h = '';
   h += elevSvg(pl, bw, top, base, W, pr);
   if (rng) h += `<rect x="${x(rng[0])}" y="${top-4}" width="${Math.max(2, x(rng[1]) - x(rng[0]))}" height="${base - top + 6}" fill="#fff" opacity=".09"/>`;
   h += `<line x1="${pl}" x2="${W-pr}" y1="${base+.5}" y2="${base+.5}" stroke="#4D6079"/>`;
   bins.forEach((b,i) => { if (b.val == null) return; const bx = pl + i*bw;
     const inR = !rng || ((i+1)*BIN > rng[0] && i*BIN < rng[1]);
-    const clip = m.kind !== 'cat' && !m.stripCnt && mx && stripV(m, b.val) > mx * 1.001, hh = m.kind === 'cat' ? base - top - 18 : m.stripCnt ? Math.max(1.5, (base - top) * Math.sqrt((b.cnt || 0) / cntMx)) : Math.max(1.5, (base - top) * (mx ? Math.min(1, stripV(m, b.val) / mx) : 0)), col = m.kind !== 'cat' && m.zero && b.val === 0 ? '#60738B' : colorOf(m, lv, b.val);
+    const clip = m.kind !== 'cat' && !m.stripCnt && mx && stripV(m, b.val) > mx * 1.001, hh = m.kind === 'cat' ? full : m.stripCnt ? Math.max(1.5, full * Math.sqrt((b.cnt || 0) / cntMx)) : Math.max(1.5, full * (mx ? Math.min(1, stripV(m, b.val) / mx) : 0)), col = m.kind !== 'cat' && m.zero && b.val === 0 ? '#60738B' : colorOf(m, lv, b.val);
     h += `<rect x="${bx}" y="${base-hh}" width="${Math.max(1,bw-.6)}" height="${hh}" fill="${col}" opacity="${inR ? 1 : .3}" stroke="#fff" stroke-opacity=".22" stroke-width=".5"/>` +
-      (clip ? `<path d="M${bx + bw / 2 - Math.min(3.5, bw / 2)} ${top} L${bx + bw / 2} ${top - 5} L${bx + bw / 2 + Math.min(3.5, bw / 2)} ${top} Z" fill="#fff" opacity="${inR ? .9 : .3}"/>` : ''); });
+      (clip ? `<path d="M${bx + bw / 2 - Math.min(3.5, bw / 2)} ${base - full} L${bx + bw / 2} ${base - full - 5} L${bx + bw / 2 + Math.min(3.5, bw / 2)} ${base - full} Z" fill="#fff" opacity="${inR ? .9 : .3}"/>` : ''); });
   h += elevSvg(pl, bw, top, base, W, pr, 'line') + elevSvg(pl, bw, top, base, W, pr, true);
   h += `<rect id="vwin" x="0" y="${top-4}" width="0" height="${base-top+6}" fill="none" stroke="#fff" stroke-width="1.5" rx="2"/>`;
   h += `<rect id="shover" x="0" y="${top-4}" width="${bw}" height="${base-top+6}" fill="#fff" opacity="0"/>`;
