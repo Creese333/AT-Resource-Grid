@@ -1,0 +1,40 @@
+# Builds states.json (state lines for the map) from Esri's USA Boundaries 2023 states layer (falls back to the Census 1:500,000 file).
+# State lines hardly change: press "Run workflow" on the Actions tab once; there is no schedule.
+name: State lines
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install geopandas pyogrio shapely
+      - name: Build states.json
+        run: python build_states.py
+        env:
+          # an ArcGIS feature layer of state boundaries to use (ends in /FeatureServer/0); leave empty for the Census 1:500,000 file
+          STATES_ARCGIS: 'https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Boundaries_2023/FeatureServer/1'
+      - name: Commit if changed
+        run: |
+          git config user.name  "state-lines-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add states.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Update state lines"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1
