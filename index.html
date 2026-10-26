@@ -1882,7 +1882,7 @@ function cultTopHTML(){ if (!cultReady('hex')) return '';
       `<rect x="${lab}" y="${y + 2.5}" width="${f(Math.max(1, w))}" height="9" rx="1.5" fill="${on ? '#B9E08A' : HUE.cult}"/><text x="${f(lab + w + 4)}" y="${y + 10}" font-size="8.5" fill="#E3EAF2">${s.n}</text>` +
       `<title>${esc(s.name)} (${esc(s.sci)}): recorded in ${s.n} of the ${cells.length} square miles in ${esc(where)}. Click to map it.</title></g>`; });
   return g + `</svg><p class="phnote">Square miles with a research-grade iNaturalist record, in ${esc(where)}${where === 'the map view' ? ' (zoom or pan to change it, or select cells)' : ''}. Ginseng, goldenseal, ramps and lady’s slippers are left out at this scale. Records follow hikers, so a species recorded in few square miles may simply be overlooked. Click a species to map where it is recorded.</p></div>`; }
-function cultVizRefresh(){ geoVizRefresh(); const t = $('#culttop'); if (t && S.q.id === 'cult' && !S.m.find) t.outerHTML = cultTopHTML(); }
+function cultVizRefresh(){ geoVizRefresh(); qVizRefresh(); const t = $('#culttop'); if (t && S.q.id === 'cult' && !S.m.find) t.outerHTML = cultTopHTML(); }
 document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-cultsp],[data-cultall]'); if (!t) return;
   if (t.dataset.cultall){ S.cultAll = !S.cultAll; const v = $('#cultviz'); if (v) v.innerHTML = cultCharts(); return; }
   const en = findIndex().get(t.dataset.cultsp); if (en) setFind(en, false); });
@@ -1960,6 +1960,62 @@ function geoLithHTML(lv){ if (!GEOT || !D.themes.geo[lv]) return '';
       `<rect x="${lab}" y="${y + 2.5}" width="${f(Math.max(1, w))}" height="9" rx="1.5" fill="${e[1]}" stroke="#12223A" stroke-width=".5"/><text x="${f(lab + w + 4)}" y="${y + 10}" font-size="8.5" fill="#E3EAF2">${esc(String(t))}%</text>` +
       `<title>${esc(e[0])}: ${t}% of ${byMain ? 'the cells (by main type)' : 'the mapped area'} in ${esc(where)}</title></g>`; });
   return g + `</svg><p class="phnote">${byMain ? 'Share of cells by their main bedrock type (the area split is given only for the 7 and 49 sq mi cells here)' : (n === 1 ? 'Share of the mapped area' : 'Share of the mapped area, averaged over ' + nCells(n) + ',')} in ${esc(where)}${where === 'the map view' ? ' (zoom or pan to change it, or select cells)' : ''}. USGS State Geologic Map Compilation.</p></div>`; }
+/* one horizontal bar chart per question. rows: [label, color, value, value text, tooltip, species key (click to map it)] */
+function vizBars(rows, aria){ const W = 320, lab = 174, pw = W - lab - 46, bh = 14, H2 = rows.length * bh + 4, mx = Math.max(...rows.map(r => r[2]), 1e-9), f = v => v.toFixed(1), sel = S.m.find && S.m.find.ls;
+  let g = `<svg class="phch" viewBox="0 0 ${W} ${H2}" width="100%" role="img" aria-label="${esc(aria)}">`;
+  rows.forEach(([name, col, v, txt, tip, sp], j) => { const y = 2 + j * bh, w = pw * v / mx, nm = String(name), on = sp && sel === sp;
+    g += `<g${sp ? ` data-cultsp="${esc(sp)}" style="cursor:pointer"` : ''}>${sp ? `<rect x="0" y="${y}" width="${W}" height="${bh}" fill="${on ? '#22385A' : 'transparent'}"/>` : ''}<text x="${lab - 5}" y="${y + 10}" text-anchor="end" font-size="8.5" fill="${on ? '#FFFFFF' : '#C9D4E2'}">${esc(nm.length > 36 ? nm.slice(0, 35) + '…' : nm)}</text>` +
+      `<rect x="${lab}" y="${y + 2.5}" width="${f(Math.max(v > 0 ? 1 : 0, w))}" height="9" rx="1.5" fill="${col}" stroke="#12223A" stroke-width=".5"/><text x="${f(lab + w + 4)}" y="${y + 10}" font-size="8.5" fill="#E3EAF2">${esc(txt)}</text>` +
+      `<title>${esc(tip || nm + ': ' + txt)}</title></g>`; });
+  return g + '</svg>'; }
+const vPct = (v, t) => { const p = t ? 100 * v / t : 0; return p > 0 && p < 1 ? '<1%' : Math.round(p) + '%'; };
+const vTop = (m, n) => [...m].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]))).slice(0, n || 10);
+const vSpp = (lv, cells, f, th) => { const m = new Map(); cells.forEach(c => (f ? f(c) : val(th, 'X', lv, c) || []).forEach(i => m.set(i, (m.get(i) || 0) + 1))); return m; };
+const vSpRow = (i, n, col, tip) => { const p = sppName(i); return [p.common || p.sci, col, n, fmt(n, 0), `${p.common ? p.common + ' (' + p.sci + ')' : p.sci}: ${tip}. Click to map it.`, p.sci.toLowerCase()]; };
+const QVIZ = {
+  land: {title:'Land by administrator', note:'Share of the mapped A.T. land, from the tract records summarized to each cell. Generalized to the grid; not a boundary determination.', fn(lv, cells){
+    const m = new Map(); let tot = 0; cells.forEach(c => { const p = val('lands','MGRS',lv,c), ac = val('lands','LAND_AC',lv,c) || 0; if (!p) return; for (let k = 0; k < p.length; k += 2){ const a = ac * p[k + 1] / 100; m.set(p[k], (m.get(p[k]) || 0) + a); tot += a; } });
+    return vTop(m).map(([i, a]) => [tcase(D.cats.MGR[i]), HUE.lands, a, vPct(a, tot), `${tcase(D.cats.MGR[i])}: ${fmt(Math.round(a), 0)} acres, ${vPct(a, tot)} of the mapped land`]); }},
+  veg: {title:'Top 10 vegetation types', note:'Acres of each type in the APPA vegetation map.', fn(lv, cells){
+    const m = new Map(); cells.forEach(c => { const cp = val('veg','COMP',lv,c), ac = val('veg','VEG_AREA',lv,c) || 0; if (!cp) return; for (let k = 0; k < cp.length; k += 2) m.set(cp[k], (m.get(cp[k]) || 0) + ac * cp[k + 1] / 100); });
+    return vTop(m).map(([i, a]) => { const nm = D.cats.DOM_TYPE[i], e = CATMAP.DOM_TYPE.get(nm); return [nm, e ? e[1] : HUE.veg, a, fmt(Math.round(a), 0) + ' ac', `${nm}: ${fmt(Math.round(a), 0)} acres`]; }); }},
+  rec: {title:'Top 10 most-recorded species', note:'Research-grade iNaturalist records, counted from each cell’s ten most-recorded species (quarterly summary). Click a species to map it.', fn(lv, cells){
+    const m = new Map(); cells.forEach(c => { const t = val('inat','TOP10_SPECIES',lv,c) || [], n = val('inat','TOP10_COUNTS',lv,c) || []; t.forEach((i, k) => m.set(i, (m.get(i) || 0) + (n[k] || 0))); });
+    return vTop(m).map(([i, n]) => vSpRow(i, n, HUE.live, `${fmt(n, 0)} records`)); }},
+  inv: {title:'Top 10 invasive species', note:'Cells where each invasive species has been reported to iNaturalist or EDDMapS. Click a species to map it.', fn(lv, cells){
+    return vTop(vSpp(lv, cells, c => invL('INVASIVE_LIST', lv, c) || [])).map(([i, n]) => vSpRow(i, n, HUE.inat, `reported in ${nCells(n)}`)); }},
+  eff: {title:'iNaturalist records per year', note:'Research-grade records each year since 2010, from the quarterly summary. The latest year is partial.', fn(lv, cells){
+    const m = new Map(); cells.forEach(c => { const a = val('inat','OBS_BY_YEAR',lv,c); if (!a) return; for (let k = 0; k < a.length; k += 2) if (a[k] >= 2010) m.set(a[k], (m.get(a[k]) || 0) + a[k + 1]); });
+    return [...m].sort((a, b) => a[0] - b[0]).map(([y, n]) => [String(y), '#6E8FD8', n, fmt(n, 0), `${y}: ${fmt(n, 0)} records`]); }},
+  bird: {title:'Top 10 birds of conservation concern', note:'Cells with eBird checklists that recorded each species on the USFWS Birds of Conservation Concern or Partners in Flight watch lists. Click a species to map it.', fn(lv, cells){
+    return vTop(vSpp(lv, cells, c => val('ebird','SOC_LIST',lv,c) || [])).map(([i, n]) => vSpRow(i, n, HUE.ebird, `recorded in ${nCells(n)}`)); }},
+  soil: {title:'Cells by trail vulnerability', note:'Each cell’s trail vulnerability index (NRCS gSSURGO): low under 0.33, high over 0.67.', fn(lv, cells){
+    const m = new Map([['High', 0], ['Moderate', 0], ['Low', 0]]); let n = 0; cells.forEach(c => { const k = vulnClass(val('soil','VULN',lv,c)); if (k){ m.set(k, m.get(k) + 1); n++; } });
+    const col = {High:'#7A4A24', Moderate:'#B9844C', Low:'#E3C9A1'}; return n ? [...m].filter(([, v]) => v > 0).map(([k, v]) => [k, col[k], v, vPct(v, n), `${k}: ${nCells(v)} of ${n}`]) : []; }},
+  wet: {title:'Wetland acres by type', note:'USFWS National Wetlands Inventory, acres in the whole cell.', fn(lv, cells){
+    const T = [['T_FFS','Forested/shrub wetland','#008837'],['T_FEM','Emergent wetland','#7FC31C'],['T_POND','Pond','#688CC0'],['T_LAKE','Lake','#13007C'],['T_RIV','Riverine','#0190BF'],['T_EST','Estuarine and marine','#66C2A5'],['T_OTH','Other','#B28653']];
+    const rows = T.map(([f, nm, col]) => { let a = 0; cells.forEach(c => a += val('wet', f, lv, c) || 0); return [nm, col, a, fmt(Math.round(a), 0) + ' ac', `${nm}: ${fmt(Math.round(a), 0)} acres`]; });
+    return rows.some(r => r[2] > 0) ? rows.filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]) : []; }},
+  rest: {title:'What drives the score', note:'Average points from each factor, over the cells with a score. Herbicide use and the lands setting apply as on the map.', fn(lv, cells){
+    const kind = S.m.id === 'forest' ? 'forest' : 'grass', d = RESTDEF[kind], s = d.parts.map(() => 0); let n = 0;
+    cells.forEach(c => { if (!has('veg', lv, c)) return; const r = restParts(kind, lv, c); if (r[0] == null) return; n++; r[1].forEach((p, k) => s[k] += p[2]); });
+    return n ? d.parts.map(([k, lab, w], i) => [lab, '#C9506B', s[i] / n, `${fmt(s[i] / n, 1)} of ${w}`, `${lab}: ${fmt(s[i] / n, 1)} of ${w} points on average, over ${nCells(n)}`]) : []; }},
+  hist: {title:'Historic resources by type', note:'National Register of Historic Places (NPS) by property type, and cemeteries mapped in OpenStreetMap.', fn(lv, cells){
+    const A = hAgg(lv); if (!A) return []; const m = new Map(), lab = {building:'Buildings', structure:'Structures', district:'Districts', site:'Sites', object:'Objects'};
+    cells.forEach(c => (A.list.get(c) || []).forEach(i => { const x = HIST.items[i], k = x.t === 'cem' ? 'Cemeteries' : lab[String(x.a.type || '').toLowerCase()] || 'Other National Register'; m.set(k, (m.get(k) || 0) + 1); }));
+    return vTop(m).map(([k, n]) => [k, k === 'Cemeteries' ? '#7C8C7A' : HUE.hist, n, fmt(n, 0), `${k}: ${fmt(n, 0)}`]); }},
+  feat: {title:'Facilities by type', note:'A.T. facilities inventory, official and additional features.', fn(lv, cells){
+    const T = [['N_SHELTER','Shelters'],['N_CAMPSITE','Campsites'],['N_PRIVY','Privies'],['N_PARKING','Parking areas'],['N_BRIDGE','Bridges'],['N_VISTA','Vistas'],['N_BUILDING','Buildings'],['N_DAM','Dams'],['N_TUNNEL','Tunnels']];
+    return T.map(([f, nm]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, '#57A865', n, fmt(n, 0), `${nm}: ${fmt(n, 0)}`]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]); }}
+};
+const qVizOn = q => !!QVIZ[q.id] && !(q.id === 'land' && S.m.id === 'acq');
+function qVizHTML(){ const d = QVIZ[S.q.id]; if (!d) return ''; const lv = dispLevel(), th = S.q.th; const [sl, cells, where] = geoScope(lv);
+  let g = `<div id="qvizc"><h4 class="phh">${esc(d.title)}, ${esc(where)}</h4>`;
+  if (th && D.themes[th] && !D.themes[th][sl] && S.q.id !== 'hist') return g + `<p class="none">Not summarized for this cell size.</p></div>`;
+  let rows = []; try { rows = d.fn(sl, cells) || []; } catch (e) { rows = []; }
+  if (!rows.length) return g + `<p class="none">No data for ${esc(where)}.</p></div>`;
+  return g + vizBars(rows, d.title + ', ' + where) + `<p class="phnote">${esc(d.note)}${where === 'the map view' ? ' Zoom or pan to change it, or select cells.' : ''}</p></div>`; }
+function qVizRefresh(){ if (S.m.find || !qVizOn(S.q)) return; const t = $('#qvizc'); if (t) t.outerHTML = qVizHTML(); }
 const geoCharts = lv => geoShareHTML(lv) + geoLithHTML(lv);
 function geoVizRefresh(){ if (S.q.id !== 'geo' || S.m.find) return; const t = $('#geolith'), u = $('#geoshare'); if (t) t.outerHTML = geoLithHTML(dispLevel()); if (u) u.outerHTML = geoShareHTML(dispLevel()); }
 const Q = [
@@ -2768,9 +2824,9 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
       (S.appa ? '<p class="extnote">Only NPS – APPA land counts: scores are scaled by the share of the cell’s corridor land that APPA administers. Cells without APPA land, or with too little to score, are left blank.</p>' : ''));
   const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : '';
-  h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo') && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
+  h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map((m, k, a) => (m.grp && (!k || a[k - 1].grp !== m.grp) ? `</div><h4 class="mgrp">${esc(m.grp)}</h4><div class="chips" role="group" aria-label="${esc(m.grp)}">` : '') + `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
-    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
+    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
   const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
