@@ -63,6 +63,7 @@ header p{margin:0;color:#BCCDE0;font-size:14px;flex:1 1 260px;min-width:0}
 .hctl select{background:var(--ink2);color:#fff;border:1px solid #5578A0;border-radius:4px;padding:5px 8px;max-width:240px}
 .hctl button{background:none;border:1px solid #5578A0;color:#fff;border-radius:4px;padding:5px 10px}
 .hctl button:hover{background:var(--ink2)}
+.leaflet-container .leaflet-tile-pane img.leaflet-tile{mix-blend-mode:normal}.leaflet-tile-pane img.leaflet-tile[style*="width: 256px"]{width:257px !important;height:257px !important}.leaflet-tile-pane img.leaflet-tile[style*="width: 512px"]{width:513px !important;height:513px !important}
 .hctl #jerrybtn{padding:0;border:2px solid #F0C419;border-radius:50%;overflow:hidden;width:44px;height:44px;flex:none;animation:jerryin .5s ease-out}.hctl #jerrybtn[hidden]{display:none}.hctl #jerrybtn img{display:block;width:100%;height:100%;object-fit:cover}
 @keyframes jerryin{from{transform:scale(.2) rotate(-40deg);opacity:0}to{transform:none;opacity:1}}
 body:not(.jerry) tr.jerryrow{display:none}
@@ -2223,10 +2224,11 @@ const TNM = 'https://basemap.nationalmap.gov/arcgis/rest/services/', OSMA = '&co
    ImgLayer uses the cached USGS imagery tiles below zoom naipFrom (quick, and the image service is slow for wide views) and NAIP from there in. */
 const NAIPX = 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage';
 const NAIPA = 'Imagery: USDA NAIP via <a href="https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer" target="_blank" rel="noopener">USGS The National Map</a>';
+const NAIPDPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
 function naipUrl(lyr, c){ const ts = lyr.getTileSize(), m = lyr._map, crs = m.options.crs, p0 = c.scaleBy(ts), p1 = p0.add(ts);
   const nw = crs.project(m.unproject(p0, c.z)), se = crs.project(m.unproject(p1, c.z));
-  return NAIPX + '?' + new URLSearchParams({bbox:[nw.x, se.y, se.x, nw.y].map(v => v.toFixed(2)).join(','), bboxSR:3857, imageSR:3857, size:ts.x + ',' + ts.y,
-    format:'jpg', compressionQuality:85, interpolation:'RSP_BilinearInterpolation', f:'image'}); }
+  return NAIPX + '?' + new URLSearchParams({bbox:[nw.x, se.y, se.x, nw.y].map(v => v.toFixed(2)).join(','), bboxSR:3857, imageSR:3857, size:Math.round(ts.x * NAIPDPR) + ',' + Math.round(ts.y * NAIPDPR),
+    format:'jpg', compressionQuality:92, interpolation:'RSP_BilinearInterpolation', f:'image'}); }
 const ImgLayer = L.TileLayer.extend({ getTileUrl(c){ return c.z >= this.options.naipFrom ? naipUrl(this, c) : L.Util.template(this._url, {z:c.z, x:c.x, y:c.y}); } });
 const BASEDEF = [
   ['topo', 'USGS topo', L.tileLayer(TNM + 'USGSTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR, className:'muted-tiles'})],
