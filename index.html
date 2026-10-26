@@ -2260,7 +2260,7 @@ const cellRenderer = L.canvas({pane:'cells', padding:.4});
 const trailR = L.svg({pane:'trail'}), selR = L.svg({pane:'sel'});
 const trailCase = L.polyline(D.trail, {renderer:trailR, color:'#fff', weight:4, opacity:.9, interactive:false}).addTo(map);
 const trailLine = L.polyline(D.trail, {renderer:trailR, color:'#14294A', weight:1.5, interactive:false}).addTo(map);
-function trailStyle(){ const z = map.getZoom(), far = z < 9, dk = DARKBASE[S.base]; const wide = z < 7; trailCase.setStyle({color: dk ? '#14294A' : '#fff', weight: wide ? 2.6 : far ? 3.4 : 4.6, opacity: wide ? .6 : far ? .75 : .9}); trailLine.setStyle({color: dk ? '#fff' : '#14294A', weight: wide ? 1.2 : far ? 1.6 : 2.2, opacity: 1}); }
+function trailStyle(){ const z = map.getZoom(), far = z < 9, dk = DARKBASE[S.base]; const wide = z < 7; trailCase.setStyle({color: dk ? '#14294A' : '#fff', weight: wide ? 2 : far ? 3.4 : 4.6, opacity: wide ? 0 : far ? .75 : .9}); trailLine.setStyle({color: dk ? '#fff' : '#14294A', weight: wide ? .8 : far ? 1.6 : 2.2, opacity: wide ? .7 : 1}); }
 const selOuter = L.polygon([], {renderer:selR, color:'#fff', weight:6, fill:false, interactive:false}).addTo(map);
 const selInner = L.polygon([], {renderer:selR, color:'#14294A', weight:2.5, fill:false, interactive:false}).addTo(map);
 const boxRect = L.rectangle([[0,0],[0,0]], {renderer:selR, color:'#fff', weight:2, dashArray:'7 5', fill:false, interactive:false});
@@ -2398,7 +2398,8 @@ map.createPane('states').style.zIndex = 412; map.getPane('states').style.pointer
 let STL = null, stOn = true; try { stOn = localStorage.getItem('atgrid_states') !== '0'; } catch (e) {}
 function statesShow(){ const cb = $('#stlines'); if (cb) cb.checked = stOn; if (!STL) return; if (stOn) STL.addTo(map); else map.removeLayer(STL); }
 fetch('states.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (!j || !j.features) return;
-  STL = L.geoJSON(j, {renderer:L.canvas({pane:'states', padding:.3}), interactive:false, smoothFactor:1.5, style:() => ({color:'#C4A57C', weight:1.2, opacity:.9})}); statesShow(); }).catch(() => {});
+  STL = L.geoJSON(j, {renderer:L.canvas({pane:'states', padding:.3}), interactive:false, smoothFactor:1.5, style:() => ({color:'#C4A57C', weight:map.getZoom() < 7 ? .7 : 1.2, opacity:.9})}); statesShow(); }).catch(() => {});
+map.on('zoomend', () => { if (STL) STL.setStyle({weight:map.getZoom() < 7 ? .7 : 1.2}); });
 document.addEventListener('change', e => { if (e.target.id === 'stlines'){ stOn = e.target.checked; try { localStorage.setItem('atgrid_states', stOn ? '1' : '0'); } catch (x) {} statesShow(); } });
 $('#jerrybtn').addEventListener('click', () => { JERRY = true; try { sessionStorage.setItem('jerry', '1'); } catch (e) {} document.body.classList.add('jerry');
   $('#jerrybtn').hidden = true; fin.value = ''; closeFind(); const q = Q.find(x => x.id === 'pri'); S.q = q; S.m = q.m[0]; S.secOpen = {}; S.side.qs = true; redraw(); });
