@@ -20,9 +20,15 @@ Usage: python build_inat_ebird.py [inat|ebird|both]      (GBIF_USER and GBIF_PWD
 inat rebuilds iNaturalist and EDDMapS; ebird rebuilds eBird; both rebuilds all three.
 Re-running with a dataset left out keeps that dataset's part of the existing inat_ebird.json. If EDDMapS cannot be reached,
 its previous summaries are kept and the rest of the build goes on.
+  5. Visitation ("How many observers are out there?"): observer-days across iNaturalist, eBird and EDDMapS. An observer-day is one
+     person active in a square mile on one date. eBird checklists within VIS_MERGE_M of an iNaturalist observer-day on the same date
+     and square mile count as the same party (the two systems' user names cannot be matched); EDDMapS has no observer names, so each
+     report is a report-day, merged the same way. Long-distance hikers: observers whose records span at least LONG_MI trail miles
+     within LONG_DAYS days, on at least LONG_MIN_DAYS different days (thru- and section-hikers moving along the trail). Each run saves compact observer-day files (visits_inat.csv.gz, visits_ebird.csv.gz, visits_edd.csv.gz, with
+     observer names replaced by short one-way codes) so a run that rebuilds only one dataset can still combine all three.
 Standard library only.
 """
-import base64, csv, io, json, math, os, re, sys, time, urllib.parse, urllib.request, zipfile
+import base64, csv, gzip, hashlib, io, json, math, os, re, sys, time, urllib.parse, urllib.request, zipfile
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
@@ -60,6 +66,12 @@ AREA_UNITS = {'acre': 1, 'acres': 1, 'ac': 1, 'square feet': 1 / 43560, 'square 
 EDD_PAGE = 2000                 # the service's page size
 DUP_M, DUP_DAYS = 50, 1         # an EDDMapS record this close to an iNaturalist record of the same species, this many days apart, is the same record
 csv.field_size_limit(10 ** 8)
+# visitation
+VIS_FILE = lambda k: os.path.join(HERE, f'visits_{k}.csv.gz')
+VIS_MERGE_M = 250               # same date and square mile, this close: one party across systems
+LONG_MI, LONG_DAYS, LONG_MIN_DAYS = 100, 30, 4   # records spanning 100+ trail miles within 30 days, on 4+ days: a long-distance hiker
+VIS_FROM = 2010                 # first year in the yearly visitation counts
+VISITS = {'inat': {}, 'ebird': {}, 'edd': []}   # (observer, date, hex id) -> [lat, lon, records]; EDDMapS: [(date, hex id, lat, lon)]
 
 
 # ---------------------------------------------------------------- grid (from the dashboard itself)
@@ -420,6 +432,11 @@ def summarize(kind, zpath, grids, names):
             sp = (r.get('species') or '').strip() or None
             ukey = f'{who}|{d}'                        # visit: observer and date
         unit = uid.setdefault(ukey, len(uid)) if d else None
+        if len(d) == 10 and who:      # visitation: observer-days by square mile
+            g0 = 'huc' if 'huc' in hits else 'corr'; hid = grids[g0]['hex']['id'][hits[g0]['hex']]
+            e = VISITS[kind].get((who, d, hid))
+            if e is None: VISITS[kind][(who, d, hid)] = [round(la, 5), round(lo, 5), 1]
+            else: e[2] += 1
         w = wid.setdefault(who, len(wid)) if who else None
         if sp and sp not in keys and r.get('speciesKey'):
             keys[sp] = r['speciesKey']
@@ -612,6 +629,8 @@ def edd_summarize(feats, grids, names):
         if a.get('SUB_name') and not names.get(norm(sp)):
             edd_names.setdefault(norm(sp), a['SUB_name'].strip())
         st['also on iNaturalist' if dup else 'counted'] += 1
+        if not dup and d:
+            g0 = 'huc' if 'huc' in hits else 'corr'; VISITS['edd'].append((d, grids[g0]['hex']['id'][hits[g0]['hex']], round(la, 5), round(lo, 5)))
         treated = str(a.get('Treatment') or '').strip() not in ('', '0', 'None', 'null')
         acres = edd_acres(a); ab = (a.get('Abundance_Name') or '').strip(); spot = (round(la, 4), round(lo, 4))
         if ab.lower() in ('unknown', 'none', 'null', 'n/a', 'na'):
@@ -660,6 +679,129 @@ def edd_summarize(feats, grids, names):
             out[g][lv] = {'ids': ids, 'f': dict(F)}
             print(f'   EDDMapS {g} {lv}: {len(ids)} cells with records', flush=True)
     return out, {'points': len(feats), 'counted': st['counted'], 'also_inat': st['also on iNaturalist'], 'repeat_rows': st['repeat rows']}
+
+
+# ---------------------------------------------------------------- visitation
+def vis_save(kind):
+    """the observer-day file for one dataset (observer names as short one-way codes)"""
+    with gzip.open(VIS_FILE(kind), 'wt', newline='', encoding='utf-8') as f:
+        w = csv.writer(f)
+        if kind == 'edd':
+            w.writerow(['date', 'hex', 'lat', 'lon']); w.writerows(sorted(VISITS['edd']))
+        else:
+            w.writerow(['who', 'date', 'hex', 'lat', 'lon', 'records'])
+            for (who, d, hid), (la, lo, n) in sorted(VISITS[kind].items()):
+                w.writerow([hashlib.sha1(who.encode()).hexdigest()[:12], d, hid, la, lo, n])
+    print(f'visits_{kind}.csv.gz: {len(VISITS[kind]):,} rows, {os.path.getsize(VIS_FILE(kind)) // 1024:,} KB', flush=True)
+
+
+def vis_load(kind):
+    """the observer-day file a previous run saved, when this run did not rebuild that dataset"""
+    try:
+        with gzip.open(VIS_FILE(kind), 'rt', encoding='utf-8') as f:
+            r = csv.reader(f); next(r)
+            if kind == 'edd':
+                VISITS['edd'] = [(d, h, float(a), float(b)) for d, h, a, b in r]
+            else:
+                VISITS[kind] = {(who, d, h): [float(a), float(b), int(n)] for who, d, h, a, b, n in r}
+        print(f'visits_{kind}.csv.gz read: {len(VISITS[kind]):,} rows (from an earlier run)', flush=True)
+    except Exception as e:
+        print(f'visits_{kind}.csv.gz not read ({e}): visitation leaves out {kind}', flush=True)
+
+
+def build_visits(grids):
+    """visitation summaries by cell for each grid; see the top of this file"""
+    for k in ('inat', 'ebird', 'edd'):
+        if not VISITS[k]:
+            vis_load(k)
+    mi = {}                                                     # hex id -> trail mile
+    for L in grids.values():
+        for i, m in zip(L['hex']['id'], L['hex']['mi']):
+            mi.setdefault(i, m)
+    pid = {}; P = lambda s: pid.setdefault(s, len(pid))         # observers as numbers
+    near = lambda a, b: math.hypot((a[0] - b[0]) * 111320, (a[1] - b[1]) * 111320 * math.cos(math.radians(a[0]))) <= VIS_MERGE_M
+    day = defaultdict(list)                                     # (date, hex) -> [[lat, lon, party, system, records], ...]
+    for sysn in ('inat', 'ebird'):
+        for (who, d, h), (la, lo, n) in VISITS[sysn].items():
+            day[(d, h)].append([la, lo, P(sysn + ':' + who), sysn, n])
+    merged = Counter()
+    for P_ in day.values():                                     # eBird parties next to an iNaturalist party: the same people
+        ins = [p for p in P_ if p[3] == 'inat']
+        if ins:
+            for p in P_:
+                if p[3] == 'ebird':
+                    q = next((x for x in ins if near(p, x)), None)
+                    if q: p.append(q[2]); merged['eBird checklists with an iNaturalist party'] += 1
+    for d, h, la, lo in VISITS['edd']:                           # EDDMapS reports: report-days unless next to a party
+        P_ = day[(d, h)]; q = next((x for x in P_ if near((la, lo), x)), None)
+        if q: merged['EDDMapS reports with another party'] += 1; continue
+        P_.append([la, lo, P(f'edd:{d}:{h}:{len(P_)}'), 'edd', 0])
+    print('visitation: ' + ', '.join(f'{v:,} {k}' for k, v in merged.items()), flush=True)
+    track = defaultdict(dict)                                   # party -> {date ordinal: [mile sum, n]}
+    for (d, h), P_ in day.items():
+        m = mi.get(h)
+        if m is None: continue
+        o = date.fromisoformat(d).toordinal()
+        for p in P_:
+            if p[3] == 'edd': continue
+            t = track[p[-1] if len(p) > 5 else p[2]].setdefault(o, [0.0, 0]); t[0] += m; t[1] += 1
+    long_ = set()                                               # (party, date ordinal) of long-distance hiking days
+    for who, T in track.items():
+        if len(T) < LONG_MIN_DAYS: continue
+        ds = sorted(T); ms = [T[o][0] / T[o][1] for o in ds]; j = 0
+        for i in range(len(ds)):
+            j = max(j, i)
+            while j + 1 < len(ds) and ds[j + 1] - ds[i] <= LONG_DAYS: j += 1
+            if j - i + 1 >= LONG_MIN_DAYS and max(ms[i:j + 1]) - min(ms[i:j + 1]) >= LONG_MI:
+                long_.update((who, ds[k]) for k in range(i, j + 1))
+    print(f'visitation: {len(pid):,} observers and report spots, {len({w for w, _ in long_}):,} long-distance hikers over {len(long_):,} days', flush=True)
+    idx = {g: {lv: {i: c for c, i in enumerate(L[lv]['id'])} for lv in L} for g, L in grids.items()}
+    acc = {g: {lv: {} for lv in L} for g, L in grids.items()}
+    new = lambda: {'obs': {'inat': set(), 'ebird': set()}, 'all': set(), 'edd': 0, 'pd': set(), 'sys': {'inat': set(), 'ebird': set()}, 'rec': Counter(), 'ld': set()}
+    for (d, h), P_ in day.items():
+        parts = h.split('-'); ids = {'hex': h, 'cog': '-'.join(parts[:4]), 'wheel': '-'.join(parts[:3])}
+        o = date.fromisoformat(d).toordinal()
+        for p in P_:
+            who = p[-1] if len(p) > 5 else p[2]; k = who * 1000000 + o
+            for g in grids:
+                for lv in grids[g]:
+                    c = idx[g][lv].get(ids[lv])
+                    if c is None: continue
+                    a = acc[g][lv].get(c)
+                    if a is None: a = acc[g][lv][c] = new()
+                    a['pd'].add(k)
+                    if p[3] == 'edd':
+                        a['edd'] += 1; continue
+                    a['obs'][p[3]].add(p[2]); a['all'].add(who); a['sys'][p[3]].add(p[2] * 1000000 + o); a['rec'][p[3]] += p[4]
+                    if (who, o) in long_: a['ld'].add(k)
+    this = date.today().year; last3 = {str(y) for y in range(this - 3, this)}
+    out = {}
+    for g, L in grids.items():
+        out[g] = {}
+        for lv in L:
+            ids, F = [], defaultdict(list)
+            for c in sorted(acc[g][lv]):
+                a = acc[g][lv][c]; yrs, mons, days, ldm = Counter(), [0] * 12, Counter(), [0] * 12
+                for k in a['pd']:
+                    dd = date.fromordinal(k % 1000000); mons[dd.month - 1] += 1; days[dd] += 1
+                    if dd.year >= VIS_FROM: yrs[dd.year] += 1
+                for k in a['ld']:
+                    ldm[date.fromordinal(k % 1000000).month - 1] += 1
+                n = len(a['pd']); ri, re_ = a['rec']['inat'], a['rec']['ebird']; pi, pe = len(a['sys']['inat']), len(a['sys']['ebird'])
+                v = {'VIS_OBSR': len(a['all']), 'VIS_SRC': [len(a['obs']['inat']), len(a['obs']['ebird']), a['edd']], 'VIS_OD': n,
+                     'VIS_OD_YR': round(sum(yrs[int(y)] for y in last3) / 3, 1), 'VIS_PEAK': (max(range(12), key=lambda m: mons[m]) + 1) if n else None,
+                     'VIS_BUSY': max(days.values()) if days else 0, 'VIS_LD': len(a['ld']),
+                     'VIS_RPD': round((ri + re_) / (pi + pe), 2) if pi + pe else None, 'VIS_RPD_SRC': [ri, pi, re_, pe]}
+                if not (g == 'huc' and lv == 'hex'):    # the per-year, per-month and busiest-day lists are left off the HUC10 square miles
+                    v['VIS_OD_Y'] = [x for y in sorted(yrs) for x in (y, yrs[y])]
+                    v['VIS_OD_M'] = mons; v['VIS_LD_M'] = ldm
+                    v['VIS_BUSY_TOP'] = [[int(dd.strftime('%Y%m%d')), m] for dd, m in sorted(days.items(), key=lambda kv: (-kv[1], kv[0]))[:10]]
+                ids.append(L[lv]['id'][c])
+                for k2, x in v.items():
+                    F[k2].append(x)
+            out[g][lv] = {'ids': ids, 'f': dict(F)}
+            print(f'   visitation {g} {lv}: {len(ids)} cells', flush=True)
+    return out, {'merge_m': VIS_MERGE_M, 'long_mi': LONG_MI, 'long_days': LONG_DAYS, 'long_min_days': LONG_MIN_DAYS, 'sources': [k for k in ('inat', 'ebird', 'edd') if VISITS[k]]}
 
 
 def pack(themes):
@@ -755,14 +897,14 @@ def main():
     meta = prev['corr'].get('meta', {})
     for k in kinds:
         path, info = download(k, huc or levels)        # one download covers both grids
-        res = summarize(k, path, grids, names)
+        res = summarize(k, path, grids, names); vis_save(k)
         for g in grids:
             themes[g][k] = res[g]
         meta[k] = dict(info, built=datetime.now(timezone.utc).strftime('%Y-%m-%d'))
         os.remove(path)
         if k == 'inat':        # EDDMapS rides with iNaturalist: its duplicates are found against the iNaturalist records just read
             try:
-                res, info = edd_summarize(edd_fetch(huc or levels), grids, names)
+                res, info = edd_summarize(edd_fetch(huc or levels), grids, names); vis_save('edd')
                 for g in grids:
                     themes[g]['edd'] = res[g]
                 meta['edd'] = dict(info, source=EDD_URL.rsplit('/query', 1)[0], built=datetime.now(timezone.utc).strftime('%Y-%m-%d'))
@@ -772,6 +914,16 @@ def main():
                     old = unpack(prev[g], ['edd'])
                     if old:
                         themes[g].update(old)
+    try:
+        res, info = build_visits(grids)
+        for g in grids:
+            themes[g]['vis'] = res[g]
+        meta['vis'] = dict(info, built=datetime.now(timezone.utc).strftime('%Y-%m-%d'))
+    except Exception as e:
+        print(f'visitation not built ({e}); keeping the previous summaries', flush=True)
+        for g in grids:
+            old = (prev[g].get('themes') or {}).get('vis')
+            if old: themes[g]['vis'] = old
     compare(D, themes['corr'])
     q = (date.today().month - 1) // 3 + 1
     for g, path in (('corr', OUT), ('huc', OUT_HUC)):

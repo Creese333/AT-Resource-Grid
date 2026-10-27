@@ -572,7 +572,7 @@ h4.mgrp{margin:12px 0 8px;padding-top:10px;border-top:1px solid #2E4460;font-siz
     <p style="margin-top:10px"><b>Herbicide use.</b> The wetland deduction is off by default. Turn on Herbicide use, under the question, when the work will rely on herbicides: cells are then marked down by the share of their A.T. lands that is wetland, by up to 10 points.</p>
     <p style="margin-top:10px"><b>Private land left out.</b> The habitat points are then multiplied by the share of the cell’s corridor land that is not private, taken from the administrative areas. Every other administrator (NPS, other federal, state, local, land trusts, ATC and clubs) counts the same. A cell with no private land keeps its full points; one that is half private keeps half; an all-private cell scores 0. Switch Lands to APPA only to count only NPS – APPA land: scores are then scaled by the APPA share of the corridor land in the cell, and cells without APPA land, or with too little to score, are left blank.</p>
     <p style="margin-top:10px"><b>How points are given.</b> The cells with the most of a factor get its full points, cells with less get fewer, and cells with none get 0. “Most” is judged against cells of the same size along the trail. Rare species, soils and vistas score as shown in the tables; for soils, 80% in classes 1 to 4 earns 12 of 15 points. Only A.T. corridor lands count: a cell needs at least one acre of open habitat, or of forest, on corridor lands to get that score. Rare species, invasives, pests and birds count anywhere in the cell, since they are nearby either way.</p>
-    <p>The cell panel shows the points behind each score. A rarely surveyed cell can score low on invasives or birds simply because no one has looked, so check How well is it surveyed? alongside.</p>
+    <p>The cell panel shows the points behind each score. A rarely surveyed cell can score low on invasives or birds simply because no one has looked, so check How many observers are out there? alongside.</p>
     <h3>Reading the maps</h3>
     <ul>
       <li>Map colors are set by the kind of measure. For counts and acres where a few cells are far above the rest, the classes break at the 50th, 75th, 90th and 97th percentiles: the lightest color is the lower half of cells and the darkest the top 3%. Percentages and other evenly spread measures use equal steps; small counts such as shelters get one color per number, with the last open-ended; restoration scores break at 25, 40, 55 and 70, and trail vulnerability at its Low, Moderate and High cut-offs. Breaks are rounded to clean numbers and worked out for each cell size.</li>
@@ -895,6 +895,8 @@ CATCOL.SURF = [['Detailed surficial map (1:24,000 or more detailed)','#38495B','
 CATCOL.GIS_BEST = [['GIS data at 1:24,000 or more detailed','#38495B','1:24,000 or more detailed'],['GIS data at 1:25,000 to 1:100,000','#6E8296','1:25,000 to 1:100,000'],['Statewide GIS data only','#AEBBC8','Statewide only'],['No GIS data','#E6E9EC','None']];
 CATCOL.GEO_NEWEST = [['2010 or later','#38495B'],['1990 to 2009','#6E8296'],['1970 to 1989','#AEBBC8'],['Before 1970','#E6E9EC']];
 ['GEO_LITH','GEO_AGE','MAP_BEST','SURF','GIS_BEST','GEO_NEWEST'].forEach(k => { D.cats[k] = CATCOL[k].map(e => e[0]); });
+CATCOL.VIS_PEAK = [['January','#3E5C8A'],['February','#5175A8'],['March','#6FA8A0'],['April','#7DBF5E'],['May','#A8CF45'],['June','#E3D33B'],['July','#F2B233'],['August','#EE8F2E'],['September','#D9662B'],['October','#B8472E'],['November','#8C4A5E'],['December','#4B4F7A']];
+D.cats.VIS_PEAK = CATCOL.VIS_PEAK.map(e => e[0]);
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 /* Blue Ridge color scheme */
 const HUE = {lands:'#B03A73', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94'};
@@ -1245,10 +1247,12 @@ function phDots(){ const on = PHQ() && !SPREADQ() && S.m.id === 'wave' && !S.m.f
   for (const p of prev) L.circleMarker(p, {renderer:PHDOTS.r, radius:1.8, stroke:false, fillColor:'#FFE600', fillOpacity:.45, interactive:false}).addTo(PHDOTS);
   for (const p of now) L.circleMarker(p, {renderer:PHDOTS.r, radius:2.6, color:'#FFB46B', weight:1, fillColor:'#FFE600', fillOpacity:1, interactive:false}).addTo(PHDOTS);
   PHDOTS.n = now.length; }
-function phTick(){ phDots(); let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', on = acq || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
+function phTick(){ phDots(); let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', vis = S.q.id === 'eff' && S.m.id === 'od' && !!S.visYr && !S.m.find, on = acq || vis || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
   if (!t){ if (!on) return; t = document.createElement('div'); t.id = 'phtick'; t.setAttribute('aria-live', 'off'); document.getElementById('map').appendChild(t); }
   if (!on){ t.style.display = 'none'; return; }
   t.classList.toggle('acqtick', !!acq);
+  if (vis){ const lv = dispLevel(), L_ = D.levels[lv]; let n = 0; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)){ const v = visYearVal(lv, c, S.visYr); if (v) n += v; }
+    t.innerHTML = `<b>${S.visYr}</b><span>${fmt(n, 0)} observer-days${S.sec === 'all' ? '' : ' in ' + esc(secName())}</span>`; t.style.display = 'block'; phTickPos(); return; }
   if (acq){ const yy = S.acqYr || ACQ.y1; let ac = 0; ACQ.by.forEach((e, y) => { if (y <= yy) ac += e.ac; });
     t.innerHTML = `<b>by ${yy}</b><span>${fmt(Math.round(ac), 0)} acres of A.T. land protected</span>`; t.style.display = 'block'; phTickPos(); return; }
   const y = phYear(), A = phAgg(dispLevel()), ys = A.years, span = ys.length ? ys[0] + '–' + String(ys[ys.length - 1]).slice(2) : 'All years';
@@ -1889,6 +1893,7 @@ document.addEventListener('click', e => { const t = e.target.closest && e.target
   if (t.dataset.cultall){ S.cultAll = !S.cultAll; const v = $('#cultviz'); if (v) v.innerHTML = cultCharts(); return; }
   const en = findIndex().get(t.dataset.cultsp); if (en) setFind(en, false); });
 if (!D.themes.geo) D.themes.geo = {};
+if (!D.themes.vis) D.themes.vis = {};
 /* geologic maps and bedrock units shared by both extents: GEOT = {maps:[[id, name, year, scale, type, gis, reference, url, notes]],
    units:[[name, label, age, lithology class, age class, major lithologies, carbonate, mafic, state]], meta} */
 let GEOT = null;
@@ -1986,9 +1991,9 @@ const QVIZ = {
     return vTop(m).map(([i, n]) => vSpRow(i, n, HUE.live, `${fmt(n, 0)} records`)); }},
   inv: {title:'Top 10 invasive species', note:'Cells where each invasive species has been reported to iNaturalist or EDDMapS. Click a species to map it.', fn(lv, cells){
     return vTop(vSpp(lv, cells, c => invL('INVASIVE_LIST', lv, c) || [])).map(([i, n]) => vSpRow(i, n, HUE.inat, `reported in ${nCells(n)}`)); }},
-  eff: {title:'iNaturalist records per year', note:'Research-grade records each year since 2010, from the quarterly summary. The latest year is partial.', fn(lv, cells){
-    const m = new Map(); cells.forEach(c => { const a = val('inat','OBS_BY_YEAR',lv,c); if (!a) return; for (let k = 0; k < a.length; k += 2) if (a[k] >= 2010) m.set(a[k], (m.get(a[k]) || 0) + a[k + 1]); });
-    return [...m].sort((a, b) => a[0] - b[0]).map(([y, n]) => [String(y), HUE.eff, n, fmt(n, 0), `${y}: ${fmt(n, 0)} records`]); }},
+  eff: {title:'Observer-days per year', note:'Observer-days each year since 2010, iNaturalist, eBird and EDDMapS together. eBird reaches GBIF about a year late, so the latest years lean on iNaturalist; the current year is partial.', fn(lv, cells){
+    const m = new Map(); cells.forEach(c => { const a = val('vis','VIS_OD_Y',lv,c); if (!a) return; for (let k = 0; k < a.length; k += 2) m.set(a[k], (m.get(a[k]) || 0) + a[k + 1]); });
+    const y = new Date().getFullYear(); return vHi([...m].sort((a, b) => a[0] - b[0]).map(([yy, n]) => [String(yy), HUE.eff, n, fmt(n, 0), `${yy}: ${fmt(n, 0)} observer-days`]), r => S.visYr ? +r[0] === S.visYr : +r[0] >= y - 3 && +r[0] < y); }},
   bird: {title:'Top 10 birds of conservation concern', note:'Cells with eBird checklists that recorded each species on the USFWS Birds of Conservation Concern or Partners in Flight watch lists. Click a species to map it.', fn(lv, cells){
     return vTop(vSpp(lv, cells, c => val('ebird','SOC_LIST',lv,c) || [])).map(([i, n]) => vSpRow(i, n, HUE.ebird, `recorded in ${nCells(n)}`)); }},
   soil: {title:'Cells by trail vulnerability', note:'Each cell’s trail vulnerability index (NRCS gSSURGO): low under 0.33, high over 0.67.', fn(lv, cells){
@@ -2035,7 +2040,8 @@ QVIZ.inv.pick = id => id === 'edrr' ? {title:'Top 10 priority invasives', note:'
   : id === 'pest' ? {title:'Top forest pests', note:'Cells where each forest pest has been reported to iNaturalist or EDDMapS. Click a pest to map it.', fn:(lv, cells) => vSpTop(lv, cells, c => invL('PEST_LIST', lv, c) || [], HUE.inat, 'reported')}
   : id === 'eddrec' ? {title:'Top 10 invasives in EDDMapS', note:'Cells where each invasive species has an EDDMapS report. Click a species to map it.', fn:(lv, cells) => vSpTop(lv, cells, c => val('edd','EDD_INV_LIST',lv,c) || [], HUE.inat, 'reported')}
   : id === 'obs' ? {title:'Top 10 invasives on iNaturalist', note:'Cells where each invasive species has a research-grade iNaturalist record. Click a species to map it.', fn:(lv, cells) => vSpTop(lv, cells, c => val('inat','INVASIVE_LIST',lv,c) || [], HUE.inat, 'recorded')} : null;
-QVIZ.eff.pick = id => id === 'erec' ? {title:'Cells by eBird sampling', note:'Each cell’s eBird data status, from the number and spread of checklists.', fn(lv, cells){
+QVIZ.eff.pick = id => VISPICK[id] || null;
+const VISPICK_OLD = id => id === 'erec' ? {title:'Cells by eBird sampling', note:'Each cell’s eBird data status, from the number and spread of checklists.', fn(lv, cells){
     const m = new Map(); let n = 0; cells.forEach(c => { const v = val('ebird','DATA_STATUS',lv,c); if (v == null) return; n++; m.set(v, (m.get(v) || 0) + 1); });
     return [...m].sort((a, b) => a[0] - b[0]).map(([k, v]) => [D.cats.DATA_STATUS[k], HUE.eff, v, vPct(v, n), `${D.cats.DATA_STATUS[k]}: ${nCells(v)} of ${n}`]); }} : null;
 QVIZ.bird.pick = id => BIRDM[id] ? {title:'Top 10 ' + S.m.label.toLowerCase(), note:'Cells with eBird checklists that recorded each species in this habitat group. Click a species to map it.', fn:(lv, cells) => vSpTop(lv, cells, c => val('ebird', BIRDM[id] + '_LIST', lv, c) || [], HUE.ebird, 'recorded')}
@@ -2053,6 +2059,25 @@ QVIZ.feat.pick = id => ['drain', 'drainmi', 'steps'].includes(id) ? {title:'Esti
     return vHi([['S_DRAIN','Drainage structures','drain'],['S_STEPS','Steps and climbs','steps'],['S_SIGNS','Signs'],['S_BARR','Barriers']].map(([f, nm, mid]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, HUE.feat, n, fmt(Math.round(n), 0), `${nm}: about ${fmt(Math.round(n), 0)}`, null, mid]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]), r => r[6] === id || (id === 'drainmi' && r[6] === 'drain')); }}
   : {title:'Facilities by type', note:'A.T. facilities inventory, official and additional features' + (FEATT.some(t => t[2] === id) ? '; the type on the map is highlighted.' : '.'), fn(lv, cells){
     return vHi(FEATT.map(([f, nm, mid]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, HUE.feat, n, fmt(n, 0), `${nm}: ${fmt(n, 0)}`, null, mid]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]), r => r[6] && r[6] === id); }};
+const VMON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const VISPICK = {
+  obsr: {title:'Observers by source', note:'People with an iNaturalist record or eBird checklist, and EDDMapS report-days (EDDMapS publishes no observer names). Added up cell by cell, so someone active in several cells counts in each.', fn(lv, cells){
+    const s = [0, 0, 0]; cells.forEach(c => { const a = val('vis','VIS_SRC',lv,c); if (a) a.forEach((x, i) => s[i] += x || 0); });
+    return [['iNaturalist observers', s[0]], ['eBird observers', s[1]], ['EDDMapS report-days', s[2]]].filter(r => r[1] > 0).map(([nm, n]) => [nm, HUE.eff, n, fmt(n, 0), `${nm}: ${fmt(n, 0)}`]); }},
+  peak: {title:'Observer-days by month', note:'Observer-days in each month, all years together; the busiest month is highlighted.', fn(lv, cells){
+    const s = Array(12).fill(0); cells.forEach(c => { const a = val('vis','VIS_OD_M',lv,c); if (a) a.forEach((x, i) => s[i] += x || 0); }); const mx = Math.max(...s);
+    return mx ? vHi(s.map((n, i) => [CATCOL.VIS_PEAK[i][0], CATCOL.VIS_PEAK[i][1], n, fmt(n, 0), `${CATCOL.VIS_PEAK[i][0]}: ${fmt(n, 0)} observer-days`]), r => r[2] === mx) : []; }},
+  busy: {title:'Top 10 busiest days', note:'The dates with the most observers active, from each cell’s ten busiest days added together.', fn(lv, cells){
+    const m = new Map(); cells.forEach(c => (val('vis','VIS_BUSY_TOP',lv,c) || []).forEach(([d, n]) => m.set(d, (m.get(d) || 0) + n)));
+    return vTop(m).map(([d, n]) => { const s = String(d), dt = new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8))), lab = dt.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric', timeZone:'UTC'});
+      return [lab, HUE.eff, n, fmt(n, 0), `${lab}: ${fmt(n, 0)} observers`]; }); }},
+  ld: {title:'Long-distance hiker observer-days by month', note:'Observer-days from people whose records span at least 100 trail miles within 30 days, by month: the long-distance hiking season along this stretch.', fn(lv, cells){
+    const s = Array(12).fill(0); cells.forEach(c => { const a = val('vis','VIS_LD_M',lv,c); if (a) a.forEach((x, i) => s[i] += x || 0); });
+    return s.some(x => x) ? s.map((n, i) => [CATCOL.VIS_PEAK[i][0], HUE.eff, n, fmt(n, 0), `${CATCOL.VIS_PEAK[i][0]}: ${fmt(n, 0)} long-distance observer-days`]) : []; }},
+  rpd: {title:'Records per observer-day by source', note:'iNaturalist records, and eBird species records, per observer-day of each system.', fn(lv, cells){
+    let ri = 0, pi = 0, re = 0, pe = 0; cells.forEach(c => { const a = val('vis','VIS_RPD_SRC',lv,c); if (a){ ri += a[0]; pi += a[1]; re += a[2]; pe += a[3]; } });
+    return [['iNaturalist', pi ? ri / pi : 0, pi], ['eBird', pe ? re / pe : 0, pe]].filter(r => r[2]).map(([nm, v, n]) => [nm, HUE.eff, v, fmt(v, 1), `${nm}: ${fmt(v, 1)} records per observer-day, over ${fmt(n, 0)} observer-days`]); }}
+};
 const qVizOn = q => !!QVIZ[q.id] && !(q.id === 'land' && S.m.id === 'acq');
 function qVizHTML(){ const d0 = QVIZ[S.q.id]; if (!d0) return ''; const d = d0.pick ? Object.assign({}, d0, d0.pick(S.m.id)) : d0, lv = dispLevel(), th = S.q.th; const [sl, cells, where] = geoScope(lv);
   let g = `<div id="qvizc"><h4 class="phh">${esc(d.title)}, ${esc(where)}</h4>`;
@@ -2100,12 +2125,16 @@ const Q = [
      {id:'pct', label:'Invasive share of records', unit:'%', d:1, zero:1, fade:1, zeroText:'None reported', note:'Records of invasive plants and forest pests, as a share of all iNaturalist records.', fn:(lv,c)=>invShare(lv,c)},
      {id:'pest', label:'Forest pest records', f:'N_PEST_OBS', int:1, zero:1, noun:['record','records'], note:'Research-grade iNaturalist records of forest pests.'},
      {id:'eddrec', label:'EDDMapS reports', th:'edd', f:'N_EDD_OBS', int:1, zero:1, noun:['report','reports'], zeroText:'None reported', note:'Reports of listed invasive plants and forest pests in EDDMapS. Reports that match an iNaturalist record (same species, within a day and 50 m) are counted once, as iNaturalist.'}]},
- {id:'eff', th:'inat', hue:HUE.eff, ramp:'eff', title:'How well is it surveyed?',
-  use:'Every vegetation and wildlife map here depends on where people have looked. Use this one to find survey gaps worth a bioblitz, and to judge how much weight the other maps can carry in a given cell.',
-  m:[{id:'obs', label:'iNaturalist records', f:'N_OBS', int:1, noun:['record','records']},
-     {id:'erec', label:'eBird records', th:'ebird', f:'N_RECORDS', int:1, noun:['record','records']},
-     {id:'spp', label:'Total species recorded', int:1, fade:1, noun:['species','species'], fn:(lv,c)=>totalSpp(lv,c)},
-     {id:'obsr', label:'Total observers', int:1, noun:['observer','observers'], fn:(lv,c)=>{ const a = val('inat','N_OBSERVERS',lv,c), b = val('ebird','N_OBSERVERS',lv,c); return a == null && b == null ? null : (a || 0) + (b || 0); }}]},
+ {id:'eff', th:'vis', hue:HUE.eff, ramp:'eff', title:'How many observers are out there?',
+  use:'Trail visitation as seen through citizen science: iNaturalist, eBird and EDDMapS together, counted in observer-days (one person active in a square mile on one day, however many records they made). An eBird checklist on the same day and square mile as an iNaturalist observer, within 250 m, counts as the same party, since the two systems’ user names cannot be matched; EDDMapS has no observer names, so each report is a report-day, merged the same way. Long-distance hikers are observers whose records span at least 100 trail miles within 30 days, on at least 4 days. This is an index of naturalist and birder activity, not a headcount of visitors: use it to compare places, seasons and years. eBird reaches GBIF about a year late, so the latest year leans on iNaturalist. Play the years under Visualizations to watch visitation change.',
+  m:[{id:'od', label:'Observer-days per year', int:1, zero:1, noun:['observer-day','observer-days'], none:'No observers recorded', fn:(lv,c)=>visOD(lv,c), colorFn:(v,lv)=>visCol(v,lv), legendFn:lv=>visLegend(lv), stripTop:lv=>visTop(lv),
+      note:'Observer-days in an average recent year (the last three full years), or in the year picked under Visualizations. One person active in a square mile on one day is one observer-day.'},
+     {id:'obsr', label:'Unique observers', f:'VIS_OBSR', int:1, zero:1, noun:['observer','observers'], note:'Different people with an iNaturalist record or eBird checklist in the cell, any year. EDDMapS does not publish observer names, so its reports are not in this count.'},
+     {id:'peak', label:'Peak month', kind:'cat', f:'VIS_PEAK', fn:(lv,c)=>{ const v = val('vis','VIS_PEAK',lv,c); return v ? v - 1 : null; }, note:'The month with the most observer-days, all years together.'},
+     {id:'busy', label:'Busiest single day', f:'VIS_BUSY', int:1, zero:1, noun:['observer','observers'], note:'The most observers (and EDDMapS report-days) active in the cell on one date. Picks out events such as bioblitzes and busy holiday weekends.'},
+     {id:'ld', label:'Long-distance hiker share', unit:'%', d:0, zero:1, zeroText:'None recorded', fn:(lv,c)=>{ const n = val('vis','VIS_OD',lv,c), x = val('vis','VIS_LD',lv,c); return n && x != null ? 100 * x / n : null; },
+      note:'Share of observer-days from people whose records span at least 100 trail miles within 30 days, on at least 4 days: thru- and section-hikers moving along the trail.'},
+     {id:'rpd', label:'Records per observer-day', f:'VIS_RPD', d:1, noun:['record','records'], note:'iNaturalist records and eBird species records per observer-day: how much each visit records.'}]},
  {id:'bird', th:'ebird', hue:HUE.ebird, ramp:'bird', title:'What birds are found here?',
   use:'Bird species recorded on eBird checklists (the eBird Observation Dataset via GBIF, updated yearly), grouped by the habitat each species depends on. Use it to see where forest-interior, grassland or high-elevation birds concentrate, and where species of conservation concern have been found. Counts follow birding effort: thinly birded cells are faded, and Bird species, standardized compares cells at equal sampling completeness.',
   m:[{id:'bcc', label:'Birds of Conservation Concern', f:'N_BCC_SPP', int:1, zero:1, fade:1, noun:['species','species']},
@@ -2455,7 +2484,7 @@ function extLoad(){ if (EXT.huc) return Promise.resolve(); if (extLoading) retur
       fetch(GEOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(g => { if (g && g.themes) { geoTables(g); H.themes.geo = geoConv(g, H.levels); } }).catch(() => {})]).then(() => { EXT.huc = H; }); });
   extLoading.catch(() => {}).then(() => { extLoading = null; });
   return extLoading; }
-function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.geo) D.themes.geo = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
+function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.geo) D.themes.geo = {}; if (!D.themes.vis) D.themes.vis = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
   for (const th in D.themes){ ROW[th] = {}; for (const lv in D.themes[th]){ const a = new Int32Array(D.levels[lv].id.length).fill(-1); D.themes[th][lv].ix.forEach((c,k) => a[c] = k); ROW[th][lv] = a; } }
   for (const lv in D.levels){ const m = new Map(); D.levels[lv].id.forEach((id,i) => m.set(id,i)); IDX[lv] = m; }
   BRK.clear(); for (const k in COVER) delete COVER[k]; for (const k in RINGS) delete RINGS[k]; }
@@ -2713,6 +2742,39 @@ function acqCum(lv, y){ const key = lv + y; if (ACQ.cum[key]) return ACQ.cum[key
   ACQ.cy[lv].forEach((Y, c) => { let t = 0; Y.forEach((ac, yy) => { if (yy <= y) t += ac; }); a[c] = t; }); return ACQ.cum[key] = a; }
 function acqVal(lv, c){ if (S.ext !== 'corr') return null; if (!ACQ){ acqLoad(); return null; } if (ACQ.st !== 'done') return null;
   const v = acqCum(lv, S.acqYr || ACQ.y1)[c]; return v >= 0.5 ? Math.round(v) : null; }
+/* visitation: observer-days per year, one year at a time (S.visYr) or the recent average; fixed classes so colors mean the same in every year */
+const VISRAMP = RAMP.eff;
+function visYears(){ const t = D.themes.vis && D.themes.vis.wheel; if (!t || !t.f.VIS_OD_Y) return null; let a = 9999, b = 0; t.f.VIS_OD_Y.forEach(p => { if (p) for (let k = 0; k < p.length; k += 2){ a = Math.min(a, p[k]); b = Math.max(b, p[k]); } }); return b ? [a, b] : null; }
+function visYearVal(lv, c, y){ const p = val('vis','VIS_OD_Y',lv,c); if (!p) return has('vis', lv, c) ? null : null; for (let k = 0; k < p.length; k += 2) if (p[k] === y) return p[k + 1]; return 0; }
+function visOD(lv, c){ if (!has('vis', lv, c)) return null; if (S.visYr){ const v = visYearVal(lv, c, S.visYr); return v; } return val('vis','VIS_OD_YR',lv,c); }
+const VISBRK = {};
+function visBrk(lv){ const key = lv + '|' + S.ext; if (VISBRK[key] && VISBRK[key].lev === D.levels[lv]) return VISBRK[key].b; const t = D.themes.vis && D.themes.vis[lv], a = [];
+  if (t){ if (t.f.VIS_OD_Y) t.f.VIS_OD_Y.forEach(p => { if (p) for (let k = 1; k < p.length; k += 2) if (p[k] > 0) a.push(p[k]); }); else (t.f.VIS_OD_YR || []).forEach(v => { if (v > 0) a.push(v); }); }
+  a.sort((p, q) => p - q); const q = f => a[Math.min(a.length - 1, Math.floor(f * a.length))];
+  let b = a.length ? [.35, .6, .8, .93].map(f => Math.max(1, Math.round(niceNum(q(f))))) : []; b = b.filter((v, i) => i === 0 || v > b[i - 1]);
+  VISBRK[key] = {lev:D.levels[lv], b}; return b; }
+function visCol(v, lv){ const b = visBrk(lv); let i = 0; while (i < b.length && v > b[i]) i++; return VISRAMP[Math.round(i * (VISRAMP.length - 1) / Math.max(1, b.length))]; }
+function visLegend(lv){ const b = visBrk(lv), lab = []; b.forEach((v, i) => lab.push(i === 0 ? `1 to ${fmt(v, 0)}` : `${fmt(b[i - 1] + 1, 0)} to ${fmt(v, 0)}`)); lab.push(b.length ? `over ${fmt(b[b.length - 1], 0)}` : 'any');
+  if (!b.length) return '<p class="sub">The visitation summaries have not been built yet. They are added the next time the iNaturalist workflow runs.</p>';
+  return lab.map((t, i) => `<div class="row"><i style="background:${VISRAMP[Math.round(i * (VISRAMP.length - 1) / Math.max(1, b.length))]}"></i><span>${t} observer-days</span></div>`).join('') +
+    `<p class="sub">${S.visYr ? 'Observer-days in ' + S.visYr : 'Observer-days per year, average of the last three full years'}, per cell. Classes stay the same in every year.</p>`; }
+function visTop(lv){ const b = visBrk(lv); return b.length ? b[b.length - 1] * 1.4 : 1; }
+let visTimer = null;
+function visCtl(){ const yr = visYears(); if (!yr) return '<p class="phstat">The yearly animation appears once the visitation summaries are built.</p>'; const y = S.visYr || yr[1];
+  return `<div class="acqctl"><button type="button" class="phplay" data-visplay="1" aria-pressed="${!!visTimer}">${visTimer ? 'Pause' : 'Play years'}</button>` +
+    `<label class="acqyr"><span id="visyl">${S.visYr ? 'In ' + S.visYr : 'Average'}</span><input type="range" id="visyr" min="${yr[0]}" max="${yr[1]}" step="1" value="${y}" aria-label="Year"></label>` +
+    (S.visYr && !visTimer ? '<button type="button" class="lbtn" data-visavg="1">Show the recent average</button>' : '') + `</div>`; }
+function visFrame(full){ const l = $('#visyl'), r = $('#visyr'); if (l) l.textContent = S.visYr ? 'In ' + S.visYr : 'Average'; if (r && S.visYr) r.value = S.visYr;
+  BRK.clear(); restyle(); strip(); legend(); phTick(); qVizRefresh(); if (full) side(); }
+function visPlay(on){ if (visTimer){ clearInterval(visTimer); visTimer = null; } const yr = visYears();
+  if (on && yr){ if (!S.visYr || S.visYr >= yr[1]) S.visYr = yr[0] - 1;
+    visTimer = setInterval(() => { if (S.q.id !== 'eff' || S.m.id !== 'od'){ clearInterval(visTimer); visTimer = null; return; }
+      if (S.visYr >= yr[1]){ visPlay(false); return; } S.visYr++; visFrame(); }, 750); }
+  const b = document.querySelector('[data-visplay]'); if (b){ b.textContent = visTimer ? 'Pause' : 'Play years'; b.setAttribute('aria-pressed', String(!!visTimer)); }
+  if (!on) visFrame(true); }
+document.addEventListener('click', e => { if (e.target.closest('[data-visplay]')) visPlay(!visTimer); else if (e.target.closest('[data-visavg]')){ S.visYr = null; visFrame(true); } });
+document.addEventListener('input', e => { if (e.target.id === 'visyr'){ if (visTimer) visPlay(false); S.visYr = +e.target.value; visFrame(); } });
+document.addEventListener('change', e => { if (e.target.id === 'visyr') side(); });
 const ACQRAMP = ['#C97FA6','#B05A88','#93376C','#701E51','#470B33'];
 function acqCol(v, lv){ const b = (ACQ && ACQ.brk && ACQ.brk[lv]) || [], cols = ACQRAMP; let i = 0; while (i < b.length && v > b[i]) i++;
   return cols[Math.round(i * (cols.length - 1) / Math.max(1, b.length))]; }
@@ -2871,7 +2933,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
   const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : '';
   h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map((m, k, a) => (m.grp && (!k || a[k - 1].grp !== m.grp) ? `</div><h4 class="mgrp">${esc(m.grp)}</h4><div class="chips" role="group" aria-label="${esc(m.grp)}">` : '') + `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
-    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
+    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
   const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
@@ -3548,7 +3610,8 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
       feat_parking_areas:n('feat','N_PARKING'), feat_bridges:n('feat','N_BRIDGE'), feat_vistas:n('feat','N_VISTA'), feat_side_trail_miles:n('feat','SIDE_MI'), feat_maintained_landscape_acres:n('feat','ML_AC'),
       feat_drainage_structures_est:n('feat','S_DRAIN'), feat_steps_and_climbs_est:n('feat','S_STEPS'), feat_signs_est:n('feat','S_SIGNS'), feat_barriers_est:n('feat','S_BARR'),
       land_administrators:n('lands','N_MGR'), land_pct_of_cell_mapped:n('lands','PCT_LAND'),
-      cultural_plant_species:blank(cultCount(lv, c)), cultural_plant_records:cultReady(lv) ? n('inat','N_CULT_OBS') : '' }));
+      cultural_plant_species:blank(cultCount(lv, c)), cultural_plant_records:cultReady(lv) ? n('inat','N_CULT_OBS') : '',
+      visit_observer_days_per_year:n('vis','VIS_OD_YR'), visit_unique_observers:n('vis','VIS_OBSR'), visit_peak_month:v('vis','VIS_PEAK',c) ? CATCOL.VIS_PEAK[v('vis','VIS_PEAK',c) - 1][0] : '', visit_busiest_day_observers:n('vis','VIS_BUSY'), visit_long_distance_pct:v('vis','VIS_OD',c) ? Math.round(100 * (v('vis','VIS_LD',c) || 0) / v('vis','VIS_OD',c)) : '', visit_records_per_observer_day:n('vis','VIS_RPD') }));
     if (has('soil', lv, c)) out.soils.push({grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c],
       trail_vulnerability_index:n('soil','VULN'), trail_vulnerability_class:blank(vulnClass(v('soil','VULN',c))), pct_rated_high_vulnerability:n('soil','VULN_HIGH'),
       pct_at_least_one_rating_worst:n('soil','WORST1'), nrcs_score_average:n('soil','NRCS_IDX'), nrcs_erosion_hazard_unsurfaced_trails:n('soil','EROS_HR'),
@@ -4077,7 +4140,7 @@ fetch('inat_ebird.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).t
 function bioConv(j, idx){ const si = new Map(D.spp.map((s, i) => [s, i])), sp = i => { const s = j.spp[i]; let k = si.get(s); if (k == null){ k = D.spp.length; D.spp.push(s); si.set(s, k); } return k; };
   const ds = (j.cats && j.cats.DATA_STATUS || []).map(x => { let k = D.cats.DATA_STATUS.indexOf(x); if (k < 0){ k = D.cats.DATA_STATUS.length; D.cats.DATA_STATUS.push(x); } return k; });
   const themes = {};
-  for (const th of ['inat', 'ebird', 'edd']){ const src = j.themes[th]; if (!src) continue; const out = {};
+  for (const th of ['inat', 'ebird', 'edd', 'vis']){ const src = j.themes[th]; if (!src) continue; const out = {};
     for (const lv in src){ if (!idx[lv]) continue; const t = src[lv], keep = [], ix = [];
       t.ids.forEach((id, k) => { const c = idx[lv].get(id); if (c != null){ keep.push(k); ix.push(c); } });
       const f = {};
