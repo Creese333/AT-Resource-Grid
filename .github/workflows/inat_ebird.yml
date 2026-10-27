@@ -1,6 +1,8 @@
 # Rebuilds inat_ebird.json (A.T. corridor) and inat_ebird_huc10.json (HUC10 shell), the iNaturalist, eBird and EDDMapS summaries
 # for the A.T. Resource Grid, from GBIF downloads and the public EDDMapS points service.
 # Runs on the 5th of January, April, July and October: iNaturalist and EDDMapS every quarter, eBird in January (GBIF refreshes eBird about yearly).
+# Also builds the visitation summaries ("How many observers are out there?") and saves compact observer-day files
+# (visits_*.csv.gz) so later runs that rebuild only one dataset can combine all three.
 # Or press "Run workflow" on the Actions tab and choose what to rebuild.
 # Needs two repository secrets: GBIF_USER and GBIF_PWD (a free gbif.org account).
 name: iNaturalist, eBird and EDDMapS
@@ -46,6 +48,7 @@ jobs:
           git config user.name  "inat-ebird-bot"
           git config user.email "actions@users.noreply.github.com"
           git add inat_ebird.json inat_ebird_huc10.json common_names.json 2>/dev/null || git add inat_ebird.json
+          for f in visits_inat.csv.gz visits_ebird.csv.gz visits_edd.csv.gz; do if [ -f "$f" ]; then git add "$f"; fi; done
           git diff --cached --quiet && exit 0
           git commit -m "Update iNaturalist, eBird and EDDMapS summaries"
           for i in 1 2 3; do
