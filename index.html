@@ -1960,8 +1960,8 @@ function geoLithHTML(lv){ if (!GEOT || !D.themes.geo[lv]) return '';
   return g + `<p class="phnote">${byMain ? 'Share of cells by their main bedrock type (the area split is given only for the 7 and 49 sq mi cells here)' : (n === 1 ? 'Share of the mapped area' : 'Share of the mapped area, averaged over ' + nCells(n) + ',')} in ${esc(where)}${where === 'the map view' ? ' (zoom or pan to change it, or select cells)' : ''}. USGS State Geologic Map Compilation.</p></div>`; }
 /* one horizontal bar chart per question. rows: [label, color, value, value text, tooltip, species key (click to map it)] */
 function hbars(rows, aria){ const mx = Math.max(...rows.map(r => r[2]), 1e-9), sel = S.m.find && S.m.find.ls;
-  return `<div class="hb" role="list" aria-label="${esc(aria)}">` + rows.map(([name, col, v, txt, tip, sp]) => { const on = sp && sel === sp, w = v > 0 ? Math.max(.8, v / mx) : 0;
-    return `<div class="hbr${sp ? ' hbc' : ''}${on ? ' on' : ''}" role="listitem"${sp ? ` data-cultsp="${esc(sp)}"` : ''} title="${esc(tip || name + ': ' + txt)}"><span class="hbl">${esc(name)}</span>` +
+  return `<div class="hb" role="list" aria-label="${esc(aria)}">` + rows.map(([name, col, v, txt, tip, sp, hi]) => { const on = sp && sel === sp, w = v > 0 ? Math.max(.8, v / mx) : 0;
+    return `<div class="hbr${sp ? ' hbc' : ''}${on || hi ? ' on' : ''}" role="listitem"${sp ? ` data-cultsp="${esc(sp)}"` : ''} title="${esc(tip || name + ': ' + txt)}"><span class="hbl">${esc(name)}</span>` +
       `<span class="hbt"><i style="width:calc((100% - 70px) * ${w.toFixed(4)});background:${col}"></i><b>${esc(txt)}</b></span></div>`; }).join('') + '</div>'; }
 function vizBars(rows, aria){ return hbars(rows, aria); const W = 320, lab = 174, pw = W - lab - 46, bh = 14, H2 = rows.length * bh + 4, mx = Math.max(...rows.map(r => r[2]), 1e-9), f = v => v.toFixed(1), sel = S.m.find && S.m.find.ls;
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H2}" width="100%" role="img" aria-label="${esc(aria)}">`;
@@ -1975,9 +1975,9 @@ const vTop = (m, n) => [...m].sort((a, b) => b[1] - a[1] || String(a[0]).localeC
 const vSpp = (lv, cells, f, th) => { const m = new Map(); cells.forEach(c => (f ? f(c) : val(th, 'X', lv, c) || []).forEach(i => m.set(i, (m.get(i) || 0) + 1))); return m; };
 const vSpRow = (i, n, col, tip) => { const p = sppName(i); return [p.common || p.sci, col, n, fmt(n, 0), `${p.common ? p.common + ' (' + p.sci + ')' : p.sci}: ${tip}. Click to map it.`, p.sci.toLowerCase()]; };
 const QVIZ = {
-  land: {title:'Land by administrator', note:'Share of the mapped A.T. land, from the tract records summarized to each cell. Generalized to the grid; not a boundary determination.', fn(lv, cells){
+  land: {title:'Land by administrator', note:'Share of the mapped A.T. land, from the tract records summarized to each cell. Generalized to the grid; not a boundary determination.', fn(lv, cells, nTop){
     const m = new Map(); let tot = 0; cells.forEach(c => { const p = val('lands','MGRS',lv,c), ac = val('lands','LAND_AC',lv,c) || 0; if (!p) return; for (let k = 0; k < p.length; k += 2){ const a = ac * p[k + 1] / 100; m.set(p[k], (m.get(p[k]) || 0) + a); tot += a; } });
-    return vTop(m).map(([i, a]) => [tcase(D.cats.MGR[i]), HUE.lands, a, vPct(a, tot), `${tcase(D.cats.MGR[i])}: ${fmt(Math.round(a), 0)} acres, ${vPct(a, tot)} of the mapped land`]); }},
+    return vTop(m, nTop || 10).map(([i, a]) => [tcase(D.cats.MGR[i]), HUE.lands, a, vPct(a, tot), `${tcase(D.cats.MGR[i])}: ${fmt(Math.round(a), 0)} acres, ${vPct(a, tot)} of the mapped land`]); }},
   veg: {title:'Top 10 vegetation types', note:'Acres of each type in the APPA vegetation map.', fn(lv, cells){
     const m = new Map(); cells.forEach(c => { const cp = val('veg','COMP',lv,c), ac = val('veg','VEG_AREA',lv,c) || 0; if (!cp) return; for (let k = 0; k < cp.length; k += 2) m.set(cp[k], (m.get(cp[k]) || 0) + ac * cp[k + 1] / 100); });
     return vTop(m).map(([i, a]) => { const nm = D.cats.DOM_TYPE[i], e = CATMAP.DOM_TYPE.get(nm); return [nm, e ? e[1] : HUE.veg, a, fmt(Math.round(a), 0) + ' ac', `${nm}: ${fmt(Math.round(a), 0)} acres`]; }); }},
@@ -2010,8 +2010,51 @@ const QVIZ = {
     const T = [['N_SHELTER','Shelters'],['N_CAMPSITE','Campsites'],['N_PRIVY','Privies'],['N_PARKING','Parking areas'],['N_BRIDGE','Bridges'],['N_VISTA','Vistas'],['N_BUILDING','Buildings'],['N_DAM','Dams'],['N_TUNNEL','Tunnels']];
     return T.map(([f, nm]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, HUE.feat, n, fmt(n, 0), `${nm}: ${fmt(n, 0)}`]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]); }}
 };
+/* measure-specific charts. pick(measure id) returns {title, note, fn} to use in place of the question's default chart */
+const vHi = (rows, test) => rows.map(r => (r[6] = !!test(r), r));
+const vSpTop = (lv, cells, get, col, verb) => vTop(vSpp(lv, cells, get)).map(([i, n]) => vSpRow(i, n, col, `${verb} in ${nCells(n)}`));
+const vHist = (lv, cells, m, col) => { const B = [[0, 0, 'None'], [0.0001, 10, 'Under 10%'], [10, 25, '10 to 25%'], [25, 50, '25 to 50%'], [50, 75, '50 to 75%'], [75, 101, '75% or more']], cnt = B.map(() => 0); let n = 0;
+  cells.forEach(c => { const v = m.get(lv, c); if (v == null) return; n++; const k = v <= 0 ? 0 : B.findIndex((b, i) => i && v >= b[0] && v < b[1]); cnt[k < 0 ? B.length - 1 : k]++; });
+  return n ? B.map((b, i) => [b[2], col, cnt[i], vPct(cnt[i], n), `${b[2]}: ${nCells(cnt[i])} of ${n}`]).filter(r => r[2] > 0) : []; };
+const vVegTypes = (lv, cells, keep) => { const m = new Map(); cells.forEach(c => { const cp = val('veg','COMP',lv,c), ac = val('veg','VEG_AREA',lv,c) || 0; if (!cp) return; for (let k = 0; k < cp.length; k += 2) if (!keep || keep(D.typeL2[cp[k]])) m.set(cp[k], (m.get(cp[k]) || 0) + ac * cp[k + 1] / 100); });
+  return vTop(m).map(([i, a]) => { const nm = D.cats.DOM_TYPE[i], e = CATMAP.DOM_TYPE.get(nm); return [nm, e ? e[1] : HUE.veg, a, fmt(Math.round(a), 0) + ' ac', `${nm}: ${fmt(Math.round(a), 0)} acres`]; }); };
+const FORESTL2 = ['Deciduous Forest', 'Evergreen Forest', 'Mixed Forest'], OPENL2 = ['Shrub/Scrub', 'Grassland/Herbaceous', 'Pasture/Hay', 'Cultivated Crops'];
+const RECGRP = {gplant:'PLANT', ginsect:'INSECT', gfungi:'FUNGI', gamphib:'AMPHIB', gmammal:'MAMMAL'};
+const BIRDM = {fi:'FOREST_INT', fg:'FOREST_GEN', co:'CONIFER', sh:'SHRUB', gr:'GRASS', ed:'EDGE', we:'WETLAND', ri:'RIPARIAN', wb:'WATERBIRD', sb:'SHORE', se:'SEABIRD'};
+const FEATT = [['N_SHELTER','Shelters','shel'],['N_CAMPSITE','Campsites','camp'],['N_PRIVY','Privies','priv'],['N_PARKING','Parking areas','park'],['N_BRIDGE','Bridges','brid'],['N_VISTA','Vistas','vist'],['N_BUILDING','Buildings'],['N_DAM','Dams'],['N_TUNNEL','Tunnels']];
+QVIZ.land.pick = id => id === 'appa' ? {title:'Land by administrator', note:'Share of the mapped A.T. land, from the tract records summarized to each cell; NPS - APPA is highlighted. Generalized to the grid; not a boundary determination.', fn(lv, cells){ const all = vHi(QVIZ.land.fn(lv, cells, 999), r => /\bAPPA\b/.test(r[0])), top = all.slice(0, 10); all.slice(10).forEach(r => { if (r[6]) top.push(r); }); return top; }} : null;
+QVIZ.veg.pick = id => id === 'cover' ? {title:'Land cover (NLCD level 2)', note:'Share of the mapped area in each National Land Cover Database class.', fn(lv, cells){
+    const fld = k => String(k).startsWith('L2_') ? k : 'L2_' + k; let tot = 0; const s = L2.map(() => 0); cells.forEach(c => { const ac = val('veg','VEG_AREA',lv,c) || 0; L2.forEach(([k], i) => { const a = ac * (val('veg', fld(k), lv, c) || 0) / 100; s[i] += a; tot += a; }); });
+    return L2.map(([k, nm, c2], i) => { const e = CATCOL.L2_DOM.find(x => x[0] === nm); return [nm, c2 || (e ? e[1] : HUE.veg), s[i], vPct(s[i], tot), `${nm}: ${fmt(Math.round(s[i]), 0)} acres, ${vPct(s[i], tot)}`]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]).slice(0, 10); }}
+  : id === 'open' ? {title:'Top 10 open-habitat types', note:'Acres of shrubland, grassland and agricultural vegetation types in the APPA vegetation map.', fn:(lv, cells) => vVegTypes(lv, cells, t => OPENL2.includes(t))}
+  : id === 'forest' ? {title:'Top 10 forest types', note:'Acres of forest vegetation types in the APPA vegetation map.', fn:(lv, cells) => vVegTypes(lv, cells, t => FORESTL2.includes(t))} : null;
+QVIZ.rec.pick = id => RECGRP[id] || id === 'native' ? {title:'Records by group', note:'Research-grade iNaturalist records in each group (quarterly summary); the group on the map is highlighted.', fn(lv, cells){
+    return vHi(RECG.map(([lab, k]) => { let n = 0; cells.forEach(c => n += val('inat', k + '_OBS', lv, c) || 0); return [lab, HUE.live, n, fmt(n, 0), `${lab}: ${fmt(n, 0)} records`, null, k]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]), r => r[6] === (RECGRP[id] || (id === 'native' ? 'PLANT' : ''))); }}
+  : id === 'recent' ? {title:'iNaturalist records per year', note:'Research-grade records each year since 2010; the last three years are highlighted. The latest year is partial.', fn(lv, cells){ const r = QVIZ.eff.fn(lv, cells), y = new Date().getFullYear(); return vHi(r, x => +x[0] >= y - 2); }} : null;
+QVIZ.inv.pick = id => id === 'edrr' ? {title:'Top 10 priority invasives', note:'Cells where each priority (early detection) invasive has been reported to iNaturalist or EDDMapS. Click a species to map it.', fn:(lv, cells) => vSpTop(lv, cells, c => invL('EDRR_LIST', lv, c) || [], HUE.inat, 'reported')}
+  : id === 'pest' ? {title:'Top forest pests', note:'Cells where each forest pest has been reported to iNaturalist or EDDMapS. Click a pest to map it.', fn:(lv, cells) => vSpTop(lv, cells, c => invL('PEST_LIST', lv, c) || [], HUE.inat, 'reported')}
+  : id === 'eddrec' ? {title:'Top 10 invasives in EDDMapS', note:'Cells where each invasive species has an EDDMapS report. Click a species to map it.', fn:(lv, cells) => vSpTop(lv, cells, c => val('edd','EDD_INV_LIST',lv,c) || [], HUE.inat, 'reported')}
+  : id === 'obs' ? {title:'Top 10 invasives on iNaturalist', note:'Cells where each invasive species has a research-grade iNaturalist record. Click a species to map it.', fn:(lv, cells) => vSpTop(lv, cells, c => val('inat','INVASIVE_LIST',lv,c) || [], HUE.inat, 'recorded')} : null;
+QVIZ.eff.pick = id => id === 'erec' ? {title:'Cells by eBird sampling', note:'Each cell’s eBird data status, from the number and spread of checklists.', fn(lv, cells){
+    const m = new Map(); let n = 0; cells.forEach(c => { const v = val('ebird','DATA_STATUS',lv,c); if (v == null) return; n++; m.set(v, (m.get(v) || 0) + 1); });
+    return [...m].sort((a, b) => a[0] - b[0]).map(([k, v]) => [D.cats.DATA_STATUS[k], HUE.eff, v, vPct(v, n), `${D.cats.DATA_STATUS[k]}: ${nCells(v)} of ${n}`]); }} : null;
+QVIZ.bird.pick = id => BIRDM[id] ? {title:'Top 10 ' + S.m.label.toLowerCase(), note:'Cells with eBird checklists that recorded each species in this habitat group. Click a species to map it.', fn:(lv, cells) => vSpTop(lv, cells, c => val('ebird', BIRDM[id] + '_LIST', lv, c) || [], HUE.ebird, 'recorded')}
+  : id === 'spp' || id === 'sppraw' ? {title:'Species by habitat group', note:'Different bird species recorded in each habitat group on eBird checklists.', fn(lv, cells){
+    return BIRD_GROUPS.map(g => { const s = new Set(); cells.forEach(c => (val('ebird', g.list, lv, c) || []).forEach(i => s.add(i))); return [g.full, HUE.ebird, s.size, fmt(s.size, 0), `${g.full}: ${s.size} species`]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]); }} : null;
+QVIZ.soil.pick = id => id === 'vuln' ? null : {title:'Cells by ' + S.m.label.toLowerCase(), note:'Share of each cell’s area (NRCS gSSURGO), grouped.', fn:(lv, cells) => vHist(lv, cells, S.m, HUE.soil)};
+QVIZ.wet.pick = id => id === 'vegw' ? {title:'Vegetated wetland acres by type', note:'USFWS National Wetlands Inventory, acres in the whole cell; open water is left out.', fn(lv, cells){
+    return [['C_FO','Forested','#008837'],['C_SS','Scrub-shrub','#5DAA45'],['C_EM','Emergent','#7FC31C'],['C_AB','Aquatic bed','#3FA796']].map(([f, nm, col]) => { let a = 0; cells.forEach(c => a += val('wet', f, lv, c) || 0); return [nm, col, a, fmt(Math.round(a), 0) + ' ac', `${nm}: ${fmt(Math.round(a), 0)} acres`]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]); }}
+  : id === 'lands' ? {title:'Main wetland type on A.T. lands', note:'Cells by the wetland type covering the most of their A.T. land.', fn(lv, cells){
+    const m = new Map(); let n = 0; cells.forEach(c => { const v = val('wet','WET_LDOM',lv,c); if (v == null) return; n++; m.set(v, (m.get(v) || 0) + 1); });
+    return vTop(m).map(([k, v]) => { const nm = D.cats.WET_LDOM[k], e = CATCOL.WET_DOM.find(x => x[0] === nm); return [nm, e ? e[1] : HUE.wet, v, vPct(v, n), `${nm}: ${nCells(v)} of ${n}`]; }); }} : null;
+QVIZ.hist.pick = id => id === 'hcem' ? {title:'Historic resources by type', note:'National Register of Historic Places (NPS) by property type, and cemeteries mapped in OpenStreetMap; cemeteries are highlighted.', fn:(lv, cells) => vHi(QVIZ.hist.fn(lv, cells), r => r[0] === 'Cemeteries')}
+  : id === 'hnr' ? {title:'National Register properties by type', note:'National Register of Historic Places (NPS), by property type.', fn(lv, cells){ return QVIZ.hist.fn(lv, cells).filter(r => r[0] !== 'Cemeteries'); }} : null;
+QVIZ.feat.pick = id => ['drain', 'drainmi', 'steps'].includes(id) ? {title:'Estimated trail structures', note:'Estimates, spread from maintainer sections by trail miles.', fn(lv, cells){
+    return vHi([['S_DRAIN','Drainage structures','drain'],['S_STEPS','Steps and climbs','steps'],['S_SIGNS','Signs'],['S_BARR','Barriers']].map(([f, nm, mid]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, HUE.feat, n, fmt(Math.round(n), 0), `${nm}: about ${fmt(Math.round(n), 0)}`, null, mid]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]), r => r[6] === id || (id === 'drainmi' && r[6] === 'drain')); }}
+  : {title:'Facilities by type', note:'A.T. facilities inventory, official and additional features' + (FEATT.some(t => t[2] === id) ? '; the type on the map is highlighted.' : '.'), fn(lv, cells){
+    return vHi(FEATT.map(([f, nm, mid]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, HUE.feat, n, fmt(n, 0), `${nm}: ${fmt(n, 0)}`, null, mid]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]), r => r[6] && r[6] === id); }};
 const qVizOn = q => !!QVIZ[q.id] && !(q.id === 'land' && S.m.id === 'acq');
-function qVizHTML(){ const d = QVIZ[S.q.id]; if (!d) return ''; const lv = dispLevel(), th = S.q.th; const [sl, cells, where] = geoScope(lv);
+function qVizHTML(){ const d0 = QVIZ[S.q.id]; if (!d0) return ''; const d = d0.pick ? Object.assign({}, d0, d0.pick(S.m.id)) : d0, lv = dispLevel(), th = S.q.th; const [sl, cells, where] = geoScope(lv);
   let g = `<div id="qvizc"><h4 class="phh">${esc(d.title)}, ${esc(where)}</h4>`;
   if (th && D.themes[th] && !D.themes[th][sl] && S.q.id !== 'hist') return g + `<p class="none">Not summarized for this cell size.</p></div>`;
   let rows = []; try { rows = d.fn(sl, cells) || []; } catch (e) { rows = []; }
