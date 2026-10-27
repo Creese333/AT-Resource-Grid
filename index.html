@@ -435,6 +435,14 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 @media (max-width:700px){#phtick{padding:3px 10px 4px}#phtick b{font-size:21px}#phtick span{font-size:12px}}
 .phh{font-size:13.5px;color:#fff;margin:10px 0 2px;font-weight:600}
 .phch{display:block;margin:2px 0}
+.hb{margin:6px 0 4px;font-size:13px;line-height:1.25}
+.hbr{display:grid;grid-template-columns:minmax(0,48%) minmax(0,1fr);column-gap:8px;align-items:center;padding:2px 4px;border-radius:4px}
+.hbc{cursor:pointer}.hbc:hover{background:#1C2F4D}.hbr.on{background:#22385A}.hbr.on .hbl{color:#fff}
+.hbl{text-align:right;color:#C9D4E2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbt{display:flex;align-items:center;gap:6px;min-width:0}
+.hbt i{display:block;height:12px;border-radius:2px;flex:none;box-shadow:0 0 0 .5px rgba(0,0,0,.45)}
+.hbt b{font-weight:500;color:#E3EAF2;font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.phnote{font-size:13px !important}
 .phkey{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:#E3EAF2}
 .phkey i{display:inline-block;width:14px;height:4px;border-radius:2px;margin-right:5px;vertical-align:middle}
 .phkey .thin{color:var(--muted)}
@@ -1325,7 +1333,7 @@ function phRangeBlock(lv){ const A = phAgg(lv), sp = phSp(); if (!A || !A.years.
     if (lo != null){ clo = clo == null ? lo : Math.min(clo, lo); chi = chi == null ? hi : Math.max(chi, hi); } return {y, lo, hi, k, clo, chi}; });
   const R = rows.filter(r => r.chi != null); if (!R.length) return '';
   const col = sp.set === 'pinv' ? HUE.pinv : HUE.pest, TOP = Math.ceil((D.totalMi || 2198) / 100) * 100;
-  const W = 320, H = 150, pl = 40, pr = 8, pt = 12, pb = 18, pw = W - pl - pr, ph = H - pt - pb, bw = pw / ys.length, f = v => v.toFixed(1);
+  const W = 272, H = 150, pl = 40, pr = 8, pt = 12, pb = 18, pw = W - pl - pr, ph = H - pt - pb, bw = pw / ys.length, f = v => v.toFixed(1);
   const X = i => pl + bw * i + bw / 2, Y = m => pt + ph - ph * m / TOP, idx = r => ys.indexOf(r.y);
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Range along the trail by year">`;
   for (const m of [0, 500, 1000, 1500, 2000]) if (m <= TOP) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(m))}" y2="${f(Y(m))}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 3}" y="${f(Y(m) + 3)}" text-anchor="end" font-size="8" fill="#A8B8CA">mi ${fmt(m, 0)}</text>`;
@@ -1388,7 +1396,7 @@ function phCalendar(){ const sp = phSp(), A = phAgg('wheel'); if (!A) return '';
   let w0 = 52, w1 = 1; B.forEach(b => Object.keys(b).forEach(w => { w0 = Math.min(w0, +w); w1 = Math.max(w1, +w); })); if (w1 < w0) return '';
   w0 = Math.max(1, w0 - 1); w1 = Math.min(52, w1 + 1);
   const rows = B.map((b, i) => ({i, b, n:Object.values(b).reduce((t, e) => t + stg.reduce((u, s) => u + e[s], 0), 0)})).filter(r => r.n).reverse();
-  const W = 320, lab = 44, rh = Math.max(11, Math.min(18, 150 / rows.length)), H = rows.length * rh + 30, cw = (W - lab - 4) / (w1 - w0 + 1), f = v => v.toFixed(1);
+  const W = 272, lab = 44, rh = Math.max(11, Math.min(18, 150 / rows.length)), H = rows.length * rh + 30, cw = (W - lab - 4) / (w1 - w0 + 1), f = v => v.toFixed(1);
   const ramp = ['#3A3420', '#6B5A12', '#A8860A', '#E0B400', '#FFE014'];
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Season calendar along the trail"><text x="${lab - 4}" y="7.5" text-anchor="end" font-size="7.5" fill="#A8B8CA">▲ Maine</text><g transform="translate(0,10)">`;
   rows.forEach((r, k) => { const y = k * rh, mx = Math.max(1, ...Object.values(r.b).map(e => e[ms]));
@@ -1408,7 +1416,7 @@ function phSpreadSvg(lv, cells){ const A = phAgg(lv); if (!A || !A.years.length)
   const fy = cells.map(c => A.first[c]).filter(v => v != null); if (!fy.length) return '<p class="phstat">No records in these cells yet.</p>';
   const rows = ys.map(y => ({y, n:fy.filter(v => v <= y).length, add:fy.filter(v => v === y).length})), cur = rows.find(r => r.y === sel) || rows[rows.length - 1];
   const mx0 = Math.max(1, rows[rows.length - 1].n), stp = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000].find(s => mx0 / s <= 4) || 10000, mx = Math.ceil(mx0 / stp) * stp;
-  const W = 320, H = 130, pl = 30, pr = 6, pt = 12, pb = 18, pw = W - pl - pr, ph = H - pt - pb, bw = pw / ys.length;
+  const W = 272, H = 130, pl = 30, pr = 6, pt = 12, pb = 18, pw = W - pl - pr, ph = H - pt - pb, bw = pw / ys.length;
   const X = i => pl + bw * i + bw / 2, Y = v => pt + ph - ph * v / mx, f = v => v.toFixed(1), digits = String(rows[rows.length - 1].n).length;
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Cells with records by year">`;
   for (let v = 0; v <= mx; v += stp) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="${v ? '#2E4460' : '#4A6182'}" stroke-width="${v ? .6 : .9}"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${fmt(v, 0)}</text>`;
@@ -1425,7 +1433,7 @@ function phSpreadSvgOld(lv, cells){ const A = phAgg(lv), sp = phSp(); if (!A || 
   let cum = pre; const rows = ys.map(y => ({y, n:nw.get(y) || 0, t:(cum += nw.get(y) || 0)}));
   if (!cum) return '<p class="phstat">No records in these cells yet.</p>';
   const mx0 = Math.max(1, ...rows.map(r => r.n)), stp = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find(s => mx0 / s <= 4) || 2000, mx = Math.ceil(mx0 / stp) * stp;
-  const W = 320, H = 130, pl = 26, pr = 6, pt = 12, pb = 18, pw = W - pl - pr, ph = H - pt - pb, bw = pw / rows.length;
+  const W = 272, H = 130, pl = 26, pr = 6, pt = 12, pb = 18, pw = W - pl - pr, ph = H - pt - pb, bw = pw / rows.length;
   const X = i => pl + bw * i + bw / 2, Y = v => pt + ph - ph * v / mx, sel = S.m.yr ? phYear(lv) : 0, f = v => v.toFixed(1);
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Cells first recorded each year">`;
   for (let v = 0; v <= mx; v += stp) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="${v ? '#2E4460' : '#4A6182'}" stroke-width="${v ? .6 : .9}"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${v}</text>`;
@@ -1454,7 +1462,7 @@ function phLatCal(){ const A = phAgg('wheel'); if (!A) return ''; const L_ = D.l
   const here = S.cell != null && D.levels[S.cellLv] ? phLatBand(D.levels[S.cellLv].c[S.cell][0]) : -1;
   const bp = S.ph.band && S.ph.band.cell === (S.cell == null ? null : S.cellLv + S.cell) ? S.ph.band.i : null;
   let pk = bp != null && R[bp].n ? bp : here >= 0 && R[here].n ? here : has.reduce((m, r) => r.n > m.n ? r : m).i;
-  const W = 320, lab = 76, pr = 6, rh = 24, pw = W - lab - pr, f = v => v.toFixed(1), X = d => lab + pw * (d - d0) / (d1 - d0), order = R.slice().reverse(), H = order.length * rh + 16;
+  const W = 272, lab = 76, pr = 6, rh = 24, pw = W - lab - pr, f = v => v.toFixed(1), X = d => lab + pw * (d - d0) / (d1 - d0), order = R.slice().reverse(), H = order.length * rh + 16;
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Flowering calendar by latitude">`;
   for (const [d, m] of MS) if (d >= d0 && d <= d1){ g += `<line x1="${f(X(d))}" x2="${f(X(d))}" y1="0" y2="${order.length * rh}" stroke="#2E4460" stroke-width=".6"/>`; if (m && d < d1) g += `<text x="${f(X(d) + 2)}" y="${H - 4}" font-size="8.5" fill="#A8B8CA">${m}</text>`; }
   order.forEach((r, k) => { const y = k * rh, on = r.i === pk, me = r.i === here;
@@ -1525,7 +1533,7 @@ function phSectionCore(lv, c){ const sp = phSp(), A = phAgg(lv), k = sp.kind;
   const stack = k === 'plant', yy = S.m.yr === 'wk' ? phSelText(lv) : '';
   const at = (s, w) => cs.reduce((t, x) => t + A.w[s][x*53 + w], 0), aty = (s, w) => { const a = yy ? phArr(lv, s) : null; return a ? cs.reduce((t, x) => t + a[x*53 + w], 0) : 0; }, tot = {}, ytot = {};
   let mx = 1; for (let w = 1; w <= 52; w++){ let t = 0; SER.forEach(([s]) => { tot[s] = (tot[s] || 0) + at(s, w); ytot[s] = (ytot[s] || 0) + aty(s, w); t = stack ? t + at(s, w) : Math.max(t, at(s, w)); }); mx = Math.max(mx, t); }
-  const W = 300, H = 64, bw = W / 52; let svg = `<svg viewBox="0 0 ${W} ${H + 14}" width="100%" role="img" aria-label="Records by week">`;
+  const W = 255, H = 64, bw = W / 52; let svg = `<svg viewBox="0 0 ${W} ${H + 14}" width="100%" role="img" aria-label="Records by week">`;
   for (let w = 1; w <= 52; w++){ const x = (w - 1) * bw, get = yy ? aty : at;
     if (yy){ let t = 0; SER.forEach(([s]) => { t = stack ? t + at(s, w) : Math.max(t, at(s, w)); }); if (t) svg += `<rect x="${x}" y="${H - H * t / mx}" width="${bw - .6}" height="${H * t / mx}" fill="#A8B8CA" opacity=".28"><title>${wkLabel(w)}, all years: ${t}</title></rect>`; }
     let y0 = H; SER.forEach(([s, lab, col]) => { const v = get(s, w); if (!v) return; const hh = H * v / mx, top = stack ? y0 - hh : H - hh;
@@ -1874,14 +1882,8 @@ function cultTopHTML(){ if (!cultReady('hex')) return '';
   const tp = [...M.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)).slice(0, 10), sel = S.m.find && S.m.find.ls;
   let g = `<div id="culttop"><h4 class="phh">Most widely recorded species, ${esc(where)}</h4>`;
   if (!tp.length) return g + `<p class="none">No listed species recorded in ${esc(where)}.</p></div>`;
-  const W = 320, lab = 112, pw = W - lab - 34, bh = 14, H2 = tp.length * bh + 4, mx = tp[0].n, f = v => v.toFixed(1);
-  g += `<svg class="phch" viewBox="0 0 ${W} ${H2}" width="100%" role="img" aria-label="Most widely recorded species">`;
-  tp.forEach((s, k) => { const y = 2 + k * bh, on = sel === s.sci.toLowerCase(), w = pw * s.n / mx;
-    g += `<g data-cultsp="${esc(s.sci.toLowerCase())}" style="cursor:pointer"><rect x="0" y="${y}" width="${W}" height="${bh}" fill="${on ? '#22385A' : 'transparent'}"/>` +
-      `<text x="${lab - 5}" y="${y + 10}" text-anchor="end" font-size="8.5" fill="${on ? '#FFFFFF' : '#C9D4E2'}">${esc(s.name.length > 24 ? s.name.slice(0, 23) + '…' : s.name)}</text>` +
-      `<rect x="${lab}" y="${y + 2.5}" width="${f(Math.max(1, w))}" height="9" rx="1.5" fill="${on ? '#B9E08A' : HUE.cult}"/><text x="${f(lab + w + 4)}" y="${y + 10}" font-size="8.5" fill="#E3EAF2">${s.n}</text>` +
-      `<title>${esc(s.name)} (${esc(s.sci)}): recorded in ${s.n} of the ${cells.length} square miles in ${esc(where)}. Click to map it.</title></g>`; });
-  return g + `</svg><p class="phnote">Square miles with a research-grade iNaturalist record, in ${esc(where)}${where === 'the map view' ? ' (zoom or pan to change it, or select cells)' : ''}. Ginseng, goldenseal, ramps and lady’s slippers are left out at this scale. Records follow hikers, so a species recorded in few square miles may simply be overlooked. Click a species to map where it is recorded.</p></div>`; }
+  g += hbars(tp.map(s => [s.name, HUE.cult, s.n, fmt(s.n, 0), `${s.name} (${s.sci}): recorded in ${s.n} of the ${cells.length} square miles in ${where}. Click to map it.`, s.sci.toLowerCase()]), 'Most widely recorded species');
+  return g + `<p class="phnote">Square miles with a research-grade iNaturalist record, in ${esc(where)}${where === 'the map view' ? ' (zoom or pan to change it, or select cells)' : ''}. Ginseng, goldenseal, ramps and lady’s slippers are left out at this scale. Records follow hikers, so a species recorded in few square miles may simply be overlooked. Click a species to map where it is recorded.</p></div>`; }
 function cultVizRefresh(){ geoVizRefresh(); qVizRefresh(); const t = $('#culttop'); if (t && S.q.id === 'cult' && !S.m.find) t.outerHTML = cultTopHTML(); }
 document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-cultsp],[data-cultall]'); if (!t) return;
   if (t.dataset.cultall){ S.cultAll = !S.cultAll; const v = $('#cultviz'); if (v) v.innerHTML = cultCharts(); return; }
@@ -1925,7 +1927,7 @@ function geoBox(lv, cells){ const many = cells.length > 1; let b = `<div class="
   return b + '</div>'; }
 const geoSection = (lv, c) => geoBox(lv, [c]);
 /* share of cells in each class of the measure on show, whole trail or the trail section picked */
-function geoBars(rows, label, tip){ const W = 320, lab = 174, pw = W - lab - 32, bh = 14, H2 = rows.length * bh + 4, mx = Math.max(...rows.map(r => r[2])), f = v => v.toFixed(1);
+function geoBars(rows, label, tip){ return hbars(rows.map(([nm, col, v]) => { const t = v === 0 ? '0' : v < 1 ? '<1' : Math.round(v); return [nm, col, v, t + '%', `${nm}: ${t}% ${tip}`]; }), label); const W = 320, lab = 174, pw = W - lab - 32, bh = 14, H2 = rows.length * bh + 4, mx = Math.max(...rows.map(r => r[2])), f = v => v.toFixed(1);
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H2}" width="100%" role="img" aria-label="${esc(label)}">`;
   rows.forEach(([name, col, v], j) => { const y = 2 + j * bh, w = pw * v / mx, t = v === 0 ? '0' : v < 1 ? '<1' : Math.round(v);
     g += `<g><text x="${lab - 5}" y="${y + 10}" text-anchor="end" font-size="8.5" fill="#C9D4E2">${esc(name)}</text>` +
@@ -1953,15 +1955,15 @@ function geoLithHTML(lv){ if (!GEOT || !D.themes.geo[lv]) return '';
   let g = `<div id="geolith"${S.m.id === 'lith' ? '' : ' style="margin-top:14px;padding-top:12px;border-top:1px solid #2E4460"'}><h4 class="phh">Bedrock by type, ${esc(where)}</h4>`;
   if (!n) return g + `<p class="none">No bedrock summary for ${esc(where)}.</p></div>`;
   const rows = [...sum].map(([k, v]) => [k, v / n]).filter(r => r[1] > 0).sort((a, b) => b[1] - a[1]);
-  const W = 320, lab = 174, pw = W - lab - 32, bh = 14, H2 = rows.length * bh + 4, mx = rows[0][1], f = v => v.toFixed(1);
-  g += `<svg class="phch" viewBox="0 0 ${W} ${H2}" width="100%" role="img" aria-label="Bedrock by type, ${esc(where)}">`;
-  rows.forEach(([k, v], j) => { const e = CATCOL.GEO_LITH[k] || ['Other', '#ccc'], y = 2 + j * bh, w = pw * v / mx, t = v < 1 ? '<1' : Math.round(v);
-    g += `<g><text x="${lab - 5}" y="${y + 10}" text-anchor="end" font-size="8.5" fill="#C9D4E2">${esc(e[0].replace(/ \(.*\)/, ''))}</text>` +
-      `<rect x="${lab}" y="${y + 2.5}" width="${f(Math.max(1, w))}" height="9" rx="1.5" fill="${e[1]}" stroke="#12223A" stroke-width=".5"/><text x="${f(lab + w + 4)}" y="${y + 10}" font-size="8.5" fill="#E3EAF2">${esc(String(t))}%</text>` +
-      `<title>${esc(e[0])}: ${t}% of ${byMain ? 'the cells (by main type)' : 'the mapped area'} in ${esc(where)}</title></g>`; });
-  return g + `</svg><p class="phnote">${byMain ? 'Share of cells by their main bedrock type (the area split is given only for the 7 and 49 sq mi cells here)' : (n === 1 ? 'Share of the mapped area' : 'Share of the mapped area, averaged over ' + nCells(n) + ',')} in ${esc(where)}${where === 'the map view' ? ' (zoom or pan to change it, or select cells)' : ''}. USGS State Geologic Map Compilation.</p></div>`; }
+  g += hbars(rows.map(([k, v]) => { const e = CATCOL.GEO_LITH[k] || ['Other', '#ccc'], t = v < 1 ? '<1' : Math.round(v);
+    return [e[0].replace(/ \(.*\)/, ''), e[1], v, t + '%', `${e[0]}: ${t}% of ${byMain ? 'the cells (by main type)' : 'the mapped area'} in ${where}`]; }), 'Bedrock by type, ' + where);
+  return g + `<p class="phnote">${byMain ? 'Share of cells by their main bedrock type (the area split is given only for the 7 and 49 sq mi cells here)' : (n === 1 ? 'Share of the mapped area' : 'Share of the mapped area, averaged over ' + nCells(n) + ',')} in ${esc(where)}${where === 'the map view' ? ' (zoom or pan to change it, or select cells)' : ''}. USGS State Geologic Map Compilation.</p></div>`; }
 /* one horizontal bar chart per question. rows: [label, color, value, value text, tooltip, species key (click to map it)] */
-function vizBars(rows, aria){ const W = 320, lab = 174, pw = W - lab - 46, bh = 14, H2 = rows.length * bh + 4, mx = Math.max(...rows.map(r => r[2]), 1e-9), f = v => v.toFixed(1), sel = S.m.find && S.m.find.ls;
+function hbars(rows, aria){ const mx = Math.max(...rows.map(r => r[2]), 1e-9), sel = S.m.find && S.m.find.ls;
+  return `<div class="hb" role="list" aria-label="${esc(aria)}">` + rows.map(([name, col, v, txt, tip, sp]) => { const on = sp && sel === sp, w = v > 0 ? Math.max(.8, v / mx) : 0;
+    return `<div class="hbr${sp ? ' hbc' : ''}${on ? ' on' : ''}" role="listitem"${sp ? ` data-cultsp="${esc(sp)}"` : ''} title="${esc(tip || name + ': ' + txt)}"><span class="hbl">${esc(name)}</span>` +
+      `<span class="hbt"><i style="width:calc((100% - 70px) * ${w.toFixed(4)});background:${col}"></i><b>${esc(txt)}</b></span></div>`; }).join('') + '</div>'; }
+function vizBars(rows, aria){ return hbars(rows, aria); const W = 320, lab = 174, pw = W - lab - 46, bh = 14, H2 = rows.length * bh + 4, mx = Math.max(...rows.map(r => r[2]), 1e-9), f = v => v.toFixed(1), sel = S.m.find && S.m.find.ls;
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H2}" width="100%" role="img" aria-label="${esc(aria)}">`;
   rows.forEach(([name, col, v, txt, tip, sp], j) => { const y = 2 + j * bh, w = pw * v / mx, nm = String(name), on = sp && sel === sp;
     g += `<g${sp ? ` data-cultsp="${esc(sp)}" style="cursor:pointer"` : ''}>${sp ? `<rect x="0" y="${y}" width="${W}" height="${bh}" fill="${on ? '#22385A' : 'transparent'}"/>` : ''}<text x="${lab - 5}" y="${y + 10}" text-anchor="end" font-size="8.5" fill="${on ? '#FFFFFF' : '#C9D4E2'}">${esc(nm.length > 36 ? nm.slice(0, 35) + '…' : nm)}</text>` +
@@ -2686,7 +2688,7 @@ function acqBlock(){ if (S.ext !== 'corr') return '<p class="none">Land protecti
     `<p class="phstat" id="acqstat" role="status">${esc(acqStatus())}</p>`; }
 function acqChart(){ if (!ACQ || ACQ.st !== 'done') return '<p class="phstat">The chart appears once the tracts have loaded.</p>';
   const ys = []; for (let y = ACQ.y0; y <= ACQ.y1; y++) ys.push(y); const sel = S.acqYr || ACQ.y1;
-  const W = 320, H = 150, pl = 34, pr = 34, pt = 12, pb = 18, pw = W - pl - pr, ph = H - pt - pb, bw = pw / ys.length, f = v => v.toFixed(1);
+  const W = 272, H = 150, pl = 34, pr = 34, pt = 12, pb = 18, pw = W - pl - pr, ph = H - pt - pb, bw = pw / ys.length, f = v => v.toFixed(1);
   const per = ys.map(y => (ACQ.by.get(y) || {ac:0}).ac); let c = 0; const cum = per.map(v => c += v);
   const mx = Math.max(1, ...per), sp = [100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000].find(s => mx / s <= 4) || 50000, top = Math.ceil(mx / sp) * sp, tot = cum[cum.length - 1] || 1;
   const Y = v => pt + ph - ph * v / top, Yc = v => pt + ph - ph * v / tot, X = i => pl + bw * i + bw / 2;
