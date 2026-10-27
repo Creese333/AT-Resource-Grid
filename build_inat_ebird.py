@@ -24,7 +24,8 @@ its previous summaries are kept and the rest of the build goes on.
      person active in a square mile on one date. eBird checklists within VIS_MERGE_M of an iNaturalist observer-day on the same date
      and square mile count as the same party (the two systems' user names cannot be matched); EDDMapS has no observer names, so each
      report is a report-day, merged the same way. Long-distance hikers: observers whose records span at least LONG_MI trail miles
-     within LONG_DAYS days, on at least LONG_MIN_DAYS different days (thru- and section-hikers moving along the trail). Each run saves compact observer-day files (visits_inat.csv.gz, visits_ebird.csv.gz, visits_edd.csv.gz, with
+     within LONG_DAYS days, on at least LONG_MIN_DAYS different days (thru- and section-hikers moving along the trail). Off-trail
+     share: iNaturalist and eBird records more than OFF_M from the mapped A.T. centerline (side trails and shelters count as off). Each run saves compact observer-day files (visits_inat.csv.gz, visits_ebird.csv.gz, visits_edd.csv.gz, with
      observer names replaced by short one-way codes) so a run that rebuilds only one dataset can still combine all three.
 Standard library only.
 """
@@ -71,6 +72,33 @@ VIS_FILE = lambda k: os.path.join(HERE, f'visits_{k}.csv.gz')
 VIS_MERGE_M = 250               # same date and square mile, this close: one party across systems
 LONG_MI, LONG_DAYS, LONG_MIN_DAYS = 100, 30, 4   # records spanning 100+ trail miles within 30 days, on 4+ days: a long-distance hiker
 VIS_FROM = 2010                 # first year in the yearly visitation counts
+OFF_M = 100                     # records farther than this from the A.T. centerline are off-trail
+TRAIL_IDX = None                # A.T. centerline segments by 0.01 degree square, set in main()
+
+
+def trail_index(parts):
+    idx = defaultdict(list)
+    for line in parts:
+        for (a, b), (c, d) in zip(line, line[1:]):
+            for i in range(int(math.floor(min(a, c) * 100)), int(math.floor(max(a, c) * 100)) + 1):
+                for j in range(int(math.floor(min(b, d) * 100)), int(math.floor(max(b, d) * 100)) + 1):
+                    idx[(i, j)].append((a, b, c, d))
+    return idx
+
+
+def off_trail(la, lo):
+    """True when the point is more than OFF_M from the centerline (only the nearby 0.01 degree squares are searched)"""
+    if not TRAIL_IDX:
+        return False
+    kx = math.cos(math.radians(la)) * 111320; ky = 111320; best = OFF_M * OFF_M + 1; i0, j0 = int(math.floor(la * 100)), int(math.floor(lo * 100))
+    for i in (i0 - 1, i0, i0 + 1):
+        for j in (j0 - 1, j0, j0 + 1):
+            for a, b, c, d in TRAIL_IDX.get((i, j), ()):
+                ax, ay, bx, by = (b - lo) * kx, (a - la) * ky, (d - lo) * kx, (c - la) * ky
+                dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
+                u = 0 if not L2 else max(0, min(1, -(ax * dx + ay * dy) / L2)); x, y = ax + u * dx, ay + u * dy
+                best = min(best, x * x + y * y)
+    return best > OFF_M * OFF_M
 VISITS = {'inat': {}, 'ebird': {}, 'edd': []}   # (observer, date, hex id) -> [lat, lon, records]; EDDMapS: [(date, hex id, lat, lon)]
 
 
@@ -434,9 +462,9 @@ def summarize(kind, zpath, grids, names):
         unit = uid.setdefault(ukey, len(uid)) if d else None
         if len(d) == 10 and who:      # visitation: observer-days by square mile
             g0 = 'huc' if 'huc' in hits else 'corr'; hid = grids[g0]['hex']['id'][hits[g0]['hex']]
-            e = VISITS[kind].get((who, d, hid))
-            if e is None: VISITS[kind][(who, d, hid)] = [round(la, 5), round(lo, 5), 1]
-            else: e[2] += 1
+            e = VISITS[kind].get((who, d, hid)); off = 1 if off_trail(la, lo) else 0
+            if e is None: VISITS[kind][(who, d, hid)] = [round(la, 5), round(lo, 5), 1, off]
+            else: e[2] += 1; e[3] += off
         w = wid.setdefault(who, len(wid)) if who else None
         if sp and sp not in keys and r.get('speciesKey'):
             keys[sp] = r['speciesKey']
@@ -689,9 +717,9 @@ def vis_save(kind):
         if kind == 'edd':
             w.writerow(['date', 'hex', 'lat', 'lon']); w.writerows(sorted(VISITS['edd']))
         else:
-            w.writerow(['who', 'date', 'hex', 'lat', 'lon', 'records'])
-            for (who, d, hid), (la, lo, n) in sorted(VISITS[kind].items()):
-                w.writerow([hashlib.sha1(who.encode()).hexdigest()[:12], d, hid, la, lo, n])
+            w.writerow(['who', 'date', 'hex', 'lat', 'lon', 'records', 'off_trail'])
+            for (who, d, hid), (la, lo, n, off) in sorted(VISITS[kind].items()):
+                w.writerow([hashlib.sha1(who.encode()).hexdigest()[:12], d, hid, la, lo, n, off])
     print(f'visits_{kind}.csv.gz: {len(VISITS[kind]):,} rows, {os.path.getsize(VIS_FILE(kind)) // 1024:,} KB', flush=True)
 
 
@@ -703,7 +731,7 @@ def vis_load(kind):
             if kind == 'edd':
                 VISITS['edd'] = [(d, h, float(a), float(b)) for d, h, a, b in r]
             else:
-                VISITS[kind] = {(who, d, h): [float(a), float(b), int(n)] for who, d, h, a, b, n in r}
+                VISITS[kind] = {(x[0], x[1], x[2]): [float(x[3]), float(x[4]), int(x[5]), int(x[6]) if len(x) > 6 else 0] for x in r}
         print(f'visits_{kind}.csv.gz read: {len(VISITS[kind]):,} rows (from an earlier run)', flush=True)
     except Exception as e:
         print(f'visits_{kind}.csv.gz not read ({e}): visitation leaves out {kind}', flush=True)
@@ -722,8 +750,8 @@ def build_visits(grids):
     near = lambda a, b: math.hypot((a[0] - b[0]) * 111320, (a[1] - b[1]) * 111320 * math.cos(math.radians(a[0]))) <= VIS_MERGE_M
     day = defaultdict(list)                                     # (date, hex) -> [[lat, lon, party, system, records], ...]
     for sysn in ('inat', 'ebird'):
-        for (who, d, h), (la, lo, n) in VISITS[sysn].items():
-            day[(d, h)].append([la, lo, P(sysn + ':' + who), sysn, n])
+        for (who, d, h), (la, lo, n, off) in VISITS[sysn].items():
+            day[(d, h)].append([la, lo, P(sysn + ':' + who), sysn, n, off])
     merged = Counter()
     for P_ in day.values():                                     # eBird parties next to an iNaturalist party: the same people
         ins = [p for p in P_ if p[3] == 'inat']
@@ -735,7 +763,7 @@ def build_visits(grids):
     for d, h, la, lo in VISITS['edd']:                           # EDDMapS reports: report-days unless next to a party
         P_ = day[(d, h)]; q = next((x for x in P_ if near((la, lo), x)), None)
         if q: merged['EDDMapS reports with another party'] += 1; continue
-        P_.append([la, lo, P(f'edd:{d}:{h}:{len(P_)}'), 'edd', 0])
+        P_.append([la, lo, P(f'edd:{d}:{h}:{len(P_)}'), 'edd', 0, 0])
     print('visitation: ' + ', '.join(f'{v:,} {k}' for k, v in merged.items()), flush=True)
     track = defaultdict(dict)                                   # party -> {date ordinal: [mile sum, n]}
     for (d, h), P_ in day.items():
@@ -744,7 +772,7 @@ def build_visits(grids):
         o = date.fromisoformat(d).toordinal()
         for p in P_:
             if p[3] == 'edd': continue
-            t = track[p[-1] if len(p) > 5 else p[2]].setdefault(o, [0.0, 0]); t[0] += m; t[1] += 1
+            t = track[p[-1] if len(p) > 6 else p[2]].setdefault(o, [0.0, 0]); t[0] += m; t[1] += 1
     long_ = set()                                               # (party, date ordinal) of long-distance hiking days
     for who, T in track.items():
         if len(T) < LONG_MIN_DAYS: continue
@@ -757,12 +785,12 @@ def build_visits(grids):
     print(f'visitation: {len(pid):,} observers and report spots, {len({w for w, _ in long_}):,} long-distance hikers over {len(long_):,} days', flush=True)
     idx = {g: {lv: {i: c for c, i in enumerate(L[lv]['id'])} for lv in L} for g, L in grids.items()}
     acc = {g: {lv: {} for lv in L} for g, L in grids.items()}
-    new = lambda: {'obs': {'inat': set(), 'ebird': set()}, 'all': set(), 'edd': 0, 'pd': set(), 'sys': {'inat': set(), 'ebird': set()}, 'rec': Counter(), 'ld': set()}
+    new = lambda: {'obs': {'inat': set(), 'ebird': set()}, 'all': set(), 'edd': 0, 'pd': set(), 'sys': {'inat': set(), 'ebird': set()}, 'rec': Counter(), 'ld': set(), 'off': 0}
     for (d, h), P_ in day.items():
         parts = h.split('-'); ids = {'hex': h, 'cog': '-'.join(parts[:4]), 'wheel': '-'.join(parts[:3])}
         o = date.fromisoformat(d).toordinal()
         for p in P_:
-            who = p[-1] if len(p) > 5 else p[2]; k = who * 1000000 + o
+            who = p[-1] if len(p) > 6 else p[2]; k = who * 1000000 + o
             for g in grids:
                 for lv in grids[g]:
                     c = idx[g][lv].get(ids[lv])
@@ -772,7 +800,7 @@ def build_visits(grids):
                     a['pd'].add(k)
                     if p[3] == 'edd':
                         a['edd'] += 1; continue
-                    a['obs'][p[3]].add(p[2]); a['all'].add(who); a['sys'][p[3]].add(p[2] * 1000000 + o); a['rec'][p[3]] += p[4]
+                    a['obs'][p[3]].add(p[2]); a['all'].add(who); a['sys'][p[3]].add(p[2] * 1000000 + o); a['rec'][p[3]] += p[4]; a['off'] += p[5]
                     if (who, o) in long_: a['ld'].add(k)
     this = date.today().year; last3 = {str(y) for y in range(this - 3, this)}
     out = {}
@@ -791,7 +819,8 @@ def build_visits(grids):
                 v = {'VIS_OBSR': len(a['all']), 'VIS_SRC': [len(a['obs']['inat']), len(a['obs']['ebird']), a['edd']], 'VIS_OD': n,
                      'VIS_OD_YR': round(sum(yrs[int(y)] for y in last3) / 3, 1), 'VIS_PEAK': (max(range(12), key=lambda m: mons[m]) + 1) if n else None,
                      'VIS_BUSY': max(days.values()) if days else 0, 'VIS_LD': len(a['ld']),
-                     'VIS_RPD': round((ri + re_) / (pi + pe), 2) if pi + pe else None, 'VIS_RPD_SRC': [ri, pi, re_, pe]}
+                     'VIS_RPD': round((ri + re_) / (pi + pe), 2) if pi + pe else None, 'VIS_RPD_SRC': [ri, pi, re_, pe],
+                     'VIS_OFF': round(100 * a['off'] / (ri + re_), 1) if ri + re_ else None, 'VIS_OFFN': a['off']}
                 if not (g == 'huc' and lv == 'hex'):    # the per-year, per-month and busiest-day lists are left off the HUC10 square miles
                     v['VIS_OD_Y'] = [x for y in sorted(yrs) for x in (y, yrs[y])]
                     v['VIS_OD_M'] = mons; v['VIS_LD_M'] = ldm
@@ -801,7 +830,7 @@ def build_visits(grids):
                     F[k2].append(x)
             out[g][lv] = {'ids': ids, 'f': dict(F)}
             print(f'   visitation {g} {lv}: {len(ids)} cells', flush=True)
-    return out, {'merge_m': VIS_MERGE_M, 'long_mi': LONG_MI, 'long_days': LONG_DAYS, 'long_min_days': LONG_MIN_DAYS, 'sources': [k for k in ('inat', 'ebird', 'edd') if VISITS[k]]}
+    return out, {'merge_m': VIS_MERGE_M, 'off_m': OFF_M, 'long_mi': LONG_MI, 'long_days': LONG_DAYS, 'long_min_days': LONG_MIN_DAYS, 'sources': [k for k in ('inat', 'ebird', 'edd') if VISITS[k]]}
 
 
 def pack(themes):
@@ -878,7 +907,9 @@ def load_huc():
 def main():
     which = (sys.argv[1] if len(sys.argv) > 1 else 'inat').lower()
     kinds = ['inat', 'ebird'] if which == 'both' else [which]
+    global TRAIL_IDX
     D, levels = load_grid(); huc = load_huc()
+    TRAIL_IDX = trail_index(D.get('trail') or [])
     grids = {'corr': levels}
     if huc:
         grids['huc'] = huc
