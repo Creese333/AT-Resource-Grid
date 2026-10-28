@@ -4,7 +4,7 @@
 
 ![The A.T. Resource Grid dashboard](images/dashboard.png)
 
-Built for the National Park Service Appalachian National Scenic Trail park office (APPA), the Appalachian Trail Conservancy and the trail-maintaining clubs, to screen where to look more closely: restoration targets, invasive species and forest pests, birds, vegetation, geology, soils, wetlands, facilities, historic resources, visitation, land administration, weather and climate, and where the trail is most vulnerable to damage. Pick a question, a measure and a stretch of trail; select cells for their details and export them to CSV or Excel.
+Built for the Appalachian National Scenic Trail to screen where to look more closely: restoration targets, invasive species and forest pests, birds, vegetation, geology, soils, wetlands, facilities, historic resources, visitation, land administration, weather and climate, and where the trail is most vulnerable to damage. Pick a question, a measure and a stretch of trail; select cells for their details and export them to CSV or Excel.
 
 > The summaries are generalized to the grid and are for screening and planning. They are not site assessments, boundary determinations or a trail condition survey.
 
