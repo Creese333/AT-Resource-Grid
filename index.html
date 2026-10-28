@@ -2108,6 +2108,12 @@ function tvBox(lv, cells){ let b = `<div class="sec" style="--hue:${HUE.tvul}"><
     return soilRow(`${lab} <span style="color:var(--muted)">(${txt}${many ? ', average' : ''})</span>`, `${fmt(avg(ps.map(p => p[2])), 0)} / ${w}`); }).join('') + '</div>';
   return b + `<p class="none" style="font-size:13.5px;margin-top:8px">${tvNote()}</p></div>`; }
 const tvSection = (lv, c) => tvBox(lv, [c]);
+/* the top of the bar chart along the trail for the slope measures: a little over the 95th percentile of the cells, rounded up to 5,
+   so the differences between stretches show (the few taller bars are drawn to the top and marked) */
+const TVTOP = {};
+function tvTop(lv, f){ const key = f + '|' + lv + '|' + S.ext, t = D.themes.slope && D.themes.slope[lv]; if (!t || !t.f[f]) return 100;
+  if (TVTOP[key] && TVTOP[key].lev === D.levels[lv]) return TVTOP[key].v; const a = t.f[f].filter(v => v != null).sort((p, q) => p - q);
+  const v = a.length ? Math.max(5, Math.ceil(a[Math.floor(.95 * (a.length - 1))] * 1.1 / 5) * 5) : 100; TVTOP[key] = {lev:D.levels[lv], v}; return v; }
 /* Model weights: one row per factor, a number from 0 to 50; Reset puts back the recommended weights */
 function tvWeightsHTML(){ const tot = TVDEF.reduce((t, d) => t + (+TVW[d[0]] || 0), 0);
   return '<div class="tvw">' + TVDEF.map(([k, lab, w0, th, note]) => `<label title="${esc(note)}"><span>${esc(lab)}</span><input type="range" min="0" max="50" step="5" value="${TVW[k]}" data-tvw="${k}" aria-label="${esc(lab)} weight"><b>${TVW[k]}</b></label>`).join('') +
@@ -2549,9 +2555,9 @@ const Q = [
  {id:'tvul', th:'slope', hue:HUE.tvul, ramp:'tvul', title:'Where is the trail most vulnerable to damage?',
   use:'A model, like the restoration score, that ranks where the treadway is most likely to erode, rut or wash out. It adds points for trail grade and alignment with the fall line (measured along the A.T. centerline from USGS 3DEP lidar elevation), soil erosion and rutting hazard (NRCS), heavy rain and the 25-year storm (NOAA), and use hot spots: parking areas, shelters, campsites and vistas, where hikers gather and wear spreads (A.T. facilities inventory). Change the weights under Model weights. Select a cell to see what drives its score.',
   m:[{id:'score', label:'Vulnerability score', int:1, brkP:[.4,.7,.85,.95], fn:(lv,c)=>tvScore(lv,c), none:'No trail here', note:'0 to 100: points from each factor, scaled to 100 over the factors with data. Higher means more likely to erode, rut or wash out.'},
-     {id:'grade', label:'Average trail grade', hideFn:() => !tvSlopeOn(), th:'slope', f:'TS_GRADE', unit:'%', d:0, none:'No trail here', note:'Average grade along the trail, from USGS 3DEP elevation every 10 m, smoothed over 30 m.'},
-     {id:'g10', label:'Trail over 10% grade', hideFn:() => !tvSlopeOn(), th:'slope', f:'TS_G10', unit:'%', d:0, zero:1, zeroText:'None', none:'No trail here', note:'Share of the trail steeper than 10%, where soil loss rises sharply.'},
-     {id:'fall', label:'Trail on the fall line', hideFn:() => !tvSlopeOn(), th:'slope', f:'TS_FALL', unit:'%', d:0, zero:1, zeroText:'None', none:'No trail here', note:'Share of the trail running within 22.5° of the fall line on ground steeper than 5%: water runs down the tread instead of off it.'}]},
+     {id:'grade', label:'Average trail grade', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_GRADE'), th:'slope', f:'TS_GRADE', unit:'%', d:0, none:'No trail here', note:'Average grade along the trail, from USGS 3DEP elevation every 10 m, smoothed over 30 m.'},
+     {id:'g10', label:'Trail over 10% grade', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_G10'), th:'slope', f:'TS_G10', unit:'%', d:0, zero:1, zeroText:'None', none:'No trail here', note:'Share of the trail steeper than 10%, where soil loss rises sharply.'},
+     {id:'fall', label:'Trail on the fall line', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_FALL'), th:'slope', f:'TS_FALL', unit:'%', d:0, zero:1, zeroText:'None', none:'No trail here', note:'Share of the trail running within 22.5° of the fall line on ground steeper than 5%: water runs down the tread instead of off it.'}]},
  {id:'wx', th:'wx', hue:HUE.wx, ramp:'wx', title:'What are the weather and climate here?',
   use:'Climate normals and damaging weather from authoritative sources: PRISM 1991–2020 normals (Oregon State University, the official climate data of the U.S. Department of Agriculture) for precipitation and temperature; NOAA nClimGrid-Daily for the frost-free season and heavy-rain days; NOAA Atlas 14 for the 25-year storm; and the NOAA Storm Events Database for damaging wind and winter storms since 1996. Wind comes from gridMET, a research dataset. Use it to plan work seasons, size drainage for big storms, and see where storms most often damage the trail. Play the months or years under Visualizations.',
   m:[wxM({id:'ppt', wxKey:'WX_PPT', label:'Annual precipitation', wxRamp:'wet', wxFloor:1, wxAnim:'mon', wxMonF:'WX_PPT_M', showFn:wxIn, d:1, fn:(lv,c)=>S.wxMon != null ? wxMonVal(lv,c,'WX_PPT_M') : val('wx','WX_PPT',lv,c),
