@@ -1,0 +1,43 @@
+# Builds trail_slope.json (A.T. corridor) and trail_slope_huc10.json (HUC10 shell) for "Where is the trail most vulnerable to damage?":
+# treadway grade, side slope and slope alignment along the A.T. centerline, from USGS 3DEP elevation (1 m lidar where available).
+# The centerline is at_centerline.geojson / .zip / .gpkg in this repository if there is one, otherwise the public ArcGIS Online item below.
+# Run it from the Actions tab ("Run workflow") after the centerline changes; it also runs once a year, on 10 February.
+name: Trail slope
+
+on:
+  schedule:
+    - cron: '17 10 10 2 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      CENTERLINE_ITEM: 71975f7fc14347c7a6c1059fdb593f91
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install geopandas pyogrio shapely pyproj rasterio numpy
+      - name: Build trail_slope.json
+        run: python build_trail_slope.py
+      - name: Commit if changed
+        run: |
+          git config user.name  "trail-slope-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for f in trail_slope.json trail_slope_huc10.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          git diff --cached --quiet && exit 0
+          git commit -m "Update trail slope summaries"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1
