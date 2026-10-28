@@ -543,6 +543,7 @@ h4.mgrp{margin:12px 0 8px;padding-top:10px;border-top:1px solid #2E4460;font-siz
       <tr><td>Wetlands</td><td>USFWS National Wetlands Inventory, all 14 trail states</td><td>Wetland acres in each cell by type, and the part on A.T. lands. Small, forested and seasonal wetlands are often missed. “Possibly sensitive” flags likely bogs, fens, seeps and vernal pools for a field check. Not a delineation.</td></tr>
       <tr><td>Restoration targets</td><td>Built in this page from the layers above</td><td>Two 0 to 100 scores for grasslands and forests. How they are scored is set out under Restoration targets below.</td></tr>
       <tr><td>Flowering</td><td>iNaturalist research-grade records, built weekly, with newer records fetched live</td><td>Nearly fifty plants: trail-wide, A.T. Seasons, northern and southern indicators, and AMC focal species. First, peak and season length follow USA National Phenology Network measures, pooled across years. The flowering calendar by latitude follows the USA-NPN calendar view: the middle 80% and 50% of flowering-record dates and the median for each band of latitude, from 2010 on; bands with fewer than 20 records are not drawn. These are dates of photographs of the plant in flower, not measured flowering periods. Records follow hikers, so compare years by eye as leads for field checks; for measured change see A.T. Seasons (Nature’s Notebook).</td></tr>
+      <tr><td>Weather and climate</td><td>PRISM 1991–2020 normals, 800 m (PRISM Group, Oregon State University); NOAA nClimGrid-Daily, 1991–2020; NOAA Atlas 14; NOAA Storm Events Database, 1996 to the last full year; gridMET wind (University of Idaho), 1991–2020. Rebuilt each January; storm events every quarter</td><td>Normals, frost-free season, heavy-rain days, the 25-year storm and wind are sampled on a regular grid of points in each cell and averaged. PRISM and Atlas 14 resolve the mountains well; nClimGrid-Daily and gridMET are about 4 km, so the highest ridges are smoothed. gridMET is a research dataset, not an official record, and understates ridge-top wind. Storm events with a location are placed where they happened (tornadoes along their path); events reported for a whole National Weather Service forecast zone or county count in every cell there, so those measures show where events are common rather than exact spots, and a cell's count is not a count of separate storms across the trail.</td></tr>
       <tr><td>Visitation</td><td>iNaturalist, eBird and EDDMapS records (the same downloads as above), counted as observer-days: one person active in a square mile on one day</td><td>An index of naturalist and birder activity, not a count of visitors; it follows the "user-day" method used to track park visitation from photo and social-media posts, and validated against counters and official counts in several studies (see Sources). An eBird checklist within 250 m of an iNaturalist observer on the same day and square mile counts as the same party; EDDMapS reports are report-days. The visitation index divides each cell's observer-days by the average cell's in the same year, to take out the growth in iNaturalist use. Long-distance hikers: records spanning 100+ trail miles within 30 days, on 4+ days. Off-trail: records more than 100 m from the mapped centerline.</td></tr>
       <tr><td>Geology</td><td>USGS State Geologic Map Compilation (Horton, San Juan and Stoeser, 2017, <a href="https://doi.org/10.5066/F7WH2N65" target="_blank" rel="noopener">doi.org/10.5066/F7WH2N65</a>) and NPS Geologic Resources Inventory geologic map footprints (July 2024), rebuilt yearly</td><td>Bedrock type, carbonate and mafic/ultramafic rock, and age come from the seamless state-map compilation, mostly 1:100,000 to 1:500,000 scale, so small units and exact contacts are not shown. Map coverage measures come from approximate footprints of the published and in-progress geologic maps the GRI found around the trail; in the HUC10 watersheds further from the trail, some maps may be missing.</td></tr>
       <tr><td>Plants of cultural significance</td><td>iNaturalist research-grade records in the quarterly summary, matched to cultural_plants.csv (136 plants)</td><td>Compiled from the Greenbelt Indigenous Botanical Survey (Plenty Canada, J. Dolan and Y. Z. Ni), Mooney 1891, Tantaquidgeon 1942, the Haudenosaunee Confederacy and Cherokee and Wabanaki sources. Not exhaustive: the Native American Ethnobotany database and the longer ethnographies are not yet included. Ginseng, goldenseal, ramps and lady’s slippers are shown only at the 49 sq mi scale. A starting point for consultation, not a statement of any nation’s knowledge.</td></tr>
@@ -604,6 +605,11 @@ h4.mgrp{margin:12px 0 8px;padding-top:10px;border-top:1px solid #2E4460;font-siz
       <li><b>Hexagon grid.</b> Developed by the University of Kansas, with extensions by NatureServe. <a href="https://github.com/NatureServe/nested-hexagon-framework" target="_blank" rel="noopener">github.com/NatureServe/nested-hexagon-framework</a></li>
       <li><b>iNaturalist.</b> iNaturalist contributors, iNaturalist (2026). iNaturalist Research-grade Observations. iNaturalist.org. Occurrence dataset <a href="https://doi.org/10.15468/ab3s5x" target="_blank" rel="noopener">doi.org/10.15468/ab3s5x</a>, accessed via GBIF.org.</li>
       <li><b>eBird.</b> Cornell Lab of Ornithology. EOD, eBird Observation Dataset. Occurrence dataset <a href="https://doi.org/10.15468/aomfnb" target="_blank" rel="noopener">doi.org/10.15468/aomfnb</a>, accessed via GBIF.org.</li>
+      <li><b>Weather and climate.</b> PRISM Group, Oregon State University (2024). PRISM 30-year normals, 1991–2020, 800 m. <a href="https://prism.oregonstate.edu" target="_blank" rel="noopener">prism.oregonstate.edu</a>.
+        Durre, I., Arguez, A., Schreck, C. J., Squires, M. F. and Vose, R. S. (2022). Daily high-resolution temperature and precipitation fields for the contiguous United States from 1951 to present. <i>Journal of Atmospheric and Oceanic Technology</i> 39: 1837–1855; dataset NOAA nClimGrid-Daily, <a href="https://doi.org/10.25921/c4gt-r169" target="_blank" rel="noopener">doi.org/10.25921/c4gt-r169</a>.
+        Bonnin, G. M., Martin, D., Lin, B., Parzybok, T., Yekta, M. and Riley, D. (2006, revised 2004–2019). NOAA Atlas 14, Precipitation-Frequency Atlas of the United States, volumes 2, 9 and 10. NOAA National Weather Service. <a href="https://hdsc.nws.noaa.gov/pfds/" target="_blank" rel="noopener">hdsc.nws.noaa.gov/pfds</a>.
+        NOAA National Centers for Environmental Information. Storm Events Database, from NWS Storm Data. <a href="https://www.ncei.noaa.gov/stormevents/" target="_blank" rel="noopener">ncei.noaa.gov/stormevents</a>.
+        Abatzoglou, J. T. (2013). Development of gridded surface meteorological data for ecological applications and modelling. <i>International Journal of Climatology</i> 33: 121–131. <a href="https://doi.org/10.1002/joc.3413" target="_blank" rel="noopener">doi.org/10.1002/joc.3413</a>.</li>
       <li><b>Visitation method.</b> Wood, S. A., Guerry, A. D., Silver, J. M. and Lacayo, M. (2013). Using social media to quantify nature-based tourism and recreation. <i>Scientific Reports</i> 3: 2976. <a href="https://doi.org/10.1038/srep02976" target="_blank" rel="noopener">doi.org/10.1038/srep02976</a>.
         Tenkanen, H., Di Minin, E., Heikinheimo, V. and others (2017). Instagram, Flickr, or Twitter: assessing the usability of social media data for visitor monitoring in protected areas. <i>Scientific Reports</i> 7: 17615.
         Fisher, D. M., Wood, S. A., White, E. M., Blahna, D. J., Lange, S., Weinberg, A. and others (2018). Recreational use in dispersed public lands measured using social media data and on-site counts. <i>Journal of Environmental Management</i> 222: 465–474. <a href="https://doi.org/10.1016/j.jenvman.2018.05.045" target="_blank" rel="noopener">doi.org/10.1016/j.jenvman.2018.05.045</a>.
@@ -859,7 +865,8 @@ const RAMP = {
   phen:['#FFF06A','#FFE014','#F2C200','#C99A00','#8A6800'],
   hist:['#E2CFA4','#CBAE74','#AE8D4E','#876A33','#5A4622'],
   cult:['#E0EBCB','#BCD591','#92BA58','#5E8C31','#36561A'],
-  geo:['#E1E6EA','#B9C4CE','#8C9DAD','#5F7488','#38495B']
+  geo:['#E1E6EA','#B9C4CE','#8C9DAD','#5F7488','#38495B'],
+  wx:['#DDEAF5','#A9C8E4','#6FA0CF','#3F76AE','#1F4E80']
 };
 const ZERO = '#E3E7E1';
 const CATCOL = {
@@ -904,9 +911,10 @@ CATCOL.GEO_NEWEST = [['2010 or later','#38495B'],['1990 to 2009','#6E8296'],['19
 ['GEO_LITH','GEO_AGE','MAP_BEST','SURF','GIS_BEST','GEO_NEWEST'].forEach(k => { D.cats[k] = CATCOL[k].map(e => e[0]); });
 CATCOL.VIS_PEAK = [['January','#3E5C8A'],['February','#5175A8'],['March','#6FA8A0'],['April','#7DBF5E'],['May','#A8CF45'],['June','#E3D33B'],['July','#F2B233'],['August','#EE8F2E'],['September','#D9662B'],['October','#B8472E'],['November','#8C4A5E'],['December','#4B4F7A']];
 D.cats.VIS_PEAK = CATCOL.VIS_PEAK.map(e => e[0]);
+CATCOL.WX_WETM = CATCOL.VIS_PEAK.map(e => [e[0], e[1]]); D.cats.WX_WETM = CATCOL.WX_WETM.map(e => e[0]);
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 /* Blue Ridge color scheme */
-const HUE = {lands:'#B03A73', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94'};
+const HUE = {lands:'#B03A73', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94', wx:'#4A7FB5'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -1254,10 +1262,16 @@ function phDots(){ const on = PHQ() && !SPREADQ() && S.m.id === 'wave' && !S.m.f
   for (const p of prev) L.circleMarker(p, {renderer:PHDOTS.r, radius:1.8, stroke:false, fillColor:'#FFE600', fillOpacity:.45, interactive:false}).addTo(PHDOTS);
   for (const p of now) L.circleMarker(p, {renderer:PHDOTS.r, radius:2.6, color:'#FFB46B', weight:1, fillColor:'#FFE600', fillOpacity:1, interactive:false}).addTo(PHDOTS);
   PHDOTS.n = now.length; }
-function phTick(){ phDots(); let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', vis = S.q.id === 'eff' && S.m.id === 'od' && !!S.visYr && !S.m.find, on = acq || vis || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
+function phTick(){ phDots(); let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', vis = S.q.id === 'eff' && S.m.id === 'od' && !!S.visYr && !S.m.find, wxt = wxAnimOn() && (S.m.wxAnim === 'mon' ? S.wxMon != null : !!S.wxYr), on = acq || vis || wxt || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
   if (!t){ if (!on) return; t = document.createElement('div'); t.id = 'phtick'; t.setAttribute('aria-live', 'off'); document.getElementById('map').appendChild(t); }
   if (!on){ t.style.display = 'none'; return; }
   t.classList.toggle('acqtick', !!acq);
+  if (wxt){ const lv = dispLevel(), L_ = D.levels[lv], m = S.m; let n = 0, s = 0, k = 0;
+    for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)){ const v = m.get(lv, c); if (v == null) continue; k++; s += v; if (v > 0) n++; }
+    const where = S.sec === 'all' ? '' : ' in ' + esc(secName());
+    t.innerHTML = m.wxAnim === 'mon' ? `<b>${MONTHS_LONG[S.wxMon]}</b><span>${k ? (m.id === 'ppt' ? fmt(s / k, 1) + ' in of precipitation' : fmt(s / k, 0) + '°F mean temperature') + ' on average' + where : 'normal, 1991–2020'}</span>`
+      : `<b>${S.wxYr}</b><span>${fmt(n, 0)} ${n === 1 ? 'cell' : 'cells'} with ${WXEV[m.wxG]} events${where}</span>`;
+    t.classList.remove('acqtick'); t.style.display = 'block'; phTickPos(); return; }
   if (vis){ const lv = dispLevel(), L_ = D.levels[lv]; let n = 0; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)){ const v = visYearVal(lv, c, S.visYr); if (v) n += v; }
     t.innerHTML = `<b>${S.visYr}</b><span>${fmt(n, 0)} observer-days${S.sec === 'all' ? '' : ' in ' + esc(secName())}</span>`; t.style.display = 'block'; phTickPos(); return; }
   if (acq){ const yy = S.acqYr || ACQ.y1; let ac = 0; ACQ.by.forEach((e, y) => { if (y <= yy) ac += e.ac; });
@@ -1901,6 +1915,7 @@ document.addEventListener('click', e => { const t = e.target.closest && e.target
   const en = findIndex().get(t.dataset.cultsp); if (en) setFind(en, false); });
 if (!D.themes.geo) D.themes.geo = {};
 if (!D.themes.vis) D.themes.vis = {};
+if (!D.themes.wx) D.themes.wx = {};
 /* geologic maps and bedrock units shared by both extents: GEOT = {maps:[[id, name, year, scale, type, gis, reference, url, notes]],
    units:[[name, label, age, lithology class, age class, major lithologies, carbonate, mafic, state]], meta} */
 let GEOT = null;
@@ -1938,6 +1953,130 @@ function geoBox(lv, cells){ const many = cells.length > 1; let b = `<div class="
   b += `<p class="none" style="font-size:13.5px;margin-top:8px">Bedrock from the USGS State Geologic Map Compilation (Horton and others, 2017), compiled from the state geologic maps at 1:50,000 to 1:1,000,000 scale; for detail, use the maps listed. Map footprints from the NPS Geologic Resources Inventory are approximate${S.ext === 'huc' ? ', and maps were searched for only around the trail, so some further out may be missing' : ''}.</p>`;
   return b + '</div>'; }
 const geoSection = (lv, c) => geoBox(lv, [c]);
+/* ---------- weather and climate. Fixed classes per extent and cell size (equal steps between the 2nd and 98th percentiles),
+   the same in every month or year while an animation plays. S.wxMon: month shown (0-11) or null for the year; S.wxYr: storm year or null */
+let WXMETA = {};
+const WXRAMP = {wet:['#EEF4F9','#CFE0EF','#A7C7E3','#79A8D3','#4F86BD','#2F64A0','#1B437A'],
+  temp:['#2F5597','#5B84C2','#9DBCE0','#E9E4CF','#F3B37E','#E0774A','#B13B2C'],
+  grow:['#F3F1DA','#DCE6AE','#B8D486','#8DBD63','#62A048','#3F7F37','#255E28'],
+  wind:['#EFF0F7','#D2D6EA','#AEB5D7','#8B93C0','#6C73A8','#4F568B','#353B69'],
+  WIND:['#F2EDF7','#DCCDEA','#C1A8DA','#A47FC6','#8659AE','#683B8F','#4B2570'],
+  FLOOD:['#EAF5F7','#C6E5EB','#95CEDA','#5DB1C6','#2F90AD','#1A6E8E','#0E4D69'],
+  WINTER:['#F1F4F8','#D6DFEA','#B5C5D9','#91A9C6','#6E8BB0','#536F96','#3A5276']};
+const wxEvFmt = v => fmt(v, v > 0 && v < 1 ? 2 : v < 10 ? 1 : 0) + (S.wxYr ? '' : ' a year');
+const WXEV = {WIND:'damaging wind', FLOOD:'flooding', WINTER:'winter storm'}, WXEVK = ['WIND','FLOOD','WINTER'];
+const wxMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const wxIn = v => fmt(v, v < 10 || !Number.isInteger(v) ? 1 : 0) + ' in', wxF = v => fmt(Math.round(v), 0) + '°F', wxMph = v => fmt(v, 1) + ' mph';
+function wxNY(){ const y = WXMETA.storms_info && WXMETA.storms_info.years; return y ? y[1] - y[0] + 1 : null; }
+function wxYears(){ const y = WXMETA.storms_info && WXMETA.storms_info.years; return y ? y : null; }
+function wxMonVal(lv, c, f){ const a = val('wx', f, lv, c); return a ? a[S.wxMon] : null; }
+function wxEvYear(lv, c, g, y){ if (!has('wx', lv, c) || val('wx','WX_EV_' + g, lv, c) == null) return null; const a = val('wx','WX_EV_Y',lv,c), k = WXEVK.indexOf(g); if (!a) return D.themes.wx[lv].f.WX_EV_Y ? 0 : null;
+  for (let i = 0; i < a.length; i += 4) if (a[i] === y) return a[i + 1 + k]; return 0; }
+function wxEv(lv, c, g){ if (S.wxYr) return wxEvYear(lv, c, g, S.wxYr); const n = val('wx','WX_EV_' + g, lv, c), ny = wxNY(); return n == null || !ny ? null : n / ny; }
+/* classes: the values a measure can take at this cell size (every month or year too, so colors hold while it plays) */
+const WXB = {};
+function wxClasses(m, lv){ const key = m.id + '|' + lv + '|' + S.ext + '|' + (m.wxAnim === 'mon' && S.wxMon != null ? 'm' : m.wxAnim === 'yr' && S.wxYr ? 'y' : 'a');
+  if (WXB[key] && WXB[key].lev === D.levels[lv]) return WXB[key]; const t = D.themes.wx && D.themes.wx[lv], a = [];
+  if (t){ const L_ = D.levels[lv];
+    if (m.wxAnim === 'mon' && S.wxMon != null){ (t.f[m.wxMonF] || []).forEach(x => { if (x) x.forEach(v => v != null && a.push(v)); }); }
+    else if (m.wxAnim === 'yr' && S.wxYr){ const k = WXEVK.indexOf(m.wxG); (t.f.WX_EV_Y || []).forEach(x => { if (x) for (let i = 0; i < x.length; i += 4) a.push(x[i + 1 + k]); }); }
+    else for (let c = 0; c < L_.id.length; c++){ const v = m.get(lv, c); if (v != null) a.push(v); } }
+  const s = a.filter(v => Number.isFinite(v)).sort((p, q) => p - q); let b = [];
+  if (s.length){ const lo = s[Math.floor(.02 * (s.length - 1))], hi = s[Math.ceil(.98 * (s.length - 1))];
+    if (m.wxSkew){ const pos = s.filter(v => v > 0), q = f => pos[Math.min(pos.length - 1, Math.floor(f * pos.length))];
+      if (pos.length) b = [.3, .55, .75, .9, .97].map(f => { const v = niceNum(q(f)); return v >= 1 ? Math.round(v) : +v.toFixed(2); }); }
+    else { const st = niceNum((hi - lo) / 6) || 1, s0 = Math.floor(lo / st) * st; for (let i = 1; i <= 6; i++){ const v = +(s0 + st * i).toFixed(4); if (v < hi) b.push(v); } }
+    b = b.filter((v, i) => i === 0 || v > b[i - 1]); }
+  return (WXB[key] = {lev:D.levels[lv], b, lo:s.length ? s[0] : 0, hi:s.length ? s[s.length - 1] : 1}); }
+function wxCol(m, v, lv){ if (v == null) return null; if (m.wxSkew && v === 0) return ZERO; const B = wxClasses(m, lv).b, R = WXRAMP[m.wxRamp]; let i = 0; while (i < B.length && v > B[i]) i++;
+  return R[Math.round(i * (R.length - 1) / Math.max(1, B.length))]; }
+function wxLegend(m, lv){ const B = wxClasses(m, lv).b, R = WXRAMP[m.wxRamp], sh = m.showFn || (v => fmt(v, m.d)); if (!D.themes.wx[lv]) return '<p class="sub">The weather summaries (weather.json) have not been built yet.</p>';
+  let h = m.wxSkew ? `<div class="row"><i style="background:${ZERO}"></i><span>None reported</span></div>` : '';
+  const n = B.length + 1; for (let i = 0; i < n; i++){ const t = i === 0 ? (m.wxSkew ? `up to ${sh(B[0])}` : `under ${sh(B[0])}`) : i === n - 1 ? `${sh(B[i - 1])} or more` : `${sh(B[i - 1])} to ${sh(B[i])}`;
+    h += `<div class="row"><i style="background:${R[Math.round(i * (R.length - 1) / Math.max(1, B.length))]}"></i><span>${t}</span></div>`; }
+  if (m.wxAnim === 'mon') h += `<p class="sub">${S.wxMon != null ? MONTHS_LONG[S.wxMon] + ' average, ' : 'Annual, '}1991–2020 normal.${S.wxMon != null ? ' Classes stay the same in every month.' : ''}</p>`;
+  if (m.wxAnim === 'yr') h += `<p class="sub">${S.wxYr ? 'Events in ' + S.wxYr + '. Classes stay the same in every year.' : 'Average events a year since ' + (wxYears() || ['1996'])[0] + '.'}</p>`;
+  return h; }
+const MONTHS_LONG = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+/* the bars along the trail: temperatures sit on a floor below the lowest value, so they read as warmer and colder */
+function wxStripTop(m, lv){ const C = wxClasses(m, lv); m._floor = m.wxFloor ? Math.floor(C.lo / 5) * 5 - 5 : 0; return Math.max(1e-6, (m.wxSkew ? (C.b.length ? C.b[C.b.length - 1] * 1.3 : 1) : C.hi) - m._floor); }
+const wxM = (o) => Object.assign(o, {colorFn(v, lv){ return wxCol(this, v, lv); }, legendFn(lv){ return wxLegend(this, lv); }, stripTop(lv){ return wxStripTop(this, lv); }, stripH(v){ return Math.max(.001, v - (this._floor || 0)); }});
+/* the Weather and climate section in the cell details, for one cell or a selection (averages over the cells) */
+function wxBox(lv, cells){ const many = cells.length > 1; let b = `<div class="sec" style="--hue:${HUE.wx}"><h3>Weather and climate</h3>`;
+  if (!D.themes.wx || !D.themes.wx[lv]) return b + '<p class="none">The weather summaries (weather.json) have not been built yet.</p></div>';
+  const ci = cells.filter(c => has('wx', lv, c)); if (!ci.length) return b + `<p class="none">No weather summary for ${many ? 'the selected cells' : 'this cell'}.</p></div>`;
+  const mean = f => { const a = ci.map(c => val('wx', f, lv, c)).filter(x => x != null); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : null; };
+  const d = (v, f) => v == null ? '–' : f(v), ny = wxNY();
+  const ppt = mean('WX_PPT'), tm = mean('WX_TMEAN'), ff = mean('WX_FROSTFREE'), hi = mean('WX_TMAX7'), lo = mean('WX_TMIN1'), hv = mean('WX_HEAVY'), p25 = mean('WX_P25'), w = mean('WX_WIND'), wd = mean('WX_WINDY');
+  b += `<div class="facts"><div><b>${d(ppt, v => fmt(v, 0) + '″')}</b>precipitation a year</div><div><b>${d(tm, wxF)}</b>mean temperature</div><div><b>${d(ff, v => fmt(Math.round(v), 0))}</b>frost-free days</div></div>`;
+  b += `<div class="facts"><div><b>${d(hi, wxF)}</b>July high</div><div><b>${d(lo, wxF)}</b>January low</div><div><b>${d(hv, v => fmt(v, 1))}</b>days with 1″+ of rain</div></div>`;
+  const mm = ci.map(c => val('wx','WX_PPT_M',lv,c)).filter(Boolean); let wet = null;
+  if (mm.length){ const s = Array(12).fill(0); mm.forEach(a => a.forEach((x, i) => s[i] += x)); wet = s.indexOf(Math.max(...s)); }
+  else if (!many && val('wx','WX_WETM',lv,ci[0]) != null) wet = val('wx','WX_WETM',lv,ci[0]);
+  b += `<p>${wet != null ? `Wettest month: <b>${MONTHS_LONG[wet]}</b>. ` : ''}${p25 != null ? `A 25-year storm brings about <b>${fmt(p25, 1)} inches</b> in 24 hours. ` : ''}${w != null ? `Average wind ${fmt(w, 1)} mph, with ${fmt(wd || 0, 1)} windy days a year.` : ''}</p>`;
+  if (ny){ const ev = WXEVK.map(g => [g, mean('WX_EV_' + g)]);
+    if (ev.some(e => e[1] != null)) b += `<div class="keys nosw">${ev.map(([g, n]) => `<div><span>${WXEV[g][0].toUpperCase() + WXEV[g].slice(1)} events</span><span>${n == null ? '–' : n / ny < .1 ? (n ? fmt(n, n < 10 ? 1 : 0) + ' since ' + wxYears()[0] : 'none since ' + wxYears()[0]) : fmt(n / ny, 1) + ' a year'}</span></div>`).join('')}</div>`; }
+  b += `<p class="none" style="font-size:13.5px;margin-top:8px">${many ? 'Averages over the selected cells. ' : ''}Normals for 1991–2020 from PRISM (Oregon State University); frost-free season and heavy-rain days from NOAA nClimGrid-Daily; the 25-year storm from NOAA Atlas 14. Wind is from gridMET, a research dataset on a 4 km grid that smooths ridge-top winds, so read it as relative. Storm events from the NOAA Storm Events Database since ${(wxYears() || [1996])[0]}; an event reported for a whole forecast zone or county counts in every cell there.</p>`;
+  return b + '</div>'; }
+const wxSection = (lv, c) => wxBox(lv, [c]);
+/* Visualizations. Climograph: precipitation bars and mean temperature line by month, averaged over the cells */
+function wxClimo(lv, cells, hiMon){ const P = Array(12).fill(0), T = Array(12).fill(0); let n = 0;
+  cells.forEach(c => { const p = val('wx','WX_PPT_M',lv,c), t = val('wx','WX_TMEAN_M',lv,c); if (!p || !t) return; n++; p.forEach((x, i) => P[i] += x); t.forEach((x, i) => T[i] += x); });
+  if (!n) return ''; for (let i = 0; i < 12; i++){ P[i] /= n; T[i] /= n; }
+  const W = 272, H = 150, pl = 26, pr = 28, top = 10, base = 124, pw = W - pl - pr, bw = pw / 12, pm = Math.max(1, Math.ceil(Math.max(...P))), tlo = Math.floor(Math.min(...T, 20) / 10) * 10, thi = Math.ceil(Math.max(...T, 70) / 10) * 10;
+  const yp = v => base - (base - top) * v / pm, yt = v => base - (base - top) * (v - tlo) / (thi - tlo), f = v => v.toFixed(1);
+  let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Average precipitation and temperature by month">`;
+  for (let v = 0; v <= pm; v += pm > 6 ? 2 : 1) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(yp(v))}" y2="${f(yp(v))}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 4}" y="${f(yp(v) + 3)}" text-anchor="end" font-size="9" fill="#9FB2C8">${v}</text>`;
+  for (let v = tlo; v <= thi; v += 20) g += `<text x="${W - pr + 4}" y="${f(yt(v) + 3)}" font-size="9" fill="#F0A47A">${v}°</text>`;
+  P.forEach((v, i) => { const on = hiMon != null && hiMon === i; g += `<g><rect x="${f(pl + i * bw + 2)}" y="${f(yp(v))}" width="${f(bw - 4)}" height="${f(base - yp(v))}" rx="1.5" fill="${on ? '#FFFFFF' : HUE.wx}" opacity="${hiMon == null || on ? 1 : .55}"/>` +
+    `<text x="${f(pl + (i + .5) * bw)}" y="${base + 12}" text-anchor="middle" font-size="9" fill="${on ? '#FFFFFF' : '#C9D4E2'}"${on ? ' font-weight="700"' : ''}>${wxMonths[i][0]}</text><title>${MONTHS_LONG[i]}: ${fmt(v, 1)} in of precipitation, ${fmt(T[i], 0)}°F average</title></g>`; });
+  g += `<polyline points="${T.map((v, i) => f(pl + (i + .5) * bw) + ',' + f(yt(v))).join(' ')}" fill="none" stroke="#F0A47A" stroke-width="2" stroke-linejoin="round"/>`;
+  T.forEach((v, i) => g += `<circle cx="${f(pl + (i + .5) * bw)}" cy="${f(yt(v))}" r="${hiMon === i ? 3.6 : 2.2}" fill="#F0A47A" stroke="#12223A" stroke-width=".6"><title>${MONTHS_LONG[i]}: ${fmt(v, 0)}°F average temperature</title></circle>`);
+  g += `<text x="${pl}" y="${H - 3}" font-size="9" fill="#9FB2C8">Precipitation, inches (bars)</text><text x="${W - pr + 22}" y="${H - 3}" text-anchor="end" font-size="9" fill="#F0A47A">Mean temperature (line)</text>`;
+  return g + `</svg><p class="phstat">${fmt(P.reduce((s, x) => s + x, 0), 1)} inches a year; ${fmt(Math.min(...T), 0)}°F in ${MONTHS_LONG[T.indexOf(Math.min(...T))]} to ${fmt(Math.max(...T), 0)}°F in ${MONTHS_LONG[T.indexOf(Math.max(...T))]}${n > 1 ? `, averaged over ${nCells(n)}` : ''}.</p>`; }
+/* storm events by year: average events per cell each year (a zone-wide event counts once in each cell it covers) */
+function wxStorms(lv, cells, g){ const ys = wxYears(); if (!ys) return ''; const k = WXEVK.indexOf(g), s = new Map(); let n = 0;
+  for (let y = ys[0]; y <= ys[1]; y++) s.set(y, 0);
+  cells.forEach(c => { if (!has('wx', lv, c) || val('wx','WX_EV_' + g, lv, c) == null) return; n++; const a = val('wx','WX_EV_Y',lv,c) || []; for (let i = 0; i < a.length; i += 4) if (s.has(a[i])) s.set(a[i], s.get(a[i]) + a[i + 1 + k]); });
+  if (!n) return ''; const Y = [...s].map(([y, v]) => [y, v / n]), mx = Math.max(...Y.map(e => e[1]), .1), W = 272, H = 130, pl = 26, pr = 6, top = 8, base = 108, pw = W - pl - pr, bw = pw / Y.length, f = v => v.toFixed(1), col = WXRAMP[g][5];
+  const st = niceNum(mx / 3) || .1; let h = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(WXEV[g])} events by year">`;
+  for (let v = 0; v <= mx + 1e-9; v += st){ const y = base - (base - top) * v / mx; h += `<line x1="${pl}" x2="${W - pr}" y1="${f(y)}" y2="${f(y)}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 4}" y="${f(y + 3)}" text-anchor="end" font-size="9" fill="#9FB2C8">${fmt(v, st < 1 ? 1 : 0)}</text>`; }
+  Y.forEach(([y, v], i) => { const on = S.wxYr === y, hh = (base - top) * v / mx; h += `<g><rect x="${f(pl + i * bw + .6)}" y="${f(base - hh)}" width="${f(Math.max(.8, bw - 1.2))}" height="${f(hh)}" fill="${on ? '#FFFFFF' : col}"/><title>${y}: ${fmt(v, 2)} ${WXEV[g]} events per cell</title></g>`;
+    if (y % 5 === 0) h += `<text x="${f(pl + (i + .5) * bw)}" y="${base + 12}" text-anchor="middle" font-size="9" fill="#C9D4E2">${y}</text>`; });
+  const tot = Y.reduce((a, e) => a + e[1], 0), big = Y.slice().sort((a, b) => b[1] - a[1])[0];
+  return h + `</svg><p class="phstat">${fmt(tot / Y.length, tot / Y.length < 1 ? 2 : 1)} events a year per cell on average${n > 1 ? ` over ${nCells(n)}` : ''}; the most in ${big[0]} (${fmt(big[1], big[1] < 1 ? 2 : 1)}).</p>`; }
+/* everything else: cells by the map's classes */
+function wxClassRows(lv, cells, m){ const C = wxClasses(m, lv), B = C.b, R = WXRAMP[m.wxRamp], sh = m.showFn || (v => fmt(v, m.d)), cnt = Array(B.length + 1).fill(0); let n = 0, z = 0;
+  cells.forEach(c => { const v = m.get(lv, c); if (v == null) return; n++; if (m.wxSkew && v === 0){ z++; return; } let i = 0; while (i < B.length && v > B[i]) i++; cnt[i]++; });
+  if (!n) return []; const rows = cnt.map((k, i) => [i === 0 ? (m.wxSkew ? 'up to ' : 'under ') + sh(B[0]) : i === B.length ? sh(B[i - 1]) + ' or more' : sh(B[i - 1]) + ' to ' + sh(B[i]), R[Math.round(i * (R.length - 1) / Math.max(1, B.length))], k, vPct(k, n), '']).filter(r => r[2] > 0);
+  if (z) rows.unshift(['None reported', ZERO, z, vPct(z, n), '']); rows.forEach(r => r[4] = `${r[0]}: ${nCells(r[2])} of ${n}`); return rows.reverse(); }
+/* animation: months of the normals (precipitation, temperature) or years of storm events */
+let wxTimer = null;
+function wxAnimOn(){ return S.q.id === 'wx' && !!S.m.wxAnim && !S.m.find; }
+function wxCtl(){ const m = S.m; if (!m.wxAnim) return '';
+  if (m.wxAnim === 'mon'){ const tv = D.themes.wx && D.themes.wx[dispLevel()], ok = tv && tv.f[m.wxMonF];
+    if (!ok) return D.themes.wx && D.themes.wx.cog ? '<p class="phstat">Month by month is shown for the 7 and 49 sq mi cells here; zoom out a little to play it.</p>' : '';
+    return `<div class="acqctl"><button type="button" class="phplay" data-wxplay="1" aria-pressed="${!!wxTimer}">${wxTimer ? 'Pause' : 'Play months'}</button>` +
+      `<label class="acqyr"><span id="wxyl">${S.wxMon != null ? MONTHS_LONG[S.wxMon] : 'Year'}</span><input type="range" id="wxyr" min="0" max="11" step="1" value="${S.wxMon != null ? S.wxMon : 0}" aria-label="Month"></label>` +
+      (S.wxMon != null && !wxTimer ? '<button type="button" class="lbtn" data-wxall="1">Show the year</button>' : '') + '</div>'; }
+  const ys = wxYears(); if (!ys) return '';
+  return `<div class="acqctl"><button type="button" class="phplay" data-wxplay="1" aria-pressed="${!!wxTimer}">${wxTimer ? 'Pause' : 'Play years'}</button>` +
+    `<label class="acqyr"><span id="wxyl">${S.wxYr ? 'In ' + S.wxYr : 'Average'}</span><input type="range" id="wxyr" min="${ys[0]}" max="${ys[1]}" step="1" value="${S.wxYr || ys[1]}" aria-label="Year"></label>` +
+    (S.wxYr && !wxTimer ? '<button type="button" class="lbtn" data-wxall="1">Show the average</button>' : '') + '</div>'; }
+function wxFrame(full){ const l = $('#wxyl'), r = $('#wxyr'), m = S.m;
+  if (l) l.textContent = m.wxAnim === 'mon' ? (S.wxMon != null ? MONTHS_LONG[S.wxMon] : 'Year') : (S.wxYr ? 'In ' + S.wxYr : 'Average');
+  if (r){ if (m.wxAnim === 'mon' && S.wxMon != null) r.value = S.wxMon; if (m.wxAnim === 'yr' && S.wxYr) r.value = S.wxYr; }
+  BRK.clear(); restyle(); strip(); legend(); phTick(); qVizRefresh(); if (full) side(); }
+function wxPlay(on){ if (wxTimer){ clearInterval(wxTimer); wxTimer = null; } const m = S.m, ys = wxYears();
+  if (on && m.wxAnim){ const mon = m.wxAnim === 'mon';
+    if (mon){ if (S.wxMon == null || S.wxMon >= 11) S.wxMon = -1; } else if (ys){ if (!S.wxYr || S.wxYr >= ys[1]) S.wxYr = ys[0] - 1; } else return;
+    wxTimer = setInterval(() => { if (S.q.id !== 'wx' || S.m !== m){ clearInterval(wxTimer); wxTimer = null; return; }
+      if (mon ? S.wxMon >= 11 : S.wxYr >= ys[1]){ wxPlay(false); return; } if (mon) S.wxMon++; else S.wxYr++; wxFrame(); }, mon ? 900 : 650); }
+  const b = document.querySelector('[data-wxplay]'); if (b){ b.textContent = wxTimer ? 'Pause' : (m.wxAnim === 'mon' ? 'Play months' : 'Play years'); b.setAttribute('aria-pressed', String(!!wxTimer)); }
+  if (!on) wxFrame(true); }
+document.addEventListener('click', e => { if (e.target.closest('[data-wxplay]')) wxPlay(!wxTimer); else if (e.target.closest('[data-wxall]')){ S.wxMon = null; S.wxYr = null; wxFrame(true); } });
+document.addEventListener('input', e => { if (e.target.id === 'wxyr'){ if (wxTimer) wxPlay(false); if (S.m.wxAnim === 'mon') S.wxMon = +e.target.value; else S.wxYr = +e.target.value; wxFrame(); } });
+document.addEventListener('change', e => { if (e.target.id === 'wxyr') side(); });
 /* share of cells in each class of the measure on show, whole trail or the trail section picked */
 function geoBars(rows, label, tip){ return hbars(rows.map(([nm, col, v]) => { const t = v === 0 ? '0' : v < 1 ? '<1' : Math.round(v); return [nm, col, v, t + '%', `${nm}: ${t}% ${tip}`]; }), label); const W = 320, lab = 174, pw = W - lab - 32, bh = 14, H2 = rows.length * bh + 4, mx = Math.max(...rows.map(r => r[2])), f = v => v.toFixed(1);
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H2}" width="100%" role="img" aria-label="${esc(label)}">`;
@@ -2089,10 +2228,22 @@ const VISPICK = {
     let ri = 0, pi = 0, re = 0, pe = 0; cells.forEach(c => { const a = val('vis','VIS_RPD_SRC',lv,c); if (a){ ri += a[0]; pi += a[1]; re += a[2]; pe += a[3]; } });
     return [['iNaturalist', pi ? ri / pi : 0, pi], ['eBird', pe ? re / pe : 0, pe]].filter(r => r[2]).map(([nm, v, n]) => [nm, HUE.eff, v, fmt(v, 1), `${nm}: ${fmt(v, 1)} records per observer-day, over ${fmt(n, 0)} observer-days`]); }}
 };
+QVIZ.wx = {title:'Average precipitation and temperature by month', note:'PRISM 1991–2020 normals, averaged over the cells. Monthly normals are summarized for the 7 and 49 sq mi cells in the HUC10 shell.',
+  html:(lv, cells) => wxClimo(lv, cells, S.wxMon), fn:() => []};
+QVIZ.wx.pick = id => {
+  const m = S.q.m.find(x => x.id === id);
+  if (['ppt','tmean','wetm','tmax7','tmin1'].includes(id)) return {html:(lv, cells) => { let hm = S.wxMon; if (id === 'tmax7') hm = 6; else if (id === 'tmin1') hm = 0;
+      else if (id === 'wetm' && hm == null){ const s = Array(12).fill(0); cells.forEach(c => (val('wx','WX_PPT_M',lv,c) || []).forEach((x, i) => s[i] += x)); hm = Math.max(...s) > 0 ? s.indexOf(Math.max(...s)) : null; }
+      return wxClimo(lv, cells, hm); }};
+  if (m && m.wxG) return {title:WXEV[m.wxG][0].toUpperCase() + WXEV[m.wxG].slice(1) + ' events by year', note:'NOAA Storm Events Database: events per cell each year, averaged over the cells. An event reported for a whole forecast zone or county counts once in each cell there. Hover a year for its value.', html:(lv, cells) => wxStorms(lv, cells, m.wxG)};
+  if (m) return {title:'Cells by ' + m.label.toLowerCase(), note:'Cells in each of the map’s classes.', html:null, fn:(lv, cells) => wxClassRows(lv, cells, m)};
+  return null; };
 const qVizOn = q => !!QVIZ[q.id] && !(q.id === 'land' && S.m.id === 'acq');
 function qVizHTML(){ const d0 = QVIZ[S.q.id]; if (!d0) return ''; const d = d0.pick ? Object.assign({}, d0, d0.pick(S.m.id)) : d0, lv = dispLevel(), th = S.q.th; const [sl, cells, where] = geoScope(lv);
   let g = `<div id="qvizc"><h4 class="phh">${esc(d.title)}, ${esc(where)}</h4>`;
   if (th && D.themes[th] && !D.themes[th][sl] && S.q.id !== 'hist') return g + `<p class="none">Not summarized for this cell size.</p></div>`;
+  if (d.html){ let x = ''; try { x = d.html(sl, cells) || ''; } catch (e) { x = ''; }
+    return g + (x || `<p class="none">No data for ${esc(where)}${S.q.id === 'wx' && !D.themes.wx[sl] ? ' yet: the weather summaries (weather.json) have not been built' : ''}.</p>`) + (x ? `<p class="phnote">${esc(d.note)}${where === 'the map view' ? ' Zoom or pan to change it, or select cells.' : ''}</p>` : '') + '</div>'; }
   let rows = []; try { rows = d.fn(sl, cells) || []; } catch (e) { rows = []; }
   if (!rows.length) return g + `<p class="none">No data for ${esc(where)}.</p></div>`;
   return g + vizBars(rows, d.title + ', ' + where) + `<p class="phnote">${esc(d.note)}${where === 'the map view' ? ' Zoom or pan to change it, or select cells.' : ''}</p></div>`; }
@@ -2247,6 +2398,28 @@ const Q = [
      {id:'surf', grp:'Available geologic map data', label:'Surficial geologic mapping', kind:'cat', f:'SURF', note:'Mapping of surface materials such as glacial, river and landslide deposits covering at least half the cell.'},
      {id:'gis', grp:'Available geologic map data', label:'Digital geologic map data', kind:'cat', f:'GIS_BEST', note:'The most detailed geologic mapping covering at least half the cell that is available as GIS data.'},
      {id:'new', grp:'Available geologic map data', label:'Newest geologic map', kind:'cat', f:'GEO_NEWEST', fn:(lv,c) => geoNewest(lv, c), note:'Publication year of the newest published geologic map covering at least a tenth of the cell. Maps still in progress are listed when you select a cell.'}]},
+ {id:'wx', th:'wx', hue:HUE.wx, ramp:'wx', title:'What are the weather and climate here?',
+  use:'Climate normals and damaging weather from authoritative sources: PRISM 1991–2020 normals (Oregon State University, the official climate data of the U.S. Department of Agriculture) for precipitation and temperature; NOAA nClimGrid-Daily for the frost-free season and heavy-rain days; NOAA Atlas 14 for the 25-year storm; and the NOAA Storm Events Database for damaging wind, flooding and winter storms since 1996. Wind comes from gridMET, a research dataset. Use it to plan work seasons, size drainage for big storms, and see where storms most often damage the trail. Play the months or years under Visualizations.',
+  m:[wxM({id:'ppt', label:'Annual precipitation', wxRamp:'wet', wxFloor:1, wxAnim:'mon', wxMonF:'WX_PPT_M', showFn:wxIn, d:1, fn:(lv,c)=>S.wxMon != null ? wxMonVal(lv,c,'WX_PPT_M') : val('wx','WX_PPT',lv,c),
+       get label(){ return S.wxMon != null ? 'Precipitation in ' + MONTHS_LONG[S.wxMon] : 'Annual precipitation'; },
+       note:'Average rain and melted snow, 1991–2020 (PRISM 30-year normals, 800 m). Play the months under Visualizations to see the year go by.'}),
+     {id:'wetm', label:'Wettest month', kind:'cat', f:'WX_WETM', note:'The month with the most precipitation on average, 1991–2020 (PRISM normals).'},
+     wxM({id:'tmean', label:'Mean annual temperature', wxRamp:'temp', wxFloor:1, wxAnim:'mon', wxMonF:'WX_TMEAN_M', showFn:wxF, d:0, fn:(lv,c)=>S.wxMon != null ? wxMonVal(lv,c,'WX_TMEAN_M') : val('wx','WX_TMEAN',lv,c),
+       get label(){ return S.wxMon != null ? 'Mean temperature in ' + MONTHS_LONG[S.wxMon] : 'Mean annual temperature'; },
+       note:'Average of the daily highs and lows, 1991–2020 (PRISM normals). Play the months under Visualizations.'}),
+     wxM({id:'tmax7', label:'July average high', f:'WX_TMAX7', wxRamp:'temp', wxFloor:1, showFn:wxF, d:0, note:'Average daily high temperature in July, 1991–2020 (PRISM normals).'}),
+     wxM({id:'tmin1', label:'January average low', f:'WX_TMIN1', wxRamp:'temp', wxFloor:1, showFn:wxF, d:0, note:'Average daily low temperature in January, 1991–2020 (PRISM normals).'}),
+     wxM({id:'frost', label:'Frost-free season', f:'WX_FROSTFREE', wxRamp:'grow', showFn:v => fmt(Math.round(v), 0) + ' days', d:0, note:'Days between the last spring and first fall low of 32°F or colder, averaged over 1991–2020 (NOAA nClimGrid-Daily, about 4 km). Mountain tops have shorter seasons than the valleys around them.'}),
+     wxM({id:'heavy', label:'Heavy-rain days', f:'WX_HEAVY', wxRamp:'wet', showFn:v => fmt(v, 1) + ' days', d:1, note:'Days a year with 1 inch or more of precipitation, averaged over 1991–2020 (NOAA nClimGrid-Daily). Heavy rain drives trail erosion and washouts.'}),
+     wxM({id:'p25', label:'25-year, 24-hour storm', f:'WX_P25', wxRamp:'wet', showFn:v => fmt(v, 1) + ' in', d:1, note:'Rainfall in 24 hours with a 1-in-25 chance each year (4% annual chance), from NOAA Atlas 14. A common standard for sizing culverts and drainage.'}),
+     wxM({id:'wind', grp:'Wind (gridMET, a research dataset)', label:'Average wind speed', f:'WX_WIND', wxRamp:'wind', showFn:wxMph, d:1, note:'Average daily wind speed at 10 m, 1991–2020, from gridMET (University of Idaho), a research dataset rather than an official record. Its 4 km grid smooths the terrain, so exposed ridges are windier than shown: compare places rather than reading exact speeds.'}),
+     wxM({id:'windy', grp:'Wind (gridMET, a research dataset)', label:'Windy days', f:'WX_WINDY', wxRamp:'wind', wxSkew:1, showFn:v => fmt(v, 1) + ' days', d:1, note:'Days a year with an average wind of 15 mph or more, 1991–2020 (gridMET, a research dataset; ridge-top winds are understated).'}),
+     wxM({id:'evwind', grp:'Damaging weather (NOAA Storm Events)', label:'Damaging wind events', wxG:'WIND', wxRamp:'WIND', wxSkew:1, wxAnim:'yr', d:1, showFn:wxEvFmt, fn:(lv,c)=>wxEv(lv,c,'WIND'),
+       note:'Thunderstorm wind, high wind, strong wind and tornado events in the NOAA Storm Events Database, per year since 1996 (or in the year played). Events with a location count where they happened; those reported for a whole forecast zone or county count in every cell there.'}),
+     wxM({id:'evflood', grp:'Damaging weather (NOAA Storm Events)', label:'Flood events', wxG:'FLOOD', wxRamp:'FLOOD', wxSkew:1, wxAnim:'yr', d:1, showFn:wxEvFmt, fn:(lv,c)=>wxEv(lv,c,'FLOOD'),
+       note:'Flash flood and flood events in the NOAA Storm Events Database, per year since 1996 (or in the year played). Most are reported for a county or zone, so they show where flooding is common rather than exact spots.'}),
+     wxM({id:'evwinter', grp:'Damaging weather (NOAA Storm Events)', label:'Winter storm events', wxG:'WINTER', wxRamp:'WINTER', wxSkew:1, wxAnim:'yr', d:1, showFn:wxEvFmt, fn:(lv,c)=>wxEv(lv,c,'WINTER'),
+       note:'Ice storm, winter storm, heavy snow and blizzard events in the NOAA Storm Events Database, per year since 1996 (or in the year played). Nearly all are reported for National Weather Service forecast zones.'})]},
  {id:'cult', th:'inat', hue:HUE.cult, ramp:'cult', title:'Where are plants of cultural significance?',
   use:'Plants documented as culturally significant to Eastern Woodlands nations, where they have research-grade iNaturalist records in the quarterly summary. The list of ' + CULTD.length + ' plants comes from the Greenbelt Indigenous Botanical Survey, Mooney’s Sacred Formulas of the Cherokees, Tantaquidgeon’s Delaware study, the Haudenosaunee Confederacy and Cherokee and Wabanaki sources. Use it as a starting point for consultation with Tribal Historic Preservation Officers, not as a statement of any nation’s knowledge. Ginseng, goldenseal, ramps and lady’s slippers are shown only at the 49 sq mi scale. A blank cell means no records, not that the plants are absent.',
   m:[{id:'spp', label:'Number of culturally significant species', int:1, zero:1, fade:1, noun:['species','species'], zeroText:'No species recorded', note:'How many different species on the cultural plants list have research-grade iNaturalist records in each cell.', fn:(lv,c)=>cultCount(lv,c)},
@@ -2263,7 +2436,7 @@ for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
 let JERRY = false; try { JERRY = sessionStorage.getItem('jerry') === '1'; } catch (e) {}
 if (JERRY) document.body.classList.add('jerry');
 const qVis = x => x.id !== 'pri' || JERRY;
-{ const ord = ['rest','inv','pinv','rec','pest','phen','cult','bird','pri','veg','geo','soil','wet','feat','hist','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','inv','pinv','rec','pest','phen','cult','bird','pri','veg','geo','wx','soil','wet','feat','hist','eff','land']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
@@ -2467,6 +2640,7 @@ function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
   phTick();
   if (BIO && !BIO.done && S.ext === 'corr') bioApply();
   if (GEO && !GEO.done && S.ext === 'corr') geoApply();
+  if (WX && !WX.done && S.ext === 'corr') wxApply();
   const lv = dispLevel();
   if (shown !== lv){ if (shown) map.removeLayer(GROUP[shown]); group(lv); shown = lv; restyle(); if (S.cells) GROUP[lv].addTo(map); }
   else restyle();
@@ -2482,7 +2656,7 @@ function redraw(){ draw(); strip(); writeHash(); }
    for soils and wetlands only. Those cells are in soils_wetlands_huc10.json beside this page and load the first time they are asked for.
    Switching swaps the grid and the soils data under the page, so the map, rankings, strip, selection and export all follow.
    Choosing another question, or searching for a species, switches back to the corridor. */
-const EXTFILE = 'soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest','pinv','cult','geo'];
+const EXTFILE = 'soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest','pinv','cult','geo','wx'];
 const SOILCATS = ['VULN_DOM','SOIL_SERIES','SOIL_TEXTURE','SOIL_ORDER','SOIL_DRAIN','SOIL_HSG','SOIL_FARM','SOIL_ECOSITE','SOIL_MAPUNIT','WET_DOM','WET_LDOM'];
 let extLoading = null;
 function extSnapshot(){ const cats = {}; SOILCATS.forEach(k => { if (D.cats[k]) cats[k] = D.cats[k]; });
@@ -2493,10 +2667,11 @@ function extLoad(){ if (EXT.huc) return Promise.resolve(); if (extLoading) retur
     const H = {levels:j.levels, themes, cats:j.cats, group:{}, poly:{}};
     /* the watershed iNaturalist and eBird summaries load with the cells, so both are ready together */
     return Promise.all([fetch(BIOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(b => { if (b && b.themes) bioHuc(b, H); }).catch(() => {}),
-      fetch(GEOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(g => { if (g && g.themes) { geoTables(g); H.themes.geo = geoConv(g, H.levels); } }).catch(() => {})]).then(() => { EXT.huc = H; }); });
+      fetch(GEOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(g => { if (g && g.themes) { geoTables(g); H.themes.geo = geoConv(g, H.levels); } }).catch(() => {}),
+      fetch(WXHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(w => { if (w && w.themes){ if (w.meta && !WXMETA.storms_info) WXMETA = w.meta; H.themes.wx = thConv(w, 'wx', H.levels); } }).catch(() => {})]).then(() => { EXT.huc = H; }); });
   extLoading.catch(() => {}).then(() => { extLoading = null; });
   return extLoading; }
-function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.geo) D.themes.geo = {}; if (!D.themes.vis) D.themes.vis = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
+function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.geo) D.themes.geo = {}; if (!D.themes.vis) D.themes.vis = {}; if (!D.themes.wx) D.themes.wx = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
   for (const th in D.themes){ ROW[th] = {}; for (const lv in D.themes[th]){ const a = new Int32Array(D.levels[lv].id.length).fill(-1); D.themes[th][lv].ix.forEach((c,k) => a[c] = k); ROW[th][lv] = a; } }
   for (const lv in D.levels){ const m = new Map(); D.levels[lv].id.forEach((id,i) => m.set(id,i)); IDX[lv] = m; }
   BRK.clear(); for (const k in COVER) delete COVER[k]; for (const k in RINGS) delete RINGS[k]; }
@@ -2955,7 +3130,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
   const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : '';
   h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map((m, k, a) => (m.grp && (!k || a[k - 1].grp !== m.grp) ? `</div><h4 class="mgrp">${esc(m.grp)}</h4><div class="chips" role="group" aria-label="${esc(m.grp)}">` : '') + `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
-    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
+    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
   const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
@@ -2997,7 +3172,7 @@ function summary(lv){ SUMSEL = null; const m = S.m, L_ = D.levels[lv], n = L_.id
   rows.sort((a,b) => b[1] - a[1]);
   const nTop = Math.min(50, rows.length);
   h += `<div class="rank"><h3>Highest cells${where}<span class="cnt">${rows.length > nTop ? 'top ' + nTop : 'all ' + nTop}</span></h3><ol class="scroll" tabindex="0" aria-label="Highest cells, scrollable list">`;
-  rows.slice(0, 50).forEach(r => { const e = eff(r[0]); h += cellItem(lv, r[0], `<span class="val${e ? ' two' : ''}">${fmt(r[1], m.d)}${m.unit === '%' ? '%' : ''}</span>${e}`); });
+  rows.slice(0, 50).forEach(r => { const e = eff(r[0]); h += cellItem(lv, r[0], `<span class="val${e ? ' two' : ''}">${m.showFn && m.th === 'wx' ? m.showFn(r[1]) : fmt(r[1], m.d) + (m.unit === '%' ? '%' : '')}</span>${e}`); });
   return h + '</ol></div>'; }
 $('#side').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.ext){ S.hadm = null; setExt(b.dataset.ext); return; }
@@ -3247,7 +3422,7 @@ function profile(){ setTimeout(cultVizRefresh); if (S.box) return profileBox(); 
   let b = '';
   if (S.ext === 'huc'){ const note = S.q.id === 'hist' ? `${inCorr(lv, c) ? 'This cell is in the A.T. corridor grid.' : 'Outside the A.T. corridor grid, in the HUC10 shell.'} Switch the extent to A.T. corridor to see the corridor's other layers.`
       : (inCorr(lv, c) ? 'This cell is in the A.T. corridor grid. ' : 'Outside the A.T. corridor grid, in the HUC10 shell. ') + HUCONLY;
-    b = recSection(lv, c) + invSection(lv, c) + cultSection(lv, c) + birdSection(lv, c) + visSection(lv, c) + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c)) + geoSection(lv, c) + histSection(lv, c) + phSection(lv, c);
+    b = recSection(lv, c) + invSection(lv, c) + cultSection(lv, c) + birdSection(lv, c) + visSection(lv, c) + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c)) + geoSection(lv, c) + wxSection(lv, c) + histSection(lv, c) + phSection(lv, c);
     finishProfile(`<p class="none" style="font-size:13.5px;margin:0 0 10px">${note}</p>` + b); inatLive([ring(lv, c)], L_.id[c]); return; }
   profileCorr(lv, c, false); }
 /* run fn with the A.T. corridor cells and layers in place (while the HUC10 extent is on), then put the watershed cells back.
@@ -3293,7 +3468,7 @@ function profileCorr(lv, c, fromHuc){ const L_ = D.levels[lv], par = parentOf(lv
   } else b += `<p class="none">No rare species priority zone ${viaParent ? 'in the surrounding 7 sq mi cell' : 'in this cell'}.</p>`;
   b += '</div>'; if (!JERRY) b = b.slice(0, jStart);
   b += S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c);
-  b += geoSection(lv, c);
+  b += geoSection(lv, c) + wxSection(lv, c);
   b += featSection(lv, c);
   b += histSection(lv, c);
   b += phSection(lv, c);
@@ -3566,15 +3741,15 @@ function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerC
 /* records of a species in one cell once its full load is done; null before that */
 function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'done' ? st.counts[lv].get(c) || 0 : null; }
 /* panel sections follow the order of the questions; each question opens its own sections (survey effort has none of its own) */
-const SECORDER = ['cells','rest','geo','vis','inat','cult','live','phen','ebird','nrpz','veg','soil','wet','feat','hist','lands'];
-const QSEC = {geo:['geo'], cult:['cult'], rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:['vis'], land:['lands'], phen:['phen'], pest:['phen']};
+const SECORDER = ['cells','rest','geo','wx','vis','inat','cult','live','phen','ebird','nrpz','veg','soil','wet','feat','hist','lands'];
+const QSEC = {geo:['geo'], wx:['wx'], cult:['cult'], rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:['vis'], land:['lands'], phen:['phen'], pest:['phen']};
 function finishProfile(html){ $('#pbody').innerHTML = html;
-  { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'iNaturalist Records':'live', 'Birds':'ebird', 'Visitation':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Land administrators':'lands'};
+  { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'Weather and climate':'wx', 'iNaturalist Records':'live', 'Birds':'ebird', 'Visitation':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Land administrators':'lands'};
     const secs = [...document.querySelectorAll('#pbody .sec')]; if (secs.length > 1){ const par = secs[0].parentNode, anchor = document.createComment('secs'); par.insertBefore(anchor, secs[0]);
       const rank = el => { const i = SECORDER.indexOf(KEY[(el.querySelector('h3') || {}).textContent]); return i < 0 ? 99 : i; };
       secs.map((el, i) => [rank(el), i, el]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([, , el]) => par.insertBefore(el, anchor)); anchor.remove(); } }
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
-  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'iNaturalist Records':'live', 'Birds':'ebird', 'Visitation':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Historic resources':'hist', 'Land administrators':'lands'};
+  const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'Weather and climate':'wx', 'iNaturalist Records':'live', 'Birds':'ebird', 'Visitation':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Historic resources':'hist', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
     const open = key in S.secOpen ? S.secOpen[key] : S.m.find ? key === S.m.th : (QSEC[S.q.id] || []).includes(key);
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
@@ -3643,7 +3818,11 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
       feat_drainage_structures_est:n('feat','S_DRAIN'), feat_steps_and_climbs_est:n('feat','S_STEPS'), feat_signs_est:n('feat','S_SIGNS'), feat_barriers_est:n('feat','S_BARR'),
       land_administrators:n('lands','N_MGR'), land_pct_of_cell_mapped:n('lands','PCT_LAND'),
       cultural_plant_species:blank(cultCount(lv, c)), cultural_plant_records:cultReady(lv) ? n('inat','N_CULT_OBS') : '',
-      visit_observer_days_per_year:n('vis','VIS_OD_YR'), visit_unique_observers:n('vis','VIS_OBSR'), visit_peak_month:v('vis','VIS_PEAK',c) ? CATCOL.VIS_PEAK[v('vis','VIS_PEAK',c) - 1][0] : '', visit_busiest_day_observers:n('vis','VIS_BUSY'), visit_long_distance_pct:v('vis','VIS_OD',c) ? Math.round(100 * (v('vis','VIS_LD',c) || 0) / v('vis','VIS_OD',c)) : '', visit_records_per_observer_day:n('vis','VIS_RPD'), visit_off_trail_pct:n('vis','VIS_OFF') }));
+      visit_observer_days_per_year:n('vis','VIS_OD_YR'), visit_unique_observers:n('vis','VIS_OBSR'), visit_peak_month:v('vis','VIS_PEAK',c) ? CATCOL.VIS_PEAK[v('vis','VIS_PEAK',c) - 1][0] : '', visit_busiest_day_observers:n('vis','VIS_BUSY'), visit_long_distance_pct:v('vis','VIS_OD',c) ? Math.round(100 * (v('vis','VIS_LD',c) || 0) / v('vis','VIS_OD',c)) : '', visit_records_per_observer_day:n('vis','VIS_RPD'), visit_off_trail_pct:n('vis','VIS_OFF'),
+      wx_precip_in_per_year:n('wx','WX_PPT'), wx_wettest_month:v('wx','WX_WETM',c) != null ? MONTHS_LONG[v('wx','WX_WETM',c)] : '', wx_mean_temp_f:n('wx','WX_TMEAN'), wx_july_high_f:n('wx','WX_TMAX7'), wx_january_low_f:n('wx','WX_TMIN1'),
+      wx_frost_free_days:n('wx','WX_FROSTFREE'), wx_heavy_rain_days_per_year:n('wx','WX_HEAVY'), wx_25yr_24hr_storm_in:n('wx','WX_P25'), wx_wind_mph_gridmet:n('wx','WX_WIND'), wx_windy_days_per_year_gridmet:n('wx','WX_WINDY'),
+      wx_damaging_wind_events:n('wx','WX_EV_WIND'), wx_flood_events:n('wx','WX_EV_FLOOD'), wx_winter_storm_events:n('wx','WX_EV_WINTER'), wx_storm_event_years:wxYears() ? wxYears().join('-') : '',
+      ...Object.fromEntries(MONTHS_LONG.flatMap((mo, i) => { const p = v('wx','WX_PPT_M',c), t = v('wx','WX_TMEAN_M',c); return [['wx_precip_in_' + mo.slice(0, 3).toLowerCase(), p ? p[i] : ''], ['wx_mean_temp_f_' + mo.slice(0, 3).toLowerCase(), t ? t[i] : '']]; })) }));
     if (has('soil', lv, c)) out.soils.push({grid_id:id, cell_size:LV[lv].name, trail_mile:L_.mi[c],
       trail_vulnerability_index:n('soil','VULN'), trail_vulnerability_class:blank(vulnClass(v('soil','VULN',c))), pct_rated_high_vulnerability:n('soil','VULN_HIGH'),
       pct_at_least_one_rating_worst:n('soil','WORST1'), nrcs_score_average:n('soil','NRCS_IDX'), nrcs_erosion_hazard_unsurfaced_trails:n('soil','EROS_HR'),
@@ -3891,7 +4070,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
     b += '</div>'; }
 
   b += S.q.id === 'wet' ? wetBox(lv, cells) + soilBox(lv, cells) : soilBox(lv, cells) + wetBox(lv, cells);
-  b += geoBox(lv, cells) + visBox(lv, cells);
+  b += geoBox(lv, cells) + wxBox(lv, cells) + visBox(lv, cells);
   if (!huc){ b += featBox(lv, cells); b = S.q.id === 'rest' ? restBox(lv, cells) + b : b + restBox(lv, cells); }
 
   // land administrators
@@ -4175,6 +4354,14 @@ if (S.sec !== 'all') fitSection();
 var BIO = null;   // var: draw() may run before this line
 /* geology.json and geology_huc10.json, built on GitHub (build_geology.py): cells matched by grid ID */
 var GEO = null; const GEOHUC = 'geology_huc10.json';
+var WX = null; const WXHUC = 'weather_huc10.json';
+function thConv(j, th, levels){ const out = {}, src = j.themes[th] || {};
+  for (const lv in src){ if (!levels[lv]) continue; const m = new Map(); levels[lv].id.forEach((id, i) => m.set(id, i)); const t = src[lv], keep = [], ix = [];
+    t.ids.forEach((id, k) => { const c = m.get(id); if (c != null){ keep.push(k); ix.push(c); } });
+    const f = {}; for (const name in t.f) f[name] = keep.map(k => t.f[name][k]); out[lv] = {ix, f}; }
+  return out; }
+function wxApply(){ const j = WX; if (!j || j.done || S.ext !== 'corr') return; j.done = true; WXMETA = j.meta || {}; for (const k in WXB) delete WXB[k]; D.themes.wx = thConv(j, 'wx', D.levels); extIndex(); }
+fetch('weather.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ WX = j; if (S.ext === 'corr'){ wxApply(); redraw(); } } }).catch(() => {});
 function geoTables(j){ if (!GEOT) GEOT = {maps:j.maps || [], units:j.units || [], meta:j.meta || {}};
   ['GEO_LITH','GEO_AGE','MAP_BEST','SURF','GIS_BEST'].forEach(k => { if (j.cats && j.cats[k] && j.cats[k].join('|') !== D.cats[k].join('|')) console.warn('geology categories differ from the page:', k); }); }
 function geoConv(j, levels){ const out = {}, src = j.themes.geo || {};
