@@ -19,9 +19,9 @@ Summarized for every 1, 7 and 49 sq mi cell the trail passes through, in the cor
   TS_G10    share of the trail over 10% grade, %        TS_G20    share over 20%, %
   TS_SIDE   average side slope, %                       TS_SAA    average slope alignment, degrees
   TS_FALL   share of the trail that runs within 22.5 degrees of the fall line on ground steeper than 5%, %
-A cell holding only a short piece of trail would swing to extremes on a few steps, so each cell's values are blended with the larger
-cell around it, by how much trail it has: a quarter mile counts equally with the larger cell (49 sq mi cells are blended with the
-whole trail, 7 sq mi with their 49 sq mi cell, square miles with their 7 sq mi cell). Long stretches keep their own values.
+A cell holding only a short piece of trail would swing to extremes on a few steps, so each cell's values are blended with the trail
+just before and after its own pieces (up to 800 m each way along the line, wherever the grid lines fall), by how much trail it has: a
+quarter mile counts equally with that nearby trail. Long stretches keep their own values.
 
 The centerline comes from, in order: at_centerline.geojson, at_centerline.zip (a zipped shapefile) or at_centerline.gpkg in this
 repository, or the public ArcGIS Online layer in CENTERLINE_ITEM (the item's feature layer is read through the ArcGIS REST API).
@@ -50,7 +50,8 @@ TILE = 'https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/curren
 UA = {'User-Agent': 'AT-Resource-Grid trail slope build (github.com/Creese333/AT-Resource-Grid)'}
 AEA = 5070
 STEP, OFF, SMOOTH, GRADE_HALF = 10.0, 5.0, 5, 2   # meters between steps, meters to the points around each step, steps smoothed, steps each way for grade
-SHRINK_K = 40                           # steps (a quarter mile): a cell with this much trail is weighted equally with the cell around it
+SHRINK_K = 40                           # steps (a quarter mile): a cell with this much trail is weighted equally with the trail around it
+WINDOW = 80                             # steps (800 m) each way along the trail that a cell is blended with
 BATCH, THREADS = 400, 6
 ON_SLOPE, FALL_DEG = 5.0, 22.5
 
@@ -218,51 +219,54 @@ def measure(x, y, u, v, part, z):
 STATS = ['grade', 'g10', 'g20', 'side', 'saa', 'fall']
 
 
-def cell_stats(cells, x, y, grade, side, saa):
-    """per cell: number of steps and the sums behind each measure (so cells can be blended with the cell around them)"""
+def step_values(grade, side, saa):
+    """per step: the value each measure adds, and whether the step counts for it (slope alignment counts only on ground over 5%)"""
+    ok = np.isfinite(grade); on = ok & (side > ON_SLOPE) & np.isfinite(saa)
+    val = {'grade': np.where(ok, grade, 0), 'g10': (ok & (grade > 10)).astype(float), 'g20': (ok & (grade > 20)).astype(float),
+           'side': np.where(ok & np.isfinite(side), side, 0), 'saa': np.where(on, saa, 0), 'fall': (on & (saa < FALL_DEG)).astype(float)}
+    cnt = {k: (on if k == 'saa' else ok).astype(float) for k in STATS}
+    return val, cnt
+
+
+def owners(cells, x, y):
     pts = gpd.GeoDataFrame({'i': np.arange(len(x))}, geometry=gpd.points_from_xy(x, y), crs=AEA)
     j = gpd.sjoin(pts, cells[['geometry']], predicate='within', how='inner')
     own = np.full(len(x), -1); own[j['i'].values] = j['index_right'].values
-    ok = np.isfinite(grade) & (own >= 0); on = ok & (side > ON_SLOPE) & np.isfinite(saa)
-    nc = len(cells); bc = lambda w, m=ok: np.bincount(own[m], weights=w[m] if w is not None else None, minlength=nc)
-    n = bc(None); non = bc(None, on)
-    return {'n': n, 'non': non,
-            'grade': bc(grade), 'g10': bc((grade > 10).astype(float)), 'g20': bc((grade > 20).astype(float)),
-            'side': bc(np.nan_to_num(side)), 'saa': bc(np.nan_to_num(saa), on), 'fall': bc((on & (saa < FALL_DEG)).astype(float))}
+    return own
 
 
-def shrink(raw, prior):
-    """blend each cell's values with the cell around it, in proportion to how much trail the cell has: a cell with K steps of
-    trail (a quarter mile) is half its own value and half the larger cell's; one with a few steps mostly the larger cell's.
-    raw: sums for one cell; prior: values (not sums) of the larger cell. Returns the cell's values"""
-    n, non = raw['n'], raw['non']; out = {}
-    for k in STATS:
-        cnt = non if k == 'saa' else n
-        own = raw[k] / cnt if cnt else np.nan
-        p = prior.get(k)
-        if p is None or not np.isfinite(p): out[k] = own
-        elif not cnt: out[k] = p
-        else: out[k] = (raw[k] + SHRINK_K * p) / (cnt + SHRINK_K)
-    return out
-
-
-def summarize_all(L, x, y, grade, side, saa):
-    """values for every cell with trail, at all three sizes; 49 sq mi cells are blended with the whole trail, 7 sq mi cells with
-    their 49 sq mi cell, square miles with their 7 sq mi cell"""
-    ok = np.isfinite(grade); on = ok & (side > ON_SLOPE) & np.isfinite(saa)
-    whole = {'grade': np.mean(grade[ok]), 'g10': np.mean(grade[ok] > 10), 'g20': np.mean(grade[ok] > 20), 'side': np.nanmean(side[ok]),
-             'saa': np.mean(saa[on]) if on.any() else np.nan, 'fall': np.mean(on[ok] & (saa[ok] < FALL_DEG))}
-    out, vals = {}, {}
+def summarize_all(L, x, y, part, grade, side, saa):
+    """values for every cell with trail, at all three sizes. Each cell is blended with the trail just before and after its own
+    pieces: up to WINDOW steps (800 m) each way along the same stretch of trail, wherever the grid lines fall. In proportion to how
+    much trail the cell has: a quarter mile (SHRINK_K steps) counts equally with that nearby trail, so a short piece mostly takes on
+    the character of the trail around it and a long one keeps its own values. The whole trail stands in where there is no nearby trail"""
+    val, cnt = step_values(grade, side, saa); n = len(x)
+    whole = {k: val[k].sum() / max(cnt[k].sum(), 1) for k in STATS}
+    pstart = np.r_[0, np.flatnonzero(np.diff(part)) + 1]; pend = np.r_[pstart[1:], n]       # each stretch's step range [start, end)
+    stretch = np.searchsorted(pstart, np.arange(n), side='right') - 1
+    out = {}
     for lv in ('wheel', 'cog', 'hex'):
-        cells = L[lv]; S_ = cell_stats(cells, x, y, grade, side, saa); ids = cells['id'].tolist(); up = {'cog': 'wheel', 'hex': 'cog'}.get(lv)
-        vals[lv] = {}; f = {k: [] for k in ('TS_MI', 'TS_GRADE', 'TS_G10', 'TS_G20', 'TS_SIDE', 'TS_SAA', 'TS_FALL')}; keep = []
-        for c in range(len(cells)):
-            if not S_['n'][c]: continue
-            raw = {k: S_[k][c] for k in S_}
-            prior = whole if not up else vals[up].get(ids[c][:ids[c].rfind('-')], whole)
-            v = shrink(raw, prior); vals[lv][ids[c]] = v; keep.append(ids[c])
+        cells = L[lv]; own = owners(cells, x, y); ids = cells['id'].tolist()
+        f = {k: [] for k in ('TS_MI', 'TS_GRADE', 'TS_G10', 'TS_G20', 'TS_SIDE', 'TS_SAA', 'TS_FALL')}; keep = []
+        order = np.argsort(own, kind='stable'); oo = own[order]; first = np.searchsorted(oo, 0)
+        for grp in np.split(order[first:], np.flatnonzero(np.diff(oo[first:])) + 1):
+            if not len(grp): continue
+            c = own[grp[0]]; idx = np.sort(grp)
+            # the runs of consecutive steps this cell holds, and the trail within WINDOW steps on either side of each
+            brk = np.flatnonzero(np.diff(idx) != 1) + 1; ctx = []
+            for run in np.split(idx, brk):
+                a0, b0 = run[0], run[-1]; s0, e0 = pstart[stretch[a0]], pend[stretch[a0]]
+                ctx.append(np.arange(max(s0, a0 - WINDOW), a0)); ctx.append(np.arange(b0 + 1, min(e0, b0 + 1 + WINDOW)))
+            ctx = np.setdiff1d(np.concatenate(ctx) if ctx else np.array([], int), idx)
+            v = {}
+            for k in STATS:
+                on_, cn = val[k][idx].sum(), cnt[k][idx].sum()
+                pc = cnt[k][ctx].sum() if len(ctx) else 0
+                prior = val[k][ctx].sum() / pc if pc else whole[k]
+                v[k] = (on_ + SHRINK_K * prior) / (cn + SHRINK_K) if cn else prior
             r1 = lambda q, m=1: None if q is None or not np.isfinite(q) else round(float(q) * m, 1)
-            f['TS_MI'].append(round(raw['n'] * STEP / 1609.344, 2)); f['TS_GRADE'].append(r1(v['grade'])); f['TS_G10'].append(r1(v['g10'], 100)); f['TS_G20'].append(r1(v['g20'], 100))
+            keep.append(ids[c]); f['TS_MI'].append(round(len(idx) * STEP / 1609.344, 2))
+            f['TS_GRADE'].append(r1(v['grade'])); f['TS_G10'].append(r1(v['g10'], 100)); f['TS_G20'].append(r1(v['g20'], 100))
             f['TS_SIDE'].append(r1(v['side'])); f['TS_SAA'].append(r1(v['saa'])); f['TS_FALL'].append(r1(v['fall'], 100))
         out[lv] = {'ids': keep, 'f': f}
     return out
@@ -282,10 +286,10 @@ def main():
     grade, side, saa = measure(x, y, u, v, part, z)
     ok = np.isfinite(grade)
     print(f'trail: average grade {np.nanmean(grade):.1f}%, {np.mean(grade[ok] > 10) * 100:.0f}% over 10%, {np.mean(grade[ok] > 20) * 100:.0f}% over 20%', flush=True)
-    meta = {'built': date.today().isoformat(), 'step_m': STEP, 'offset_m': OFF, 'smooth_m': STEP * SMOOTH, 'grade_m': 2 * GRADE_HALF * STEP, 'shrink_steps': SHRINK_K, 'fall_deg': FALL_DEG, 'on_slope_pct': ON_SLOPE,
+    meta = {'built': date.today().isoformat(), 'step_m': STEP, 'offset_m': OFF, 'smooth_m': STEP * SMOOTH, 'grade_m': 2 * GRADE_HALF * STEP, 'shrink_steps': SHRINK_K, 'window_steps': WINDOW, 'fall_deg': FALL_DEG, 'on_slope_pct': ON_SLOPE,
             'miles': round(len(x) * STEP / 1609.344, 1), 'source': 'USGS 3DEP (elevation service at 1 m; 1/3 arc-second tiles where it had no value)'}
     for ext, L in grids.items():
-        themes = summarize_all(L, x, y, grade, side, saa)
+        themes = summarize_all(L, x, y, part, grade, side, saa)
         with open(OUT[ext], 'w', encoding='utf-8') as fh:
             json.dump({'run': date.today().isoformat(), 'meta': meta, 'themes': {'slope': themes}}, fh, separators=(',', ':'))
         print(f'wrote {os.path.basename(OUT[ext])} ({os.path.getsize(OUT[ext]) / 1e6:.1f} MB, {len(themes["hex"]["ids"]):,} square miles)', flush=True)
