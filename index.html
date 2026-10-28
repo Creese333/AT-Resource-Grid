@@ -925,7 +925,7 @@ CATCOL.GEO_NEWEST = [['2010 or later','#38495B'],['1990 to 2009','#6E8296'],['19
 ['GEO_LITH','GEO_AGE','MAP_BEST','SURF','GIS_BEST','GEO_NEWEST'].forEach(k => { D.cats[k] = CATCOL[k].map(e => e[0]); });
 CATCOL.VIS_PEAK = [['January','#3E5C8A'],['February','#5175A8'],['March','#6FA8A0'],['April','#7DBF5E'],['May','#A8CF45'],['June','#E3D33B'],['July','#F2B233'],['August','#EE8F2E'],['September','#D9662B'],['October','#B8472E'],['November','#8C4A5E'],['December','#4B4F7A']];
 D.cats.VIS_PEAK = CATCOL.VIS_PEAK.map(e => e[0]);
-CATCOL.WX_WETM = [['January','#1D3F8F'],['February','#3D6FC9'],['March','#86B6EA'],['April','#1E7B4E'],['May','#58B04F'],['June','#B7DB5A'],['July','#F4D03F'],['August','#F09A2A'],['September','#D4562A'],['October','#9C2F45'],['November','#C27BB6'],['December','#6A4C9C']]; D.cats.WX_WETM = CATCOL.WX_WETM.map(e => e[0]);
+CATCOL.WX_WETM = [['January','#2F4B7C'],['February','#46669A'],['March','#6E8FBF'],['April','#3E8E7E'],['May','#6BAA75'],['June','#A3C17A'],['July','#D9B44A'],['August','#C98A3E'],['September','#B5653A'],['October','#8E4B5A'],['November','#9C7AA8'],['December','#5E5A8C']]; D.cats.WX_WETM = CATCOL.WX_WETM.map(e => e[0]);
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 /* Blue Ridge color scheme */
 const HUE = {lands:'#B03A73', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94', wx:'#4A7FB5', tvul:'#6A4FB3'};
