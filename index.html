@@ -1054,7 +1054,7 @@ function phTot(sp){ const s = phCntStage(sp), st = PHD[sp.key];
   if (st && st.st === 'done'){ const k = st.pts.reduce((t, p) => t + (p[2] === s ? 1 : 0), 0), h = (st.drop || {})[s] || 0; return {all:k + h, kept:k, hid:h}; }
   const e = PHIDXV && PHIDXV.species[sp.key]; if (e && e.kept){ const k = e.kept[s] || 0, h = (e.drop || {})[s] || 0; return {all:k + h, kept:k, hid:h}; }
   return sp.pest && PHCNT[sp.key] != null ? {all:PHCNT[sp.key]} : null; }
-function phIdx(){ if (PHIDX === undefined) PHIDX = fetch('phen/index.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null)
+function phIdx(){ if (PHIDX === undefined) PHIDX = fetch('data/phen/index.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null)
     .then(j => { PHIDXV = j && j.species && j.project === (ATiNat.config.project || '') ? j : null; if (PHIDXV) phIdxAdd(PHIDXV); return PHIDXV; }).catch(() => null);
   return PHIDX; }
 /* the weekly index carries the list from invasive_lookup.csv: species added there join, species taken off leave, and each sits in its tier */
@@ -1124,7 +1124,7 @@ function phDone(sp, st){ st.st = 'done'; st.at = st.at || Date.now(); for (const
   if (PHQ() && phSp() === sp){ BRK.clear(); redraw(); } }
 /* the pre-built file, then any newer records from iNaturalist; false when the species is not pre-built */
 async function phBuilt(sp, st){ const ix = await phIdx(), e = ix && ix.species[sp.key]; if (!e) return false;
-  const r = await fetch('phen/' + sp.key + '.json', {cache:'no-cache'}); if (!r.ok) return false; const j = await r.json(); if (!Array.isArray(j.pts)) return false;
+  const r = await fetch('data/phen/' + sp.key + '.json', {cache:'no-cache'}); if (!r.ok) return false; const j = await r.json(); if (!Array.isArray(j.pts)) return false;
   st.pts = j.pts.slice(); st.n = st.pts.length; st.taxon = j.taxon; st.nid = j.nid; st.built = j.at; st.added = 0; st.drop = Object.assign({}, j.drop || {}); st.edd = Array.isArray(j.edd) ? j.edd : []; st.eddDup = j.edd_dup || 0; st.at = Date.now(); phStatusOnly();
   try { const T = await phTerms(), tally = {obscured:0};
     for (const [stage, tv] of phStreams(sp, T)){ let above = (j.top || {})[stage] || 0; if (!above) continue;
@@ -1145,7 +1145,7 @@ function phLoad(sp, live){ let st = PHD[sp.key]; if (st && (st.st === 'done' || 
         st.n = st.pts.length; if (res.length) above = res[res.length - 1].id; phStatusOnly(); if (res.length < 200) break; } }
     st.taxon = taxon;
     if (sp.pest) try { const r = await fetch('https://api.inaturalist.org/v1/observations?' + (ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : '') + 'quality_grade=needs_id&per_page=0&taxon_id=' + taxon); if (r.ok) st.nid = (await r.json()).total_results || 0; } catch (e) {}
-    if (sp.pest) try { const r = await fetch('phen/' + sp.key + '.json', {cache:'no-cache'}); if (r.ok){ const jj = await r.json(); st.edd = jj.edd || []; st.eddDup = jj.edd_dup || 0; } } catch (e) {}   /* EDDMapS comes only from the weekly file */
+    if (sp.pest) try { const r = await fetch('data/phen/' + sp.key + '.json', {cache:'no-cache'}); if (r.ok){ const jj = await r.json(); st.edd = jj.edd || []; st.eddDup = jj.edd_dup || 0; } } catch (e) {}   /* EDDMapS comes only from the weekly file */
     st.st = 'done'; st.at = Date.now();
     try { localStorage.setItem(phKey(sp), JSON.stringify({at:st.at, pts:st.pts, taxon:st.taxon, nid:st.nid, drop:st.drop, edd:st.edd || [], eddDup:st.eddDup || 0})); } catch (e) {}
     for (const k in PHAGG) if (k.startsWith(sp.key + '|')) delete PHAGG[k];
@@ -1651,7 +1651,7 @@ async function histOsm(ch){ const box = `${ch.s},${ch.w},${ch.n},${ch.e}`;
 const histOsmCem = os => os.map(o => ({t:'cem', nm:o.tags.name || '', la:o.la, lo:o.lo, a:{source:'OpenStreetMap', osm:o.id, denomination:o.tags.denomination || '', operator:o.tags.operator || '',
   fag:String(o.tags['ref:find_a_grave'] || '').replace(/\D/g, ''), wikidata:o.tags.wikidata || ''}}));
 /* First choice: historic_resources.json beside this page (built monthly on GitHub); then this browser's saved copy; last, live from the services */
-const HISTFILE = 'historic_resources.json';
+const HISTFILE = 'data/historic_resources.json';
 /* fileOnly: the cell panel asks for the file alone and never starts the slow live load */
 let HISTNOFILE = false;
 function histLoad(force, fileOnly){ if (HIST && (HIST.st === 'loading' || (HIST.st === 'done' && !force))) return; if (fileOnly && HISTNOFILE) return;
@@ -2815,7 +2815,7 @@ function redraw(){ draw(); strip(); writeHash(); }
    for soils and wetlands only. Those cells are in soils_wetlands_huc10.json beside this page and load the first time they are asked for.
    Switching swaps the grid and the soils data under the page, so the map, rankings, strip, selection and export all follow.
    Choosing another question, or searching for a species, switches back to the corridor. */
-const EXTFILE = 'soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest','pinv','cult','geo','wx','tvul'];
+const EXTFILE = 'data/soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest','pinv','cult','geo','wx','tvul'];
 const SOILCATS = ['VULN_DOM','SOIL_SERIES','SOIL_TEXTURE','SOIL_ORDER','SOIL_DRAIN','SOIL_HSG','SOIL_FARM','SOIL_ECOSITE','SOIL_MAPUNIT','WET_DOM','WET_LDOM'];
 let extLoading = null;
 function extSnapshot(){ const cats = {}; SOILCATS.forEach(k => { if (D.cats[k]) cats[k] = D.cats[k]; });
@@ -2825,7 +2825,7 @@ function extLoad(){ if (EXT.huc) return Promise.resolve(); if (extLoading) retur
     const themes = {}; for (const th in D.themes) themes[th] = {}; themes.soil = j.soil; if (j.wet) themes.wet = j.wet;
     const H = {levels:j.levels, themes, cats:j.cats, group:{}, poly:{}};
     /* the watershed iNaturalist and eBird summaries load with the cells, so both are ready together */
-    return Promise.all([fetch(BIOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(b => { if (b && b.themes) bioHuc(b, H); }).catch(() => {}),
+    return Promise.all([fetch(BIOHUC, {cache:'no-cache'}).then(r => !r.ok ? null : /\.gz$/.test(BIOHUC) && window.DecompressionStream ? new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json() : r.json()).then(b => { if (b && b.themes) bioHuc(b, H); }).catch(() => {}),
       fetch(GEOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(g => { if (g && g.themes) { geoTables(g); H.themes.geo = geoConv(g, H.levels); } }).catch(() => {}),
       fetch(WXHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(w => { if (w && w.themes){ if (w.meta && !WXMETA.storms_info) WXMETA = w.meta; H.themes.wx = thConv(w, 'wx', H.levels); } }).catch(() => {}),
       fetch(TSLHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(t => { if (t && t.themes) H.themes.slope = thConv(t, 'slope', H.levels); }).catch(() => {})]).then(() => { EXT.huc = H; }); });
@@ -2874,7 +2874,7 @@ map.on('moveend', viewWindow);
 map.createPane('states').style.zIndex = 412; map.getPane('states').style.pointerEvents = 'none';
 let STL = null, stOn = true; try { stOn = localStorage.getItem('atgrid_states') !== '0'; } catch (e) {}
 function statesShow(){ const cb = $('#stlines'); if (cb) cb.checked = stOn; if (!STL) return; if (stOn) STL.addTo(map); else map.removeLayer(STL); }
-fetch('states.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (!j || !j.features) return;
+fetch('data/states.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (!j || !j.features) return;
   STL = L.geoJSON(j, {renderer:L.canvas({pane:'states', padding:.3}), interactive:false, smoothFactor:1.5, style:() => ({color:'#C4A57C', weight:map.getZoom() < 7 ? .7 : 1.2, opacity:.9})}); statesShow(); }).catch(() => {});
 map.on('zoomend', () => { if (STL) STL.setStyle({weight:map.getZoom() < 7 ? .7 : 1.2}); });
 document.addEventListener('change', e => { if (e.target.id === 'stlines'){ stOn = e.target.checked; try { localStorage.setItem('atgrid_states', stOn ? '1' : '0'); } catch (x) {} statesShow(); } });
@@ -3415,7 +3415,7 @@ const FGROUPS = [['spp', 'Species and vegetation'], ['place', 'Places and landma
    place_names.json, built monthly on GitHub; loaded the first time the search is used */
 let PLACES = null;
 function placesLoad(){ if (PLACES) return; PLACES = {st:'loading', items:[]};
-  fetch('place_names.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => {
+  fetch('data/place_names.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => {
     /* compact rows [name, class index, lat, lon, state index]; older files list objects */
     const items = !j ? [] : Array.isArray(j.rows) ? j.rows.map(r => ({n:r[0], k:j.classes[r[1]], la:r[2], lo:r[3], s:j.states[r[4]]})) : Array.isArray(j.items) ? j.items : [];
     items.forEach(x => { x.lc = x.n.toLowerCase(); }); PLACES = {st:'done', items};
@@ -4560,18 +4560,18 @@ if (S.sec !== 'all') fitSection();
    this page; species strings are merged into D.spp and cells are matched by grid ID. Applied once the corridor cells are shown. */
 var BIO = null;   // var: draw() may run before this line
 /* geology.json and geology_huc10.json, built on GitHub (build_geology.py): cells matched by grid ID */
-var GEO = null; const GEOHUC = 'geology_huc10.json';
-var WX = null; const WXHUC = 'weather_huc10.json';
-var TSL = null; const TSLHUC = 'trail_slope_huc10.json';
+var GEO = null; const GEOHUC = 'data/geology_huc10.json';
+var WX = null; const WXHUC = 'data/weather_huc10.json';
+var TSL = null; const TSLHUC = 'data/trail_slope_huc10.json';
 function tslApply(){ const j = TSL; if (!j || j.done || S.ext !== 'corr') return; j.done = true; D.themes.slope = thConv(j, 'slope', D.levels); extIndex(); }
-fetch('trail_slope.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ TSL = j; if (S.ext === 'corr'){ tslApply(); redraw(); } } }).catch(() => {});
+fetch('data/trail_slope.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ TSL = j; if (S.ext === 'corr'){ tslApply(); redraw(); } } }).catch(() => {});
 function thConv(j, th, levels){ const out = {}, src = j.themes[th] || {};
   for (const lv in src){ if (!levels[lv]) continue; const m = new Map(); levels[lv].id.forEach((id, i) => m.set(id, i)); const t = src[lv], keep = [], ix = [];
     t.ids.forEach((id, k) => { const c = m.get(id); if (c != null){ keep.push(k); ix.push(c); } });
     const f = {}; for (const name in t.f) f[name] = keep.map(k => t.f[name][k]); out[lv] = {ix, f}; }
   return out; }
 function wxApply(){ const j = WX; if (!j || j.done || S.ext !== 'corr') return; j.done = true; WXMETA = j.meta || {}; for (const k in WXB) delete WXB[k]; D.themes.wx = thConv(j, 'wx', D.levels); extIndex(); }
-fetch('weather.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ WX = j; if (S.ext === 'corr'){ wxApply(); redraw(); } } }).catch(() => {});
+fetch('data/weather.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ WX = j; if (S.ext === 'corr'){ wxApply(); redraw(); } } }).catch(() => {});
 function geoTables(j){ if (!GEOT) GEOT = {maps:j.maps || [], units:j.units || [], meta:j.meta || {}};
   ['GEO_LITH','GEO_AGE','MAP_BEST','SURF','GIS_BEST'].forEach(k => { if (j.cats && j.cats[k] && j.cats[k].join('|') !== D.cats[k].join('|')) console.warn('geology categories differ from the page:', k); }); }
 function geoConv(j, levels){ const out = {}, src = j.themes.geo || {};
@@ -4580,8 +4580,8 @@ function geoConv(j, levels){ const out = {}, src = j.themes.geo || {};
     const f = {}; for (const name in t.f) f[name] = keep.map(k => t.f[name][k]); out[lv] = {ix, f}; }
   return out; }
 function geoApply(){ const j = GEO; if (!j || j.done || S.ext !== 'corr') return; j.done = true; geoTables(j); D.themes.geo = geoConv(j, D.levels); extIndex(); }
-fetch('geology.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ GEO = j; if (S.ext === 'corr'){ geoApply(); redraw(); } } }).catch(() => {});
-fetch('inat_ebird.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ BIO = j; if (S.ext === 'corr'){ bioApply(); redraw(); } } }).catch(() => {});
+fetch('data/geology.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ GEO = j; if (S.ext === 'corr'){ geoApply(); redraw(); } } }).catch(() => {});
+fetch('data/inat_ebird.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ BIO = j; if (S.ext === 'corr'){ bioApply(); redraw(); } } }).catch(() => {});
 /* the file's cells matched to a set of grid levels by ID (idx: level -> Map(id -> cell)); species merged into D.spp */
 function bioConv(j, idx){ const si = new Map(D.spp.map((s, i) => [s, i])), sp = i => { const s = j.spp[i]; let k = si.get(s); if (k == null){ k = D.spp.length; D.spp.push(s); si.set(s, k); } return k; };
   const ds = (j.cats && j.cats.DATA_STATUS || []).map(x => { let k = D.cats.DATA_STATUS.indexOf(x); if (k < 0){ k = D.cats.DATA_STATUS.length; D.cats.DATA_STATUS.push(x); } return k; });
@@ -4597,7 +4597,7 @@ function bioConv(j, idx){ const si = new Map(D.spp.map((s, i) => [s, i])), sp = 
     themes[th] = out; }
   return themes; }
 /* the watershed (HUC10) summaries, inat_ebird_huc10.json, loaded with the watershed cells */
-const BIOHUC = 'inat_ebird_huc10.json';
+const BIOHUC = 'data/inat_ebird_huc10.json.gz';
 function bioHuc(j, H){ const idx = {}; for (const lv in H.levels){ const m = new Map(); H.levels[lv].id.forEach((id, i) => m.set(id, i)); idx[lv] = m; }
   Object.assign(H.themes, bioConv(j, idx)); H.bio = j.run || true; INATFLAGS = null; }
 function bioApply(){ const j = BIO; if (!j || j.done || S.ext !== 'corr') return; j.done = true;
