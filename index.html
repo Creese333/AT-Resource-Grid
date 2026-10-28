@@ -497,6 +497,11 @@ header .blaze{width:14px;height:38px}
 @media (max-width:700px){header h1{font-size:23px}header .blaze{width:12px;height:33px}}
 .qs{container-type:inline-size}
 .qs button{font-size:clamp(14px, calc((100cqi - 50px) / 21.4), 17.5px)}
+.qs button.qgrp{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0 2px;padding:3px 8px;border:0;border-radius:3px;background:none;box-shadow:none;
+  font-size:13.5px;font-weight:600;color:#93A8C0;letter-spacing:.01em;border-bottom:0}
+.qs button.qgrp::before{content:none}.qs button.qgrp:first-child{margin-top:2px}.qs button.qgrp:hover{color:#fff;background:rgba(255,255,255,.04)}
+.qs button.qgrp i{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid currentColor;transition:transform .15s}
+.qs button.qgrp[aria-expanded=false] i{transform:rotate(-90deg)}
 </style>
 </head>
 <body>
@@ -2618,8 +2623,12 @@ for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
 { const iq = Q.find(q => q.id === 'inv'); if (iq){ const k = iq.m.findIndex(m => m.id === 'edrr'); if (k > 0) iq.m.unshift(iq.m.splice(k, 1)[0]); } }
 let JERRY = false;
 if (JERRY) document.body.classList.add('jerry');
+const QGRP = {rest:'Priorities', tvul:'Priorities', pri:'Priorities', inv:'Threats', pest:'Threats', pinv:'Threats', veg:'Plants and wildlife', bird:'Plants and wildlife',
+  phen:'Plants and wildlife', rec:'Plants and wildlife', geo:'Land, water and climate', soil:'Land, water and climate', wet:'Land, water and climate', wx:'Land, water and climate',
+  hist:'Cultural resources', cult:'Cultural resources', feat:'Trail and visitors', eff:'Trail and visitors', land:'Trail and visitors'};
+const QGOFF = new Set();   // folded question groups (filled from this browser's settings below)
 const qVis = x => x.id !== 'pri' || JERRY;
-{ const ord = ['rest','inv','pinv','rec','pest','phen','cult','bird','pri','veg','geo','soil','wet','feat','hist','eff','land','wx','tvul']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','tvul','pri','feat','eff','land','inv','pest','pinv','veg','bird','phen','rec','geo','soil','wet','wx','hist','cult']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
@@ -2631,6 +2640,10 @@ const DEFBASE = 'naip';
 /* When does it flower here? opens on Flowering, week by week, so Play shows the season moving north (Pest and invasives keep their own list) */
 { const p = Q.find(q => q.id === 'phen'); if (p){ const w = p.m.find(m => m.id === 'wave'); if (w) p.m = [w, ...p.m.filter(m => m !== w)]; } }
 const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, sel:true, instr:false, sum:false, vsumr:false, vsums:false, about:false, measures:true, results:true, tvw:true, mgmt:false, hadm:false}};
+/* settings kept in this browser between visits (try/catch: private windows can refuse) */
+const store = {get(k, d){ try { const v = localStorage.getItem('atgrid_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v){ try { localStorage.setItem('atgrid_' + k, JSON.stringify(v)); } catch (e) {} }};
+Object.assign(S.side, store.get('side', {})); store.get('qgroups', []).forEach(g => QGOFF.add(g)); { const lg = store.get('legend', null); if (lg != null) S.legend = lg; } S.secOpen = store.get('secs', {});
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q') && qVis(x)); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
@@ -3327,7 +3340,7 @@ function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3><button type="b
   if (m.find) h += '<button type="button" id="findclear" class="lbtn">Clear search</button>';
   if (m.fade) h += `<label><input type="checkbox" id="fadebox" ${S.fade ? 'checked' : ''}> ${m.fadeLabel ? m.fadeLabel : m.th === 'veg' ? 'Fade cells with under ' + THIN_AC + ' acres mapped' : 'Fade thinly sampled cells'}</label>`;
   $('#legend').innerHTML = h + '</div>';
-  $('#legtog').onclick = () => { S.legend = !S.legend; legend(); };
+  $('#legtog').onclick = () => { S.legend = !S.legend; store.set('legend', S.legend); legend(); };
   { const fc = $('#findclear'); if (fc) fc.onclick = clearFind; }
   const fb = $('#fadebox'); if (fb) fb.onchange = () => { S.fade = fb.checked; restyle(); }; }
 
@@ -3342,7 +3355,7 @@ const hasSel = () => PHQ() || (S.q.id === 'inv' && S.m.id === 'edrr') || (S.q.id
 function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
   let h = `<section class="blk qsblk"><h2><button type="button" class="blktog" data-blk="qs" aria-expanded="${!!S.side.qs}"><span>Guiding Questions${S.side.qs ? '' : ` <small class="mgsum">${esc(q.title)}</small>`}</span><i aria-hidden="true"></i></button></h2>` +
-    `<nav class="qs" aria-label="Guiding questions"${S.side.qs ? '' : ' hidden'}>` + Q.filter(qVis).map(x => `<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${x === q && !S.m.find}">${esc(x.title)}</button>`).join('') + '</nav></section>';
+    `<nav class="qs" aria-label="Guiding questions"${S.side.qs ? '' : ' hidden'}>` + Q.filter(qVis).map((x, i, a) => { const g = QGRP[x.id], off = g && QGOFF.has(g), cur = x === q && !S.m.find; return (g && (!i || QGRP[a[i - 1].id] !== g) ? `<button type="button" class="qgrp" data-qg="${esc(g)}" aria-expanded="${!off}"><span>${esc(g)}</span><i aria-hidden="true"></i></button>` : '') + (off && !cur ? '' : `<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${cur}">${esc(x.title)}</button>`); }).join('') + '</nav></section>';
   if (S.m.find){ const fs = findSummary(lv); el.innerHTML = h + `<div class="qbody">${fs[0]}${blk('results', 'Results', fs[1], 'res')}</div>`; return; }
   const extBlk = q.id === 'hist' && !S.m.find ? `<section class="blk extblk">${histAdmBlock().replace('<span>Extent</span>', '<h2>Extent</h2>')}${histBlock()}</section>` : !EXTQ.includes(q.id) ? '' : `<section class="blk extblk"><div class="extsw" role="group" aria-label="Extent"><h2>Extent</h2><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
     (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow once you zoom in. Trail miles are those of the nearest corridor cell.' + '</p>' : '') + '</section>';
@@ -3403,7 +3416,8 @@ $('#side').addEventListener('click', e => { const b = e.target.closest('button')
   if (b.dataset.lands){ S.appa = b.dataset.lands === 'appa'; BRK.clear(); redraw(); return; }
   if (b.dataset.hadm){ S.hadm = b.dataset.hadm; S.histHucFail = false; for (const k in HAGG) delete HAGG[k]; BRK.clear(); const want = histScale() === 'huc' ? 'huc' : 'corr';
     if (S.ext !== want) setExt(want); else redraw(); LIVE.forEach(l => { if (l.local && l.on) liveLoad(l); }); return; }
-  if (b.dataset.blk){ S.side[b.dataset.blk] = !S.side[b.dataset.blk]; side(); return; }
+  if (b.dataset.blk){ S.side[b.dataset.blk] = !S.side[b.dataset.blk]; store.set('side', S.side); side(); return; }
+  if (b.dataset.qg){ const g = b.dataset.qg; if (QGOFF.has(g)) QGOFF.delete(g); else QGOFF.add(g); store.set('qgroups', [...QGOFF]); side(); return; }
   if (b.dataset.selall && S.m.find){ const lv = dispLevel(), e = S.m.find, L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c) && e.cells[lv].has(c)) cells.push(c);
     if (cells.length) selectMany(lv, cells, null, e.common || e.sci); return; }
   if (b.dataset.phrk){ S.ph.rk = b.dataset.phrk; side(); return; }
@@ -4002,7 +4016,7 @@ function finishProfile(html){ $('#pbody').innerHTML = html;
     while (h.nextSibling) body.appendChild(h.nextSibling);
     sec.appendChild(body);
     h.innerHTML = `<button type="button" class="sectog" aria-expanded="${open}" aria-controls="${body.id}"><span>${esc(h.textContent)}</span><i aria-hidden="true"></i></button>`;
-    h.firstChild.onclick = () => { const now = body.hidden; body.hidden = !now; S.secOpen[key] = now; h.firstChild.setAttribute('aria-expanded', now); visCheck(); }; }); $('#pbody').scrollTop = 0; $('#profile').classList.add('open');
+    h.firstChild.onclick = () => { const now = body.hidden; body.hidden = !now; S.secOpen[key] = now; store.set('secs', S.secOpen); h.firstChild.setAttribute('aria-expanded', now); visCheck(); }; }); $('#pbody').scrollTop = 0; $('#profile').classList.add('open');
   /* bring the open section into view (the flowering section sits last) */
   { const pb = $('#pbody'), o = pb.querySelector('.sectog[aria-expanded=true]'); if (o){ const d = o.getBoundingClientRect().top - pb.getBoundingClientRect().top; if (d > pb.clientHeight * .5) pb.scrollTop = d - 8; } } }
 
