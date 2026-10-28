@@ -10,8 +10,8 @@ Builds weather.json (A.T. corridor cells) and weather_huc10.json (HUC10 shell ce
     15 mph or more at 10 m). The 4 km grid smooths the terrain, so ridge-top wind is understated: read it as relative.
   - NOAA Storm Events Database (NCEI, from National Weather Service Storm Data), 1996 to the last full year: damaging wind
     (thunderstorm wind, high wind, strong wind, tornado), flooding (flash flood, flood) and winter storms (ice storm, winter storm,
-    heavy snow, blizzard). Events with a location are placed in the cells they fall in (tornadoes along their path); events
-    reported for a National Weather Service forecast zone or a county count in every cell whose center is in that zone or county.
+    heavy snow, blizzard). Every event counts in each cell whose center is in the National Weather Service forecast zone or county it
+    was reported for, so the counts mean the same at every cell size.
   - NOAA Atlas 14 precipitation frequency (NWS Hydrometeorological Design Studies Center): the 25-year, 24-hour rainfall.
 
 Every value is summarized by sampling a regular grid of points in each cell (as the geology build does). Each source is optional:
@@ -27,7 +27,7 @@ from datetime import date
 import warnings
 warnings.filterwarnings('ignore')
 import numpy as np, pandas as pd, geopandas as gpd
-from shapely.geometry import Polygon, Point, LineString
+from shapely.geometry import Polygon
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 INDEX = os.path.join(HERE, 'index.html')
@@ -351,10 +351,10 @@ def storms_part(grids, P):
     files = storm_files(); zones, counties = zones_and_counties()
     states = set(STATE_ABBR.values())
     group = {t: g for g, ts in GROUPS.items() for t in ts}
-    cents, trees, keys = {}, {}, {}
+    trees, keys = {}, {}
     for ext, L in grids.items():
         for lv, cells in L.items():
-            trees[(ext, lv)] = cells.sindex
+            trees[(ext, lv)] = True
             c = gpd.GeoDataFrame({'i': range(len(cells))}, geometry=cells.geometry.representative_point(), crs=4326)
             keys[(ext, lv)] = {}
             for nm, layer in (('Z', zones), ('C', counties)):
@@ -374,21 +374,13 @@ def storms_part(grids, P):
             if not g: continue
             st = STATE_ABBR.get(str(r.get('STATE_FIPS') or '').zfill(2))
             if st not in states: continue
-            n += 1; hit = {}
-            try:
-                la, lo = float(r['BEGIN_LAT']), float(r['BEGIN_LON'])
-                geom = Point(lo, la)
-                if r['EVENT_TYPE'].strip() == 'Tornado' and r.get('END_LAT') and r.get('END_LON'):
-                    geom = LineString([(lo, la), (float(r['END_LON']), float(r['END_LAT']))])
-                for k, t in trees.items():
-                    hit[k] = list(t.query(geom, predicate='intersects'))
-                stats['placed at a location'] += 1
-            except (TypeError, ValueError, KeyError):
-                ct = (r.get('CZ_TYPE') or '').strip().upper(); fips = str(r.get('CZ_FIPS') or '').zfill(3)
-                key = f'{st}Z{fips}' if ct == 'Z' else str(r.get('STATE_FIPS') or '').zfill(2) + fips if ct == 'C' else None
-                for k in trees:
-                    hit[k] = keys[k].get(ct, {}).get(key, []) if key else []
-                stats['zone or county' if any(hit.values()) else 'zone or county not matched'] += 1
+            n += 1
+            # every event counts in the National Weather Service forecast zone or county it was reported for, so a cell's count is the same
+            # whatever its size: events touching the area around it, not a density that grows with the cell
+            ct = (r.get('CZ_TYPE') or '').strip().upper(); fips = str(r.get('CZ_FIPS') or '').zfill(3)
+            key = f'{st}Z{fips}' if ct == 'Z' else str(r.get('STATE_FIPS') or '').zfill(2) + fips if ct == 'C' else None
+            hit = {k: (keys[k].get(ct, {}).get(key, []) if key else []) for k in trees}
+            stats['matched to a zone or county' if any(hit.values()) else 'zone or county not near the trail'] += 1
             for k, cells in hit.items():
                 for c in cells:
                     cnt[k][g][c] += 1; yr[k][c][(y, g)] += 1
@@ -428,6 +420,52 @@ def atlas_part(P):
         v = cell_mean(vals[k], own, n) / 1000.0                          # grids are in thousandths of an inch
         out[k] = {'WX_P25': [None if not np.isfinite(z) else round(z, 2) for z in v]}
     return out, used
+
+
+
+# ---------------------------------------------------------------- map classes, shared by every cell size and both extents
+NICE = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]
+
+
+def nice(v):
+    if not v > 0: return 0
+    e = 10 ** math.floor(math.log10(v)); f = v / e
+    return min(NICE, key=lambda q: abs(math.log(q / f))) * e
+
+
+def equal_classes(a, k=6):
+    a = np.sort(np.asarray([x for x in a if x is not None and np.isfinite(x)], dtype='float64'))
+    if not len(a): return None
+    lo, hi = a[int(.02 * (len(a) - 1))], a[int(math.ceil(.98 * (len(a) - 1)))]
+    st = nice((hi - lo) / k) or 1; s0 = math.floor(lo / st) * st
+    b = [round(s0 + st * i, 4) for i in range(1, k + 1) if s0 + st * i < hi]
+    return {'b': b, 'lo': float(a[0]), 'hi': float(a[-1])}
+
+
+def skew_classes(a):
+    a = np.sort(np.asarray([x for x in a if x is not None and np.isfinite(x)], dtype='float64'))
+    if not len(a): return None
+    pos = a[a > 0]; b = []
+    for f in (.3, .55, .75, .9, .97):
+        if not len(pos): break
+        v = nice(pos[min(len(pos) - 1, int(f * len(pos)))]); v = round(v) if v >= 1 else round(v, 2)
+        if not b or v > b[-1]: b.append(v)
+    return {'b': b, 'lo': float(a[0]), 'hi': float(a[-1])}
+
+
+def map_classes(fields, meta):
+    """class breaks for each map measure from every cell size of both extents, so a color means the same everywhere"""
+    allv = lambda nm, flat=False: [x for f in fields.values() for v in (f.get(nm) or []) if v is not None for x in (v if flat else [v])]
+    out = {}
+    for nm in ('WX_PPT', 'WX_TMEAN', 'WX_TMAX7', 'WX_TMIN1', 'WX_FROSTFREE', 'WX_HEAVY', 'WX_P25', 'WX_WIND'):
+        out[nm] = equal_classes(allv(nm))
+    out['WX_PPT_M'] = equal_classes(allv('WX_PPT_M', True)); out['WX_TMEAN_M'] = equal_classes(allv('WX_TMEAN_M', True))
+    out['WX_WINDY'] = skew_classes(allv('WX_WINDY'))
+    yrs = ((meta.get('storms_info') or {}).get('years')) or None; ny = yrs[1] - yrs[0] + 1 if yrs else None
+    for k, g in enumerate(GROUPS):
+        if ny: out['WX_EV_' + g] = skew_classes([v / ny for v in allv('WX_EV_' + g)])
+        out['WX_EV_' + g + '_Y'] = skew_classes([x[i + 1 + k] for f in fields.values() for x in (f.get('WX_EV_Y') or []) if x for i in range(0, len(x), 4)])
+    return {k: v for k, v in out.items() if v}
 
 
 # ---------------------------------------------------------------- main
@@ -498,6 +536,7 @@ def main():
         'storms': 'NOAA NCEI Storm Events Database, from NWS Storm Data. https://www.ncei.noaa.gov/stormevents/',
         'atlas14': 'NOAA Atlas 14 Precipitation-Frequency Atlas of the United States, volumes 2, 9 and 10. https://hdsc.nws.noaa.gov/pfds/'}
     cats = {'WX_WETM': MONTHS}
+    meta['classes'] = map_classes(fields, meta)
     for ext in grids:
         themes = {}
         for lv in ('hex', 'cog', 'wheel'):

@@ -543,7 +543,7 @@ h4.mgrp{margin:12px 0 8px;padding-top:10px;border-top:1px solid #2E4460;font-siz
       <tr><td>Wetlands</td><td>USFWS National Wetlands Inventory, all 14 trail states</td><td>Wetland acres in each cell by type, and the part on A.T. lands. Small, forested and seasonal wetlands are often missed. “Possibly sensitive” flags likely bogs, fens, seeps and vernal pools for a field check. Not a delineation.</td></tr>
       <tr><td>Restoration targets</td><td>Built in this page from the layers above</td><td>Two 0 to 100 scores for grasslands and forests. How they are scored is set out under Restoration targets below.</td></tr>
       <tr><td>Flowering</td><td>iNaturalist research-grade records, built weekly, with newer records fetched live</td><td>Nearly fifty plants: trail-wide, A.T. Seasons, northern and southern indicators, and AMC focal species. First, peak and season length follow USA National Phenology Network measures, pooled across years. The flowering calendar by latitude follows the USA-NPN calendar view: the middle 80% and 50% of flowering-record dates and the median for each band of latitude, from 2010 on; bands with fewer than 20 records are not drawn. These are dates of photographs of the plant in flower, not measured flowering periods. Records follow hikers, so compare years by eye as leads for field checks; for measured change see A.T. Seasons (Nature’s Notebook).</td></tr>
-      <tr><td>Weather and climate</td><td>PRISM 1991–2020 normals, 800 m (PRISM Group, Oregon State University); NOAA nClimGrid-Daily, 1991–2020; NOAA Atlas 14; NOAA Storm Events Database, 1996 to the last full year; gridMET wind (University of Idaho), 1991–2020. Rebuilt each January; storm events every quarter</td><td>Normals, frost-free season, heavy-rain days, the 25-year storm and wind are sampled on a regular grid of points in each cell and averaged. PRISM and Atlas 14 resolve the mountains well; nClimGrid-Daily and gridMET are about 4 km, so the highest ridges are smoothed. gridMET is a research dataset, not an official record, and understates ridge-top wind. Storm events with a location are placed where they happened (tornadoes along their path); events reported for a whole National Weather Service forecast zone or county count in every cell there, so those measures show where events are common rather than exact spots, and a cell's count is not a count of separate storms across the trail.</td></tr>
+      <tr><td>Weather and climate</td><td>PRISM 1991–2020 normals, 800 m (PRISM Group, Oregon State University); NOAA nClimGrid-Daily, 1991–2020; NOAA Atlas 14; NOAA Storm Events Database, 1996 to the last full year; gridMET wind (University of Idaho), 1991–2020. Rebuilt each January; storm events every quarter</td><td>Normals, frost-free season, heavy-rain days, the 25-year storm and wind are sampled on a regular grid of points in each cell and averaged. PRISM and Atlas 14 resolve the mountains well; nClimGrid-Daily and gridMET are about 4 km, so the highest ridges are smoothed. gridMET is a research dataset, not an official record, and understates ridge-top wind. Each storm event counts in every cell whose center is in the National Weather Service forecast zone or county it was reported for, so the counts mean the same at every cell size and show where events are common rather than exact spots; a cell's count is not a count of separate storms across the trail. Map colors use one set of classes for every cell size and both extents.</td></tr>
       <tr><td>Visitation</td><td>iNaturalist, eBird and EDDMapS records (the same downloads as above), counted as observer-days: one person active in a square mile on one day</td><td>An index of naturalist and birder activity, not a count of visitors; it follows the "user-day" method used to track park visitation from photo and social-media posts, and validated against counters and official counts in several studies (see Sources). An eBird checklist within 250 m of an iNaturalist observer on the same day and square mile counts as the same party; EDDMapS reports are report-days. The visitation index divides each cell's observer-days by the average cell's in the same year, to take out the growth in iNaturalist use. Long-distance hikers: records spanning 100+ trail miles within 30 days, on 4+ days. Off-trail: records more than 100 m from the mapped centerline.</td></tr>
       <tr><td>Geology</td><td>USGS State Geologic Map Compilation (Horton, San Juan and Stoeser, 2017, <a href="https://doi.org/10.5066/F7WH2N65" target="_blank" rel="noopener">doi.org/10.5066/F7WH2N65</a>) and NPS Geologic Resources Inventory geologic map footprints (July 2024), rebuilt yearly</td><td>Bedrock type, carbonate and mafic/ultramafic rock, and age come from the seamless state-map compilation, mostly 1:100,000 to 1:500,000 scale, so small units and exact contacts are not shown. Map coverage measures come from approximate footprints of the published and in-progress geologic maps the GRI found around the trail; in the HUC10 watersheds further from the trail, some maps may be missing.</td></tr>
       <tr><td>Plants of cultural significance</td><td>iNaturalist research-grade records in the quarterly summary, matched to cultural_plants.csv (136 plants)</td><td>Compiled from the Greenbelt Indigenous Botanical Survey (Plenty Canada, J. Dolan and Y. Z. Ni), Mooney 1891, Tantaquidgeon 1942, the Haudenosaunee Confederacy and Cherokee and Wabanaki sources. Not exhaustive: the Native American Ethnobotany database and the longer ethnographies are not yet included. Ginseng, goldenseal, ramps and lady’s slippers are shown only at the 49 sq mi scale. A starting point for consultation, not a statement of any nation’s knowledge.</td></tr>
@@ -911,7 +911,7 @@ CATCOL.GEO_NEWEST = [['2010 or later','#38495B'],['1990 to 2009','#6E8296'],['19
 ['GEO_LITH','GEO_AGE','MAP_BEST','SURF','GIS_BEST','GEO_NEWEST'].forEach(k => { D.cats[k] = CATCOL[k].map(e => e[0]); });
 CATCOL.VIS_PEAK = [['January','#3E5C8A'],['February','#5175A8'],['March','#6FA8A0'],['April','#7DBF5E'],['May','#A8CF45'],['June','#E3D33B'],['July','#F2B233'],['August','#EE8F2E'],['September','#D9662B'],['October','#B8472E'],['November','#8C4A5E'],['December','#4B4F7A']];
 D.cats.VIS_PEAK = CATCOL.VIS_PEAK.map(e => e[0]);
-CATCOL.WX_WETM = CATCOL.VIS_PEAK.map(e => [e[0], e[1]]); D.cats.WX_WETM = CATCOL.WX_WETM.map(e => e[0]);
+CATCOL.WX_WETM = [['January','#1D3F8F'],['February','#3D6FC9'],['March','#86B6EA'],['April','#1E7B4E'],['May','#58B04F'],['June','#B7DB5A'],['July','#F4D03F'],['August','#F09A2A'],['September','#D4562A'],['October','#9C2F45'],['November','#C27BB6'],['December','#6A4C9C']]; D.cats.WX_WETM = CATCOL.WX_WETM.map(e => e[0]);
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 /* Blue Ridge color scheme */
 const HUE = {lands:'#B03A73', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94', wx:'#4A7FB5'};
@@ -1969,31 +1969,46 @@ const wxMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','N
 const wxIn = v => fmt(v, v < 10 || !Number.isInteger(v) ? 1 : 0) + ' in', wxF = v => fmt(Math.round(v), 0) + '°F', wxMph = v => fmt(v, 1) + ' mph';
 function wxNY(){ const y = WXMETA.storms_info && WXMETA.storms_info.years; return y ? y[1] - y[0] + 1 : null; }
 function wxYears(){ const y = WXMETA.storms_info && WXMETA.storms_info.years; return y ? y : null; }
-function wxMonVal(lv, c, f){ const a = val('wx', f, lv, c); return a ? a[S.wxMon] : null; }
-function wxEvYear(lv, c, g, y){ if (!has('wx', lv, c) || val('wx','WX_EV_' + g, lv, c) == null) return null; const a = val('wx','WX_EV_Y',lv,c), k = WXEVK.indexOf(g); if (!a) return D.themes.wx[lv].f.WX_EV_Y ? 0 : null;
+/* monthly and yearly lists. The HUC10 square miles don't carry them (file size): they come from the surrounding 7 sq mi cell,
+   scaled to the square mile's own annual value (precipitation and storm counts in proportion, temperature shifted by the difference) */
+function wxList(lv, c, f){ const a = val('wx', f, lv, c); if (a || !has('wx', lv, c)) return a; const t = D.themes.wx[lv]; if (t && t.f[f]) return null;
+  const p = parentOf(lv, c); if (!p || !has('wx', p[0], p[1])) return null; const b = val('wx', f, p[0], p[1]); if (!b) return null;
+  const pair = g => [val('wx', g, lv, c), val('wx', g, p[0], p[1])];
+  if (f === 'WX_PPT_M'){ const [r, q] = pair('WX_PPT'); return r != null && q ? b.map(x => x * r / q) : b; }
+  if (f === 'WX_TMEAN_M'){ const [r, q] = pair('WX_TMEAN'); return r != null && q != null ? b.map(x => x + r - q) : b; }
+  if (f === 'WX_EV_Y'){ const out = b.slice(); WXEVK.forEach((g, k) => { const [r, q] = pair('WX_EV_' + g), sc = q ? (r || 0) / q : 0; for (let i = 0; i < out.length; i += 4) out[i + 1 + k] = Math.round(b[i + 1 + k] * sc * 100) / 100; }); return out; }
+  return b; }
+const wxHasList = (lv, f) => { const t = D.themes.wx && D.themes.wx[lv]; return !!t && (!!t.f[f] || (lv === 'hex' && !!D.themes.wx.cog && !!D.themes.wx.cog.f[f])); };
+function wxMonVal(lv, c, f){ const a = wxList(lv, c, f); return a ? a[S.wxMon] : null; }
+function wxEvYear(lv, c, g, y){ if (!has('wx', lv, c) || val('wx','WX_EV_' + g, lv, c) == null) return null; const a = wxList(lv, c, 'WX_EV_Y'), k = WXEVK.indexOf(g); if (!a) return null;
   for (let i = 0; i < a.length; i += 4) if (a[i] === y) return a[i + 1 + k]; return 0; }
 function wxEv(lv, c, g){ if (S.wxYr) return wxEvYear(lv, c, g, S.wxYr); const n = val('wx','WX_EV_' + g, lv, c), ny = wxNY(); return n == null || !ny ? null : n / ny; }
-/* classes: the values a measure can take at this cell size (every month or year too, so colors hold while it plays) */
+/* classes: one set per measure for every cell size and both extents, worked out in the build from all the cells (meta.classes),
+   so a color means the same at 49, 7 and 1 sq mi, in the corridor and the HUC10 shell, and in every month or year as it plays.
+   Older files without them: worked out here from this extent's 7 sq mi cells, again the same at every cell size */
 const WXB = {};
-function wxClasses(m, lv){ const key = m.id + '|' + lv + '|' + S.ext + '|' + (m.wxAnim === 'mon' && S.wxMon != null ? 'm' : m.wxAnim === 'yr' && S.wxYr ? 'y' : 'a');
-  if (WXB[key] && WXB[key].lev === D.levels[lv]) return WXB[key]; const t = D.themes.wx && D.themes.wx[lv], a = [];
-  if (t){ const L_ = D.levels[lv];
+function wxClsKey(m){ return m.wxAnim === 'mon' && S.wxMon != null ? m.wxMonF : m.wxAnim === 'yr' && S.wxYr ? 'WX_EV_' + m.wxG + '_Y' : m.wxG ? 'WX_EV_' + m.wxG : m.wxKey || m.f; }
+function wxClasses(m, lv){ const ck = wxClsKey(m), M = WXMETA.classes && WXMETA.classes[ck]; if (M && M.b) return M;
+  const rl = D.themes.wx && D.themes.wx.cog ? 'cog' : lv, key = ck + '|' + S.ext; if (WXB[key] && WXB[key].lev === D.levels[rl]) return WXB[key];
+  const t = D.themes.wx && D.themes.wx[rl], a = [];
+  if (t){ const L_ = D.levels[rl];
     if (m.wxAnim === 'mon' && S.wxMon != null){ (t.f[m.wxMonF] || []).forEach(x => { if (x) x.forEach(v => v != null && a.push(v)); }); }
     else if (m.wxAnim === 'yr' && S.wxYr){ const k = WXEVK.indexOf(m.wxG); (t.f.WX_EV_Y || []).forEach(x => { if (x) for (let i = 0; i < x.length; i += 4) a.push(x[i + 1 + k]); }); }
-    else for (let c = 0; c < L_.id.length; c++){ const v = m.get(lv, c); if (v != null) a.push(v); } }
+    else for (let c = 0; c < L_.id.length; c++){ const v = m.get(rl, c); if (v != null) a.push(v); } }
   const s = a.filter(v => Number.isFinite(v)).sort((p, q) => p - q); let b = [];
   if (s.length){ const lo = s[Math.floor(.02 * (s.length - 1))], hi = s[Math.ceil(.98 * (s.length - 1))];
     if (m.wxSkew){ const pos = s.filter(v => v > 0), q = f => pos[Math.min(pos.length - 1, Math.floor(f * pos.length))];
       if (pos.length) b = [.3, .55, .75, .9, .97].map(f => { const v = niceNum(q(f)); return v >= 1 ? Math.round(v) : +v.toFixed(2); }); }
     else { const st = niceNum((hi - lo) / 6) || 1, s0 = Math.floor(lo / st) * st; for (let i = 1; i <= 6; i++){ const v = +(s0 + st * i).toFixed(4); if (v < hi) b.push(v); } }
     b = b.filter((v, i) => i === 0 || v > b[i - 1]); }
-  return (WXB[key] = {lev:D.levels[lv], b, lo:s.length ? s[0] : 0, hi:s.length ? s[s.length - 1] : 1}); }
+  return (WXB[key] = {lev:D.levels[rl], b, lo:s.length ? s[0] : 0, hi:s.length ? s[s.length - 1] : 1}); }
 function wxCol(m, v, lv){ if (v == null) return null; if (m.wxSkew && v === 0) return ZERO; const B = wxClasses(m, lv).b, R = WXRAMP[m.wxRamp]; let i = 0; while (i < B.length && v > B[i]) i++;
   return R[Math.round(i * (R.length - 1) / Math.max(1, B.length))]; }
 function wxLegend(m, lv){ const B = wxClasses(m, lv).b, R = WXRAMP[m.wxRamp], sh = m.showFn || (v => fmt(v, m.d)); if (!D.themes.wx[lv]) return '<p class="sub">The weather summaries (weather.json) have not been built yet.</p>';
   let h = m.wxSkew ? `<div class="row"><i style="background:${ZERO}"></i><span>None reported</span></div>` : '';
-  const n = B.length + 1; for (let i = 0; i < n; i++){ const t = i === 0 ? (m.wxSkew ? `up to ${sh(B[0])}` : `under ${sh(B[0])}`) : i === n - 1 ? `${sh(B[i - 1])} or more` : `${sh(B[i - 1])} to ${sh(B[i])}`;
-    h += `<div class="row"><i style="background:${R[Math.round(i * (R.length - 1) / Math.max(1, B.length))]}"></i><span>${t}</span></div>`; }
+  if (!B.length){ h += `<div class="row"><i style="background:${R[3]}"></i><span>${m.wxSkew ? 'Some reported' : 'All cells'}</span></div>`; }
+  else { const n = B.length + 1; for (let i = 0; i < n; i++){ const t = i === 0 ? (m.wxSkew ? `up to ${sh(B[0])}` : `under ${sh(B[0])}`) : i === n - 1 ? `${sh(B[i - 1])} or more` : `${sh(B[i - 1])} to ${sh(B[i])}`;
+    h += `<div class="row"><i style="background:${R[Math.round(i * (R.length - 1) / Math.max(1, B.length))]}"></i><span>${t}</span></div>`; } }
   if (m.wxAnim === 'mon') h += `<p class="sub">${S.wxMon != null ? MONTHS_LONG[S.wxMon] + ' average, ' : 'Annual, '}1991–2020 normal.${S.wxMon != null ? ' Classes stay the same in every month.' : ''}</p>`;
   if (m.wxAnim === 'yr') h += `<p class="sub">${S.wxYr ? 'Events in ' + S.wxYr + '. Classes stay the same in every year.' : 'Average events a year since ' + (wxYears() || ['1996'])[0] + '.'}</p>`;
   return h; }
@@ -2010,18 +2025,18 @@ function wxBox(lv, cells){ const many = cells.length > 1; let b = `<div class="s
   const ppt = mean('WX_PPT'), tm = mean('WX_TMEAN'), ff = mean('WX_FROSTFREE'), hi = mean('WX_TMAX7'), lo = mean('WX_TMIN1'), hv = mean('WX_HEAVY'), p25 = mean('WX_P25'), w = mean('WX_WIND'), wd = mean('WX_WINDY');
   b += `<div class="facts"><div><b>${d(ppt, v => fmt(v, 0) + '″')}</b>precipitation a year</div><div><b>${d(tm, wxF)}</b>mean temperature</div><div><b>${d(ff, v => fmt(Math.round(v), 0))}</b>frost-free days</div></div>`;
   b += `<div class="facts"><div><b>${d(hi, wxF)}</b>July high</div><div><b>${d(lo, wxF)}</b>January low</div><div><b>${d(hv, v => fmt(v, 1))}</b>days with 1″+ of rain</div></div>`;
-  const mm = ci.map(c => val('wx','WX_PPT_M',lv,c)).filter(Boolean); let wet = null;
+  const mm = ci.map(c => wxList(lv, c, 'WX_PPT_M')).filter(Boolean); let wet = null;
   if (mm.length){ const s = Array(12).fill(0); mm.forEach(a => a.forEach((x, i) => s[i] += x)); wet = s.indexOf(Math.max(...s)); }
   else if (!many && val('wx','WX_WETM',lv,ci[0]) != null) wet = val('wx','WX_WETM',lv,ci[0]);
   b += `<p>${wet != null ? `Wettest month: <b>${MONTHS_LONG[wet]}</b>. ` : ''}${p25 != null ? `A 25-year storm brings about <b>${fmt(p25, 1)} inches</b> in 24 hours. ` : ''}${w != null ? `Average wind ${fmt(w, 1)} mph, with ${fmt(wd || 0, 1)} windy days a year.` : ''}</p>`;
   if (ny){ const ev = WXEVK.map(g => [g, mean('WX_EV_' + g)]);
     if (ev.some(e => e[1] != null)) b += `<div class="keys nosw">${ev.map(([g, n]) => `<div><span>${WXEV[g][0].toUpperCase() + WXEV[g].slice(1)} events</span><span>${n == null ? '–' : n / ny < .1 ? (n ? fmt(n, n < 10 ? 1 : 0) + ' since ' + wxYears()[0] : 'none since ' + wxYears()[0]) : fmt(n / ny, 1) + ' a year'}</span></div>`).join('')}</div>`; }
-  b += `<p class="none" style="font-size:13.5px;margin-top:8px">${many ? 'Averages over the selected cells. ' : ''}Normals for 1991–2020 from PRISM (Oregon State University); frost-free season and heavy-rain days from NOAA nClimGrid-Daily; the 25-year storm from NOAA Atlas 14. Wind is from gridMET, a research dataset on a 4 km grid that smooths ridge-top winds, so read it as relative. Storm events from the NOAA Storm Events Database since ${(wxYears() || [1996])[0]}; an event reported for a whole forecast zone or county counts in every cell there.</p>`;
+  b += `<p class="none" style="font-size:13.5px;margin-top:8px">${many ? 'Averages over the selected cells. ' : ''}Normals for 1991–2020 from PRISM (Oregon State University); frost-free season and heavy-rain days from NOAA nClimGrid-Daily; the 25-year storm from NOAA Atlas 14. Wind is from gridMET, a research dataset on a 4 km grid that smooths ridge-top winds, so read it as relative. Storm events from the NOAA Storm Events Database since ${(wxYears() || [1996])[0]}; each event counts in every cell in the forecast zone or county it was reported for.</p>`;
   return b + '</div>'; }
 const wxSection = (lv, c) => wxBox(lv, [c]);
 /* Visualizations. Climograph: precipitation bars and mean temperature line by month, averaged over the cells */
 function wxClimo(lv, cells, hiMon){ const P = Array(12).fill(0), T = Array(12).fill(0); let n = 0;
-  cells.forEach(c => { const p = val('wx','WX_PPT_M',lv,c), t = val('wx','WX_TMEAN_M',lv,c); if (!p || !t) return; n++; p.forEach((x, i) => P[i] += x); t.forEach((x, i) => T[i] += x); });
+  cells.forEach(c => { const p = wxList(lv, c, 'WX_PPT_M'), t = wxList(lv, c, 'WX_TMEAN_M'); if (!p || !t) return; n++; p.forEach((x, i) => P[i] += x); t.forEach((x, i) => T[i] += x); });
   if (!n) return ''; for (let i = 0; i < 12; i++){ P[i] /= n; T[i] /= n; }
   const W = 272, H = 150, pl = 26, pr = 28, top = 10, base = 124, pw = W - pl - pr, bw = pw / 12, pm = Math.max(1, Math.ceil(Math.max(...P))), tlo = Math.floor(Math.min(...T, 20) / 10) * 10, thi = Math.ceil(Math.max(...T, 70) / 10) * 10;
   const yp = v => base - (base - top) * v / pm, yt = v => base - (base - top) * (v - tlo) / (thi - tlo), f = v => v.toFixed(1);
@@ -2037,7 +2052,7 @@ function wxClimo(lv, cells, hiMon){ const P = Array(12).fill(0), T = Array(12).f
 /* storm events by year: average events per cell each year (a zone-wide event counts once in each cell it covers) */
 function wxStorms(lv, cells, g){ const ys = wxYears(); if (!ys) return ''; const k = WXEVK.indexOf(g), s = new Map(); let n = 0;
   for (let y = ys[0]; y <= ys[1]; y++) s.set(y, 0);
-  cells.forEach(c => { if (!has('wx', lv, c) || val('wx','WX_EV_' + g, lv, c) == null) return; n++; const a = val('wx','WX_EV_Y',lv,c) || []; for (let i = 0; i < a.length; i += 4) if (s.has(a[i])) s.set(a[i], s.get(a[i]) + a[i + 1 + k]); });
+  cells.forEach(c => { if (!has('wx', lv, c) || val('wx','WX_EV_' + g, lv, c) == null) return; n++; const a = wxList(lv, c, 'WX_EV_Y') || []; for (let i = 0; i < a.length; i += 4) if (s.has(a[i])) s.set(a[i], s.get(a[i]) + a[i + 1 + k]); });
   if (!n) return ''; const Y = [...s].map(([y, v]) => [y, v / n]), mx = Math.max(...Y.map(e => e[1]), .1), W = 272, H = 130, pl = 26, pr = 6, top = 8, base = 108, pw = W - pl - pr, bw = pw / Y.length, f = v => v.toFixed(1), col = WXRAMP[g][5];
   const st = niceNum(mx / 3) || .1; let h = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(WXEV[g])} events by year">`;
   for (let v = 0; v <= mx + 1e-9; v += st){ const y = base - (base - top) * v / mx; h += `<line x1="${pl}" x2="${W - pr}" y1="${f(y)}" y2="${f(y)}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 4}" y="${f(y + 3)}" text-anchor="end" font-size="9" fill="#9FB2C8">${fmt(v, st < 1 ? 1 : 0)}</text>`; }
@@ -2048,14 +2063,14 @@ function wxStorms(lv, cells, g){ const ys = wxYears(); if (!ys) return ''; const
 /* everything else: cells by the map's classes */
 function wxClassRows(lv, cells, m){ const C = wxClasses(m, lv), B = C.b, R = WXRAMP[m.wxRamp], sh = m.showFn || (v => fmt(v, m.d)), cnt = Array(B.length + 1).fill(0); let n = 0, z = 0;
   cells.forEach(c => { const v = m.get(lv, c); if (v == null) return; n++; if (m.wxSkew && v === 0){ z++; return; } let i = 0; while (i < B.length && v > B[i]) i++; cnt[i]++; });
-  if (!n) return []; const rows = cnt.map((k, i) => [i === 0 ? (m.wxSkew ? 'up to ' : 'under ') + sh(B[0]) : i === B.length ? sh(B[i - 1]) + ' or more' : sh(B[i - 1]) + ' to ' + sh(B[i]), R[Math.round(i * (R.length - 1) / Math.max(1, B.length))], k, vPct(k, n), '']).filter(r => r[2] > 0);
+  if (!n) return []; const rows = cnt.map((k, i) => [!B.length ? (m.wxSkew ? 'Some reported' : 'All cells') : i === 0 ? (m.wxSkew ? 'up to ' : 'under ') + sh(B[0]) : i === B.length ? sh(B[i - 1]) + ' or more' : sh(B[i - 1]) + ' to ' + sh(B[i]), R[Math.round(i * (R.length - 1) / Math.max(1, B.length))], k, vPct(k, n), '']).filter(r => r[2] > 0);
   if (z) rows.unshift(['None reported', ZERO, z, vPct(z, n), '']); rows.forEach(r => r[4] = `${r[0]}: ${nCells(r[2])} of ${n}`); return rows.reverse(); }
 /* animation: months of the normals (precipitation, temperature) or years of storm events */
 let wxTimer = null;
 function wxAnimOn(){ return S.q.id === 'wx' && !!S.m.wxAnim && !S.m.find; }
 function wxCtl(){ const m = S.m; if (!m.wxAnim) return '';
-  if (m.wxAnim === 'mon'){ const tv = D.themes.wx && D.themes.wx[dispLevel()], ok = tv && tv.f[m.wxMonF];
-    if (!ok) return D.themes.wx && D.themes.wx.cog ? '<p class="phstat">Month by month is shown for the 7 and 49 sq mi cells here; zoom out a little to play it.</p>' : '';
+  if (m.wxAnim === 'mon'){ const ok = wxHasList(dispLevel(), m.wxMonF);
+    if (!ok) return '';
     return `<div class="acqctl"><button type="button" class="phplay" data-wxplay="1" aria-pressed="${!!wxTimer}">${wxTimer ? 'Pause' : 'Play months'}</button>` +
       `<label class="acqyr"><span id="wxyl">${S.wxMon != null ? MONTHS_LONG[S.wxMon] : 'Year'}</span><input type="range" id="wxyr" min="0" max="11" step="1" value="${S.wxMon != null ? S.wxMon : 0}" aria-label="Month"></label>` +
       (S.wxMon != null && !wxTimer ? '<button type="button" class="lbtn" data-wxall="1">Show the year</button>' : '') + '</div>'; }
@@ -2228,14 +2243,14 @@ const VISPICK = {
     let ri = 0, pi = 0, re = 0, pe = 0; cells.forEach(c => { const a = val('vis','VIS_RPD_SRC',lv,c); if (a){ ri += a[0]; pi += a[1]; re += a[2]; pe += a[3]; } });
     return [['iNaturalist', pi ? ri / pi : 0, pi], ['eBird', pe ? re / pe : 0, pe]].filter(r => r[2]).map(([nm, v, n]) => [nm, HUE.eff, v, fmt(v, 1), `${nm}: ${fmt(v, 1)} records per observer-day, over ${fmt(n, 0)} observer-days`]); }}
 };
-QVIZ.wx = {title:'Average precipitation and temperature by month', note:'PRISM 1991–2020 normals, averaged over the cells. Monthly normals are summarized for the 7 and 49 sq mi cells in the HUC10 shell.',
+QVIZ.wx = {title:'Average precipitation and temperature by month', note:'PRISM 1991–2020 normals, averaged over the cells. For square miles in the HUC10 shell, the months come from the surrounding 7 sq mi cell, scaled to the square mile’s own annual values.',
   html:(lv, cells) => wxClimo(lv, cells, S.wxMon), fn:() => []};
 QVIZ.wx.pick = id => {
   const m = S.q.m.find(x => x.id === id);
   if (['ppt','tmean','wetm','tmax7','tmin1'].includes(id)) return {html:(lv, cells) => { let hm = S.wxMon; if (id === 'tmax7') hm = 6; else if (id === 'tmin1') hm = 0;
-      else if (id === 'wetm' && hm == null){ const s = Array(12).fill(0); cells.forEach(c => (val('wx','WX_PPT_M',lv,c) || []).forEach((x, i) => s[i] += x)); hm = Math.max(...s) > 0 ? s.indexOf(Math.max(...s)) : null; }
+      else if (id === 'wetm' && hm == null){ const s = Array(12).fill(0); cells.forEach(c => (wxList(lv, c, 'WX_PPT_M') || []).forEach((x, i) => s[i] += x)); hm = Math.max(...s) > 0 ? s.indexOf(Math.max(...s)) : null; }
       return wxClimo(lv, cells, hm); }};
-  if (m && m.wxG) return {title:WXEV[m.wxG][0].toUpperCase() + WXEV[m.wxG].slice(1) + ' events by year', note:'NOAA Storm Events Database: events per cell each year, averaged over the cells. An event reported for a whole forecast zone or county counts once in each cell there. Hover a year for its value.', html:(lv, cells) => wxStorms(lv, cells, m.wxG)};
+  if (m && m.wxG) return {title:WXEV[m.wxG][0].toUpperCase() + WXEV[m.wxG].slice(1) + ' events by year', note:'NOAA Storm Events Database: events per cell each year, averaged over the cells. Each event counts in every cell in the forecast zone or county it was reported for, so the counts mean the same at every cell size. Hover a year for its value.', html:(lv, cells) => wxStorms(lv, cells, m.wxG)};
   if (m) return {title:'Cells by ' + m.label.toLowerCase(), note:'Cells in each of the map’s classes.', html:null, fn:(lv, cells) => wxClassRows(lv, cells, m)};
   return null; };
 const qVizOn = q => !!QVIZ[q.id] && !(q.id === 'land' && S.m.id === 'acq');
@@ -2400,11 +2415,11 @@ const Q = [
      {id:'new', grp:'Available geologic map data', label:'Newest geologic map', kind:'cat', f:'GEO_NEWEST', fn:(lv,c) => geoNewest(lv, c), note:'Publication year of the newest published geologic map covering at least a tenth of the cell. Maps still in progress are listed when you select a cell.'}]},
  {id:'wx', th:'wx', hue:HUE.wx, ramp:'wx', title:'What are the weather and climate here?',
   use:'Climate normals and damaging weather from authoritative sources: PRISM 1991–2020 normals (Oregon State University, the official climate data of the U.S. Department of Agriculture) for precipitation and temperature; NOAA nClimGrid-Daily for the frost-free season and heavy-rain days; NOAA Atlas 14 for the 25-year storm; and the NOAA Storm Events Database for damaging wind, flooding and winter storms since 1996. Wind comes from gridMET, a research dataset. Use it to plan work seasons, size drainage for big storms, and see where storms most often damage the trail. Play the months or years under Visualizations.',
-  m:[wxM({id:'ppt', label:'Annual precipitation', wxRamp:'wet', wxFloor:1, wxAnim:'mon', wxMonF:'WX_PPT_M', showFn:wxIn, d:1, fn:(lv,c)=>S.wxMon != null ? wxMonVal(lv,c,'WX_PPT_M') : val('wx','WX_PPT',lv,c),
+  m:[wxM({id:'ppt', wxKey:'WX_PPT', label:'Annual precipitation', wxRamp:'wet', wxFloor:1, wxAnim:'mon', wxMonF:'WX_PPT_M', showFn:wxIn, d:1, fn:(lv,c)=>S.wxMon != null ? wxMonVal(lv,c,'WX_PPT_M') : val('wx','WX_PPT',lv,c),
        get label(){ return S.wxMon != null ? 'Precipitation in ' + MONTHS_LONG[S.wxMon] : 'Annual precipitation'; },
        note:'Average rain and melted snow, 1991–2020 (PRISM 30-year normals, 800 m). Play the months under Visualizations to see the year go by.'}),
      {id:'wetm', label:'Wettest month', kind:'cat', f:'WX_WETM', note:'The month with the most precipitation on average, 1991–2020 (PRISM normals).'},
-     wxM({id:'tmean', label:'Mean annual temperature', wxRamp:'temp', wxFloor:1, wxAnim:'mon', wxMonF:'WX_TMEAN_M', showFn:wxF, d:0, fn:(lv,c)=>S.wxMon != null ? wxMonVal(lv,c,'WX_TMEAN_M') : val('wx','WX_TMEAN',lv,c),
+     wxM({id:'tmean', wxKey:'WX_TMEAN', label:'Mean annual temperature', wxRamp:'temp', wxFloor:1, wxAnim:'mon', wxMonF:'WX_TMEAN_M', showFn:wxF, d:0, fn:(lv,c)=>S.wxMon != null ? wxMonVal(lv,c,'WX_TMEAN_M') : val('wx','WX_TMEAN',lv,c),
        get label(){ return S.wxMon != null ? 'Mean temperature in ' + MONTHS_LONG[S.wxMon] : 'Mean annual temperature'; },
        note:'Average of the daily highs and lows, 1991–2020 (PRISM normals). Play the months under Visualizations.'}),
      wxM({id:'tmax7', label:'July average high', f:'WX_TMAX7', wxRamp:'temp', wxFloor:1, showFn:wxF, d:0, note:'Average daily high temperature in July, 1991–2020 (PRISM normals).'}),
@@ -2415,9 +2430,9 @@ const Q = [
      wxM({id:'wind', grp:'Wind (gridMET, a research dataset)', label:'Average wind speed', f:'WX_WIND', wxRamp:'wind', showFn:wxMph, d:1, note:'Average daily wind speed at 10 m, 1991–2020, from gridMET (University of Idaho), a research dataset rather than an official record. Its 4 km grid smooths the terrain, so exposed ridges are windier than shown: compare places rather than reading exact speeds.'}),
      wxM({id:'windy', grp:'Wind (gridMET, a research dataset)', label:'Windy days', f:'WX_WINDY', wxRamp:'wind', wxSkew:1, showFn:v => fmt(v, 1) + ' days', d:1, note:'Days a year with an average wind of 15 mph or more, 1991–2020 (gridMET, a research dataset; ridge-top winds are understated).'}),
      wxM({id:'evwind', grp:'Damaging weather (NOAA Storm Events)', label:'Damaging wind events', wxG:'WIND', wxRamp:'WIND', wxSkew:1, wxAnim:'yr', d:1, showFn:wxEvFmt, fn:(lv,c)=>wxEv(lv,c,'WIND'),
-       note:'Thunderstorm wind, high wind, strong wind and tornado events in the NOAA Storm Events Database, per year since 1996 (or in the year played). Events with a location count where they happened; those reported for a whole forecast zone or county count in every cell there.'}),
+       note:'Thunderstorm wind, high wind, strong wind and tornado events in the NOAA Storm Events Database, per year since 1996 (or in the year played). Each event counts in every cell in the National Weather Service forecast zone or county it was reported for, so cells of any size compare fairly.'}),
      wxM({id:'evflood', grp:'Damaging weather (NOAA Storm Events)', label:'Flood events', wxG:'FLOOD', wxRamp:'FLOOD', wxSkew:1, wxAnim:'yr', d:1, showFn:wxEvFmt, fn:(lv,c)=>wxEv(lv,c,'FLOOD'),
-       note:'Flash flood and flood events in the NOAA Storm Events Database, per year since 1996 (or in the year played). Most are reported for a county or zone, so they show where flooding is common rather than exact spots.'}),
+       note:'Flash flood and flood events in the NOAA Storm Events Database, per year since 1996 (or in the year played). Counted by the county or forecast zone each was reported for, so they show where flooding is common rather than exact spots.'}),
      wxM({id:'evwinter', grp:'Damaging weather (NOAA Storm Events)', label:'Winter storm events', wxG:'WINTER', wxRamp:'WINTER', wxSkew:1, wxAnim:'yr', d:1, showFn:wxEvFmt, fn:(lv,c)=>wxEv(lv,c,'WINTER'),
        note:'Ice storm, winter storm, heavy snow and blizzard events in the NOAA Storm Events Database, per year since 1996 (or in the year played). Nearly all are reported for National Weather Service forecast zones.'})]},
  {id:'cult', th:'inat', hue:HUE.cult, ramp:'cult', title:'Where are plants of cultural significance?',
