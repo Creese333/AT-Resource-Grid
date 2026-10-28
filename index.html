@@ -3921,14 +3921,37 @@ function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'd
 /* panel sections follow the order of the questions; each question opens its own sections (survey effort has none of its own) */
 const SECORDER = ['cells','rest','tvul','geo','wx','vis','inat','cult','live','phen','ebird','nrpz','veg','soil','wet','feat','hist','lands'];
 const QSEC = {geo:['geo'], wx:['wx'], tvul:['tvul'], cult:['cult'], rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:['vis'], land:['lands'], phen:['phen'], pest:['phen']};
+/* which question each popup section and export table belongs to; its place in the list of questions orders them, its color colors them */
+const SECQ = {'Restoration targets':'rest', 'Invasive species':'inv', 'Priority invasives':'pinv', 'iNaturalist Records':'rec', 'Forest pests':'pest', 'Flowering':'phen',
+  'Plants of cultural significance':'cult', 'Birds':'bird', 'Unique species':'pri', 'Vegetation':'veg', 'Geology':'geo', 'Soils':'soil', 'Wetlands':'wet',
+  'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Visitation':'eff', 'Land administrators':'land', 'Weather and climate':'wx', 'Trail vulnerability':'tvul'};
+const qRank = id => { const i = Q.findIndex(q => q.id === id); return i < 0 ? 98 : i; };
+const secRank = title => title === 'Cell by cell' ? -1 : SECQ[title] ? qRank(SECQ[title]) : 99;
+const secHue = title => { const q = Q.find(x => x.id === SECQ[title]); return q ? q.hue : null; };
+/* export tables (CSV "table" column and Excel sheets) by question */
+function expQ(t){ t = String(t);
+  if (/^(About|Cell summary|Cells)/.test(t)) return null;
+  if (/^Restoration/.test(t)) return 'rest'; if (/^Invasive plant/.test(t)) return 'inv'; if (/^Priority invasive/.test(t)) return 'pinv'; if (/^iNaturalist/.test(t)) return 'rec';
+  if (/^Forest pest/.test(t)) return 'pest'; if (/^Flowering/.test(t)) return 'phen'; if (/cultural significance/.test(t)) return 'cult'; if (/^Bird/.test(t)) return 'bird';
+  if (/^Priority species/.test(t)) return 'pri'; if (/^Vegetation/.test(t)) return 'veg'; if (/^(Geology|Bedrock|Geologic)/.test(t)) return 'geo'; if (/^Soils/.test(t)) return 'soil';
+  if (/^Wetlands/.test(t)) return 'wet'; if (/^Facilit/.test(t)) return 'feat'; if (/^Historic/.test(t)) return 'hist'; if (/^Land admin/.test(t)) return 'land'; return 'zz'; }
+const expRank = t => { if (/^About/.test(String(t))) return -2; const q = expQ(t); return q === null ? -1 : q === 'zz' ? 99 : qRank(q); };
+/* Cells columns: the base columns, then each question's columns in the order of the questions */
+const COLQ = [[/^(veg_|nlcd_)/, 'veg'], [/^inat_(invasive|priority)/, 'inv'], [/^inat_forest_pests/, 'pest'], [/^inat_/, 'rec'], [/^ebird_/, 'bird'], [/^unique_species/, 'pri'],
+  [/^feat_/, 'feat'], [/^land_/, 'land'], [/^cultural_/, 'cult'], [/^visit_/, 'eff'], [/^(trail_vuln|trail_miles|trail_grade|trail_over|trail_side|trail_slope|trail_fall)/, 'tvul'], [/^wx_/, 'wx']];
+function expOrder(d){ d.cells = d.cells.map(r => { const ks = Object.keys(r), base = [], rest = [];
+    ks.forEach((k, i) => { const m = COLQ.find(e => e[0].test(k)); if (m) rest.push([qRank(m[1]), i, k]); else base.push(k); });
+    rest.sort((a, b) => a[0] - b[0] || a[1] - b[1]); const o = {}; base.concat(rest.map(x => x[2])).forEach(k => o[k] = r[k]); return o; });
+  d.species = d.species.map((r, i) => [expRank(r.group), i, r]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]);
+  return d; }
 function finishProfile(html){ $('#pbody').innerHTML = html;
   { const KEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'iNaturalist Records':'live', 'Birds':'ebird', 'Visitation':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Land administrators':'lands'};
     const secs = [...document.querySelectorAll('#pbody .sec')]; if (secs.length > 1){ const par = secs[0].parentNode, anchor = document.createComment('secs'); par.insertBefore(anchor, secs[0]);
-      const rank = el => { const i = SECORDER.indexOf(KEY[(el.querySelector('h3') || {}).textContent]); return i < 0 ? 99 : i; };
+      const rank = el => secRank((el.querySelector('h3') || {}).textContent);
       secs.map((el, i) => [rank(el), i, el]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([, , el]) => par.insertBefore(el, anchor)); anchor.remove(); } }
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
   const SECKEY = {'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'iNaturalist Records':'live', 'Birds':'ebird', 'Visitation':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Historic resources':'hist', 'Land administrators':'lands'};
-  document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent;
+  document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent, hue = secHue(h.textContent); if (hue) sec.style.setProperty('--hue', hue);
     const open = key in S.secOpen ? S.secOpen[key] : S.m.find ? key === S.m.th : (QSEC[S.q.id] || []).includes(key);
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
     while (h.nextSibling) body.appendChild(h.nextSibling);
@@ -4121,7 +4144,7 @@ function loadXLSX(){ return window.XLSX ? Promise.resolve() : new Promise((res, 
 async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !== 'huc' && !ATiNat.cached(liveKey())) msg0.textContent = 'Fetching the latest iNaturalist observations...';
   await liveEnsure().catch(() => {});
   if (msg0) msg0.textContent = 'Fetching map layers…'; await layersEnsure().catch(() => {});
-  const msg = $('#pexmsg'), d = exportData(), n = d.cells.length, stamp = localDay(), name = `AT_resource_grid_${n}_${n === 1 ? 'cell' : 'cells'}_${stamp}`;
+  const msg = $('#pexmsg'), d = expOrder(exportData()), n = d.cells.length, stamp = localDay(), name = `AT_resource_grid_${n}_${n === 1 ? 'cell' : 'cells'}_${stamp}`;
   const say = x => { if (msg) msg.textContent = x; };
   if (kind === 'csv'){ /* one long table so a single file holds everything */
     const q = x => { x = x == null ? '' : String(x); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
@@ -4148,11 +4171,14 @@ async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !==
     (d.pestRec || []).forEach(r => rows.push([r.grid_id, r.trail_mile, 'Forest pest record', r.species, r.scientific_name, [r.observed_on, r.source, r.inaturalist_url || r.eddmaps_url].filter(Boolean).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
     d.phenRec.forEach(r => rows.push([r.grid_id, r.trail_mile, 'Flowering record', r.species, r.scientific_name, [r.stage, r.observed_on, r.inaturalist_url].filter(Boolean).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
     d.live.forEach(r => rows.push([r.grid_id, r.trail_mile, 'iNaturalist live lookup', r.common_name || r.scientific_name, r.scientific_name, [r.observed_on, r.observer, r.quality_grade, r.list, r.inaturalist_url].filter(Boolean).join('; '), r.latitude + ', ' + r.longitude, 'lat, lon']));
+    { const head = rows.shift(); const ord = rows.map((r, i) => [expRank(r[2]), i, r]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]); rows.length = 0; rows.push(head, ...ord); }
     download(name + '.csv', new Blob(['\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n')], {type:'text/csv;charset=utf-8'}));
     say(`CSV downloaded: ${fmt(rows.length - 1, 0)} rows for ${nCells(n)}.`); return; }
   say('Preparing the Excel file...');
   loadXLSX().then(() => { const wb = XLSX.utils.book_new(); const add = (nm, arr) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(arr.length ? arr : [{note:'No rows for this selection'}]), nm);
-    add('Cells', d.cells); add('Restoration', d.restoration); add('Soils', d.soils); add('Wetlands', d.wetlands); add('Geology', d.geology); add('Bedrock units', d.geoUnits); add('Geologic maps', d.geoMaps); add('Species', d.species); add('Plants of cultural significance', d.cult); add('Vegetation types', d.veg); add('Land administrators', d.land); d.layers.forEach(L2 => add(L2.name.slice(0, 31), L2.rows)); add('Facilities and landscapes', d.features); add('iNaturalist live lookup', d.live); add('Historic resources', d.hist || []); add('Priority invasives', d.pinv || []); add('Priority invasive records', d.pinvRec || []); add('Forest pests', d.pest || []); add('Forest pest records', d.pestRec || []); add('Flowering', d.phen); add('Flowering records', d.phenRec); add('About', d.about);
+    const sheets = [['Cells', d.cells], ['Restoration', d.restoration], ['Soils', d.soils], ['Wetlands', d.wetlands], ['Geology', d.geology], ['Bedrock units', d.geoUnits], ['Geologic maps', d.geoMaps], ['Species', d.species], ['Plants of cultural significance', d.cult], ['Vegetation types', d.veg], ['Land administrators', d.land], ['Facilities and landscapes', d.features], ['iNaturalist live lookup', d.live], ['Historic resources', d.hist || []], ['Priority invasives', d.pinv || []], ['Priority invasive records', d.pinvRec || []], ['Forest pests', d.pest || []], ['Forest pest records', d.pestRec || []], ['Flowering', d.phen], ['Flowering records', d.phenRec]];
+    sheets.map((s, i) => [s[0] === 'Species' ? qRank('inv') + .5 : expRank(s[0]), i, s]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([, , s]) => add(s[0], s[1]));
+    d.layers.forEach(L2 => add(L2.name.slice(0, 31), L2.rows)); add('About', d.about);
     const buf = XLSX.write(wb, {bookType:'xlsx', type:'array'}); download(name + '.xlsx', new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
     say(`Excel workbook downloaded: ${nCells(n)}, ${fmt(d.species.length, 0)} species rows.`);
   }).catch(() => say('The Excel export could not load its helper file. Check the internet connection, or use Export CSV, which needs no download.')); }
