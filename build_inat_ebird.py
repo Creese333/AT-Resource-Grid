@@ -821,10 +821,11 @@ def build_visits(grids):
                      'VIS_BUSY': max(days.values()) if days else 0, 'VIS_LD': len(a['ld']),
                      'VIS_RPD': round((ri + re_) / (pi + pe), 2) if pi + pe else None, 'VIS_RPD_SRC': [ri, pi, re_, pe],
                      'VIS_OFF': round(100 * a['off'] / (ri + re_), 1) if ri + re_ else None, 'VIS_OFFN': a['off']}
-                if not (g == 'huc' and lv == 'hex'):    # the per-year, per-month and busiest-day lists are left off the HUC10 square miles
-                    v['VIS_OD_Y'] = [x for y in sorted(yrs) for x in (y, yrs[y])]
-                    v['VIS_OD_M'] = mons; v['VIS_LD_M'] = ldm
-                    v['VIS_BUSY_TOP'] = [[int(dd.strftime('%Y%m%d')), m] for dd, m in sorted(days.items(), key=lambda kv: (-kv[1], kv[0]))[:10]]
+                huchex = g == 'huc' and lv == 'hex'      # the HUC10 square miles: the same yearly and monthly lists, a shorter busiest-day list
+                v['VIS_OD_Y'] = [x for y in sorted(yrs) for x in (y, yrs[y])]
+                v['VIS_OD_M'] = mons
+                if not huchex: v['VIS_LD_M'] = ldm
+                v['VIS_BUSY_TOP'] = [[int(dd.strftime('%Y%m%d')), m] for dd, m in sorted(days.items(), key=lambda kv: (-kv[1], kv[0]))[:3 if huchex else 10]]
                 ids.append(L[lv]['id'][c])
                 for k2, x in v.items():
                     F[k2].append(x)
