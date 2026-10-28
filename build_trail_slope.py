@@ -7,20 +7,21 @@ The A.T. centerline is walked in 10 m steps. At each step, elevation is read fro
 nearly all of the trail, 1/3 arc-second, about 10 m, elsewhere). Only those points are read, so nothing large is downloaded. Points the
 service can't answer are read from the 1/3 arc-second (10 m) 3DEP tiles instead.
 
-Per step (elevations along the trail are smoothed over 30 m first, so a few meters of mapping offset on a sidehill matter less):
-  grade            rise over run along the trail, %
+Per step:
+  grade            the sustained grade, %: elevations on the line are smoothed over 50 m, then the rise is taken over 40 m, so each
+                   step's grade reflects about 90 m of trail (lidar noise and a line a few meters off the tread average out)
   side slope       steepness of the ground the trail crosses, %
   slope alignment  the angle between the trail and the fall line, 0 (straight up and down the hill) to 90 degrees (along the contour);
                    the strongest single predictor of soil loss on trails (Olive and Marion 2009; Marion and Wimpey 2017)
-  trail slope ratio  grade / side slope; trails steeper than half the hillside they cross are hard to drain (Marion and Wimpey 2017)
 
 Summarized for every 1, 7 and 49 sq mi cell the trail passes through, in the corridor grid and the HUC10 shell grid:
   TS_MI     miles of trail measured                     TS_GRADE  average grade, %
   TS_G10    share of the trail over 10% grade, %        TS_G20    share over 20%, %
-  TS_P90    90th percentile grade, %                    TS_SIDE   average side slope, %
-  TS_SAA    average slope alignment, degrees
+  TS_SIDE   average side slope, %                       TS_SAA    average slope alignment, degrees
   TS_FALL   share of the trail that runs within 22.5 degrees of the fall line on ground steeper than 5%, %
-  TS_TSR    share of the trail with a trail slope ratio over 0.5 (on ground steeper than 5%), %
+A cell holding only a short piece of trail would swing to extremes on a few steps, so each cell's values are blended with the larger
+cell around it, by how much trail it has: a quarter mile counts equally with the larger cell (49 sq mi cells are blended with the
+whole trail, 7 sq mi with their 49 sq mi cell, square miles with their 7 sq mi cell). Long stretches keep their own values.
 
 The centerline comes from, in order: at_centerline.geojson, at_centerline.zip (a zipped shapefile) or at_centerline.gpkg in this
 repository, or the public ArcGIS Online layer in CENTERLINE_ITEM (the item's feature layer is read through the ArcGIS REST API).
@@ -48,9 +49,10 @@ IMG = 'https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/Imag
 TILE = 'https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/current/n{n:02d}w{w:03d}/USGS_13_n{n:02d}w{w:03d}.tif'
 UA = {'User-Agent': 'AT-Resource-Grid trail slope build (github.com/Creese333/AT-Resource-Grid)'}
 AEA = 5070
-STEP, OFF, SMOOTH = 10.0, 5.0, 3        # meters between steps, meters to the points around each step, steps in the smoothing window
+STEP, OFF, SMOOTH, GRADE_HALF = 10.0, 5.0, 5, 2   # meters between steps, meters to the points around each step, steps smoothed, steps each way for grade
+SHRINK_K = 40                           # steps (a quarter mile): a cell with this much trail is weighted equally with the cell around it
 BATCH, THREADS = 400, 6
-ON_SLOPE, FALL_DEG, TSR_MAX = 5.0, 22.5, 0.5
+ON_SLOPE, FALL_DEG = 5.0, 22.5
 
 
 def get(url, data=None, tries=5, timeout=120):
@@ -192,47 +194,78 @@ def tiles_fill(lon, lat, z):
 
 # ---------------------------------------------------------------- per step
 def measure(x, y, u, v, part, z):
-    """grade, side slope (%), slope alignment (degrees) and trail slope ratio at each step; z: (5, n) at the step, ahead, behind, left, right"""
+    """grade and side slope (%) and slope alignment (degrees) at each step; z: (5, n) at the step, ahead, behind, left, right.
+    Grade is the sustained grade: elevations on the line are smoothed over 50 m, then the rise is taken over 40 m (20 m each way),
+    so each step's grade reflects about 90 m of trail. Lidar noise and a line a few meters off the tread average out instead of
+    adding up, and short real pitches still show"""
     z0, za, zb, zl, zr = z
-    n = len(x); zs = z0.copy()
-    for k in np.unique(part):                                   # smooth along each stretch
-        i = np.where(part == k)[0]; a = z0[i]
-        if len(a) >= SMOOTH:
-            pad = np.pad(a, SMOOTH // 2, mode='edge'); ok = np.isfinite(pad)
-            w = np.convolve(np.where(ok, pad, 0), np.ones(SMOOTH), 'valid'); c = np.convolve(ok.astype(float), np.ones(SMOOTH), 'valid')
-            zs[i] = np.where(c > 0, w / np.maximum(c, 1), np.nan)
-    grade = np.full(n, np.nan)
+    n = len(x); zs = np.full(n, np.nan); grade = np.full(n, np.nan); h = GRADE_HALF
     for k in np.unique(part):
-        i = np.where(part == k)[0]
-        if len(i) < 3: continue
-        g = np.gradient(zs[i], STEP); grade[i] = np.abs(g) * 100
+        i = np.where(part == k)[0]; a = z0[i]
+        if len(i) < 2 * h + 1: continue
+        pad = np.pad(a, SMOOTH // 2, mode='edge'); ok = np.isfinite(pad)
+        w = np.convolve(np.where(ok, pad, 0), np.ones(SMOOTH), 'valid'); c = np.convolve(ok.astype(float), np.ones(SMOOTH), 'valid')
+        sm = np.where(c >= (SMOOTH + 1) // 2, w / np.maximum(c, 1), np.nan); zs[i] = sm
+        g = np.full(len(i), np.nan); g[h:-h] = (sm[2 * h:] - sm[:-2 * h]) / (2 * h * STEP)
+        g[:h] = (sm[h:2 * h] - sm[0:h]) / (h * STEP); g[-h:] = (sm[-h:] - sm[-2 * h:-h]) / (h * STEP)
+        grade[i] = np.abs(g) * 100
     ga = (za - zb) / (2 * OFF); gc = (zl - zr) / (2 * OFF)          # rise per meter along and across the trail
     side = np.hypot(ga, gc) * 100
     saa = np.degrees(np.arctan2(np.abs(gc), np.abs(ga)))           # 0: along the fall line; 90: along the contour
-    tsr = np.where(side > 0, grade / np.maximum(side, 1e-6), np.nan)
-    return grade, side, saa, tsr
+    return grade, side, saa
 
 
-def summarize(cells, x, y, grade, side, saa, tsr):
+STATS = ['grade', 'g10', 'g20', 'side', 'saa', 'fall']
+
+
+def cell_stats(cells, x, y, grade, side, saa):
+    """per cell: number of steps and the sums behind each measure (so cells can be blended with the cell around them)"""
     pts = gpd.GeoDataFrame({'i': np.arange(len(x))}, geometry=gpd.points_from_xy(x, y), crs=AEA)
     j = gpd.sjoin(pts, cells[['geometry']], predicate='within', how='inner')
     own = np.full(len(x), -1); own[j['i'].values] = j['index_right'].values
-    f = {k: [None] * len(cells) for k in ('TS_MI', 'TS_GRADE', 'TS_G10', 'TS_G20', 'TS_P90', 'TS_SIDE', 'TS_SAA', 'TS_FALL', 'TS_TSR')}
-    ok = np.isfinite(grade) & (own >= 0)
-    order = np.argsort(own[ok]); oi = own[ok][order]; idx = np.where(ok)[0][order]
-    bounds = np.flatnonzero(np.diff(oi)) + 1
-    for grp in np.split(idx, bounds):
-        if not len(grp): continue
-        c = own[grp[0]]; g = grade[grp]; sd = side[grp]; a = saa[grp]; t = tsr[grp]; on = sd > ON_SLOPE
-        r1 = lambda v: None if not np.isfinite(v) else round(float(v), 1)
-        f['TS_MI'][c] = round(len(grp) * STEP / 1609.344, 2)
-        f['TS_GRADE'][c] = r1(np.mean(g)); f['TS_G10'][c] = r1(100 * np.mean(g > 10)); f['TS_G20'][c] = r1(100 * np.mean(g > 20))
-        f['TS_P90'][c] = r1(np.percentile(g, 90)); f['TS_SIDE'][c] = r1(np.nanmean(sd))
-        f['TS_SAA'][c] = r1(np.nanmean(a[on])) if on.any() else None
-        f['TS_FALL'][c] = r1(100 * np.mean(on & (a < FALL_DEG)))
-        f['TS_TSR'][c] = r1(100 * np.mean(on & (t > TSR_MAX)))
-    keep = [i for i in range(len(cells)) if f['TS_MI'][i] is not None]
-    return {'ids': [cells['id'].iloc[i] for i in keep], 'f': {k: [v[i] for i in keep] for k, v in f.items()}}
+    ok = np.isfinite(grade) & (own >= 0); on = ok & (side > ON_SLOPE) & np.isfinite(saa)
+    nc = len(cells); bc = lambda w, m=ok: np.bincount(own[m], weights=w[m] if w is not None else None, minlength=nc)
+    n = bc(None); non = bc(None, on)
+    return {'n': n, 'non': non,
+            'grade': bc(grade), 'g10': bc((grade > 10).astype(float)), 'g20': bc((grade > 20).astype(float)),
+            'side': bc(np.nan_to_num(side)), 'saa': bc(np.nan_to_num(saa), on), 'fall': bc((on & (saa < FALL_DEG)).astype(float))}
+
+
+def shrink(raw, prior):
+    """blend each cell's values with the cell around it, in proportion to how much trail the cell has: a cell with K steps of
+    trail (a quarter mile) is half its own value and half the larger cell's; one with a few steps mostly the larger cell's.
+    raw: sums for one cell; prior: values (not sums) of the larger cell. Returns the cell's values"""
+    n, non = raw['n'], raw['non']; out = {}
+    for k in STATS:
+        cnt = non if k == 'saa' else n
+        own = raw[k] / cnt if cnt else np.nan
+        p = prior.get(k)
+        if p is None or not np.isfinite(p): out[k] = own
+        elif not cnt: out[k] = p
+        else: out[k] = (raw[k] + SHRINK_K * p) / (cnt + SHRINK_K)
+    return out
+
+
+def summarize_all(L, x, y, grade, side, saa):
+    """values for every cell with trail, at all three sizes; 49 sq mi cells are blended with the whole trail, 7 sq mi cells with
+    their 49 sq mi cell, square miles with their 7 sq mi cell"""
+    ok = np.isfinite(grade); on = ok & (side > ON_SLOPE) & np.isfinite(saa)
+    whole = {'grade': np.mean(grade[ok]), 'g10': np.mean(grade[ok] > 10), 'g20': np.mean(grade[ok] > 20), 'side': np.nanmean(side[ok]),
+             'saa': np.mean(saa[on]) if on.any() else np.nan, 'fall': np.mean(on[ok] & (saa[ok] < FALL_DEG))}
+    out, vals = {}, {}
+    for lv in ('wheel', 'cog', 'hex'):
+        cells = L[lv]; S_ = cell_stats(cells, x, y, grade, side, saa); ids = cells['id'].tolist(); up = {'cog': 'wheel', 'hex': 'cog'}.get(lv)
+        vals[lv] = {}; f = {k: [] for k in ('TS_MI', 'TS_GRADE', 'TS_G10', 'TS_G20', 'TS_SIDE', 'TS_SAA', 'TS_FALL')}; keep = []
+        for c in range(len(cells)):
+            if not S_['n'][c]: continue
+            raw = {k: S_[k][c] for k in S_}
+            prior = whole if not up else vals[up].get(ids[c][:ids[c].rfind('-')], whole)
+            v = shrink(raw, prior); vals[lv][ids[c]] = v; keep.append(ids[c])
+            r1 = lambda q, m=1: None if q is None or not np.isfinite(q) else round(float(q) * m, 1)
+            f['TS_MI'].append(round(raw['n'] * STEP / 1609.344, 2)); f['TS_GRADE'].append(r1(v['grade'])); f['TS_G10'].append(r1(v['g10'], 100)); f['TS_G20'].append(r1(v['g20'], 100))
+            f['TS_SIDE'].append(r1(v['side'])); f['TS_SAA'].append(r1(v['saa'])); f['TS_FALL'].append(r1(v['fall'], 100))
+        out[lv] = {'ids': keep, 'f': f}
+    return out
 
 
 def main():
@@ -246,13 +279,13 @@ def main():
     z = samples(lon, lat); print(f'   elevation service: {np.isfinite(z).mean() * 100:.1f}% answered ({time.time() - t0:.0f} s)', flush=True)
     z = tiles_fill(lon, lat, z)
     z = z.reshape(5, len(x))
-    grade, side, saa, tsr = measure(x, y, u, v, part, z)
+    grade, side, saa = measure(x, y, u, v, part, z)
     ok = np.isfinite(grade)
     print(f'trail: average grade {np.nanmean(grade):.1f}%, {np.mean(grade[ok] > 10) * 100:.0f}% over 10%, {np.mean(grade[ok] > 20) * 100:.0f}% over 20%', flush=True)
-    meta = {'built': date.today().isoformat(), 'step_m': STEP, 'offset_m': OFF, 'smooth_m': STEP * SMOOTH, 'fall_deg': FALL_DEG, 'tsr_max': TSR_MAX, 'on_slope_pct': ON_SLOPE,
+    meta = {'built': date.today().isoformat(), 'step_m': STEP, 'offset_m': OFF, 'smooth_m': STEP * SMOOTH, 'grade_m': 2 * GRADE_HALF * STEP, 'shrink_steps': SHRINK_K, 'fall_deg': FALL_DEG, 'on_slope_pct': ON_SLOPE,
             'miles': round(len(x) * STEP / 1609.344, 1), 'source': 'USGS 3DEP (elevation service at 1 m; 1/3 arc-second tiles where it had no value)'}
     for ext, L in grids.items():
-        themes = {lv: summarize(cells, x, y, grade, side, saa, tsr) for lv, cells in L.items()}
+        themes = summarize_all(L, x, y, grade, side, saa)
         with open(OUT[ext], 'w', encoding='utf-8') as fh:
             json.dump({'run': date.today().isoformat(), 'meta': meta, 'themes': {'slope': themes}}, fh, separators=(',', ':'))
         print(f'wrote {os.path.basename(OUT[ext])} ({os.path.getsize(OUT[ext]) / 1e6:.1f} MB, {len(themes["hex"]["ids"]):,} square miles)', flush=True)
