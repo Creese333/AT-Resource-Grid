@@ -2053,7 +2053,7 @@ const wxSection = (lv, c) => wxBox(lv, [c]);
    Factor values: shares and NRCS ratings are used as they are (0 to 1); rain, floods and use hot spots are scored by how the cell ranks among
    cells of its size (0 lowest, 1 highest), as restoration does with counts. Weights can be changed under Model weights */
 const TVDEF = [
-  ['grade', 'Trail grade', 25, 'slope', 'Share of the trail over 10% grade, with grades over 20% counted twice (USGS 3DEP)'],
+  ['grade', 'Trail grade', 25, 'slope', 'The share of trail over 10% grade and the share over 20%, averaged, so the steepest trail adds more (USGS 3DEP)'],
   ['fall', 'Fall-line alignment', 25, 'slope', 'Share of the trail within 22.5° of the fall line on ground steeper than 5%'],
   ['eros', 'Soil erosion hazard', 10, 'soil', 'NRCS erosion hazard for unsurfaced trails, 0 (slight) to 1 (very severe)'],
   ['rut', 'Rutting hazard', 10, 'soil', 'NRCS rutting hazard, 0 (slight) to 1 (severe): wet, soft soils that rut and widen'],
@@ -2086,7 +2086,7 @@ function tvParts(lv, c){ if (!tvGate(lv, c)) return [null, [], 0];
   return [wAvail > 0 ? Math.round(100 * pts / wAvail) : null, parts, wAvail]; }
 const tvScore = (lv, c) => tvParts(lv, c)[0];
 function tvRawText(k, x){ if (x == null) return 'no data'; switch (k){
-  case 'grade': return fmt(x * 100, 0) + '% (steep share, 20%+ counted twice)'; case 'fall': return fmt(x * 100, 0) + '% of the trail'; case 'kfac': return fmt(x * 100, 0) + '% of the cell';
+  case 'grade': return fmt(x * 100, 0) + '% steep-trail score'; case 'fall': return fmt(x * 100, 0) + '% of the trail'; case 'kfac': return fmt(x * 100, 0) + '% of the cell';
   case 'eros': case 'rut': return fmt(x, 2) + ' of 1'; case 'rain': return fmt(x, 1) + ' days a year'; case 'flood': return fmt(x, 1) + ' events since 1996';
   case 'use': return x ? `${fmt(x, 0)} ${x === 1 ? 'site' : 'sites'}` : 'none'; } return ''; }
 function tvFacts(lv, cells){ const ci = cells.filter(c => (val('slope','TS_MI',lv,c) || 0) > 0); if (!ci.length) return '';
@@ -2103,7 +2103,9 @@ function tvBox(lv, cells){ let b = `<div class="sec" style="--hue:${HUE.tvul}"><
   b += '<div class="keys nosw">' + TVDEF.map(([k, lab], i) => { const ps = R.map(x => x[1][1][i]).filter(p => p[2] != null), w = +TVW[k] || 0;
     if (!ps.length) return soilRow(`${lab} <span style="color:var(--muted)">(no data)</span>`, '–');
     const raw = ps.map(p => p[4]).filter(x => x != null);
-    return soilRow(`${lab} <span style="color:var(--muted)">(${tvRawText(k, raw.length ? avg(raw) : null)}${many ? ', average' : ''})</span>`, `${fmt(avg(ps.map(p => p[2])), 0)} / ${w}`); }).join('') + '</div>';
+    const gs = k === 'grade' ? (f => { const a = R.map(x => val('slope', f, lv, x[0])).filter(v => v != null); return a.length ? avg(a) : null; }) : null;
+    const txt = k === 'grade' && gs('TS_G10') != null ? `${fmt(gs('TS_G10'), 0)}% of the trail over 10% grade, ${fmt(gs('TS_G20'), 0)}% over 20%` : tvRawText(k, raw.length ? avg(raw) : null);
+    return soilRow(`${lab} <span style="color:var(--muted)">(${txt}${many ? ', average' : ''})</span>`, `${fmt(avg(ps.map(p => p[2])), 0)} / ${w}`); }).join('') + '</div>';
   return b + `<p class="none" style="font-size:13.5px;margin-top:8px">${tvNote()}</p></div>`; }
 const tvSection = (lv, c) => tvBox(lv, [c]);
 /* Model weights: one row per factor, a number from 0 to 50; Reset puts back the recommended weights */
