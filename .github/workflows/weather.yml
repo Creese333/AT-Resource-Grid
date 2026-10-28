@@ -39,12 +39,12 @@ jobs:
           if [ -z "$MODE" ]; then
             if [ "${{ github.event.schedule }}" = "23 9 20 1 *" ]; then MODE=all; else MODE=storms; fi
           fi
-          if [ "$MODE" = "storms" ]; then python build_weather.py storms; else python build_weather.py; fi
+          if [ "$MODE" = "storms" ]; then python scripts/build_weather.py storms; else python scripts/build_weather.py; fi
       - name: Commit if changed
         run: |
           git config user.name  "weather-bot"
           git config user.email "actions@users.noreply.github.com"
-          for f in weather.json weather_huc10.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          for f in data/weather.json data/weather_huc10.json; do if [ -f "$f" ]; then git add "$f"; fi; done
           git diff --cached --quiet && exit 0
           git commit -m "Update weather and climate summaries"
           for i in 1 2 3; do

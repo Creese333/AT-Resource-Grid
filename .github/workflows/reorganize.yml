@@ -1,0 +1,46 @@
+# One-time tidy-up: moves the files at the top of the repository into folders (data/, inputs/, cache/, tools/), gzips the
+# HUC10 iNaturalist/eBird file and removes the old copies of the build scripts (the new ones are in scripts/).
+# Upload the new index.html, scripts/, workflows and README first, then press "Run workflow" on the Actions tab once.
+# It does nothing to files already moved, so running it again is harmless. Delete this file afterwards.
+name: Reorganize repository (run once)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Move files into folders
+        run: |
+          set -e
+          mkdir -p data inputs cache tools
+          mv_if () { for f in "${@:2}"; do if [ -e "$f" ]; then git mv "$f" "$1/"; echo "moved $f -> $1/"; fi; done; }
+          mv_if data geology.json geology_huc10.json historic_resources.json inat_ebird.json soils_wetlands_huc10.json \
+                     place_names.json trail_slope.json trail_slope_huc10.json weather.json weather_huc10.json states.json phen
+          mv_if inputs geologic_map_footprints.geojson at_wheel_cells.json invasive_lookup.csv cultural_plants.csv \
+                       bird_lookup.csv bird_guilds.csv ebird_common_names.csv at_centerline.zip at_centerline.geojson at_centerline.gpkg
+          mv_if cache common_names.json visits_inat.csv.gz visits_ebird.csv.gz visits_edd.csv.gz
+          mv_if tools AMC_Phenology.html phenology_check.html
+          # the HUC10 iNaturalist/eBird file, gzipped (42 MB plain; GitHub refuses files over 100 MB)
+          for f in inat_ebird_huc10.json data/inat_ebird_huc10.json; do
+            if [ -f "$f" ]; then
+              python3 -c "import gzip,shutil,sys; s=open(sys.argv[1],'rb'); r=open('data/inat_ebird_huc10.json.gz','wb'); g=gzip.GzipFile(fileobj=r,mode='wb',mtime=0,filename='',compresslevel=9); shutil.copyfileobj(s,g); g.close(); r.close()" "$f"
+              git rm -q "$f"; git add data/inat_ebird_huc10.json.gz; echo "gzipped $f"
+            fi
+          done
+          # the old build scripts at the top (the workflows now run the ones in scripts/)
+          if [ -d scripts ]; then for f in build_*.py; do if [ -f "$f" ] && [ -f "scripts/$f" ]; then git rm -q "$f"; echo "removed old $f"; fi; done; fi
+      - name: Commit
+        run: |
+          git config user.name  "tidy-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git diff --cached --quiet && { echo "Nothing to move"; exit 0; }
+          git commit -m "Organize the repository into folders"
+          git push

@@ -26,12 +26,12 @@ jobs:
       - name: Install
         run: pip install geopandas pyogrio shapely pyproj
       - name: Build geology.json
-        run: python build_geology.py
+        run: python scripts/build_geology.py
       - name: Commit if changed
         run: |
           git config user.name  "geology-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add geology.json geology_huc10.json 2>/dev/null || git add geology.json
+          for f in data/geology.json data/geology_huc10.json; do if [ -f "$f" ]; then git add "$f"; fi; done
           git diff --cached --quiet && exit 0
           git commit -m "Update geology summaries"
           for i in 1 2 3; do

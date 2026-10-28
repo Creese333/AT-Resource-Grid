@@ -27,15 +27,15 @@ jobs:
           sudo apt-get install -y -qq osmium-tool
           pip install shapely
       - name: Build historic_resources.json
-        run: python build_historic_resources.py
+        run: python scripts/build_historic_resources.py
       - name: Build place_names.json
-        run: python build_place_names.py
+        run: python scripts/build_place_names.py
         continue-on-error: true    # if the USGS names service is down, keep last month's file and still save the historic resources
       - name: Commit if changed
         run: |
           git config user.name  "historic-resources-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add historic_resources.json place_names.json 2>/dev/null || git add historic_resources.json
+          for f in data/historic_resources.json data/place_names.json; do if [ -f "$f" ]; then git add "$f"; fi; done
           git diff --cached --quiet && exit 0
           git commit -m "Update historic resources"
           # if files were uploaded while the build ran, catch up with them first, then push (up to 3 tries)

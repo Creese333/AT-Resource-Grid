@@ -1,4 +1,4 @@
-# Rebuilds inat_ebird.json (A.T. corridor) and inat_ebird_huc10.json (HUC10 shell), the iNaturalist, eBird and EDDMapS summaries
+# Rebuilds inat_ebird.json (A.T. corridor) and inat_ebird_huc10.json.gz (HUC10 shell, gzipped), the iNaturalist, eBird and EDDMapS summaries
 # for the A.T. Resource Grid, from GBIF downloads and the public EDDMapS points service.
 # Runs on the 5th of January, April, July and October: iNaturalist and EDDMapS every quarter, eBird in January (GBIF refreshes eBird about yearly).
 # Also builds the visitation summaries ("How many observers are out there?") and saves compact observer-day files
@@ -42,13 +42,13 @@ jobs:
         env:
           GBIF_USER: ${{ secrets.GBIF_USER }}
           GBIF_PWD: ${{ secrets.GBIF_PWD }}
-        run: python build_inat_ebird.py ${{ steps.pick.outputs.which }}
+        run: python scripts/build_inat_ebird.py ${{ steps.pick.outputs.which }}
       - name: Commit if changed
         run: |
           git config user.name  "inat-ebird-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add inat_ebird.json inat_ebird_huc10.json common_names.json 2>/dev/null || git add inat_ebird.json
-          for f in visits_inat.csv.gz visits_ebird.csv.gz visits_edd.csv.gz; do if [ -f "$f" ]; then git add "$f"; fi; done
+          for f in data/inat_ebird.json data/inat_ebird_huc10.json.gz cache/common_names.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          for f in cache/visits_inat.csv.gz cache/visits_ebird.csv.gz cache/visits_edd.csv.gz; do if [ -f "$f" ]; then git add "$f"; fi; done
           git diff --cached --quiet && exit 0
           git commit -m "Update iNaturalist, eBird and EDDMapS summaries"
           for i in 1 2 3; do
