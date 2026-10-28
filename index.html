@@ -486,6 +486,13 @@ h4.mgrp{margin:12px 0 8px;padding-top:10px;border-top:1px solid #2E4460;font-siz
 .qs button[aria-current=true]::before{background:#fff}
 .qs button:focus-visible{outline:2px solid #fff;outline-offset:1px}
 header .blaze{width:12px;height:32px;border-radius:0;background:#fff;-webkit-mask:var(--blaze) center/100% 100% no-repeat;mask:var(--blaze) center/100% 100% no-repeat}
+header{padding:12px 18px;gap:16px}
+header h1{font-size:26px}
+header p{font-size:15.5px}
+header .blaze{width:14px;height:38px}
+@media (max-width:700px){header h1{font-size:23px}header .blaze{width:12px;height:33px}}
+.qs{container-type:inline-size}
+.qs button{font-size:clamp(14px, calc((100cqi - 50px) / 21.4), 17.5px)}
 </style>
 </head>
 <body>
