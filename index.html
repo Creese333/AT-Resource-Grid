@@ -1279,7 +1279,7 @@ function phTick(){ phDots(); let t = document.getElementById('phtick'); const ac
       : `<b>${S.wxYr}</b><span>${fmt(n, 0)} ${n === 1 ? 'cell' : 'cells'} with ${WXEV[m.wxG]} events${where}</span>`;
     t.classList.remove('acqtick'); t.style.display = 'block'; phTickPos(); return; }
   if (vis){ const lv = dispLevel(), L_ = D.levels[lv]; let n = 0; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)){ const v = visYearVal(lv, c, S.visYr); if (v) n += v; }
-    t.innerHTML = `<b>${S.visYr}</b><span>${fmt(n, 0)} observer-days${S.sec === 'all' ? '' : ' in ' + esc(secName())}</span>`; t.style.display = 'block'; phTickPos(); return; }
+    t.innerHTML = `<b>${S.visYr}</b><span>${fmt(Math.round(n), 0)} observer-days${S.sec === 'all' ? '' : ' in ' + esc(secName())}${S.visYr > visFull() ? ' · no eBird yet' : ''}</span>`; t.style.display = 'block'; phTickPos(); return; }
   if (acq){ const yy = S.acqYr || ACQ.y1; let ac = 0; ACQ.by.forEach((e, y) => { if (y <= yy) ac += e.ac; });
     t.innerHTML = `<b>by ${yy}</b><span>${fmt(Math.round(ac), 0)} acres of A.T. land protected</span>`; t.style.display = 'block'; phTickPos(); return; }
   const y = phYear(), A = phAgg(dispLevel()), ys = A.years, span = ys.length ? ys[0] + '–' + String(ys[ys.length - 1]).slice(2) : 'All years';
@@ -2230,7 +2230,7 @@ function visYearChart(lv, cells){ const yr = visYears(); if (!yr) return ''; con
   for (let y = yr[0]; y <= yr[1]; y++) od.set(y, 0);
   cells.forEach(c => { const a = visList(lv, c, 'VIS_OD_Y'); if (!a) return; any = true; for (let k = 0; k < a.length; k += 2) if (od.has(a[k])) od.set(a[k], od.get(a[k]) + a[k + 1]); });
   if (!any) return '';
-  const Y = [...od].map(([y, n]) => ({y, n, v:S.visAdj ? visIdx(n / N, lv, y) : n, part:y >= now, thin:n < VISTHIN})).filter(e => e.v != null);
+  const Y = [...od].map(([y, n]) => ({y, n, v:S.visAdj ? visIdx(n / N, lv, y) : n, part:y > visFull(), thin:n < VISTHIN})).filter(e => e.v != null);
   if (!Y.length) return ''; const mx0 = Math.max(...Y.map(e => e.v), S.visAdj ? 120 : 1), st = niceNum(mx0 / 4) || 1, mx = Math.ceil(mx0 / st) * st;
   const W = 272, H = 142, pl = 10 + 5.2 * fmt(mx, 0).length, pr = 6, top = 10, base = 126, pw = W - pl - pr, bw = pw / Y.length, f = v => v.toFixed(1), Yp = v => base - (base - top) * v / mx;
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${S.visAdj ? 'Visitation index' : 'Observer-days'} by year">`;
@@ -2240,10 +2240,10 @@ function visYearChart(lv, cells){ const yr = visYears(); if (!yr) return ''; con
   Y.forEach((e, i) => { const on = S.visYr === e.y, x = pl + i * bw, h = base - Yp(e.v);
     g += `<g data-visy="${e.y}" style="cursor:pointer"><rect x="${f(x)}" y="${top}" width="${f(bw)}" height="${base - top}" fill="transparent"/>` +
       `<rect x="${f(x + bw * .12)}" y="${f(base - h)}" width="${f(bw * .76)}" height="${f(Math.max(e.v > 0 ? .8 : 0, h))}" rx="1" fill="${on ? '#FFFFFF' : e.part ? 'url(#vispart)' : HUE.eff}" opacity="${e.thin && !on ? .4 : 1}" stroke="${on ? '#FFFFFF' : '#5F7FC8'}" stroke-width=".5"/>` +
-      `<title>${e.y}${e.part ? ' (so far)' : ''}: ${S.visAdj ? 'index ' + fmt(e.v, 0) + ', from ' : ''}${fmt(e.n, 0)} observer-days${N > 1 ? ' in the ' + N + ' cells' : ''}${e.thin ? '. Few observer-days, so the value is unsteady' : ''}. Tap to show this year on the map.</title></g>`;
+      `<title>${e.y}${e.part ? (e.y >= now ? ' (so far, no eBird yet)' : ' (no eBird yet)') : ''}: ${S.visAdj ? 'index ' + fmt(e.v, 0) + ', from ' : ''}${fmt(e.n, 0)} observer-days${N > 1 ? ' in the ' + N + ' cells' : ''}${e.thin ? '. Few observer-days, so the value is unsteady' : ''}. Tap to show this year on the map.</title></g>`;
     const last = i === Y.length - 1; if (last || ((e.y - Y[0].y) % lab === 0 && Y.length - 1 - i >= lab)) g += `<text x="${f(x + bw / 2)}" y="${base + 12}" text-anchor="middle" font-size="9" fill="${on ? '#FFFFFF' : '#C9D4E2'}">${"'" + String(e.y).slice(2)}${e.part ? '*' : ''}</text>`; });
   if (S.visAdj){ const y100 = Yp(100); g += `<line x1="${pl}" x2="${W - pr}" y1="${f(y100)}" y2="${f(y100)}" stroke="#F0C419" stroke-width="1.2" stroke-dasharray="4 3"/><text x="${W - pr}" y="${f(y100 - 3)}" text-anchor="end" font-size="9" fill="#F0C419" stroke="#142235" stroke-width="2.5" paint-order="stroke">100 = average cell</text>`; }
-  g += '</svg>' + `<p class="phstat" style="font-size:12.5px;margin-top:0">${Y.some(e => e.thin) ? `Faded: under ${VISTHIN} observer-days, where a visit or two swings the value. ` : ''}${Y.some(e => e.part) ? `Hatched (*): ${now} so far.` : ''}</p>`;
+  g += '</svg>' + `<p class="phstat" style="font-size:12.5px;margin-top:0">${Y.some(e => e.thin) ? `Faded: under ${VISTHIN} observer-days, where a visit or two swings the value. ` : ''}${Y.some(e => e.part) ? `Hatched (*): ${visFull() + 1}${visFull() + 1 < now ? '–' + now + ' have' : ' has'} no eBird checklists yet (eBird reaches GBIF about a year late)${Y.some(e => e.y >= now) ? ', and ' + now + ' is partial' : ''}, so ${visFull() + 1 < now ? 'these years look' : 'it looks'} low: compare years up to ${visFull()}.` : ''}</p>`;
   /* the summary: the last three full years together, which steadies the year-to-year swings */
   const rec = Y.filter(e => !e.part).slice(-3), rn = rec.reduce((s, e) => s + e.n, 0);
   let st2 = '';
@@ -2251,7 +2251,7 @@ function visYearChart(lv, cells){ const yr = visYears(); if (!yr) return ''; con
     st2 = `${rec[0].y}–${rec[rec.length - 1].y}: ${fmt(Math.round(rn / rec.length), 0)} observer-days a year${N > 1 ? ' in these cells' : ''}` + (ix != null ? `, index ${fmt(ix, 0)}: ${ix >= 100 ? 'about ' + fmt(ix / 100, ix >= 1000 ? 0 : 1) + ' times' : 'about ' + fmt(ix, 0) + '% of'} the average cell${N > 1 ? ' (per cell)' : ''}.` : '.');
     if (rn / rec.length < VISTHIN) st2 += ' Few observer-days here, so treat year-to-year changes with caution.'; }
   const sy = S.visYr && Y.find(e => e.y === S.visYr);
-  if (sy) st2 = `<b>${sy.y}${sy.part ? ' so far' : ''}:</b> ${fmt(sy.n, 0)} observer-days${N > 1 ? ' in these cells' : ''}${S.visAdj ? ', index ' + fmt(sy.v, 0) : ''}. ` + st2;
+  if (sy) st2 = `<b>${sy.y}${sy.part ? ' (no eBird yet)' : ''}:</b> ${fmt(sy.n, 0)} observer-days${N > 1 ? ' in these cells' : ''}${S.visAdj ? ', index ' + fmt(sy.v, 0) : ''}. ` + st2;
   return g + `<p class="phstat">${st2}</p>`; }
 document.addEventListener('click', e => { const t = e.target.closest('[data-visy]'); if (!t) return; if (typeof visTimer !== 'undefined' && visTimer) visPlay(false); const y = +t.dataset.visy; S.visYr = S.visYr === y ? null : y; visFrame(true); });
 const VISPICK_OLD = id => id === 'erec' ? {title:'Cells by eBird sampling', note:'Each cell’s eBird data status, from the number and spread of checklists.', fn(lv, cells){
@@ -2356,7 +2356,7 @@ const Q = [
  {id:'eff', th:'vis', hue:HUE.eff, ramp:'eff', title:'How many observers are out there?',
   use:'Trail visitation as seen through citizen science: iNaturalist, eBird and EDDMapS together, counted in observer-days (one person active in a square mile on one day, however many records they made). An eBird checklist on the same day and square mile as an iNaturalist observer, within 250 m, counts as the same party, since the two systems’ user names cannot be matched; EDDMapS has no observer names, so each report is a report-day, merged the same way. This is an index of naturalist and birder activity, not a headcount of visitors: use it to compare places, seasons and years. eBird reaches GBIF about a year late, so the latest year leans on iNaturalist. Play the years under Visualizations to watch visitation change.',
   m:[{id:'od', get label(){ return S.visAdj ? 'Visitation index (observer-days)' : 'Observer-days per year'; }, get int(){ return !S.visAdj; }, get noun(){ return S.visAdj ? null : ['observer-day','observer-days']; }, d:0, zero:1, none:'No observers recorded', fn:(lv,c)=>visOD(lv,c), colorFn:(v,lv)=>visCol(v,lv), legendFn:lv=>visLegend(lv), stripTop:lv=>visTop(lv),
-      note:'Observer-days in an average recent year (the last three full years), or in the year picked under Visualizations. One person active in a square mile on one day is one observer-day.', boxFn:(lv, cells) => visBoxText('od', lv, cells)},
+      note:'Observer-days in an average recent year (the latest three years with eBird data, as eBird reaches GBIF about a year late), or in the year picked under Visualizations. One person active in a square mile on one day is one observer-day.', boxFn:(lv, cells) => visBoxText('od', lv, cells)},
      {id:'obsr', label:'Unique observers', f:'VIS_OBSR', int:1, zero:1, noun:['observer','observers'], boxFn:(lv, cells) => visBoxText('obsr', lv, cells), note:'Different people with an iNaturalist record or eBird checklist in the cell, any year. EDDMapS does not publish observer names, so its reports are not in this count.'},
      {id:'peak', label:'Peak month', kind:'cat', f:'VIS_PEAK', boxFn:(lv, cells) => visBoxText('peak', lv, cells), fn:(lv,c)=>{ const v = val('vis','VIS_PEAK',lv,c); return v ? v - 1 : null; }, note:'The month with the most observer-days, all years together.'},
      {id:'rpd', label:'Records per observer-day', f:'VIS_RPD', d:1, noun:['record','records'], boxFn:(lv, cells) => visBoxText('rpd', lv, cells), note:'iNaturalist records and eBird species records per observer-day: how much each visit records.'}]},
@@ -3005,8 +3005,15 @@ function visBusyLists(lv, cells){ const out = [], seen = new Set(); let via = fa
   cells.forEach(c => { const a = val('vis','VIS_BUSY_TOP',lv,c); if (a){ out.push(a); return; } if (!has('vis', lv, c) || (D.themes.vis[lv] && D.themes.vis[lv].f.VIS_BUSY_TOP)) return;
     const p = parentOf(lv, c); if (!p || seen.has(p[1])) return; seen.add(p[1]); const b = val('vis','VIS_BUSY_TOP',p[0],p[1]); if (b){ out.push(b); via = true; } });
   return [out, via]; }
+let VISFULL = null;
+function visFull(){ const m = typeof BIO !== 'undefined' && BIO && BIO.meta && BIO.meta.vis; if (m && m.complete_through) return m.complete_through; if (VISFULL) return VISFULL;
+  let mx = ''; for (const lv of ['wheel','cog','hex']){ const t = D.themes.ebird && D.themes.ebird[lv]; if (t && t.f.LAST_OBS){ t.f.LAST_OBS.forEach(x => { if (x && String(x) > mx) mx = String(x); }); break; } }
+  const now = new Date().getFullYear() - 1; if (!mx) return now; const y = +mx.slice(0, 4); VISFULL = Math.min(now, mx.slice(5, 10) === '12-31' ? y : y - 1); return VISFULL; }
+/* observer-days in an average recent year: the last three years with eBird as well as iNaturalist and EDDMapS */
+function visRecent(lv, c){ const p = visList(lv, c, 'VIS_OD_Y'); if (!p) return val('vis','VIS_OD_YR',lv,c); const F = visFull(); let s = 0;
+  for (let k = 0; k < p.length; k += 2) if (p[k] >= F - 2 && p[k] <= F) s += p[k + 1]; return s / 3; }
 function visYearVal(lv, c, y){ const p = visList(lv, c, 'VIS_OD_Y'); if (!p) return has('vis', lv, c) ? null : null; for (let k = 0; k < p.length; k += 2) if (p[k] === y) return p[k + 1]; return 0; }
-function visRaw(lv, c){ if (!has('vis', lv, c)) return null; return S.visYr ? visYearVal(lv, c, S.visYr) : val('vis','VIS_OD_YR',lv,c); }
+function visRaw(lv, c){ if (!has('vis', lv, c)) return null; return S.visYr ? visYearVal(lv, c, S.visYr) : visRecent(lv, c); }
 function visOD(lv, c){ const r = visRaw(lv, c); return S.visAdj ? visIdx(r, lv, S.visYr) : r; }
 const VISBRK = {};
 function visBrk(lv){ const key = lv + '|' + S.ext + '|' + (S.visAdj ? 'i' : 'n'); if (VISBRK[key] && VISBRK[key].lev === D.levels[lv]) return VISBRK[key].b; const t = D.themes.vis && D.themes.vis[lv], a = [];
@@ -3019,7 +3026,7 @@ function visCol(v, lv){ const b = visBrk(lv); let i = 0; while (i < b.length && 
 function visLegend(lv){ const b = visBrk(lv), lab = []; b.forEach((v, i) => lab.push(i === 0 ? `1 to ${fmt(v, 0)}` : `${fmt(b[i - 1] + 1, 0)} to ${fmt(v, 0)}`)); lab.push(b.length ? `over ${fmt(b[b.length - 1], 0)}` : 'any');
   if (!b.length) return '<p class="sub">The visitation summaries have not been built yet. They are added the next time the iNaturalist workflow runs.</p>';
   return lab.map((t, i) => `<div class="row"><i style="background:${VISRAMP[Math.round(i * (VISRAMP.length - 1) / Math.max(1, b.length))]}"></i><span>${t}${S.visAdj ? '' : ' observer-days'}</span></div>`).join('') +
-    `<p class="sub">${S.visAdj ? 'Visitation index: observer-days as a share of the average cell’s, 100 = average, ' + (S.visYr ? 'in ' + S.visYr : 'over the last three full years') + '. Adjusted for growth in iNaturalist use.' : (S.visYr ? 'Observer-days in ' + S.visYr : 'Observer-days per year, average of the last three full years') + ', per cell.'} Classes stay the same in every year.</p>`; }
+    `<p class="sub">${S.visAdj ? 'Visitation index: observer-days as a share of the average cell’s, 100 = average, ' + (S.visYr ? 'in ' + S.visYr : 'over the latest three years with eBird data') + '. Adjusted for growth in iNaturalist use.' : (S.visYr ? 'Observer-days in ' + S.visYr : 'Observer-days per year, average of the latest three years with eBird data') + ', per cell.'} Classes stay the same in every year.</p>`; }
 function visTop(lv){ const b = visBrk(lv); return b.length ? b[b.length - 1] * 1.4 : 1; }
 let visTimer = null; S.visAdj = false;
 const VISTOT = {};
@@ -3709,7 +3716,7 @@ function visBox(lv, cells){ const many = cells.length > 1; let b = `<div class="
   b += `<div class="facts"><div><b>${fmt(Math.round(yr), 0)}</b>observer-days a year</div><div><b>${fmt(P.obsr, 0)}</b>${many ? 'observers (by cell)' : 'observers'}</div><div><b>${P.peak != null ? CATCOL.VIS_PEAK[P.peak][0].slice(0, 3) : '–'}</b>peak month</div></div>`;
   b += `<div class="facts"><div><b>${P.pi + P.pe ? fmt((P.ri + P.re) / (P.pi + P.pe), 1) : '–'}</b>records per observer-day</div></div>`;
 
-  b += `<p class="none" style="font-size:13.5px">${fmt(P.src[0], 0)} iNaturalist and ${fmt(P.src[1], 0)} eBird observers, ${fmt(P.src[2], 0)} EDDMapS report-days${many ? ', added up cell by cell' : ''}. Observer-days per year average the last three full years. An index of naturalist and birder activity, not a count of visitors.</p>`;
+  b += `<p class="none" style="font-size:13.5px">${fmt(P.src[0], 0)} iNaturalist and ${fmt(P.src[1], 0)} eBird observers, ${fmt(P.src[2], 0)} EDDMapS report-days${many ? ', added up cell by cell' : ''}. Observer-days per year average the latest three years with eBird data. An index of naturalist and birder activity, not a count of visitors.</p>`;
   return b + '</div>'; }
 const visSection = (lv, c) => visBox(lv, [c]);
 function birdSection(lv, c){ const v = (th, f) => val(th, f, lv, c); let b = `<div class="sec" style="--hue:${HUE.ebird}"><h3>Birds</h3>`;
@@ -3891,7 +3898,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
       feat_drainage_structures_est:n('feat','S_DRAIN'), feat_steps_and_climbs_est:n('feat','S_STEPS'), feat_signs_est:n('feat','S_SIGNS'), feat_barriers_est:n('feat','S_BARR'),
       land_administrators:n('lands','N_MGR'), land_pct_of_cell_mapped:n('lands','PCT_LAND'),
       cultural_plant_species:blank(cultCount(lv, c)), cultural_plant_records:cultReady(lv) ? n('inat','N_CULT_OBS') : '',
-      visit_observer_days_per_year:n('vis','VIS_OD_YR'), visit_unique_observers:n('vis','VIS_OBSR'), visit_peak_month:v('vis','VIS_PEAK',c) ? CATCOL.VIS_PEAK[v('vis','VIS_PEAK',c) - 1][0] : '', visit_records_per_observer_day:n('vis','VIS_RPD'),
+      visit_observer_days_per_year:(x => x == null ? '' : Math.round(x * 10) / 10)(visRecent(lv, c)), visit_average_years:visFull() - 2 + '-' + visFull(), visit_unique_observers:n('vis','VIS_OBSR'), visit_peak_month:v('vis','VIS_PEAK',c) ? CATCOL.VIS_PEAK[v('vis','VIS_PEAK',c) - 1][0] : '', visit_records_per_observer_day:n('vis','VIS_RPD'),
       wx_precip_in_per_year:n('wx','WX_PPT'), wx_wettest_month:v('wx','WX_WETM',c) != null ? MONTHS_LONG[v('wx','WX_WETM',c)] : '', wx_mean_temp_f:n('wx','WX_TMEAN'), wx_july_high_f:n('wx','WX_TMAX7'), wx_january_low_f:n('wx','WX_TMIN1'),
       wx_frost_free_days:n('wx','WX_FROSTFREE'), wx_heavy_rain_days_per_year:n('wx','WX_HEAVY'), wx_25yr_24hr_storm_in:n('wx','WX_P25'), wx_wind_mph_gridmet:n('wx','WX_WIND'), wx_windy_days_per_year_gridmet:n('wx','WX_WINDY'),
       wx_damaging_wind_events:n('wx','WX_EV_WIND'), wx_flood_events:n('wx','WX_EV_FLOOD'), wx_winter_storm_events:n('wx','WX_EV_WINTER'), wx_storm_event_years:wxYears() ? wxYears().join('-') : '',
@@ -4051,7 +4058,7 @@ async function exportRun(kind){ const msg0 = $('#pexmsg'); if (msg0 && S.ext !==
 
 /* ---------- box selection: combined summary of the selected cells ---------- */
 function visPool(lv, cells){ const P = {n:0, od:0, yr:0, obsr:0, src:[0, 0, 0], mon:Array(12).fill(0), hasMon:false, busy:0, busyDate:null, ld:0, ri:0, pi:0, re:0, pe:0, off:0};
-  cells.forEach(c => { if (!has('vis', lv, c)) return; const v = f => val('vis', f, lv, c); P.n++; P.od += v('VIS_OD') || 0; P.yr += v('VIS_OD_YR') || 0; P.obsr += v('VIS_OBSR') || 0; P.ld += v('VIS_LD') || 0; P.off += v('VIS_OFFN') || 0;
+  cells.forEach(c => { if (!has('vis', lv, c)) return; const v = f => val('vis', f, lv, c); P.n++; P.od += v('VIS_OD') || 0; P.yr += visRecent(lv, c) || 0; P.obsr += v('VIS_OBSR') || 0; P.ld += v('VIS_LD') || 0; P.off += v('VIS_OFFN') || 0;
     (v('VIS_SRC') || []).forEach((x, i) => P.src[i] += x || 0); const mo = visList(lv, c, 'VIS_OD_M'); if (mo){ P.hasMon = true; mo.forEach((x, i) => P.mon[i] += x || 0); }
     const b = v('VIS_BUSY') || 0; if (b > P.busy){ P.busy = b; const t = v('VIS_BUSY_TOP'); P.busyDate = t && t[0] && t[0][1] === b ? t[0][0] : null; }
     const r = v('VIS_RPD_SRC'); if (r){ P.ri += r[0]; P.pi += r[1]; P.re += r[2]; P.pe += r[3]; } });

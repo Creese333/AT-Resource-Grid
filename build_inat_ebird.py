@@ -802,7 +802,14 @@ def build_visits(grids):
                         a['edd'] += 1; continue
                     a['obs'][p[3]].add(p[2]); a['all'].add(who); a['sys'][p[3]].add(p[2] * 1000000 + o); a['rec'][p[3]] += p[4]; a['off'] += p[5]
                     if (who, o) in long_: a['ld'].add(k)
-    this = date.today().year; last3 = {str(y) for y in range(this - 3, this)}
+    # the recent average uses the last three years that every source covers in full. eBird reaches GBIF once a year, a year or more late,
+    # so the years after its last full year have iNaturalist and EDDMapS only and would look like a sharp drop
+    this = date.today().year; full = this - 1
+    eb = max((k[1] for k in VISITS['ebird']), default=None)
+    if eb:
+        e = date.fromisoformat(eb); full = min(full, e.year if (e.month, e.day) == (12, 31) else e.year - 1)
+    last3 = {str(y) for y in range(full - 2, full + 1)}
+    print(f'visitation: eBird records through {eb}; the recent average uses {full - 2}-{full}', flush=True)
     out = {}
     for g, L in grids.items():
         out[g] = {}
@@ -831,7 +838,7 @@ def build_visits(grids):
                     F[k2].append(x)
             out[g][lv] = {'ids': ids, 'f': dict(F)}
             print(f'   visitation {g} {lv}: {len(ids)} cells', flush=True)
-    return out, {'merge_m': VIS_MERGE_M, 'off_m': OFF_M, 'long_mi': LONG_MI, 'long_days': LONG_DAYS, 'long_min_days': LONG_MIN_DAYS, 'sources': [k for k in ('inat', 'ebird', 'edd') if VISITS[k]]}
+    return out, {'complete_through': full, 'ebird_through': eb, 'merge_m': VIS_MERGE_M, 'off_m': OFF_M, 'long_mi': LONG_MI, 'long_days': LONG_DAYS, 'long_min_days': LONG_MIN_DAYS, 'sources': [k for k in ('inat', 'ebird', 'edd') if VISITS[k]]}
 
 
 def pack(themes):
