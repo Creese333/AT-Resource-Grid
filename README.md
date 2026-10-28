@@ -1,6 +1,6 @@
 # A.T. Resource Grid
 
-**[grid.trailassessment.org](https://grid.trailassessment.org)** · An interactive dashboard of natural and cultural resources along the Appalachian National Scenic Trail, summarized on a grid of 1, 7 and 49 square mile cells (NatureServe hex, cog and wheel) for the A.T. corridor and the HUC10 watersheds around it.
+**[grid.trailassessment.org](https://grid.trailassessment.org)** An interactive dashboard of natural and cultural resources along the Appalachian National Scenic Trail, summarized on a grid of 1, 7 and 49 square mile cells (NatureServe hex, cog and wheel) for the A.T. corridor and the HUC10 watersheds around it.
 
 Built for the Appalachian National Scenic Trail to screen where to look more closely: restoration targets, invasive species and forest pests, birds, vegetation, geology, soils, wetlands, facilities, historic resources, visitation, land administration, weather and climate, and where the trail is most vulnerable to damage. Pick a question, a measure and a stretch of trail; select cells for their details and export them to CSV or Excel.
 
