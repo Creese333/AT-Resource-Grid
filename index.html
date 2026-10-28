@@ -879,7 +879,7 @@ const RAMP = {
   cult:['#E0EBCB','#BCD591','#92BA58','#5E8C31','#36561A'],
   geo:['#E1E6EA','#B9C4CE','#8C9DAD','#5F7488','#38495B'],
   wx:['#DDEAF5','#A9C8E4','#6FA0CF','#3F76AE','#1F4E80'],
-  tvul:['#F6E3D4','#EDB78F','#DD8456','#B85C38','#7A3218']
+  tvul:['#ECE7F6','#C9BCE6','#9F8AD1','#6A4FB3','#3E2A7A']
 };
 const ZERO = '#E3E7E1';
 const CATCOL = {
@@ -927,7 +927,7 @@ D.cats.VIS_PEAK = CATCOL.VIS_PEAK.map(e => e[0]);
 CATCOL.WX_WETM = [['January','#1D3F8F'],['February','#3D6FC9'],['March','#86B6EA'],['April','#1E7B4E'],['May','#58B04F'],['June','#B7DB5A'],['July','#F4D03F'],['August','#F09A2A'],['September','#D4562A'],['October','#9C2F45'],['November','#C27BB6'],['December','#6A4C9C']]; D.cats.WX_WETM = CATCOL.WX_WETM.map(e => e[0]);
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 /* Blue Ridge color scheme */
-const HUE = {lands:'#B03A73', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94', wx:'#4A7FB5', tvul:'#B85C38'};
+const HUE = {lands:'#B03A73', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94', wx:'#4A7FB5', tvul:'#6A4FB3'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -2590,7 +2590,7 @@ for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
 let JERRY = false; try { JERRY = sessionStorage.getItem('jerry') === '1'; } catch (e) {}
 if (JERRY) document.body.classList.add('jerry');
 const qVis = x => x.id !== 'pri' || JERRY;
-{ const ord = ['rest','inv','pinv','rec','pest','phen','cult','bird','pri','veg','geo','tvul','soil','wet','feat','hist','eff','land','wx']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','tvul','inv','pinv','rec','pest','phen','cult','bird','pri','veg','geo','soil','wet','feat','hist','eff','land','wx']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
