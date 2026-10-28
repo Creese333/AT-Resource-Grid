@@ -1,0 +1,54 @@
+# Builds weather.json (A.T. corridor) and weather_huc10.json (HUC10 shell) for "What are the weather and climate here?":
+# PRISM 1991-2020 normals (rainfall, temperature), NOAA nClimGrid-Daily (heavy-rain days, frost-free season), gridMET (wind; a research
+# product), NOAA Storm Events (damaging wind, flooding, winter storms since 1996) and NOAA Atlas 14 (the 25-year, 24-hour storm).
+# The full build runs on 20 January; on the 20th of April, July and October only the Storm Events counts are refreshed.
+# Or press "Run workflow" on the Actions tab and pick "all" or "storms".
+name: Weather
+
+on:
+  schedule:
+    - cron: '23 9 20 1 *'
+    - cron: '23 9 20 4,7,10 *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'all = everything (an hour or two); storms = only the Storm Events counts'
+        type: choice
+        options: [all, storms]
+        default: all
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install geopandas pyogrio shapely pyproj rasterio xarray netCDF4 numpy pandas
+      - name: Build weather.json
+        run: |
+          MODE="${{ github.event.inputs.mode }}"
+          if [ -z "$MODE" ]; then
+            if [ "${{ github.event.schedule }}" = "23 9 20 1 *" ]; then MODE=all; else MODE=storms; fi
+          fi
+          if [ "$MODE" = "storms" ]; then python build_weather.py storms; else python build_weather.py; fi
+      - name: Commit if changed
+        run: |
+          git config user.name  "weather-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for f in weather.json weather_huc10.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          git diff --cached --quiet && exit 0
+          git commit -m "Update weather and climate summaries"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1
