@@ -2588,7 +2588,7 @@ for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
 let JERRY = false; try { JERRY = sessionStorage.getItem('jerry') === '1'; } catch (e) {}
 if (JERRY) document.body.classList.add('jerry');
 const qVis = x => x.id !== 'pri' || JERRY;
-{ const ord = ['rest','tvul','inv','pinv','rec','pest','phen','cult','bird','pri','veg','geo','soil','wet','feat','hist','eff','land','wx']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','inv','pinv','rec','pest','phen','cult','bird','pri','veg','geo','soil','wet','feat','hist','eff','land','wx','tvul']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
