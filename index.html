@@ -2658,10 +2658,10 @@ let JERRY = false;
 if (JERRY) document.body.classList.add('jerry');
 const QGRP = {rest:'Priorities', tvul:'Priorities', pri:'Priorities', inv:'Threats', pest:'Threats', pinv:'Threats', veg:'Plants and wildlife', bird:'Plants and wildlife',
   phen:'Plants and wildlife', rec:'Plants and wildlife', geo:'Land, water and climate', soil:'Land, water and climate', wet:'Land, water and climate', wx:'Land, water and climate',
-  hist:'Cultural resources', cult:'Cultural resources', feat:'Stewardship', eff:'Stewardship', land:'Stewardship'};
+  hist:'Cultural resources', cult:'Cultural resources', feat:'Stewardship', eff:'Plants and wildlife', land:'Stewardship'};
 const QGOFF = new Set();   // folded question groups (filled from this browser's settings below)
 const qVis = x => x.id !== 'pri' || JERRY;
-{ const ord = ['rest','tvul','pri','feat','eff','land','inv','pest','pinv','veg','bird','phen','rec','geo','soil','wet','wx','hist','cult']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','tvul','pri','feat','land','inv','pest','pinv','veg','bird','phen','rec','eff','geo','soil','wet','wx','hist','cult']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
