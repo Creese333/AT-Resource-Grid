@@ -2155,13 +2155,21 @@ function tvTop(lv, f){ const key = f + '|' + lv + '|' + S.ext, t = D.themes.slop
   const v = a.length ? Math.max(5, Math.ceil(a[Math.floor(.95 * (a.length - 1))] * 1.1 / 5) * 5) : 100; TVTOP[key] = {lev:D.levels[lv], v}; return v; }
 /* Model weights: one row per factor, a number from 0 to 50; Reset puts back the recommended weights */
 function tvWeightsHTML(){ const tot = TVDEF.reduce((t, d) => t + (+TVW[d[0]] || 0), 0);
-  return '<div class="tvw">' + TVDEF.map(([k, lab, w0, th, note]) => `<label title="${esc(note)}"><span>${esc(lab)}</span><input type="range" min="0" max="50" step="2.5" value="${TVW[k]}" data-tvw="${k}" aria-label="${esc(lab)} weight"><b>${TVW[k]}</b></label>`).join('') +
-    `</div><p class="phstat">Total ${tot}${tot !== 100 ? ' (scores are scaled to 100 whatever the total)' : ''}. <button type="button" class="lbtn" data-tvreset="1">Reset to recommended</button></p>` +
+  return '<div class="tvw">' + TVDEF.map(([k, lab, w0, th, note]) => `<label title="${esc(note)}"><span>${esc(lab)}</span><input type="range" min="0" max="100" step="2.5" value="${TVW[k]}" data-tvw="${k}" aria-label="${esc(lab)} weight"><b>${TVW[k]}</b></label>`).join('') +
+    `</div><p class="phstat">The weights always add up to 100: raising one lowers the others in proportion. <button type="button" class="lbtn" data-tvreset="1">Reset to recommended</button></p>` +
     '<p class="phnote">Recommended weights follow trail erosion research on the A.T. and other trails: grade and alignment with the fall line are the strongest predictors of soil loss, then soils, rainfall and where use concentrates. Forest pests and invasive plants carry a low weight as early signs of declining forest health.</p>'; }
 function tvRefresh(full){ for (const k in TVRANK) delete TVRANK[k]; BRK.clear(); restyle(); strip(); legend(); qVizRefresh(); if (full) side(); else { const p = $('#pbody'); if (p && (S.cell != null || S.box)) profileRefresh(); } }
 const profileRefresh = () => { if (S.box) side(); else if (S.cell != null) profile(); };
-document.addEventListener('input', e => { const t = e.target.closest && e.target.closest('[data-tvw]'); if (!t) return; TVW[t.dataset.tvw] = +t.value; const b = t.parentNode.querySelector('b'); if (b) b.textContent = t.value; tvRefresh(false); });
-document.addEventListener('change', e => { if (e.target.closest && e.target.closest('[data-tvw]')) side(); });
+let TVBASE = null;
+function tvRebalance(k, v){ if (!TVBASE) TVBASE = Object.assign({}, TVW); const ks = TVDEF.map(d => d[0]), oth = ks.filter(x => x !== k), st = 2.5;
+  v = Math.max(0, Math.min(100, Math.round(v / st) * st)); const rem = 100 - v, o = oth.reduce((t, x) => t + (+TVBASE[x] || 0), 0);
+  oth.forEach(x => { const raw = o > 0 ? (+TVBASE[x] || 0) * rem / o : rem / oth.length; TVW[x] = Math.round(raw / st) * st; }); TVW[k] = v;
+  let diff = Math.round((100 - ks.reduce((t, x) => t + TVW[x], 0)) / st);   // rounding left over, in steps: given to (or taken from) the largest
+  for (let g = 0; diff !== 0 && g < 200; g++){ const pool = oth.filter(x => diff > 0 || TVW[x] >= st); if (!pool.length) break;
+    const x = pool.reduce((a, b) => (TVBASE[b] || 0) > (TVBASE[a] || 0) || ((TVBASE[b] || 0) === (TVBASE[a] || 0) && TVW[b] > TVW[a]) ? b : a); TVW[x] += diff > 0 ? st : -st; diff += diff > 0 ? -1 : 1; }
+  document.querySelectorAll('[data-tvw]').forEach(el => { const w = TVW[el.dataset.tvw]; if (el.dataset.tvw !== k) el.value = w; const b = el.parentNode.querySelector('b'); if (b) b.textContent = w; }); }
+document.addEventListener('input', e => { const t = e.target.closest && e.target.closest('[data-tvw]'); if (!t) return; tvRebalance(t.dataset.tvw, +t.value); tvRefresh(false); });
+document.addEventListener('change', e => { if (e.target.closest && e.target.closest('[data-tvw]')){ TVBASE = null; side(); } });
 document.addEventListener('click', e => { if (e.target.closest('[data-tvreset]')){ TVDEF.forEach(d => TVW[d[0]] = d[2]); tvRefresh(true); } });
 /* Visualizations. Climograph: precipitation bars and mean temperature line by month, averaged over the cells */
 function wxClimo(lv, cells, hiMon){ const P = Array(12).fill(0), T = Array(12).fill(0); let n = 0;
