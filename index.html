@@ -124,6 +124,8 @@ details.instr{margin:0}details.instr>summary{font-size:13px;line-height:1.3;colo
 .extsw button:hover{color:#fff;background:color-mix(in srgb,var(--hue) 32%,var(--panel))}
 .extsw button[aria-pressed=true]{color:#fff;font-weight:600;border-color:#fff;background:color-mix(in srgb,var(--hue) 62%,var(--panel))}
 .extsw button:disabled{opacity:.6;cursor:progress}
+.extsw button.extna:disabled{opacity:.4;cursor:not-allowed}
+.phsub{font-size:13px;color:var(--muted);margin:8px 0 3px}
 .extnote{font-size:13.5px;color:var(--muted);margin:-4px 0 10px}
 #legend i.corrkey{background:none !important;border:2px solid #FFD54A;box-sizing:border-box}
 .chips button{border:1px solid var(--accent);background:var(--ground);color:#E3EAF2;border-radius:999px;padding:3px 11px;font-size:13.5px;
@@ -2429,6 +2431,33 @@ QVIZ.tvul.pick = id => id === 'score' ? null : {title:'Trail miles by grade', no
     const B = [[0, 5, 'Under 5%'], [5, 10, '5 to 10%'], [10, 15, '10 to 15%'], [15, 20, '15 to 20%'], [20, 1e9, '20% or more']], m = B.map(() => 0); let tot = 0;
     cells.forEach(c => { const g = val('slope','TS_GRADE',lv,c), mi = val('slope','TS_MI',lv,c); if (g == null || !mi) return; tot += mi; m[B.findIndex(b => g >= b[0] && g < b[1])] += mi; });
     return tot ? B.map((b, i) => [b[2], HUE.tvul, m[i], fmt(m[i], 0) + ' mi', `${b[2]}: ${fmt(m[i], 1)} miles, ${vPct(m[i], tot)}`]).filter(r => r[2] > 0) : []; }};
+/* states along the trail, by trail mile (scaled to this centerline's length); NC and TN share the trail along their border */
+const VST = [[0,'Georgia'],[78,'NC and Tennessee'],[469,'Virginia'],[1023,'Maryland'],[1064,'Pennsylvania'],[1290,'New Jersey'],[1361,'New York'],
+  [1459,'Connecticut'],[1510,'Massachusetts'],[1600,'Vermont'],[1744,'New Hampshire'],[1910,'Maine']];
+const VSTNOTE = ' Cells are placed in states by trail mile, so a cell on a state line counts in one state; North Carolina and Tennessee are combined where the trail follows their border.';
+function vStOf(lv, c){ const m = D.levels[lv].mi; if (!m || m[c] == null) return -1; const x = m[c] / ((D.totalMi || 2190) / 2190); let k = 0; for (let i = 0; i < VST.length; i++) if (x >= VST[i][0]) k = i; return k; }
+function tvStateRows(lv, cells, f, what){ const mi = VST.map(() => 0), on = VST.map(() => 0);
+  cells.forEach(c => { const s = vStOf(lv, c), t = val('slope','TS_MI',lv,c), p = val('slope',f,lv,c); if (s < 0 || !t || p == null) return; mi[s] += t; on[s] += t * p / 100; });
+  return VST.map((v, i) => [v[1], HUE.tvul, mi[i] ? 100 * on[i] / mi[i] : 0, mi[i] ? `${fmt(100 * on[i] / mi[i], 0)}% · ${fmt(on[i], on[i] < 10 ? 1 : 0)} mi` : '', `${v[1]}: about ${fmt(on[i], 1)} of ${fmt(mi[i], 1)} trail miles ${what} (${fmt(100 * on[i] / mi[i], 0)}%)`]).filter((r, i) => mi[i] > 0); }
+{ const tp0 = QVIZ.tvul.pick;
+  QVIZ.tvul.pick = id => id === 'g10' ? {title:'Trail over 10% grade by state', note:'Share of the measured trail steeper than 10% in each state, with the miles it adds up to (USGS 3DEP elevation every 10 m).' + VSTNOTE, fn:(lv, cells) => tvStateRows(lv, cells, 'TS_G10', 'steeper than 10%')}
+    : id === 'fall' ? {title:'Trail on the fall line by state', note:'Share of the measured trail running within 22.5° of the fall line on ground steeper than 5% in each state, with the miles it adds up to.' + VSTNOTE, fn:(lv, cells) => tvStateRows(lv, cells, 'TS_FALL', 'on the fall line')}
+    : tp0(id); }
+const MLCOL = {'Meadow/Field':'#B5A33A', 'Agricultural Crop/Pasture':'#C98E4B', 'Bald':'#7FA06A'};
+{ const fp0 = QVIZ.feat.pick;
+  QVIZ.feat.pick = id => id === 'mlac' ? {title:'Maintained landscapes', note:'Acres of open landscapes kept open by mowing, grazing or crops, from the A.T. facilities inventory. A landscape spanning cells is added up across them.', html(lv, cells){
+    const ty = new Map(), nm = new Map(); let tot = 0;
+    cells.forEach(c => (val('feat','ML',lv,c) || []).forEach(x => { const t = x[1] || 'Other', a = x[2] || 0; tot += a; ty.set(t, (ty.get(t) || 0) + a); const o = nm.get(x[0]) || {a:0, t}; o.a += a; nm.set(x[0], o); }));
+    if (!tot) return '';
+    const r1 = [...ty].sort((a, b) => b[1] - a[1]).map(([t, a]) => [t, MLCOL[t] || '#8A97A6', a, `${fmt(a, a < 10 ? 1 : 0)} ac`, `${t}: ${fmt(a, 1)} acres, ${vPct(a, tot)}`]);
+    const top = [...nm].sort((a, b) => b[1].a - a[1].a).slice(0, 10), r2 = top.map(([n, o]) => [n, MLCOL[o.t] || '#8A97A6', o.a, `${fmt(o.a, o.a < 10 ? 1 : 0)} ac`, `${n} (${o.t}): ${fmt(o.a, 1)} acres`]);
+    return `<p class="phsub">${fmt(tot, 0)} acres in ${nm.size === 1 ? 'one landscape' : fmt(nm.size, 0) + ' landscapes'}, by type</p>` + vizBars(r1, 'Maintained landscape acres by type') +
+      `<p class="phsub">${nm.size > 10 ? 'The 10 largest' : 'Each landscape'}</p>` + vizBars(r2, 'Largest maintained landscapes'); }} : fp0(id); }
+QVIZ.land.pick = id => id === 'appa' ? {title:'NPS - APPA acres by state', note:'Acres of land administered by NPS - APPA in each state, from the tract records summarized to each cell. Generalized to the grid; not a boundary determination.' + VSTNOTE, fn(lv, cells){
+    const k = D.cats.MGR.indexOf('NPS - APPA'), a = VST.map(() => 0); let tot = 0;
+    cells.forEach(c => { const s = vStOf(lv, c), p = val('lands','MGRS',lv,c), ac = val('lands','LAND_AC',lv,c) || 0; if (s < 0 || !p) return; for (let i = 0; i < p.length; i += 2) if (p[i] === k){ const x = ac * p[i + 1] / 100; a[s] += x; tot += x; } });
+    return VST.map((v, i) => [v[1], HUE.lands, a[i], `${fmt(Math.round(a[i]), 0)} ac`, `${v[1]}: ${fmt(Math.round(a[i]), 0)} acres of NPS - APPA land, ${vPct(a[i], tot)} of the total in view`]).filter(r => r[2] > 0); }} : null;
+const EXTNO = ['tvul'];   /* questions that list the extent but measure only the trail itself, so HUC10 is shown greyed out */
 const qVizOn = q => !!QVIZ[q.id] && !(q.id === 'land' && S.m.id === 'acq');
 function qVizHTML(){ const d0 = QVIZ[S.q.id]; if (!d0) return ''; const d = d0.pick ? Object.assign({}, d0, d0.pick(S.m.id)) : d0, lv = dispLevel(), th = S.q.th; const [sl, cells, where] = geoScope(lv);
   let g = `<div id="qvizc"><h4 class="phh">${esc(d.title)}, ${esc(where)}</h4>`;
@@ -2833,7 +2862,7 @@ function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv]
 function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
     if (sc === 'huc' && S.ext !== 'huc' && !S.histHucFail) setExt('huc', true).then(() => { if (S.ext !== 'huc'){ S.histHucFail = true; S.extMsg = ''; redraw(); } });
     else if (sc !== 'huc' && S.ext === 'huc') setExt('corr', true); }
-  else if (S.ext === 'huc' && (!EXTQ.includes(S.q.id) || S.m.find)) setExt('corr', true);
+  else if (S.ext === 'huc' && (!EXTQ.includes(S.q.id) || EXTNO.includes(S.q.id) || S.m.find)) setExt('corr', true);
   if (S.ext === 'corr') featSync();
   phQSync(); if (PHQ()){ if (SPREADQ()) phPestCounts(); phFixM(); phLoad(phSp()); } else if (phTimer) phPlay(false);
   if (S.q.id === 'hist') histLoad();
@@ -3361,7 +3390,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
   let h = `<section class="blk qsblk"><h2><button type="button" class="blktog" data-blk="qs" aria-expanded="${!!S.side.qs}"><span>Guiding Questions${S.side.qs ? '' : ` <small class="mgsum">${esc(q.title)}</small>`}</span><i aria-hidden="true"></i></button></h2>` +
     `<nav class="qs" aria-label="Guiding questions"${S.side.qs ? '' : ' hidden'}>` + Q.filter(qVis).map((x, i, a) => { const g = QGRP[x.id], off = g && QGOFF.has(g), cur = x === q && !S.m.find; return (g && (!i || QGRP[a[i - 1].id] !== g) ? `<button type="button" class="qgrp" data-qg="${esc(g)}" aria-expanded="${!off}"><span>${esc(g)}</span><i aria-hidden="true"></i></button>` : '') + (off && !cur ? '' : `<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${cur}">${esc(x.title)}</button>`); }).join('') + '</nav></section>';
   if (S.m.find){ const fs = findSummary(lv); el.innerHTML = h + `<div class="qbody">${fs[0]}${blk('results', 'Results', fs[1], 'res')}</div>`; return; }
-  const extBlk = q.id === 'hist' && !S.m.find ? `<section class="blk extblk">${histAdmBlock().replace('<span>Extent</span>', '<h2>Extent</h2>')}${histBlock()}</section>` : !EXTQ.includes(q.id) ? '' : `<section class="blk extblk"><div class="extsw" role="group" aria-label="Extent"><h2>Extent</h2><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
+  const extBlk = q.id === 'hist' && !S.m.find ? `<section class="blk extblk">${histAdmBlock().replace('<span>Extent</span>', '<h2>Extent</h2>')}${histBlock()}</section>` : !EXTQ.includes(q.id) ? '' : `<section class="blk extblk"><div class="extsw" role="group" aria-label="Extent"><h2>Extent</h2><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${EXTNO.includes(q.id) ? ' disabled class="extna" title="The trail is measured along the trail itself, so the HUC10 watershed extent does not apply"' : S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
     (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow once you zoom in. Trail miles are those of the nearest corridor cell.' + '</p>' : '') + '</section>';
   const herbBlk = q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Herbicide use"><span>Herbicide use</span><button type="button" data-herb="off" aria-pressed="${!S.herb}">Off</button><button type="button" data-herb="on" aria-pressed="${!!S.herb}">On</button></div>` +
     (S.herb ? '<p class="extnote">Cells are marked down by up to 10 points for the share of their A.T. lands in wetland, where herbicide use may be limited.</p>' : '') +
@@ -4677,7 +4706,7 @@ draw(); strip(); elevLoad();
 if (S.pendingLayers) S.pendingLayers.forEach(id => { const l = LIVE.find(x => x.id === id), cb = document.querySelector('#layerspanel [data-live="' + id + '"]'); if (l && cb){ cb.checked = true; liveToggle(l, true); } });
 if (S.pendingFind){ const e = findIndex().get(S.pendingFind); if (e) setFind(e, false); }
 if (S.cell != null) select(S.cellLv, S.cell, true);
-if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id)) setExt('huc');
+if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) setExt('huc');
 })();
 </script>
 </body>
