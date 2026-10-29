@@ -128,12 +128,13 @@ details.instr{margin:0}details.instr>summary{font-size:13px;line-height:1.3;colo
 .phsub{font-size:13px;color:var(--muted);margin:8px 0 3px}
 .tvw2{display:grid;gap:2px;margin:4px 0 4px}
 .tvr{display:grid;grid-template-columns:minmax(0,1fr) minmax(40px,26%) 30px 34px 30px;align-items:center;gap:6px;font-size:13.5px}
-.tvr .tvl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tvr .tvl{line-height:1.2;overflow-wrap:anywhere}
 .tvr .tvbar{height:8px;border-radius:2px;background:#33465F;overflow:hidden}.tvr .tvbar i{display:block;height:100%;background:#6A4FB3}
 .tvr b{text-align:center;font-variant-numeric:tabular-nums;color:#fff}
 .tvr button.tvs{width:30px;height:30px;padding:0;border:1px solid #5578A0;border-radius:4px;background:none;color:#fff;font-size:18px;line-height:1}
 .tvr button.tvs:disabled{opacity:.3;cursor:not-allowed}
 .tvleft{margin:8px 0 4px;font-size:13.5px}
+.tvabout,.rwabout{margin:10px 0 2px}.rwabout summary{cursor:pointer;font-size:13.5px;color:#C9D4E2}.rwabout summary:hover{color:#fff}.rwabout .phnote{margin-top:4px}
 .tvabout{margin:10px 0 2px}.tvabout summary{cursor:pointer;font-size:13.5px;color:#C9D4E2}.tvabout summary:hover{color:#fff}.tvabout .phnote{margin-top:4px}.tvleft.due{color:#F7C873}
 .tvbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.tvbtns .lbtn{margin-top:0}
 button.tvapply{border:1px solid #F0C419;background:#F0C419;color:#142235;font-weight:600;border-radius:4px;padding:4px 14px;font-size:14px}
@@ -1807,6 +1808,13 @@ const RESTDEF = {
   forest: {label:'Forests', gate:'forest', none:'No forest mapped', wet:10, parts:[
     ['forest', 'Forest', 20], ['rare', 'Rare species nearby', 20], ['pest', 'Forest pests', 20],
     ['inv', 'Priority invasive plants', 20], ['hiker', 'Hiker gathering spots', 20]]}};
+const RW = {grass:Object.fromEntries(RESTDEF.grass.parts.map(p => [p[0], p[2]])), forest:Object.fromEntries(RESTDEF.forest.parts.map(p => [p[0], p[2]]))};
+const RWD = {grass:null, forest:null};   /* weights being edited, per score; RW (what the scores use) changes only on Apply */
+const RNOTE = {open:'Acres of open habitat (herbaceous, shrub and agricultural) on corridor lands, ranked among cells', forest:'Acres of forest on corridor lands, ranked among cells',
+  rare:'Rare species priority zone rating: very highly sensitive counts in full, highly two thirds, moderately one third', inv:'Priority invasive plant species reported to iNaturalist or EDDMapS, ranked among cells',
+  pest:'Forest pest species reported to iNaturalist or EDDMapS, ranked among cells', soil:'Share of the soils in land capability classes 1 to 4, suited to grassland management (NRCS)',
+  birds:'Grassland and shrubland bird species on eBird checklists, ranked among cells', vista:'Any vista in the cell (A.T. facilities inventory)',
+  hiker:'Shelters, privies, bridges, campsites and parking areas, ranked among cells: where hikers gather'};
 const TIERVAL = {'Avoid':1, 'Minimize':2/3, 'Standard Review':1/3};
 /* Private land is left out: from the land administrators layer (the administrative areas), the habitat points are multiplied by the
    share of the mapped corridor land in the cell that is not private. Every other administrator counts the same (multiplier 1). */
@@ -1845,8 +1853,8 @@ function restScale(k, lv, c){ const x = restRaw(k, lv, c);
 /* one score with its parts: [score or null, [[key, label, points, max, raw]], wetland points taken, land multiplier, land shares, points before the multiplier] */
 function restParts(kind, lv, c){ const d = RESTDEF[kind], g = restRaw(d.gate, lv, c);
   if (g == null || g < 1) return [null, [], 0, 0, {}, 0];
-  const parts = d.parts.map(([k, lab, w]) => [k, lab, w * restScale(k, lv, c), w, restRaw(k, lv, c)]);
-  const lockW = JERRY ? 0 : d.parts.reduce((t, p) => t + (p[0] === 'rare' ? p[2] : 0), 0), scale = lockW ? d.parts.reduce((t, p) => t + p[2], 0) / (d.parts.reduce((t, p) => t + p[2], 0) - lockW) : 1;
+  const W = RW[kind], parts = d.parts.map(([k, lab]) => [k, lab, (+W[k] || 0) * restScale(k, lv, c), +W[k] || 0, restRaw(k, lv, c)]);
+  const wT = d.parts.reduce((t, p) => t + (+W[p[0]] || 0), 0), lockW = JERRY ? 0 : (+W.rare || 0), scale = lockW && wT > lockW ? wT / (wT - lockW) : 1;
   const wet = S.herb ? d.wet * restScale('wet', lv, c) : 0, pts = Math.max(0, parts.reduce((t, p) => t + p[2], 0) * scale - wet), [mult, sh] = restLand(lv, c);
   return [Math.max(0, Math.min(100, Math.round(pts * mult))), parts, wet, mult, sh, pts]; }
 const restScore = (kind, lv, c) => { if (!has('veg', lv, c)) return null; const r = restParts(kind, lv, c); return S.appa && r[0] != null && (!(r[4] && r[4].appa > 0) || r[0] === 0) ? null : r[0]; };
@@ -1859,7 +1867,7 @@ function restRawText(k, x, lv, c){ switch (k){
   case 'birds': return x ? `${x} species` : 'none recorded';
   case 'vista': return x ? `${x} ${x === 1 ? 'vista' : 'vistas'}` : 'none';
   case 'hiker': return x ? `${x} ${x === 1 ? 'site' : 'sites'}` : 'none'; } }
-const restNote = kind => RESTDEF[kind].parts.map(p => `${p[1]} ${p[2]}`).join(', ') + `; with herbicide use on, wetlands up to −${RESTDEF[kind].wet}.`;
+const restNote = kind => RESTDEF[kind].parts.map(p => `${p[1]} ${fmt(+RW[kind][p[0]] || 0, (+RW[kind][p[0]] || 0) % 1 ? 1 : 0)}`).join(', ') + `; with herbicide use on, wetlands up to −${RESTDEF[kind].wet}.`;
 function restSection(lv, c){ if (!has('veg', lv, c)) return '';
   let b = `<div class="sec" style="--hue:${HUE.rest}"><h3>Restoration targets</h3>`;
   for (const kind of S.m.id === 'forest' && S.q.id === 'rest' ? ['forest', 'grass'] : ['grass', 'forest']){ const d = RESTDEF[kind], [s, parts, wet, mult, sh, pts] = restParts(kind, lv, c);
@@ -2511,6 +2519,37 @@ QVIZ.tvul.html = (lv, cells) => { const s = TVDEF.map(() => 0), n = TVDEF.map(()
     const txt = p == null ? 'no data' : `${fmt(p, 1)} of ${fmt(w, w % 1 ? 1 : 0)}`, tip = `${lab}: ${p == null ? 'no data' : 'adds ' + fmt(p, 1) + ' of its ' + fmt(w, 1) + ' possible points on average, over ' + nCells(n[i])}`;
     return `<div class="hbr" role="listitem" title="${esc(tip)}"><span class="hbl">${esc(lab)}</span><span class="hbt"><span class="tvtr" style="width:calc((100% - 70px) * ${(w / mw).toFixed(4)})"><i style="width:${p == null || !w ? 0 : Math.min(100, 100 * p / w).toFixed(1)}%;background:${HUE.tvul}"></i></span><b>${esc(txt)}</b></span></div>`; }).join('') + '</div>'; };
 { const tq = QVIZ.tvul.pick; QVIZ.tvul.pick = id => { const r = tq(id); return r ? Object.assign({html:null}, r) : null; }; }
+/* the gray-track chart: each row's track is as long as its weight, filled to the average points it adds */
+function trackChart(rows, aria, col){ const mw = Math.max(...rows.map(r => r[2]), 1e-9);
+  return `<div class="hb tvtk" role="list" aria-label="${esc(aria)}">` + rows.map(([lab, p, w, tip, nt]) => { const txt = p == null ? (nt || 'no data') : `${fmt(p, 1)} of ${fmt(w, w % 1 ? 1 : 0)}`;
+    return `<div class="hbr" role="listitem" title="${esc(tip || lab + ': ' + txt)}"><span class="hbl">${esc(lab)}</span><span class="hbt"><span class="tvtr" style="width:calc((100% - 70px) * ${(w / mw).toFixed(4)})"><i style="width:${p == null || !w ? 0 : Math.min(100, 100 * p / w).toFixed(1)}%;background:${col}"></i></span><b>${esc(txt)}</b></span></div>`; }).join('') + '</div>'; }
+QVIZ.rest.title = 'Where the score comes from';
+QVIZ.rest.note = 'Each gray bar is the most a factor can add to the 100-point score. The colored part is what it adds on average in the cells shown. Herbicide use and the lands setting apply as on the map. A screening tool, not a site assessment.';
+QVIZ.rest.html = (lv, cells) => { const kind = S.m.id === 'forest' ? 'forest' : 'grass', d = RESTDEF[kind], s = d.parts.map(() => 0); let n = 0;
+  cells.forEach(c => { if (!has('veg', lv, c)) return; const r = restParts(kind, lv, c); if (r[0] == null) return; n++; r[1].forEach((p, k) => s[k] += p[2]); });
+  if (!n) return ''; return trackChart(d.parts.map(([k, lab], i) => { const w = +RW[kind][k] || 0; if (k === 'rare' && !JERRY) return [lab, null, w, `${lab}: not shown; the other factors are scaled up to fill the score`, 'not shown']; return [lab, s[i] / n, w, `${lab}: adds ${fmt(s[i] / n, 1)} of its ${fmt(w, 1)} possible points on average, over ${nCells(n)}`]; }), 'Where the score comes from', HUE.rest); };
+const RWABOUT = {grass:'Grassland and shrubland birds carry the most weight, since they are declining and their habitat is scarce; open habitat comes next, then rare species, soils suited to grassland management, vistas and priority invasive plants.',
+  forest:'The five forest factors are weighted equally: forest, rare species, forest pests, priority invasive plants and places where hikers gather.'};
+function restWeightsHTML(){ const kind = S.m.id === 'forest' ? 'forest' : 'grass', d = RESTDEF[kind]; if (!RWD[kind]) RWD[kind] = Object.assign({}, RW[kind]); const D2 = RWD[kind];
+  const tot = d.parts.reduce((t, p) => t + (+D2[p[0]] || 0), 0), left = Math.round((100 - tot) * 10) / 10, f1 = x => fmt(x, x % 1 ? 1 : 0);
+  const changed = d.parts.some(p => (+D2[p[0]] || 0) !== (+RW[kind][p[0]] || 0)), isRec = d.parts.every(p => (+D2[p[0]] || 0) === p[2]);
+  return `<p class="phsub" style="margin-top:2px">${esc(d.label)} score</p><div class="tvw2" role="group" aria-label="${esc(d.label)} weights">` + d.parts.map(([k, lab]) => { const w = +D2[k] || 0;
+    return `<div class="tvr"><span class="tvl" title="${esc(RNOTE[k] || '')}">${esc(lab)}</span><span class="tvbar" aria-hidden="true"><i style="width:${Math.min(100, w * 2)}%;background:${HUE.rest}"></i></span>` +
+      `<button type="button" class="tvs" data-rws="${k}" data-d="-1" aria-label="Lower ${esc(lab)}"${w <= 0 ? ' disabled' : ''}>−</button><b aria-live="polite">${f1(w)}</b>` +
+      `<button type="button" class="tvs" data-rws="${k}" data-d="1" aria-label="Raise ${esc(lab)}"${left <= 0 ? ' disabled' : ''}>+</button></div>`; }).join('') + '</div>' +
+    `<p class="tvleft${left ? ' due' : ''}">${left > 0 ? `<b>${f1(left)}</b> ${left === 1 ? 'point' : 'points'} left to assign. Raise a factor to use ${left === 1 ? 'it' : 'them'}.` : 'All 100 points are assigned.'}${changed ? ' Press Apply to update the scores.' : ''}</p>` +
+    `<div class="tvbtns"><button type="button" class="tvapply" data-rwapply="1"${changed && !left ? '' : ' disabled'}>Apply</button>` +
+    (changed ? '<button type="button" class="lbtn" data-rwundo="1">Undo changes</button>' : '') + (isRec ? '' : '<button type="button" class="lbtn" data-rwreset="1">Reset to recommended</button>') + '</div>' +
+    `<details class="rwabout"${store.get('rwabout', false) ? ' open' : ''}><summary>About the weights</summary><p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. The grassland and forest scores each keep their own weights. ${RWABOUT[kind]} Herbicide use (wetlands, up to −10 points) and the lands setting are applied after the weights. Scores are ranked the same way as the treadway question: acres and counts by how a cell ranks among cells of its size, ratings and shares as they are.</p></details>`; }
+const rwDraw = () => { const el = $('#rwts'); if (el) el.innerHTML = restWeightsHTML(); };
+document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('rwabout')) store.set('rwabout', e.target.open); }, true);
+document.addEventListener('click', e => { const kind = S.m.id === 'forest' ? 'forest' : 'grass', s = e.target.closest('[data-rws]');
+  if (s){ const D2 = RWD[kind], k = s.dataset.rws, tot = RESTDEF[kind].parts.reduce((t, p) => t + (+D2[p[0]] || 0), 0), st = 2.5;
+    D2[k] = +s.dataset.d > 0 ? (+D2[k] || 0) + Math.min(st, Math.max(0, 100 - tot)) : Math.max(0, (+D2[k] || 0) - st);
+    rwDraw(); const again = document.querySelector(`[data-rws="${k}"][data-d="${s.dataset.d}"]`); if (again && !again.disabled) again.focus(); return; }
+  if (e.target.closest('[data-rwapply]')){ RW[kind] = Object.assign({}, RWD[kind]); tvRefresh(true); return; }
+  if (e.target.closest('[data-rwundo]')){ RWD[kind] = Object.assign({}, RW[kind]); rwDraw(); return; }
+  if (e.target.closest('[data-rwreset]')){ RWD[kind] = Object.fromEntries(RESTDEF[kind].parts.map(p => [p[0], p[2]])); rwDraw(); } });
 const EXTNO = ['tvul'];   /* questions that list the extent but measure only the trail itself, so HUC10 is shown greyed out */
 const qVizOn = q => !!QVIZ[q.id] && !(q.id === 'land' && S.m.id === 'acq');
 function qVizHTML(){ const d0 = QVIZ[S.q.id]; if (!d0) return ''; const d = d0.pick ? Object.assign({}, d0, d0.pick(S.m.id)) : d0, lv = dispLevel(), th = S.q.th; const [sl, cells, where] = geoScope(lv);
@@ -2610,8 +2649,8 @@ const Q = [
       note:'Only the part of each wetland that lies on A.T. lands. Cells without A.T. lands show none.'}]},
  {id:'rest', th:'veg', hue:HUE.rest, ramp:'rest', title:'Where do we target restoration?',
   use:'Two restoration scores, from 0 to 100, for restoration on A.T. corridor lands, built from the other layers here. Grasslands and early successional habitat favors open habitat near rare species, with priority invasive plants, soils suited to grassland management, grassland and shrubland birds, and vistas. Forests favors forest near rare species, with forest pests, priority invasive plants and places where hikers gather. Grassland birds carry the most weight, since they are declining and their habitat is scarce. Turn on Herbicide use to lower the scores of cells with wetlands, since nearby wetlands can limit herbicide use. Priority invasive plants and forest pests count reports from iNaturalist and EDDMapS. Private land is left out: the points are scaled by the share of the cell\u2019s corridor land that is not private; switch Lands to APPA only to count NPS - APPA land alone, which leaves cells without APPA land blank. Use it to shortlist cells for a closer look; check the parts in the cell panel.',
-  m:[{id:'grass', label:'Grasslands and early successional', int:1, brkP:[.4,.7,.85,.95], get none(){ return S.appa ? 'No APPA land, or no open habitat mapped' : 'No open habitat mapped'; }, showFn:v => v + ' of 100', note:'Points: ' + restNote('grass'), fn:(lv,c) => restScore('grass', lv, c)},
-     {id:'forest', label:'Forests', int:1, brkP:[.4,.7,.85,.95], get none(){ return S.appa ? 'No APPA land, or no forest mapped' : 'No forest mapped'; }, showFn:v => v + ' of 100', note:'Points: ' + restNote('forest'), fn:(lv,c) => restScore('forest', lv, c)}]},
+  m:[{id:'grass', label:'Grasslands and early successional', int:1, brkP:[.4,.7,.85,.95], get none(){ return S.appa ? 'No APPA land, or no open habitat mapped' : 'No open habitat mapped'; }, showFn:v => v + ' of 100', get note(){ return 'Points: ' + restNote('grass'); }, fn:(lv,c) => restScore('grass', lv, c)},
+     {id:'forest', label:'Forests', int:1, brkP:[.4,.7,.85,.95], get none(){ return S.appa ? 'No APPA land, or no forest mapped' : 'No forest mapped'; }, showFn:v => v + ' of 100', get note(){ return 'Points: ' + restNote('forest'); }, fn:(lv,c) => restScore('forest', lv, c)}]},
  {id:'phen', th:'inat', hue:HUE.phen, ramp:'phen', title:'When does it flower here?',
   use:'When nearly fifty plants flower along the trail, from research-grade iNaturalist records updated weekly: trail-wide species, A.T. Seasons (USA-NPN) focal plants, northern and southern indicators, and AMC focal species. Flowering, week by week opens first: each week’s flowering records show as dots, with the week before fading, over cells colored by records in the three weeks around it, so Play shows flowering moving up the trail; first, peak and season length follow USA National Phenology Network measures, pooled across years. Year first recorded shows where it has been recorded. Visualizations add a flowering calendar by latitude, drawn like USA-NPN calendars: the middle 80% and 50% of flowering-record dates and the median for each band, north to south, and the weekly share of records for one band. Records follow hikers, so a blank cell means too few records, not absence.',
   m:[{id:'spread', label:'Year first recorded', yr:'y', hasTxt:() => phYear() ? `had a record by ${phYear()}` : 'have records', sumFn:phSum, asc:1, sumTitle:() => phYear() ? `Recorded by ${phYear()}, earliest first` : 'Recorded earliest', d:0, none:'No records (yet)', showFn:v => 'first recorded ' + v, fn:(lv, c) => phFirst(lv, c), colorFn:phFirstCol,
@@ -2726,7 +2765,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 const DEFBASE = 'naip';
 /* When does it flower here? opens on Flowering, week by week, so Play shows the season moving north (Pest and invasives keep their own list) */
 { const p = Q.find(q => q.id === 'phen'); if (p){ const w = p.m.find(m => m.id === 'wave'); if (w) p.m = [w, ...p.m.filter(m => m !== w)]; } }
-const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, sel:true, instr:false, sum:false, vsumr:false, vsums:false, about:false, measures:true, results:false, tvw:true, mgmt:false, hadm:false}};
+const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, sel:true, instr:false, sum:false, vsumr:false, vsums:false, about:false, measures:true, results:false, tvw:true, rw:true, mgmt:false, hadm:false}};
 /* settings kept in this browser between visits (try/catch: private windows can refuse) */
 const store = {get(k, d){ try { const v = localStorage.getItem('atgrid_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v){ try { localStorage.setItem('atgrid_' + k, JSON.stringify(v)); } catch (e) {} }};
@@ -3453,7 +3492,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
   const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : '';
   h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map((m, k, a) => (m.grp && (!k || a[k - 1].grp !== m.grp) ? `</div><h4 class="mgrp">${esc(m.grp)}</h4><div class="chips" role="group" aria-label="${esc(m.grp)}">` : '') + `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
-    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'tvul' && !S.m.find ? blk('tvw', 'Model weights', `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
+    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find ? blk('tvw', 'Model weights', `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
   const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
