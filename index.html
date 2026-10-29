@@ -907,11 +907,11 @@ const shortClub = s => s.replace('Appalachian Trail Club','A.T. Club').replace('
 
 /* ---------- colors ---------- */
 const RAMP = {
-  land:['#EDBFD3','#DD8FB3','#C95F92','#A83A70','#6B1F45'],
+  land:['#CFE3FF','#9CC4FA','#66A3F2','#3B82F6','#1F5FCC'],
   veg:['#D1EAE6','#A3D5CD','#6FBDB0','#3FA796','#26645A'],
   inv:['#FEE3C8','#FDB97A','#FA8E33','#E86A0A','#A34600'],
   rec:['#DDF3EA','#B0E2CC','#79C9A8','#3E9F7E','#1B6A51'],
-  eff:['#C9D4EE','#93A8DB','#5D7CC4','#2F55A8','#162F6B'],
+  eff:['#EDBFD3','#DD8FB3','#C95F92','#A83A70','#6B1F45'],
   bird:['#D3E7F6','#A3CDEE','#62A9E0','#1E7FC6','#11507F'],
   pri:['#E7DBF2','#CFB8E5','#B490D6','#9B6BC8','#5D4078'],
   soil:['#EAD7C0','#C9A27A','#9C6B3E','#6E4421','#3F230E'],
@@ -971,7 +971,7 @@ D.cats.VIS_PEAK = CATCOL.VIS_PEAK.map(e => e[0]);
 CATCOL.WX_WETM = [['January','#2F4B7C'],['February','#46669A'],['March','#6E8FBF'],['April','#3E8E7E'],['May','#6BAA75'],['June','#A3C17A'],['July','#D9B44A'],['August','#C98A3E'],['September','#B5653A'],['October','#8E4B5A'],['November','#9C7AA8'],['December','#5E5A8C']]; D.cats.WX_WETM = CATCOL.WX_WETM.map(e => e[0]);
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 /* Blue Ridge color scheme */
-const HUE = {lands:'#B03A73', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#2B4C9B', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94', wx:'#4A7FB5', tvul:'#6A4FB3'};
+const HUE = {lands:'#3B82F6', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#B03A73', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94', wx:'#4A7FB5', tvul:'#6A4FB3'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -2401,7 +2401,7 @@ function visYearChart(lv, cells){ const yr = visYears(); if (!yr) return ''; con
   const W = 272, H = 142, pl = 10 + 5.2 * fmt(mx, 0).length, pr = 6, top = 10, base = 126, pw = W - pl - pr, bw = pw / Y.length, f = v => v.toFixed(1), Yp = v => base - (base - top) * v / mx;
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${S.visAdj ? 'Visitation index' : 'Observer-days'} by year">`;
   for (let v = 0; v <= mx + 1e-9; v += st) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Yp(v))}" y2="${f(Yp(v))}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 4}" y="${f(Yp(v) + 3)}" text-anchor="end" font-size="9" fill="#9FB2C8">${fmt(v, 0)}</text>`;
-  g += '<defs><pattern id="vispart" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="#2B4C9B" opacity=".45"/><line x1="0" y1="0" x2="0" y2="4" stroke="#8FA6D8" stroke-width="1.6"/></pattern></defs>';
+  g += '<defs><pattern id="vispart" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="#B03A73" opacity=".45"/><line x1="0" y1="0" x2="0" y2="4" stroke="#8FA6D8" stroke-width="1.6"/></pattern></defs>';
   const lab = Math.max(1, Math.ceil(Y.length / 6));
   Y.forEach((e, i) => { const on = S.visYr === e.y, x = pl + i * bw, h = base - Yp(e.v);
     g += `<g data-visy="${e.y}" style="cursor:pointer"><rect x="${f(x)}" y="${top}" width="${f(bw)}" height="${base - top}" fill="transparent"/>` +
@@ -3295,7 +3295,7 @@ function visPlay(on){ if (visTimer){ clearInterval(visTimer); visTimer = null; }
 document.addEventListener('click', e => { if (e.target.closest('[data-visplay]')) visPlay(!visTimer); else if (e.target.closest('[data-visavg]')){ S.visYr = null; visFrame(true); } });
 document.addEventListener('input', e => { if (e.target.id === 'visyr'){ if (visTimer) visPlay(false); S.visYr = +e.target.value; visFrame(); } });
 document.addEventListener('change', e => { if (e.target.id === 'visyr') side(); if (e.target.id === 'visadj'){ S.visAdj = e.target.checked; BRK.clear(); redraw(); side(); } });
-const ACQRAMP = ['#C97FA6','#B05A88','#93376C','#701E51','#470B33'];
+const ACQRAMP = ['#BFDBFF','#8BBEFA','#5A9CF2','#3478EA','#1C56D6'];
 function acqCol(v, lv){ const b = (ACQ && ACQ.brk && ACQ.brk[lv]) || [], cols = ACQRAMP; let i = 0; while (i < b.length && v > b[i]) i++;
   return cols[Math.round(i * (cols.length - 1) / Math.max(1, b.length))]; }
 function acqLegend(lv){ if (!ACQ || ACQ.st !== 'done') return `<p class="sub">${ACQ && ACQ.st === 'error' ? 'The administrative areas layer could not be reached.' : 'Loading the A.T. tracts…'}</p>`;
@@ -3319,15 +3319,15 @@ function acqChart(){ if (!ACQ || ACQ.st !== 'done') return '<p class="phstat">Th
   const Y = v => pt + ph - ph * v / top, Yc = v => pt + ph - ph * v / tot, X = i => pl + bw * i + bw / 2;
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Acres of A.T. tracts conveyed each year">`;
   for (let v = 0; v <= top; v += sp) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="${v ? '#2E4460' : '#4A6182'}" stroke-width="${v ? .6 : .9}"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${v >= 1000 ? fmt(v / 1000, v % 1000 ? 1 : 0) + 'k' : v}</text>`;
-  [0, .5, 1].forEach(fr => { g += `<text x="${W - pr + 3}" y="${f(Yc(tot * fr) + 3)}" font-size="8.5" fill="#DD8FB3">${fmt(Math.round(tot * fr / 1000), 0)}k</text>`; });
+  [0, .5, 1].forEach(fr => { g += `<text x="${W - pr + 3}" y="${f(Yc(tot * fr) + 3)}" font-size="8.5" fill="#F4A259">${fmt(Math.round(tot * fr / 1000), 0)}k</text>`; });
   ys.forEach((y, i) => { if (!per[i]) return; const y0 = Y(per[i]), on = y === sel;
     g += `<rect x="${f(pl + bw * i + .4)}" y="${f(y0)}" width="${f(Math.max(.8, bw - .8))}" height="${f(Y(0) - y0)}" fill="${on ? '#FFFFFF' : HUE.lands}" opacity="${y > sel ? .3 : 1}"><title>${y}: ${fmt(Math.round(per[i]), 0)} acres in ${(ACQ.by.get(y) || {n:0}).n} tracts</title></rect>`; });
-  g += `<polyline points="${ys.map((y, i) => f(X(i)) + ',' + f(Yc(cum[i]))).join(' ')}" fill="none" stroke="#DD8FB3" stroke-width="1.6"/>`;
-  { const i = ys.indexOf(sel); if (i >= 0) g += `<circle cx="${f(X(i))}" cy="${f(Yc(cum[i]))}" r="3" fill="#FFFFFF" stroke="#DD8FB3"/>`; }
+  g += `<polyline points="${ys.map((y, i) => f(X(i)) + ',' + f(Yc(cum[i]))).join(' ')}" fill="none" stroke="#F4A259" stroke-width="1.6"/>`;
+  { const i = ys.indexOf(sel); if (i >= 0) g += `<circle cx="${f(X(i))}" cy="${f(Yc(cum[i]))}" r="3" fill="#FFFFFF" stroke="#F4A259"/>`; }
   ys.forEach((y, i) => { if ((y % 5 === 0 && Math.abs(y - sel) >= 5) || y === sel) g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${y === sel ? '#FFE014' : '#A8B8CA'}"${y === sel ? ' font-weight="700"' : ''}>${y === sel || y % 10 === 0 ? y : '’' + String(y).slice(2)}</text>`; });
   const i = ys.indexOf(sel), byN = ACQ.tracts.filter(t => t.y <= sel).length;
   return `<h4 class="phh">Acres conveyed each year, the whole trail</h4><p class="phflow">By ${sel}, ${fmt(Math.round(cum[i]), 0)} acres in ${fmt(byN, 0)} tracts (${Math.round(100 * cum[i] / tot)}% of the dated acres); ${fmt(Math.round(per[i]), 0)} acres in ${sel} itself.</p>` + g + '</svg>' +
-    `<div class="phkey"><span class="thin"><i style="background:${HUE.lands}"></i>acres conveyed that year · <i style="background:#DD8FB3"></i>running total (right axis)</span></div>`; }
+    `<div class="phkey"><span class="thin"><i style="background:${HUE.lands}"></i>acres conveyed that year · <i style="background:#F4A259"></i>running total (right axis)</span></div>`; }
 function acqFrame(full){ const y = S.acqYr, l = $('#acqyl'), r = $('#acqyr'), v = $('#acqviz'); if (l) l.textContent = 'By ' + y; if (r) r.value = y;
   if (v) v.innerHTML = acqChart(); BRK.clear(); restyle(); strip(); legend(); phTick(); if (full) side(); }
 function acqPlay(on){ if (acqTimer){ clearInterval(acqTimer); acqTimer = null; }
