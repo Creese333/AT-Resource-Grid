@@ -126,6 +126,17 @@ details.instr{margin:0}details.instr>summary{font-size:13px;line-height:1.3;colo
 .extsw button:disabled{opacity:.6;cursor:progress}
 .extsw button.extna:disabled{opacity:.4;cursor:not-allowed}
 .phsub{font-size:13px;color:var(--muted);margin:8px 0 3px}
+.tvw2{display:grid;gap:2px;margin:4px 0 4px}
+.tvr{display:grid;grid-template-columns:minmax(0,1fr) minmax(40px,26%) 30px 34px 30px;align-items:center;gap:6px;font-size:13.5px}
+.tvr .tvl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tvr .tvbar{height:8px;border-radius:2px;background:#33465F;overflow:hidden}.tvr .tvbar i{display:block;height:100%;background:#6A4FB3}
+.tvr b{text-align:center;font-variant-numeric:tabular-nums;color:#fff}
+.tvr button.tvs{width:30px;height:30px;padding:0;border:1px solid #5578A0;border-radius:4px;background:none;color:#fff;font-size:18px;line-height:1}
+.tvr button.tvs:disabled{opacity:.3;cursor:not-allowed}
+.tvleft{margin:8px 0 4px;font-size:13.5px}.tvleft.due{color:#F7C873}
+.tvbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.tvbtns .lbtn{margin-top:0}
+button.tvapply{border:1px solid #F0C419;background:#F0C419;color:#142235;font-weight:600;border-radius:4px;padding:4px 14px;font-size:14px}
+button.tvapply:disabled{background:none;color:#8A97A6;border-color:#4A6182;cursor:not-allowed}
 .tvtk .tvtr{display:block;flex:none;height:12px;border-radius:2px;background:#33465F;overflow:hidden}.tvtk .tvtr i{display:block;height:100%;box-shadow:none;border-radius:0}
 .extnote{font-size:13.5px;color:var(--muted);margin:-4px 0 10px}
 #legend i.corrkey{background:none !important;border:2px solid #FFD54A;box-sizing:border-box}
@@ -2154,7 +2165,19 @@ function tvTop(lv, f){ const key = f + '|' + lv + '|' + S.ext, t = D.themes.slop
   if (TVTOP[key] && TVTOP[key].lev === D.levels[lv]) return TVTOP[key].v; const a = t.f[f].filter(v => v != null).sort((p, q) => p - q);
   const v = a.length ? Math.max(5, Math.ceil(a[Math.floor(.95 * (a.length - 1))] * 1.1 / 5) * 5) : 100; TVTOP[key] = {lev:D.levels[lv], v}; return v; }
 /* Model weights: one row per factor, a number from 0 to 50; Reset puts back the recommended weights */
-function tvWeightsHTML(){ const tot = TVDEF.reduce((t, d) => t + (+TVW[d[0]] || 0), 0);
+let TVD = null;   /* the weights being edited; TVW (what the scores use) changes only on Apply */
+const tvSame = (a, b) => TVDEF.every(d => (+a[d[0]] || 0) === (+b[d[0]] || 0));
+function tvWeightsHTML(){ if (!TVD) TVD = Object.assign({}, TVW); const tot = TVDEF.reduce((t, d) => t + (+TVD[d[0]] || 0), 0), left = Math.round((100 - tot) * 10) / 10, f1 = x => fmt(x, x % 1 ? 1 : 0);
+  const changed = !tvSame(TVD, TVW), isRec = TVDEF.every(d => (+TVD[d[0]] || 0) === d[2]);
+  return '<div class="tvw2" role="group" aria-label="Model weights">' + TVDEF.map(([k, lab, w0, th, note]) => { const w = +TVD[k] || 0;
+    return `<div class="tvr"><span class="tvl" title="${esc(note)}">${esc(lab)}</span><span class="tvbar" aria-hidden="true"><i style="width:${Math.min(100, w * 2)}%"></i></span>` +
+      `<button type="button" class="tvs" data-tvs="${k}" data-d="-1" aria-label="Lower ${esc(lab)}"${w <= 0 ? ' disabled' : ''}>−</button><b aria-live="polite">${f1(w)}</b>` +
+      `<button type="button" class="tvs" data-tvs="${k}" data-d="1" aria-label="Raise ${esc(lab)}"${left <= 0 ? ' disabled' : ''}>+</button></div>`; }).join('') + '</div>' +
+    `<p class="tvleft${left ? ' due' : ''}">${left > 0 ? `<b>${f1(left)}</b> ${left === 1 ? 'point' : 'points'} left to assign. Raise a factor to use ${left === 1 ? 'it' : 'them'}.` : 'All 100 points are assigned.'}${changed ? ' Press Apply to update the scores.' : ''}</p>` +
+    `<div class="tvbtns"><button type="button" class="tvapply" data-tvapply="1"${changed && !left ? '' : ' disabled'}>Apply</button>` +
+    (changed ? '<button type="button" class="lbtn" data-tvundo="1">Undo changes</button>' : '') + (isRec ? '' : '<button type="button" class="lbtn" data-tvreset="1">Reset to recommended</button>') + '</div>' +
+    '<p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. Recommended weights follow trail erosion research on the A.T. and other trails: grade and alignment with the fall line are the strongest predictors of soil loss, then soils, rainfall and where use concentrates. Forest pests and invasive plants carry a low weight as early signs of declining forest health.</p>'; }
+function tvWeightsOld(){ const tot = TVDEF.reduce((t, d) => t + (+TVW[d[0]] || 0), 0);
   return '<div class="tvw">' + TVDEF.map(([k, lab, w0, th, note]) => `<label title="${esc(note)}"><span>${esc(lab)}</span><input type="range" min="0" max="100" step="2.5" value="${TVW[k]}" data-tvw="${k}" aria-label="${esc(lab)} weight"><b>${TVW[k]}</b></label>`).join('') +
     `</div><p class="phstat">The weights always add up to 100: raising one lowers the others in proportion. <button type="button" class="lbtn" data-tvreset="1">Reset to recommended</button></p>` +
     '<p class="phnote">Recommended weights follow trail erosion research on the A.T. and other trails: grade and alignment with the fall line are the strongest predictors of soil loss, then soils, rainfall and where use concentrates. Forest pests and invasive plants carry a low weight as early signs of declining forest health.</p>'; }
@@ -2170,7 +2193,14 @@ function tvRebalance(k, v){ if (!TVBASE) TVBASE = Object.assign({}, TVW); const 
   document.querySelectorAll('[data-tvw]').forEach(el => { const w = TVW[el.dataset.tvw]; if (el.dataset.tvw !== k) el.value = w; const b = el.parentNode.querySelector('b'); if (b) b.textContent = w; }); }
 document.addEventListener('input', e => { const t = e.target.closest && e.target.closest('[data-tvw]'); if (!t) return; tvRebalance(t.dataset.tvw, +t.value); tvRefresh(false); });
 document.addEventListener('change', e => { if (e.target.closest && e.target.closest('[data-tvw]')){ TVBASE = null; side(); } });
-document.addEventListener('click', e => { if (e.target.closest('[data-tvreset]')){ TVDEF.forEach(d => TVW[d[0]] = d[2]); tvRefresh(true); } });
+const tvwDraw = () => { const el = $('#tvwts'); if (el) el.innerHTML = tvWeightsHTML(); };
+document.addEventListener('click', e => { const s = e.target.closest('[data-tvs]');
+  if (s){ const k = s.dataset.tvs, tot = TVDEF.reduce((t, d) => t + (+TVD[d[0]] || 0), 0), st = 2.5;
+    TVD[k] = +s.dataset.d > 0 ? Math.min((+TVD[k] || 0) + st, (+TVD[k] || 0) + Math.max(0, 100 - tot)) : Math.max(0, (+TVD[k] || 0) - st);
+    tvwDraw(); const again = document.querySelector(`[data-tvs="${k}"][data-d="${s.dataset.d}"]`); if (again && !again.disabled) again.focus(); return; }
+  if (e.target.closest('[data-tvapply]')){ TVDEF.forEach(d => TVW[d[0]] = +TVD[d[0]] || 0); tvRefresh(true); return; }
+  if (e.target.closest('[data-tvundo]')){ TVD = Object.assign({}, TVW); tvwDraw(); return; }
+  if (e.target.closest('[data-tvreset]')){ TVDEF.forEach(d => TVD[d[0]] = d[2]); tvwDraw(); } });
 /* Visualizations. Climograph: precipitation bars and mean temperature line by month, averaged over the cells */
 function wxClimo(lv, cells, hiMon){ const P = Array(12).fill(0), T = Array(12).fill(0); let n = 0;
   cells.forEach(c => { const p = wxList(lv, c, 'WX_PPT_M'), t = wxList(lv, c, 'WX_TMEAN_M'); if (!p || !t) return; n++; p.forEach((x, i) => P[i] += x); t.forEach((x, i) => T[i] += x); });
