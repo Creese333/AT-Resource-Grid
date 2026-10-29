@@ -907,7 +907,7 @@ const shortClub = s => s.replace('Appalachian Trail Club','A.T. Club').replace('
 
 /* ---------- colors ---------- */
 const RAMP = {
-  land:['#CFE3FF','#9CC4FA','#66A3F2','#3B82F6','#1F5FCC'],
+  land:['#38A3FF','#3D7BF5','#5A5CEB','#7A44DB','#9430C9'],
   veg:['#D1EAE6','#A3D5CD','#6FBDB0','#3FA796','#26645A'],
   inv:['#FEE3C8','#FDB97A','#FA8E33','#E86A0A','#A34600'],
   rec:['#DDF3EA','#B0E2CC','#79C9A8','#3E9F7E','#1B6A51'],
@@ -3295,7 +3295,7 @@ function visPlay(on){ if (visTimer){ clearInterval(visTimer); visTimer = null; }
 document.addEventListener('click', e => { if (e.target.closest('[data-visplay]')) visPlay(!visTimer); else if (e.target.closest('[data-visavg]')){ S.visYr = null; visFrame(true); } });
 document.addEventListener('input', e => { if (e.target.id === 'visyr'){ if (visTimer) visPlay(false); S.visYr = +e.target.value; visFrame(); } });
 document.addEventListener('change', e => { if (e.target.id === 'visyr') side(); if (e.target.id === 'visadj'){ S.visAdj = e.target.checked; BRK.clear(); redraw(); side(); } });
-const ACQRAMP = ['#BFDBFF','#8BBEFA','#5A9CF2','#3478EA','#1C56D6'];
+const ACQRAMP = ['#38A3FF','#3D7BF5','#5A5CEB','#7A44DB','#9430C9'];
 function acqCol(v, lv){ const b = (ACQ && ACQ.brk && ACQ.brk[lv]) || [], cols = ACQRAMP; let i = 0; while (i < b.length && v > b[i]) i++;
   return cols[Math.round(i * (cols.length - 1) / Math.max(1, b.length))]; }
 function acqLegend(lv){ if (!ACQ || ACQ.st !== 'done') return `<p class="sub">${ACQ && ACQ.st === 'error' ? 'The administrative areas layer could not be reached.' : 'Loading the A.T. tracts…'}</p>`;
