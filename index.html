@@ -133,7 +133,8 @@ details.instr{margin:0}details.instr>summary{font-size:13px;line-height:1.3;colo
 .tvr b{text-align:center;font-variant-numeric:tabular-nums;color:#fff}
 .tvr button.tvs{width:30px;height:30px;padding:0;border:1px solid #5578A0;border-radius:4px;background:none;color:#fff;font-size:18px;line-height:1}
 .tvr button.tvs:disabled{opacity:.3;cursor:not-allowed}
-.tvleft{margin:8px 0 4px;font-size:13.5px}.tvleft.due{color:#F7C873}
+.tvleft{margin:8px 0 4px;font-size:13.5px}
+.tvabout{margin:10px 0 2px}.tvabout summary{cursor:pointer;font-size:13.5px;color:#C9D4E2}.tvabout summary:hover{color:#fff}.tvabout .phnote{margin-top:4px}.tvleft.due{color:#F7C873}
 .tvbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.tvbtns .lbtn{margin-top:0}
 button.tvapply{border:1px solid #F0C419;background:#F0C419;color:#142235;font-weight:600;border-radius:4px;padding:4px 14px;font-size:14px}
 button.tvapply:disabled{background:none;color:#8A97A6;border-color:#4A6182;cursor:not-allowed}
@@ -2176,7 +2177,8 @@ function tvWeightsHTML(){ if (!TVD) TVD = Object.assign({}, TVW); const tot = TV
     `<p class="tvleft${left ? ' due' : ''}">${left > 0 ? `<b>${f1(left)}</b> ${left === 1 ? 'point' : 'points'} left to assign. Raise a factor to use ${left === 1 ? 'it' : 'them'}.` : 'All 100 points are assigned.'}${changed ? ' Press Apply to update the scores.' : ''}</p>` +
     `<div class="tvbtns"><button type="button" class="tvapply" data-tvapply="1"${changed && !left ? '' : ' disabled'}>Apply</button>` +
     (changed ? '<button type="button" class="lbtn" data-tvundo="1">Undo changes</button>' : '') + (isRec ? '' : '<button type="button" class="lbtn" data-tvreset="1">Reset to recommended</button>') + '</div>' +
-    '<p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. Recommended weights follow trail erosion research on the A.T. and other trails: grade and alignment with the fall line are the strongest predictors of soil loss, then soils, rainfall and where use concentrates. Forest pests and invasive plants carry a low weight as early signs of declining forest health.</p>'; }
+    `<details class="tvabout"${store.get('tvabout', false) ? ' open' : ''}><summary>About the weights</summary>` + '<p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. Recommended weights follow trail erosion research on the A.T. and other trails: grade and alignment with the fall line are the strongest predictors of soil loss, then soils, rainfall and where use concentrates. Forest pests and invasive plants carry a low weight as early signs of declining forest health.</p></details>'; }
+document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('tvabout')) store.set('tvabout', e.target.open); }, true);
 function tvWeightsOld(){ const tot = TVDEF.reduce((t, d) => t + (+TVW[d[0]] || 0), 0);
   return '<div class="tvw">' + TVDEF.map(([k, lab, w0, th, note]) => `<label title="${esc(note)}"><span>${esc(lab)}</span><input type="range" min="0" max="100" step="2.5" value="${TVW[k]}" data-tvw="${k}" aria-label="${esc(lab)} weight"><b>${TVW[k]}</b></label>`).join('') +
     `</div><p class="phstat">The weights always add up to 100: raising one lowers the others in proportion. <button type="button" class="lbtn" data-tvreset="1">Reset to recommended</button></p>` +
