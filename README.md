@@ -54,5 +54,4 @@ tools/              stand-alone helper pages (phenology checks)
 images/             screenshots for this page
 .github/workflows/  the scheduled builds
 ```
-
 To run a build on your own computer, from the repository folder: `pip install geopandas pyogrio shapely pyproj rasterio xarray netCDF4`, then for example `python scripts/build_weather.py`. The iNaturalist and eBird build needs a GBIF account in the `GBIF_USER` and `GBIF_PWD` environment variables (repository secrets on GitHub).
