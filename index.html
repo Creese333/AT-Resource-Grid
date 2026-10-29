@@ -2148,7 +2148,7 @@ function tvTop(lv, f){ const key = f + '|' + lv + '|' + S.ext, t = D.themes.slop
 function tvWeightsHTML(){ const tot = TVDEF.reduce((t, d) => t + (+TVW[d[0]] || 0), 0);
   return '<div class="tvw">' + TVDEF.map(([k, lab, w0, th, note]) => `<label title="${esc(note)}"><span>${esc(lab)}</span><input type="range" min="0" max="50" step="5" value="${TVW[k]}" data-tvw="${k}" aria-label="${esc(lab)} weight"><b>${TVW[k]}</b></label>`).join('') +
     `</div><p class="phstat">Total ${tot}${tot !== 100 ? ' (scores are scaled to 100 whatever the total)' : ''}. <button type="button" class="lbtn" data-tvreset="1">Reset to recommended</button></p>` +
-    '<p class="phnote">Recommended weights follow trail erosion research on the A.T. and other trails: grade and alignment with the fall line are the strongest predictors of soil loss, then soils, rainfall and where use concentrates (Olive and Marion 2009; Marion and Wimpey 2017).</p>'; }
+    '<p class="phnote">Recommended weights follow trail erosion research on the A.T. and other trails: grade and alignment with the fall line are the strongest predictors of soil loss, then soils, rainfall and where use concentrates.</p>'; }
 function tvRefresh(full){ for (const k in TVRANK) delete TVRANK[k]; BRK.clear(); restyle(); strip(); legend(); qVizRefresh(); if (full) side(); else { const p = $('#pbody'); if (p && (S.cell != null || S.box)) profileRefresh(); } }
 const profileRefresh = () => { if (S.box) side(); else if (S.cell != null) profile(); };
 document.addEventListener('input', e => { const t = e.target.closest && e.target.closest('[data-tvw]'); if (!t) return; TVW[t.dataset.tvw] = +t.value; const b = t.parentNode.querySelector('b'); if (b) b.textContent = t.value; tvRefresh(false); });
