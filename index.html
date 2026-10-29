@@ -586,14 +586,14 @@ header .blaze{width:14px;height:38px}
       <tr><td>Plants of cultural significance</td><td>iNaturalist research-grade records in the quarterly summary, matched to cultural_plants.csv (136 plants)</td><td>Compiled from the Greenbelt Indigenous Botanical Survey (Plenty Canada, J. Dolan and Y. Z. Ni), Mooney 1891, Tantaquidgeon 1942, the Haudenosaunee Confederacy and Cherokee and Wabanaki sources. Not exhaustive: the Native American Ethnobotany database and the longer ethnographies are not yet included. Ginseng, goldenseal, ramps and lady’s slippers are shown only at the 49 sq mi scale. A starting point for consultation, not a statement of any nation’s knowledge.</td></tr>
       <tr><td>Forest pests</td><td>iNaturalist research-grade records (all life stages) and EDDMapS reports, built weekly, with newer iNaturalist records fetched live</td><td>Spotted lanternfly, emerald ash borer, hemlock woolly adelgid, elongate hemlock scale, spongy moth and beech leaf disease; other pests (beech scale, chestnut blight, browntail moth, winter moth, Asian longhorned beetle, southern pine beetle, oak wilt, dogwood anthracnose, Sirex woodwasp) appear once the project has 100 or more records of them; any pest under 100 research-grade records is left off the list, which runs from most to fewest records. Shown from 2010 on: the cells with a record by each year, the share of each cell’s iNaturalist records by year, the range along the trail and the cells with records by year. Records follow observers; a blank cell means nothing reported, not absence.</td></tr>
       <tr><td>Historic resources</td><td>National Register of Historic Places (NPS) and OpenStreetMap cemeteries, rebuilt monthly</td><td>Two extents: A.T. corridor (records inside an A.T. administrative area) and HUC10 watershed (every record). The National Register and cemetery map layers use the same file and show at every zoom. Recorded sites only: small family cemeteries are often missing and some National Register locations are generalized. Find a Grave links open the cemetery’s page when its ID is known, otherwise a search.</td></tr>
-      <tr class="jerryrow"><td>Unique species</td><td>Rare species priority zones</td><td>Rates how vulnerable the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
+      <tr class="jerryrow"><td>Unique species</td><td>Rare species priority zones</td><td>Rates how sensitive the populations of unique species are in each cell, from plant and animal records. Shown at 7 and 49 sq mi only. A screening aid, not a survey result.</td></tr>
     </table>
     <h3>Restoration targets</h3>
     <p>Where do we target restoration? gives each corridor cell two scores out of 100 for restoration on A.T. corridor lands, one for grasslands and early successional habitat and one for forests. A higher score means more of the things that make a cell worth restoring. Results lists the highest-scoring cells first. The scores are a shortlist for site visits, not a site assessment.</p>
     <table>
       <tr><th>Grasslands and early successional</th><th>Points</th><th>Based on</th><th>Why it counts</th></tr>
       <tr><td>Open habitat</td><td>20</td><td>Acres of grass, shrub and agricultural cover on A.T. corridor lands (vegetation map)</td><td>Restoration builds on open ground that is already there</td></tr>
-      <tr><td>Rare species nearby</td><td>15</td><td>Unique species rating: very highly vulnerable 15, highly 10, moderately 5</td><td>Work can help or protect vulnerable populations</td></tr>
+      <tr><td>Rare species nearby</td><td>15</td><td>Unique species rating: very highly sensitive 15, highly 10, moderately 5</td><td>Work can help or protect sensitive populations</td></tr>
       <tr><td>Priority invasive plants</td><td>10</td><td>Priority invasive plant species reported on iNaturalist or in EDDMapS</td><td>Treating them is part of the restoration</td></tr>
       <tr><td>Soils suited to grassland management</td><td>15</td><td>Share of soils in land capability classes 1 to 4</td><td>Ground that can be worked and mowed stays open</td></tr>
       <tr><td>Grassland and shrubland birds</td><td>25</td><td>Grassland and shrubland bird species on eBird checklists</td><td>Weighted most: these birds are declining and their habitat is scarce, while forest is abundant</td></tr>
@@ -603,7 +603,7 @@ header .blaze{width:14px;height:38px}
     <table style="margin-top:10px">
       <tr><th>Forests</th><th>Points</th><th>Based on</th><th>Why it counts</th></tr>
       <tr><td>Forest</td><td>20</td><td>Acres of forest on A.T. corridor lands (vegetation map)</td><td>Restoration builds on existing forest</td></tr>
-      <tr><td>Rare species nearby</td><td>20</td><td>Unique species rating: very highly vulnerable 20, highly 13, moderately 7</td><td>Work can help or protect vulnerable populations</td></tr>
+      <tr><td>Rare species nearby</td><td>20</td><td>Unique species rating: very highly sensitive 20, highly 13, moderately 7</td><td>Work can help or protect sensitive populations</td></tr>
       <tr><td>Forest pests</td><td>20</td><td>Forest pest species reported on iNaturalist or in EDDMapS</td><td>A sign of declining forest health</td></tr>
       <tr><td>Priority invasive plants</td><td>20</td><td>Priority invasive plant species reported on iNaturalist or in EDDMapS</td><td>Treating them is part of the restoration</td></tr>
       <tr><td>Hiker gathering spots</td><td>20</td><td>Shelters, privies, bridges, campsites and parking areas in the cell</td><td>Where hikers gather sees the most wear and the most visitors</td></tr>
@@ -920,7 +920,7 @@ const CATCOL = {
     ['Barren Land','#B3AC9F'],['Deciduous Forest','#68AB5F'],['Evergreen Forest','#1C5F2C'],['Mixed Forest','#B5C58F'],['Shrub/Scrub','#CCB879'],['Grassland/Herbaceous','#DFDFC2'],
     ['Pasture/Hay','#DCD939'],['Cultivated Crops','#AB6C28'],['Woody Wetlands','#B8D9EB'],['Emergent Herbaceous Wetlands','#6C9FB8'],['Unassigned','#ECEFEA']],
   VULN_DOM:[['Low','#E3C9A6','Low'],['Moderate','#CDA373','Moderate'],['High','#6A4423','High']],
-  review_tie:[['Avoid','#9E2B4E','Very highly vulnerable populations'],['Minimize','#E5892B','Highly vulnerable populations'],['Standard Review','#F2D94A','Moderately vulnerable populations']]
+  review_tie:[['Avoid','#9E2B4E','Very highly sensitive populations'],['Minimize','#E5892B','Highly sensitive populations'],['Standard Review','#F2D94A','Moderately sensitive populations']]
 };
 const L2 = [[11,'Open Water'],[21,'Developed, Open Space'],[22,'Developed, Low Intensity'],[23,'Developed, Medium Intensity'],[24,'Developed, High Intensity'],[31,'Barren Land'],[41,'Deciduous Forest'],[42,'Evergreen Forest'],[43,'Mixed Forest'],[52,'Shrub/Scrub'],[71,'Grassland/Herbaceous'],[81,'Pasture/Hay'],[82,'Cultivated Crops'],[90,'Woody Wetlands'],[95,'Emergent Herbaceous Wetlands']]
   .map(x => ['L2_' + x[0], x[1], CATCOL.L2_DOM.find(e => e[0] === x[1])[1]]);
@@ -2301,6 +2301,9 @@ const QVIZ = {
     const kind = S.m.id === 'forest' ? 'forest' : 'grass', d = RESTDEF[kind], s = d.parts.map(() => 0); let n = 0;
     cells.forEach(c => { if (!has('veg', lv, c)) return; const r = restParts(kind, lv, c); if (r[0] == null) return; n++; r[1].forEach((p, k) => s[k] += p[2]); });
     return n ? d.parts.map(([k, lab, w], i) => [lab, HUE.rest, s[i] / n, `${fmt(s[i] / n, 1)} of ${w}`, `${lab}: ${fmt(s[i] / n, 1)} of ${w} points on average, over ${nCells(n)}`]) : []; }},
+  pri: {title:'Cells by unique species rating', note:'Number of cells in each rating, from the rare species priority zones. A cell takes the rating of the zone it falls in.', fn(lv, cells){
+    if (!D.themes.nrpz[lv]) return []; const m = new Map(); let n = 0; cells.forEach(c => { const t = val('nrpz','review_tie',lv,c); if (t == null) return; const lab = D.cats.review_tie[t]; m.set(lab, (m.get(lab) || 0) + 1); n++; });
+    return n ? CATCOL.review_tie.filter(e => m.get(e[0])).map(e => [e[2] || e[0], e[1], m.get(e[0]), vPct(m.get(e[0]), n), `${e[2] || e[0]}: ${nCells(m.get(e[0]))} of ${n}`]) : []; }},
   hist: {title:'Historic resources by type', note:'National Register of Historic Places (NPS) by property type, and cemeteries mapped in OpenStreetMap.', fn(lv, cells){
     const A = hAgg(lv); if (!A) return []; const m = new Map(), lab = {building:'Buildings', structure:'Structures', district:'Districts', site:'Sites', object:'Objects'};
     cells.forEach(c => (A.list.get(c) || []).forEach(i => { const x = HIST.items[i], k = x.t === 'cem' ? 'Cemeteries' : lab[String(x.a.type || '').toLowerCase()] || 'Other National Register'; m.set(k, (m.get(k) || 0) + 1); }));
@@ -2432,6 +2435,7 @@ function qVizHTML(){ const d0 = QVIZ[S.q.id]; if (!d0) return ''; const d = d0.p
   if (th && D.themes[th] && !D.themes[th][sl] && S.q.id !== 'hist' && S.q.id !== 'tvul') return g + `<p class="none">Not summarized for this cell size.</p></div>`;
   if (d.html){ let x = ''; try { x = d.html(sl, cells) || ''; } catch (e) { x = ''; }
     return g + (x || `<p class="none">No data for ${esc(where)}${S.q.id === 'wx' && !D.themes.wx[sl] ? ' yet: the weather summaries (weather.json) have not been built' : ''}.</p>`) + (x ? `<p class="phnote">${esc(d.note)}${where === 'the map view' ? ' Zoom or pan to change it, or select cells.' : ''}</p>` : '') + '</div>'; }
+  if (S.q.id === 'hist' && (!HIST || HIST.st !== 'done')) return g + `<p class="none">${HIST && HIST.st === 'error' ? 'The historic resources could not be loaded. Try again later.' : 'Loading the historic resources…'}</p></div>`;
   let rows = []; try { rows = d.fn(sl, cells) || []; } catch (e) { rows = []; }
   if (!rows.length) return g + `<p class="none">No data for ${esc(where)}.</p></div>`;
   return g + vizBars(rows, d.title + ', ' + where) + `<p class="phnote">${esc(d.note)}${where === 'the map view' ? ' Zoom or pan to change it, or select cells.' : ''}</p></div>`; }
@@ -2571,7 +2575,7 @@ const Q = [
      {id:'steps', label:'Steps and climbs (estimated)', f:'S_STEPS', int:1, hollow0:1, none:'None in this cell', noun:['item','items'],
       note:'Stair steps, step stones, metal rungs and ladders. Estimated from maintainer section counts.'}]},
  {id:'pri', th:'nrpz', hue:HUE.nrpz, ramp:'pri', title:'Where do projects need to take a closer look?',
-  use:'Shows where unique species have vulnerable populations, based on plant and animal records. Use it to screen a proposed project site early, and bring in resource staff before plans firm up where populations are highly or very highly vulnerable.',
+  use:'Shows where unique species have sensitive populations, based on plant and animal records. Use it to screen a proposed project site early, and bring in resource staff before plans firm up where populations are highly or very highly sensitive.',
   m:[{id:'tier', label:'Unique Species', kind:'cat', f:'review_tie'}]},
  {id:'geo', th:'geo', hue:HUE.geo, ramp:'geo', title:'What are the geologic resources here?',
   use:'The bedrock under each cell, from the USGS State Geologic Map Compilation (one seamless map built from the state geologic maps), and how well the geology is mapped, from the NPS Geologic Resources Inventory’s footprints of published and in-progress geologic maps. Use it to spot carbonate bedrock where caves, sinkholes and sensitive groundwater are likely, mafic and ultramafic rock that often carries rare plants, and places where detailed geologic mapping exists or is still needed. Select a cell for its bedrock units and the geologic maps that cover it, with links to the National Geologic Map Database.',
@@ -2639,11 +2643,11 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 const DEFBASE = 'naip';
 /* When does it flower here? opens on Flowering, week by week, so Play shows the season moving north (Pest and invasives keep their own list) */
 { const p = Q.find(q => q.id === 'phen'); if (p){ const w = p.m.find(m => m.id === 'wave'); if (w) p.m = [w, ...p.m.filter(m => m !== w)]; } }
-const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, sel:true, instr:false, sum:false, vsumr:false, vsums:false, about:false, measures:true, results:true, tvw:true, mgmt:false, hadm:false}};
+const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, sel:true, instr:false, sum:false, vsumr:false, vsums:false, about:false, measures:true, results:false, tvw:true, mgmt:false, hadm:false}};
 /* settings kept in this browser between visits (try/catch: private windows can refuse) */
 const store = {get(k, d){ try { const v = localStorage.getItem('atgrid_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v){ try { localStorage.setItem('atgrid_' + k, JSON.stringify(v)); } catch (e) {} }};
-Object.assign(S.side, store.get('side', {})); store.get('qgroups', []).forEach(g => QGOFF.add(g)); { const lg = store.get('legend', null); if (lg != null) S.legend = lg; } S.secOpen = store.get('secs', {});
+Object.assign(S.side, store.get('side2', {})); store.get('qgroups', []).forEach(g => QGOFF.add(g)); { const lg = store.get('legend', null); if (lg != null) S.legend = lg; } S.secOpen = store.get('secs', {});
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q') && qVis(x)); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
@@ -3416,7 +3420,7 @@ $('#side').addEventListener('click', e => { const b = e.target.closest('button')
   if (b.dataset.lands){ S.appa = b.dataset.lands === 'appa'; BRK.clear(); redraw(); return; }
   if (b.dataset.hadm){ S.hadm = b.dataset.hadm; S.histHucFail = false; for (const k in HAGG) delete HAGG[k]; BRK.clear(); const want = histScale() === 'huc' ? 'huc' : 'corr';
     if (S.ext !== want) setExt(want); else redraw(); LIVE.forEach(l => { if (l.local && l.on) liveLoad(l); }); return; }
-  if (b.dataset.blk){ S.side[b.dataset.blk] = !S.side[b.dataset.blk]; store.set('side', S.side); side(); return; }
+  if (b.dataset.blk){ S.side[b.dataset.blk] = !S.side[b.dataset.blk]; store.set('side2', S.side); side(); return; }
   if (b.dataset.qg){ const g = b.dataset.qg; if (QGOFF.has(g)) QGOFF.delete(g); else QGOFF.add(g); store.set('qgroups', [...QGOFF]); side(); return; }
   if (b.dataset.selall && S.m.find){ const lv = dispLevel(), e = S.m.find, L_ = D.levels[lv], cells = []; for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c) && e.cells[lv].has(c)) cells.push(c);
     if (cells.length) selectMany(lv, cells, null, e.common || e.sci); return; }
