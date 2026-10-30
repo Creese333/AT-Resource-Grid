@@ -2329,6 +2329,7 @@ const vPct = (v, t) => { const p = t ? 100 * v / t : 0; return p > 0 && p < 1 ? 
 const vTop = (m, n) => [...m].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]))).slice(0, n || 10);
 const vSpp = (lv, cells, f, th) => { const m = new Map(); cells.forEach(c => (f ? f(c) : val(th, 'X', lv, c) || []).forEach(i => m.set(i, (m.get(i) || 0) + 1))); return m; };
 const vSpRow = (i, n, col, tip) => { const p = sppName(i); return [p.common || p.sci, col, n, fmt(n, 0), `${p.common ? p.common + ' (' + p.sci + ')' : p.sci}: ${tip}. Click to map it.`, p.sci.toLowerCase()]; };
+const FCOL = {'Shelters':'#E3733B', 'Campsites':'#2E6B3A', 'Privies':'#74224E', 'Parking areas':'#23436B', 'Bridges':'#4FA096', 'Vistas':'#B38E2F', 'Buildings':'#A089CC', 'Dams':'#801818', 'Tunnels':'#3D3D3D'};
 const QVIZ = {
   land: {title:'Land by administrator', note:'Share of the mapped A.T. land, from the tract records summarized to each cell. Generalized to the grid; not a boundary determination.', fn(lv, cells, nTop){
     const m = new Map(); let tot = 0; cells.forEach(c => { const p = val('lands','MGRS',lv,c), ac = val('lands','LAND_AC',lv,c) || 0; if (!p) return; for (let k = 0; k < p.length; k += 2){ const a = ac * p[k + 1] / 100; m.set(p[k], (m.get(p[k]) || 0) + a); tot += a; } });
@@ -2367,7 +2368,7 @@ const QVIZ = {
     return vTop(m).map(([k, n]) => [k, k === 'Cemeteries' ? '#7C8C7A' : HUE.hist, n, fmt(n, 0), `${k}: ${fmt(n, 0)}`]); }},
   feat: {title:'Facilities by type', note:'A.T. facilities inventory, official and additional features.', fn(lv, cells){
     const T = [['N_SHELTER','Shelters'],['N_CAMPSITE','Campsites'],['N_PRIVY','Privies'],['N_PARKING','Parking areas'],['N_BRIDGE','Bridges'],['N_VISTA','Vistas'],['N_BUILDING','Buildings'],['N_DAM','Dams'],['N_TUNNEL','Tunnels']];
-    return T.map(([f, nm]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, HUE.feat, n, fmt(n, 0), `${nm}: ${fmt(n, 0)}`]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]); }}
+    return T.map(([f, nm]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, FCOL[nm] || HUE.feat, n, fmt(n, 0), `${nm}: ${fmt(n, 0)}`]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]); }}
 };
 /* measure-specific charts. pick(measure id) returns {title, note, fn} to use in place of the question's default chart */
 const vHi = (rows, test) => rows.map(r => (r[6] = !!test(r), r));
@@ -2445,7 +2446,7 @@ QVIZ.hist.pick = id => id === 'hcem' ? {title:'Historic resources by type', note
 QVIZ.feat.pick = id => ['drain', 'drainmi', 'steps'].includes(id) ? {title:'Estimated trail structures', note:'Estimates, spread from maintainer sections by trail miles.', fn(lv, cells){
     return vHi([['S_DRAIN','Drainage structures','drain'],['S_STEPS','Steps and climbs','steps'],['S_SIGNS','Signs'],['S_BARR','Barriers']].map(([f, nm, mid]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, HUE.feat, n, fmt(Math.round(n), 0), `${nm}: about ${fmt(Math.round(n), 0)}`, null, mid]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]), r => r[6] === id || (id === 'drainmi' && r[6] === 'drain')); }}
   : {title:'Facilities by type', note:'A.T. facilities inventory, official and additional features' + (FEATT.some(t => t[2] === id) ? '; the type on the map is highlighted.' : '.'), fn(lv, cells){
-    return vHi(FEATT.map(([f, nm, mid]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, HUE.feat, n, fmt(n, 0), `${nm}: ${fmt(n, 0)}`, null, mid]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]), r => r[6] && r[6] === id); }};
+    return vHi(FEATT.map(([f, nm, mid]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, FCOL[nm] || HUE.feat, n, fmt(n, 0), `${nm}: ${fmt(n, 0)}`, null, mid]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]), r => r[6] && r[6] === id); }};
 const VMON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const VISPICK = {
   obsr: {title:'Observers by source', note:'People with an iNaturalist record or eBird checklist, and EDDMapS report-days (EDDMapS publishes no observer names). Added up cell by cell, so someone active in several cells counts in each.', fn(lv, cells){
@@ -3096,12 +3097,12 @@ const LANDKEY = [['FEDERAL LAND - NPS - APPA FEE','NPS, A.T. fee land','rgb(0,77
   ['STATE LAND','State','rgb(85,255,0)'],['CONSERVATION LAND','Conservation land','rgb(211,255,190)'],['TOWN LAND','Town','rgb(255,255,115)']];
 const LANDMAP = new Map(LANDKEY.map(k => [k[0], k]));
 const LIVE = [
-  {id:'shelters', name:'Shelters', url:SVC + 'ANST_Facilities/FeatureServer/4', type:'pt', color:'#E4572E'},
-  {id:'campsites', name:'Campsites', url:SVC + 'ANST_Facilities/FeatureServer/1', type:'pt', color:'#2E933C'},
-  {id:'parking', name:'Parking', url:SVC + 'ANST_Facilities/FeatureServer/2', type:'pt', color:'#3D6FD6'},
-  {id:'privies', name:'Privies', url:SVC + 'ANST_Facilities/FeatureServer/3', type:'pt', color:'#8E6C3A'},
-  {id:'bridges', name:'Bridges', url:SVC + 'ANST_Facilities/FeatureServer/0', type:'pt', color:'#7C8794'},
-  {id:'vistas', name:'Vistas', url:SVC + 'ANST_Facilities/FeatureServer/5', type:'pt', color:'#B03FA8'},
+  {id:'shelters', name:'Shelters', url:SVC + 'ANST_Facilities/FeatureServer/4', type:'pt', color:'#E3733B'},
+  {id:'campsites', name:'Campsites', url:SVC + 'ANST_Facilities/FeatureServer/1', type:'pt', color:'#2E6B3A'},
+  {id:'parking', name:'Parking', url:SVC + 'ANST_Facilities/FeatureServer/2', type:'pt', color:'#23436B'},
+  {id:'privies', name:'Privies', url:SVC + 'ANST_Facilities/FeatureServer/3', type:'pt', color:'#74224E'},
+  {id:'bridges', name:'Bridges', url:SVC + 'ANST_Facilities/FeatureServer/0', type:'pt', color:'#4FA096'},
+  {id:'vistas', name:'Vistas', url:SVC + 'ANST_Facilities/FeatureServer/5', type:'pt', color:'#B38E2F'},
   {id:'sidetrails', name:'Side trails', url:SVC + 'ANST_Facilities/FeatureServer/6', type:'line', bbox:1, minZoom:10, color:'#35A7FF'},
   {id:'lands', name:'Administrative areas', url:SVC + 'AT_Lands/FeatureServer/1', type:'poly', bbox:1, minZoom:11, fields:'NAME,ADMIN,ACRES,TRACT1,LEGEND3', color:'rgb(0,77,168)'},
   {id:'nrhp', name:'National Register (NPS)', local:1, hist:'nr', type:'pt', color:'#8C5A2B'},
