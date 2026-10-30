@@ -2150,8 +2150,8 @@ function tvRawText(k, x){ if (x == null) return 'no data'; switch (k){
   case 'pest': return x ? `${fmt(x, 0)} pest ${x === 1 ? 'species' : 'species'} reported` : 'none reported'; } return ''; }
 function tvFacts(lv, cells){ const ci = cells.filter(c => (val('slope','TS_MI',lv,c) || 0) > 0); if (!ci.length) return '';
   const mi = ci.reduce((t, c) => t + val('slope','TS_MI',lv,c), 0), w = f => ci.reduce((t, c) => t + (val('slope', f, lv, c) || 0) * val('slope','TS_MI',lv,c), 0) / mi;
-  return `<div class="facts"><div><b>${fmt(w('TS_GRADE'), 0)}%</b>average grade</div><div><b>${fmt(w('TS_G10'), 0)}%</b>of trail over 10%</div><div><b>${fmt(w('TS_FALL'), 0)}%</b>on the fall line</div></div>` +
-    `<p style="font-size:13.5px">${fmt(mi, 1)} miles of trail measured; ${fmt(w('TS_G20'), 0)}% over 20% grade; average side slope ${fmt(w('TS_SIDE'), 0)}%.</p>`; }
+  return `<div class="facts"><div><b>${fmt(w('TS_GRADE'), 0)}%</b>average grade</div><div><b>${fmt(w('TS_FALL'), 0)}%</b>on the fall line</div><div><b>${fmt(w('TS_G10'), 0)}%</b>of trail over 10%</div></div>` +
+    `<p style="font-size:13.5px">${fmt(mi, 1)} miles of trail measured; ${fmt(w('TS_G20'), 0)}% over 20% grade.</p>`; }
 const tvNote = () => `A screening tool, not a trail condition assessment.${tvSlopeOn() ? '' : ' Trail slope has not been built yet (trail_slope.json), so these scores use soils, rain, the 25-year storm and use hot spots only, scaled to the factors with data.'}`;
 function tvBox(lv, cells){ let b = `<div class="sec" style="--hue:${HUE.tvul}"><h3>Trail vulnerability</h3>`; const many = cells.length > 1;
   const R = cells.map(c => [c, tvParts(lv, c)]).filter(x => x[1][0] != null);
