@@ -1,0 +1,37 @@
+# Builds forest_risk.json (A.T. corridor) and forest_risk_huc10.json (HUC10 shell) for "Where are forest pests turning up?":
+# the share of each cell's treed area at risk of tree loss from insects and diseases, from the USDA Forest Service 2024 National
+# Insect and Disease Risk Map (inputs/nidrm2024_composite_risk.tif). The map is updated every few years: put the new raster in
+# inputs/ and run this from the Actions tab ("Run workflow").
+name: Forest health risk
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install geopandas pyogrio shapely pyproj rasterio numpy
+      - name: Build forest_risk.json
+        run: python scripts/build_forest_risk.py
+      - name: Commit if changed
+        run: |
+          git config user.name  "forest-risk-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for f in data/forest_risk.json data/forest_risk_huc10.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          git diff --cached --quiet && exit 0
+          git commit -m "Update forest health risk summaries"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1
