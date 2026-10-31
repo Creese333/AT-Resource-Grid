@@ -1,5 +1,4 @@
-# Rebuilds historic_resources.json (National Register, cemeteries, HABS/HAER/HALS and mining features) and place_names.json
-# for the A.T. Resource Grid on the 1st of every month,
+# Rebuilds historic_resources.json and place_names.json for the A.T. Resource Grid on the 1st of every month,
 # or whenever you press "Run workflow" on the Actions tab. Commits the file only when it changed.
 name: Historic resources
 
@@ -14,7 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 180      # about 3 GB of OpenStreetMap state extracts, the USGS mining features release, and the loc.gov API (rate limited)
+    timeout-minutes: 90       # about 3 GB of OpenStreetMap state extracts are downloaded and filtered for cemeteries
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,11 +21,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install osmium-tool, shapely, geopandas and pyogrio
+      - name: Install osmium-tool and shapely
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq osmium-tool
-          pip install shapely geopandas pyogrio pyproj
+          pip install shapely
       - name: Build historic_resources.json
         run: python scripts/build_historic_resources.py
       - name: Build place_names.json
