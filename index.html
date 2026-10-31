@@ -2760,9 +2760,7 @@ for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
 /* forest health risk (USDA Forest Service NIDRM 2024): its own measures in the forest pests question, after the pest maps */
 { const pq = Q.find(q => q.id === 'pest'); if (pq) pq.m = pq.m.concat([
     {id:'fhr', fhr:1, th:'fhr', label:'Forest at risk of tree loss (USFS)', f:'FHR_PCT', unit:'%', d:0, zero:1, zeroText:'None at risk', none:'No trees mapped',
-     note:'Share of the treed area where 25% or more of the tree basal area is expected to die from insects and diseases over 2024 to 2038, without treatment (USDA Forest Service 2024 National Insect and Disease Risk Map, 240 m).'},
-    {id:'fhrac', fhr:1, th:'fhr', label:'Acres of forest at risk (USFS)', f:'FHR_AC', int:1, zero:1, zeroText:'None at risk', none:'No trees mapped', noun:['acre','acres'],
-     note:'Acres where 25% or more of the tree basal area is expected to die from insects and diseases over 2024 to 2038 (USDA Forest Service 2024 National Insect and Disease Risk Map).'}]); }
+     note:'Share of the treed area where 25% or more of the tree basal area is expected to die from insects and diseases over 2024 to 2038, without treatment (USDA Forest Service 2024 National Insect and Disease Risk Map, 240 m).'}]); }
 /* the spread measures for one priority invasive live inside the invasives question; they open from its Priority invasives measure */
 { const inv = Q.find(q => q.id === 'inv'), ph = Q.find(q => q.id === 'phen');
   if (inv && ph) ph.m.filter(m => m.id === 'spread' || m.id === 'share').forEach(m => inv.m.push(Object.create(m, {pinv:{value:true}}))); }
