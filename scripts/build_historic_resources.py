@@ -9,18 +9,12 @@ at_wheel_cells.json when that file is missing):
     so the whole HUC10 shell is covered in every run. (The public Overpass servers turned the GitHub runners away so
     often that a run reached only a few dozen of the 300 stretches, from Georgia north.) If a state's extract cannot be
     read, the cemeteries the previous file had are kept, and the file's err note names the state.
-  - Historic American Buildings Survey, Historic American Engineering Record and Historic American Landscapes Survey
-    documentation (HABS/HAER/HALS, Library of Congress), the records the Library has coordinates for, read from the loc.gov
-    JSON API state by state. If the API cannot be read, the previous file's records are kept.
-  - Mining features from historical USGS topographic maps (USMIN: mines, shafts, adits, prospects, quarries, pits, dumps;
-    San and Horton 2025, consolidated from Horton and San Juan 2016), read from the USGS ScienceBase data release. Polygons
-    are kept as a point inside them. If the release cannot be read, the previous file's features are kept.
   - the A.T. administrative area (AT_Lands tract) each record falls in, for the dashboard's scale filter
-and writes data/historic_resources.json. The dashboard reads that file.
+and writes historic_resources.json next to this script. The dashboard reads that file.
 
-Needs osmium-tool (apt) and shapely (pip) for the cemeteries; geopandas and pyogrio (pip) for the mining features. Runs in GitHub Actions (see .github/workflows/historic_resources.yml) or anywhere with Python 3.
+Needs osmium-tool (apt) and shapely (pip) for the cemeteries. Runs in GitHub Actions (see .github/workflows/historic_resources.yml) or anywhere with Python 3.
 """
-import json, math, os, re, shutil, subprocess, sys, tempfile, time, urllib.error, urllib.parse, urllib.request
+import json, math, os, re, shutil, subprocess, sys, tempfile, time, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
@@ -298,188 +292,6 @@ def osm_extracts(cells, fetch=fetch_file):
     return osm, note
 
 
-# ---------------------------------------------------------------- HABS/HAER/HALS (Library of Congress)
-LOC = 'https://www.loc.gov/collections/historic-american-buildings-landscapes-and-engineering-records/'
-LOC_STATES = ['georgia', 'north carolina', 'tennessee', 'virginia', 'west virginia', 'maryland', 'district of columbia', 'pennsylvania',
-              'new jersey', 'new york', 'connecticut', 'massachusetts', 'vermont', 'new hampshire', 'maine']
-
-
-def loc_coords(r):
-    """latitude and longitude from a loc.gov result, wherever the API puts them"""
-    for src in (r, r.get('item') or {}):
-        for k in ('latlong', 'coordinates', 'location_coordinates', 'lat_long'):
-            v = src.get(k)
-            if not v:
-                continue
-            if isinstance(v, dict):
-                v = [v.get('lat') or v.get('latitude'), v.get('lon') or v.get('lng') or v.get('longitude')]
-                txt = ','.join(str(x) for x in v if x is not None)
-            elif isinstance(v, (list, tuple)):
-                txt = ','.join(str(x) for x in v)
-            else:
-                txt = str(v)
-            nums = [float(x) for x in re.findall(r'-?\d+(?:\.\d+)?', txt)]
-            if len(nums) >= 2:
-                a, b = nums[0], nums[1]
-                if 24 <= a <= 50 and -100 <= b <= -60: return a, b
-                if 24 <= b <= 50 and -100 <= a <= -60: return b, a
-    return None
-
-
-def loc_get(url, tries=4):
-    for k in range(tries):
-        try:
-            req = urllib.request.Request(url, headers=UA)
-            with urllib.request.urlopen(req, timeout=120) as r:
-                return json.load(r)
-        except urllib.error.HTTPError as e:
-            wait = 75 if e.code == 429 else 10 * (k + 1)
-            print(f'   loc.gov {e.code}; waiting {wait} s', flush=True); time.sleep(wait)
-        except Exception as e:
-            print(f'   loc.gov: {e}', flush=True); time.sleep(10 * (k + 1))
-    raise RuntimeError('loc.gov did not answer')
-
-
-def habs_items(inside):
-    """HABS/HAER/HALS records with coordinates inside the cells (inside(la, lo) -> bool)"""
-    out, seen, shown = [], set(), False
-    for st in LOC_STATES:
-        url = LOC + '?' + urllib.parse.urlencode({'fa': 'location_state:' + st, 'fo': 'json', 'c': 100, 'sp': 1})
-        n = got = 0
-        while url:
-            j = loc_get(url); time.sleep(3)          # loc.gov asks for no more than about 20 requests a minute on collections
-            res = j.get('results') or []
-            for r in res:
-                n += 1
-                xy = loc_coords(r)
-                if not xy:
-                    if not shown:
-                        print('   first record without coordinates has keys:', sorted(r.keys())[:40], flush=True); shown = True
-                    continue
-                la, lo = xy
-                if not inside(la, lo):
-                    continue
-                link = str(r.get('url') or r.get('id') or '')
-                if link in seen:
-                    continue
-                seen.add(link); got += 1
-                blob = ' '.join(str(x) for x in (r.get('number') or []) + (r.get('other_title') or []) + [r.get('title') or '', link])
-                m = re.search(r'\b(HABS|HAER|HALS)\b', blob, re.I) or re.search(r'\b(HABS|HAER|HALS)\b', json.dumps(r), re.I)
-                city = r.get('location_city') or []
-                out.append({'t': 'habs', 'nm': re.sub(r'\s+', ' ', str(r.get('title') or '')).strip().rstrip(','), 'la': la, 'lo': lo,
-                            'a': {'kind': m.group(1).upper() if m else 'HABS', 'url': link, 'date': str(r.get('date') or ''),
-                                  'city': (city[0] if isinstance(city, list) and city else str(city or '')).title()}})
-            nxt = (j.get('pagination') or {}).get('next')
-            url = nxt if nxt and res else None
-        print(f'HABS/HAER/HALS {st}: {n} records read, {got} inside the cells', flush=True)
-    return out
-
-
-# ---------------------------------------------------------------- mining features (USGS USMIN, from historical topographic maps)
-SB = 'https://www.sciencebase.gov/catalog/'
-USMIN_ITEMS = ['64dfc0efd34e5f6cd553c265',     # consolidated release, San and Horton 2025 (one point and one polygon layer)
-               '5a1492c3e4b09fc93dcfd574']     # the compilation it was made from, Horton and San Juan 2016, ver. 10.0
-
-
-def sb_files(item):
-    """(name, url) of the files on a ScienceBase item and its child items"""
-    out = []
-    def add(j):
-        for f in (j.get('files') or []) + [x for x in (j.get('distributionLinks') or []) if x.get('uri')]:
-            nm = f.get('name') or f.get('title') or ''; u = f.get('url') or f.get('downloadUri') or f.get('uri') or ''
-            if u: out.append((nm, u))
-    add(get_json(SB + 'item/' + item + '?format=json', timeout=120))
-    try:
-        kids = get_json(SB + 'items?' + urllib.parse.urlencode({'parentId': item, 'format': 'json', 'max': 50, 'fields': 'files,distributionLinks,title'}), timeout=120)
-        for k in kids.get('items') or []:
-            add(k)
-    except Exception as e:
-        print(f'   ScienceBase children of {item}: {e}', flush=True)
-    return out
-
-
-def usmin_items(cells):
-    """mine-related features inside the cells, as points"""
-    import zipfile, glob
-    import numpy as np, shapely, pyogrio, geopandas as gpd
-    from shapely.geometry import Polygon
-    from pyproj import Transformer
-    polys = [Polygon([(p[1], p[0]) for p in c['ring']]) for c in cells]
-    tree = shapely.STRtree(polys)
-    w = min(p.bounds[0] for p in polys); s = min(p.bounds[1] for p in polys); e = max(p.bounds[2] for p in polys); n = max(p.bounds[3] for p in polys)
-    work = tempfile.mkdtemp(prefix='usmin_')
-    last = None
-    for item in USMIN_ITEMS:
-        try:
-            files = sb_files(item)
-            print(f'USMIN ScienceBase {item}: {len(files)} files: ' + ', '.join(nm for nm, _ in files)[:600], flush=True)
-            data = [(nm, u) for nm, u in files if re.search(r'\.(zip|gpkg)$', nm, re.I) and not re.search(r'metadata|xml|readme|pdf', nm, re.I)]
-            data.sort(key=lambda f: (0 if re.search(r'gpkg|gdb|point', f[0], re.I) else 1, f[0]))
-            if not data:
-                raise RuntimeError('no data files on the item')
-            sets = []
-            for nm, u in data:
-                path = os.path.join(work, re.sub(r'[^\w.-]', '_', nm))
-                print(f'   downloading {nm}', flush=True); fetch_file(u, path)
-                if path.lower().endswith('.zip'):
-                    d = path[:-4]; zipfile.ZipFile(path).extractall(d); os.remove(path)
-                    sets += glob.glob(os.path.join(d, '**', '*.gdb'), recursive=True) + glob.glob(os.path.join(d, '**', '*.gpkg'), recursive=True) + glob.glob(os.path.join(d, '**', '*.shp'), recursive=True)
-                else:
-                    sets.append(path)
-                if sets:
-                    break
-            if not sets:
-                raise RuntimeError('no geodatabase, GeoPackage or shapefile in the download')
-            frames = []
-            for ds in sets:
-                for lyr, gt in pyogrio.list_layers(ds):
-                    if not gt or not re.search(r'point|polygon', str(gt), re.I):
-                        continue
-                    info = pyogrio.read_info(ds, layer=lyr); crs = info.get('crs') or 'EPSG:4326'
-                    t = Transformer.from_crs('EPSG:4326', crs, always_xy=True); xs, ys = t.transform([w, e, w, e], [s, s, n, n])
-                    g = pyogrio.read_dataframe(ds, layer=lyr, bbox=(min(xs), min(ys), max(xs), max(ys)))
-                    if not len(g):
-                        continue
-                    g = g.set_crs(crs, allow_override=True) if g.crs is None else g
-                    g = g.to_crs(4326); g['geometry'] = g.geometry.representative_point()
-                    frames.append(g); print(f'   {os.path.basename(ds)} / {lyr}: {len(g)} features in the area', flush=True)
-            if not frames:
-                raise RuntimeError('no point or polygon layers read')
-            g = gpd.GeoDataFrame(pd_concat(frames), crs=4326)
-            cols = {c.lower(): c for c in g.columns}
-            col = lambda *names: next((cols[x] for x in names if x in cols), None)
-            ft, fn, td, tn = col('ftr_type', 'feature_type', 'ftrtype', 'type'), col('ftr_name', 'feature_name', 'name'), col('topo_date', 'map_date', 'date'), col('topo_name', 'map_name', 'quad_name')
-            if not ft:
-                raise RuntimeError('no feature type field; fields: ' + ', '.join(g.columns))
-            x, y = shapely.get_x(g.geometry.values), shapely.get_y(g.geometry.values)
-            hit = np.zeros(len(g), bool)
-            pi, ci = tree.query(g.geometry.values, predicate='within')
-            hit[pi] = True
-            out, seen = [], set()
-            for i in np.flatnonzero(hit):
-                typ = str(g.iat[i, g.columns.get_loc(ft)] or '').strip()
-                key = (round(float(y[i]), 4), round(float(x[i]), 4), typ.lower())
-                if key in seen:
-                    continue
-                seen.add(key)
-                v = lambda c: ('' if c is None else str(g.iat[i, g.columns.get_loc(c)] or '').strip())
-                dt = re.search(r'(18|19|20)\d\d', v(td)) if td else None
-                out.append({'t': 'mine', 'nm': v(fn) if fn else '', 'la': float(y[i]), 'lo': float(x[i]),
-                            'a': {'type': typ or 'Unidentified Feature', 'topo': v(tn) if tn else '', 'year': dt.group(0) if dt else ''}})
-            print(f'USMIN: {len(out)} mine-related features inside the cells (from item {item})', flush=True)
-            shutil.rmtree(work, ignore_errors=True)
-            return out
-        except Exception as ex:
-            last = ex; print(f'USMIN item {item}: {ex}', flush=True)
-    shutil.rmtree(work, ignore_errors=True)
-    raise RuntimeError(f'mining features not read ({last})')
-
-
-def pd_concat(frames):
-    import pandas as pd
-    return pd.concat(frames, ignore_index=True)
-
-
 def main():
     cells, scope = load_cells()           # [{mi, ring:[[lat, lon], ...]}], sorted by trail mile
     chunks = []
@@ -532,26 +344,6 @@ def main():
                             'city': a.get('City') or '', 'county': a.get('County') or '', 'state': a.get('State') or '', 'multiple': a.get('MultiName') or '', 'extant': a.get('IS_EXTANT') or ''}})
     items += osm_cem(list(osm.values()))
     wikidata_fag(items)
-    try:
-        prev_items = json.load(open(OUT)).get('items', [])
-    except Exception:
-        prev_items = []
-    def keep_prev(t, why):
-        old = [x for x in prev_items if x.get('t') == t]
-        for x in old:
-            x.pop('ld', None); x.pop('adm', None); x.pop('tract', None)
-        err[t] = f'{why}; {len(old)} kept from the previous build'; print(f'{t}: {err[t]}', flush=True); return old
-    def in_cells(la, lo):
-        return any(c['s'] <= la <= c['n'] and c['w'] <= lo <= c['e'] and any(in_ring(la, lo, r) for r in c['rings']) for c in chunks)
-    try:
-        hb = habs_items(in_cells)
-        items += hb if hb else keep_prev('habs', 'no HABS/HAER/HALS records with coordinates were read')
-    except Exception as e:
-        items += keep_prev('habs', str(e))
-    try:
-        items += usmin_items(cells)
-    except Exception as e:
-        items += keep_prev('mine', str(e))
     for x in items:
         x['la'] = round(x['la'], 5); x['lo'] = round(x['lo'], 5)
     if all(k in err for k in ('nr', 'osm')):
@@ -560,7 +352,7 @@ def main():
     if le:
         err['lands'] = le
     json.dump({'at': int(time.time() * 1000), 'items': items, 'err': err, 'lands': not le, 'scope': scope}, open(OUT, 'w'), separators=(',', ':'))
-    counts = {t: sum(1 for x in items if x['t'] == t) for t in ('nr', 'cem', 'habs', 'mine')}
+    counts = {t: sum(1 for x in items if x['t'] == t) for t in ('nr', 'cem')}
     print('wrote', OUT, counts, 'errors:', err or 'none')
 
 
