@@ -22,6 +22,7 @@ Each dataset is rebuilt by a GitHub Actions workflow, which commits the new file
 | Weather | [![Weather](https://github.com/Creese333/AT-Resource-Grid/actions/workflows/weather.yml/badge.svg)](https://github.com/Creese333/AT-Resource-Grid/actions/workflows/weather.yml) | `data/weather.json`, `data/weather_huc10.json` | Yearly (January); storm events quarterly |
 | Trail slope | [![Trail slope](https://github.com/Creese333/AT-Resource-Grid/actions/workflows/trailslope.yml/badge.svg)](https://github.com/Creese333/AT-Resource-Grid/actions/workflows/trailslope.yml) | `data/trail_slope.json`, `data/trail_slope_huc10.json` | Yearly (February) |
 | Forest health risk | [![Forest health risk](https://github.com/Creese333/AT-Resource-Grid/actions/workflows/forest_risk.yml/badge.svg)](https://github.com/Creese333/AT-Resource-Grid/actions/workflows/forest_risk.yml) | `data/forest_risk.json`, `data/forest_risk_huc10.json` | On demand, when a new risk map comes out |
+| Topographic exposure | [![Topographic exposure](https://github.com/Creese333/AT-Resource-Grid/actions/workflows/topo_exposure.yml/badge.svg)](https://github.com/Creese333/AT-Resource-Grid/actions/workflows/topo_exposure.yml) | `data/topo_exposure.json` | On demand (terrain does not change) |
 
 The vegetation, soils, wetlands, facilities, land administration and rare species summaries are built in ArcGIS Pro and stored in `index.html` and `data/soils_wetlands_huc10.json`.
 
@@ -39,6 +40,7 @@ The vegetation, soils, wetlands, facilities, land administration and rare specie
 | Place names | USGS Geographic Names Information System |
 | Weather and climate | PRISM 1991–2020 normals (Oregon State University); NOAA nClimGrid-Daily, Atlas 14 and Storm Events; gridMET wind (University of Idaho, research data) |
 | Trail slope | A.T. centerline with USGS 3DEP elevation |
+| Topographic exposure | USGS 3DEP 1 arc-second elevation |
 | Forest health risk | USDA Forest Service 2024 National Insect and Disease Risk Map (composite risk, 240 m) |
 | Land, facilities, rare species | NPS APPA and ATC data |
 

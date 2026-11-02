@@ -134,7 +134,7 @@ details.instr{margin:0}details.instr>summary{font-size:13px;line-height:1.3;colo
 .tvr button.tvs{width:30px;height:30px;padding:0;border:1px solid #5578A0;border-radius:4px;background:none;color:#fff;font-size:18px;line-height:1}
 .tvr button.tvs:disabled{opacity:.3;cursor:not-allowed}
 .tvleft{margin:8px 0 4px;font-size:13.5px}
-.tvabout,.rwabout,.vzabout{margin:10px 0 2px}.vzabout summary{cursor:pointer;font-size:13.5px;color:#C9D4E2}.vzabout summary:hover{color:#fff}.vzabout .phnote{margin-top:4px}.rwabout summary{cursor:pointer;font-size:13.5px;color:#C9D4E2}.rwabout summary:hover{color:#fff}.rwabout .phnote{margin-top:4px}
+.tvabout,.rwabout,.vzabout,.tfabout{margin:10px 0 2px}.tfabout summary{cursor:pointer;font-size:13.5px;color:#C9D4E2}.tfabout summary:hover{color:#fff}.tfabout .phnote{margin-top:4px}.vzabout summary{cursor:pointer;font-size:13.5px;color:#C9D4E2}.vzabout summary:hover{color:#fff}.vzabout .phnote{margin-top:4px}.rwabout summary{cursor:pointer;font-size:13.5px;color:#C9D4E2}.rwabout summary:hover{color:#fff}.rwabout .phnote{margin-top:4px}
 .tvabout{margin:10px 0 2px}.tvabout summary{cursor:pointer;font-size:13.5px;color:#C9D4E2}.tvabout summary:hover{color:#fff}.tvabout .phnote{margin-top:4px}.tvleft.due{color:#F7C873}
 .tvbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.tvbtns .lbtn{margin-top:0}
 button.tvapply{border:1px solid #F0C419;background:#F0C419;color:#142235;font-weight:600;border-radius:4px;padding:4px 14px;font-size:14px}
@@ -1998,7 +1998,7 @@ if (!D.themes.geo) D.themes.geo = {};
 if (!D.themes.vis) D.themes.vis = {};
 if (!D.themes.wx) D.themes.wx = {};
 if (!D.themes.nrpz) D.themes.nrpz = {};
-if (!D.themes.slope) D.themes.slope = {}; if (!D.themes.fhr) D.themes.fhr = {};
+if (!D.themes.slope) D.themes.slope = {}; if (!D.themes.fhr) D.themes.fhr = {}; if (!D.themes.topo) D.themes.topo = {};
 /* geologic maps and bedrock units shared by both extents: GEOT = {maps:[[id, name, year, scale, type, gis, reference, url, notes]],
    units:[[name, label, age, lithology class, age class, major lithologies, carbonate, mafic, state]], meta} */
 let GEOT = null;
@@ -2166,7 +2166,7 @@ function tvRawText(k, x){ if (x == null) return 'no data'; switch (k){
 function tvFacts(lv, cells){ const ci = cells.filter(c => (val('slope','TS_MI',lv,c) || 0) > 0); if (!ci.length) return '';
   const mi = ci.reduce((t, c) => t + val('slope','TS_MI',lv,c), 0), w = f => ci.reduce((t, c) => t + (val('slope', f, lv, c) || 0) * val('slope','TS_MI',lv,c), 0) / mi;
   return `<div class="facts"><div><b>${fmt(w('TS_GRADE'), 0)}%</b>average grade</div><div><b>${fmt(w('TS_FALL'), 0)}%</b>on the fall line</div><div><b>${fmt(w('TS_G10'), 0)}%</b>of trail over 10%</div></div>` +
-    `<p style="font-size:13.5px">${fmt(mi, 1)} miles of trail measured; ${fmt(w('TS_G20'), 0)}% over 20% grade.</p>`; }
+    `<p style="font-size:13.5px">${fmt(mi, 1)} miles of trail measured; ${fmt(w('TS_G20'), 0)}% over 20% grade.</p>` + (tf => tf.length ? `<p style="font-size:13.5px">Tree fall vulnerability: <b>${Math.round(tf.reduce((s, v) => s + v, 0) / tf.length)}</b> of 100 (screening).</p>` : '')(ci.map(c => wfScore(lv, c)).filter(v => v != null)); }
 const tvNote = () => `A screening tool, not a trail condition assessment.${tvSlopeOn() ? '' : ' Trail slope has not been built yet (trail_slope.json), so these scores use soils, rain, the 25-year storm and use hot spots only, scaled to the factors with data.'}`;
 function tvBox(lv, cells){ let b = `<div class="sec" style="--hue:${HUE.tvul}"><h3>Trail vulnerability</h3>`; const many = cells.length > 1;
   const R = cells.map(c => [c, tvParts(lv, c)]).filter(x => x[1][0] != null);
@@ -2566,22 +2566,44 @@ document.addEventListener('click', e => { const kind = S.m.id === 'forest' ? 'fo
   if (e.target.closest('[data-rwapply]')){ RW[kind] = Object.assign({}, RWD[kind]); tvRefresh(true); return; }
   if (e.target.closest('[data-rwundo]')){ RWD[kind] = Object.assign({}, RW[kind]); rwDraw(); return; }
   if (e.target.closest('[data-rwreset]')){ RWD[kind] = Object.fromEntries(RESTDEF[kind].parts.map(p => [p[0], p[2]])); rwDraw(); } });
+{ const tq0 = QVIZ.tvul.pick; QVIZ.tvul.pick = id => id !== 'tfall' ? tq0(id) : {title:'Where the tree fall score comes from', note:'Each gray bar is the most a factor can add to the 100-point score. The colored part is what it adds on average in the cells shown. A screening score built from the layers on this page, not a stand or hazard tree assessment; the windfall study’s models will replace it.',
+  html(lv, cells){ const s = WFDEF.map(() => 0), n = WFDEF.map(() => 0); let k = 0;
+    cells.forEach(c => { const r = wfParts(lv, c); if (r[0] == null) return; k++; r[1].forEach((p, i) => { if (p[2] != null){ s[i] += p[2]; n[i]++; } }); });
+    if (!k) return ''; return trackChart(WFDEF.map(([key, lab], i) => [lab, n[i] ? s[i] / n[i] : null, WFW[key], n[i] ? `${lab}: adds ${fmt(s[i] / n[i], 1)} of its ${fmt(WFW[key], 1)} possible points on average, over ${nCells(n[i])}` : `${lab}: no data here`]), 'Where the tree fall score comes from', HUE.tvul); }}; }
+let TFD = null;   /* tree fall weights being edited; WFW (what the score uses) changes only on Apply */
+function tfWeightsHTML(){ if (!TFD) TFD = Object.assign({}, WFW); const tot = WFDEF.reduce((t, d) => t + (+TFD[d[0]] || 0), 0), left = Math.round((100 - tot) * 10) / 10, f1 = x => fmt(x, x % 1 ? 1 : 0);
+  const changed = WFDEF.some(d => (+TFD[d[0]] || 0) !== (+WFW[d[0]] || 0)), isRec = WFDEF.every(d => (+TFD[d[0]] || 0) === WFD0[d[0]]);
+  return `<p class="phsub" style="margin-top:2px">Tree fall vulnerability score</p><div class="tvw2" role="group" aria-label="Tree fall vulnerability weights">` + WFDEF.map(([k, lab, w0, note]) => { const w = +TFD[k] || 0;
+    return `<div class="tvr"><span class="tvl" title="${esc(note)}">${esc(lab)}</span><span class="tvbar" aria-hidden="true"><i style="width:${Math.min(100, w * 2)}%"></i></span>` +
+      `<button type="button" class="tvs" data-tfs="${k}" data-d="-1" aria-label="Lower ${esc(lab)}"${w <= 0 ? ' disabled' : ''}>−</button><b aria-live="polite">${f1(w)}</b>` +
+      `<button type="button" class="tvs" data-tfs="${k}" data-d="1" aria-label="Raise ${esc(lab)}"${left <= 0 ? ' disabled' : ''}>+</button></div>`; }).join('') + '</div>' +
+    `<p class="tvleft${left ? ' due' : ''}">${left > 0 ? `<b>${f1(left)}</b> ${left === 1 ? 'point' : 'points'} left to assign. Raise a factor to use ${left === 1 ? 'it' : 'them'}.` : 'All 100 points are assigned.'}${changed ? ' Press Apply to update the scores.' : ''}</p>` +
+    `<div class="tvbtns"><button type="button" class="tvapply" data-tfapply="1"${changed && !left ? '' : ' disabled'}>Apply</button>` +
+    (changed ? '<button type="button" class="lbtn" data-tfundo="1">Undo changes</button>' : '') + (isRec ? '' : '<button type="button" class="lbtn" data-tfreset="1">Reset to recommended</button>') + '</div>' +
+    `<details class="tfabout"${store.get('tfabout', false) ? ' open' : ''}><summary>About the weights</summary><p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. Recommended weights put the most on exposure, since wind speed and gusts rise sharply on ridges and summits where much of the trail runs, then on storm history, rooting depth, pest-weakened trees and shallow-rooted conifers. Ice and winter storms and windy days add smaller amounts. This is a screening score: tree size, height-to-diameter ratio, crown form, vigor and documented windfall events from the windfall study will refine or replace it.</p></details>`; }
+const tfDraw = () => { const el = $('#tfwts'); if (el) el.innerHTML = tfWeightsHTML(); };
+document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('tfabout')) store.set('tfabout', e.target.open); }, true);
+document.addEventListener('click', e => { const s = e.target.closest('[data-tfs]');
+  if (s){ const k = s.dataset.tfs, tot = WFDEF.reduce((t, d) => t + (+TFD[d[0]] || 0), 0), st = 2.5;
+    TFD[k] = +s.dataset.d > 0 ? (+TFD[k] || 0) + Math.min(st, Math.max(0, 100 - tot)) : Math.max(0, (+TFD[k] || 0) - st);
+    tfDraw(); const again = document.querySelector(`[data-tfs="${k}"][data-d="${s.dataset.d}"]`); if (again && !again.disabled) again.focus(); return; }
+  if (e.target.closest('[data-tfapply]')){ WFDEF.forEach(d => WFW[d[0]] = +TFD[d[0]] || 0); tvRefresh(true); return; }
+  if (e.target.closest('[data-tfundo]')){ TFD = Object.assign({}, WFW); tfDraw(); return; }
+  if (e.target.closest('[data-tfreset]')){ TFD = Object.assign({}, WFD0); tfDraw(); } });
 const EXTNO = ['tvul'];   /* questions that list the extent but measure only the trail itself, so HUC10 is shown greyed out */
 QVIZ.pest = {title:'Forest at risk by state', note:'Share of the treed area at risk of losing 25% or more of its tree basal area to insects and diseases over 2024 to 2038, with the acres at risk (USDA Forest Service 2024 National Insect and Disease Risk Map).' + VSTNOTE, fn(lv, cells){
     const r = VST.map(() => 0), t = VST.map(() => 0);
     cells.forEach(c => { const s = vStOf(lv, c), a = val('fhr','FHR_AC',lv,c), ta = val('fhr','FHR_TAC',lv,c); if (s < 0 || !ta) return; r[s] += a || 0; t[s] += ta; });
     return VST.map((v, i) => [v[1], HUE.pest, t[i] ? 100 * r[i] / t[i] : 0, t[i] ? `${fmt(100 * r[i] / t[i], 0)}% · ${fmt(Math.round(r[i]), 0)} ac` : '', `${v[1]}: ${fmt(Math.round(r[i]), 0)} of ${fmt(Math.round(t[i]), 0)} treed acres at risk (${fmt(100 * r[i] / t[i], 0)}%)`]).filter((x, i) => t[i] > 0); }};
-QVIZ.pest.pick = id => id !== 'wfall' ? null : {title:'Where the windfall score comes from', note:'Each gray bar is the most a factor can add to the 100-point score. The colored part is what it adds on average in the cells shown. An interim screen built from the layers on this page, not a stand assessment; the windfall study’s models will replace it.',
-  html(lv, cells){ const s = WFDEF.map(() => 0), n = WFDEF.map(() => 0); let k = 0;
-    cells.forEach(c => { const r = wfParts(lv, c); if (r[0] == null) return; k++; r[1].forEach((p, i) => { if (p[2] != null){ s[i] += p[2]; n[i]++; } }); });
-    if (!k) return ''; return trackChart(WFDEF.map(([key, lab], i) => [lab, n[i] ? s[i] / n[i] : null, WFW[key], n[i] ? `${lab}: adds ${fmt(s[i] / n[i], 1)} of its ${WFW[key]} possible points on average, over ${nCells(n[i])}` : `${lab}: no data here`]), 'Where the windfall score comes from', HUE.pest); }};
 function fhrBox(lv, cells){ if (!D.themes.fhr || !D.themes.fhr[lv]) return ''; const ci = cells.filter(c => val('fhr','FHR_TAC',lv,c) != null); if (!ci.length) return '';
   const a = ci.reduce((s, c) => s + (val('fhr','FHR_AC',lv,c) || 0), 0), t = ci.reduce((s, c) => s + (val('fhr','FHR_TAC',lv,c) || 0), 0), p = t ? 100 * a / t : 0;
-  const wf = cells.map(c => wfScore(lv, c)).filter(v => v != null), wfa = wf.length ? Math.round(wf.reduce((s, v) => s + v, 0) / wf.length) : null;
-  return `<div class="sec" style="--hue:${HUE.pest}"><h3>Forest health risk</h3><div class="facts"><div><b>${fmt(p, 0)}%</b>of the treed area at risk</div>${wfa != null ? `<div><b>${wfa}</b>windfall risk (screening, of 100)</div>` : ''}<div><b>${fmt(Math.round(a), 0)}</b>acres at risk</div><div><b>${fmt(Math.round(t), 0)}</b>treed acres</div></div>` +
+  return `<div class="sec" style="--hue:${HUE.pest}"><h3>Forest health risk</h3><div class="facts"><div><b>${fmt(p, 0)}%</b>of the treed area at risk</div><div><b>${fmt(Math.round(a), 0)}</b>acres at risk</div><div><b>${fmt(Math.round(t), 0)}</b>treed acres</div></div>` +
     `<p class="none" style="font-size:13.5px;margin-top:8px">At risk: 25% or more of the tree basal area expected to die from insects and diseases over 2024 to 2038 without treatment. USDA Forest Service 2024 National Insect and Disease Risk Map, 240 m; a broad-scale planning map, not a stand assessment.</p></div>`; }
 const fhrSection = (lv, c) => fhrBox(lv, [c]);
 var FHR = null; const FHRHUC = 'data/forest_risk_huc10.json';
+var TOPO = null;
+function topoApply(){ const j = TOPO; if (!j || j.done || S.ext !== 'corr') return; j.done = true; D.themes.topo = thConv(j, 'topo', D.levels); for (const k in WFRANK) delete WFRANK[k]; extIndex(); }
+fetch('data/topo_exposure.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ TOPO = j; if (S.ext === 'corr'){ topoApply(); BRK.clear(); redraw(); } } }).catch(() => {});
 function fhrApply(){ const j = FHR; if (!j || j.done || S.ext !== 'corr') return; j.done = true; D.themes.fhr = thConv(j, 'fhr', D.levels); extIndex(); }
 fetch('data/forest_risk.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ FHR = j; if (S.ext === 'corr'){ fhrApply(); redraw(); } } }).catch(() => {});
 const qVizOn = q => !!QVIZ[q.id] && !(q.id === 'land' && S.m.id === 'acq') && (q.id !== 'pest' || !!(S.m && S.m.fhr));
@@ -2778,21 +2800,21 @@ for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
 /* forest health risk (USDA Forest Service NIDRM 2024): its own measures in the forest pests question, after the pest maps */
 { const pq = Q.find(q => q.id === 'pest'); if (pq) pq.m = pq.m.concat([
     {id:'fhr', fhr:1, th:'fhr', label:'Forest at risk of tree loss (USFS)', f:'FHR_PCT', unit:'%', d:0, zero:1, zeroText:'None at risk', none:'No trees mapped',
-     note:'Share of the treed area where 25% or more of the tree basal area is expected to die from insects and diseases over 2024 to 2038, without treatment (USDA Forest Service 2024 National Insect and Disease Risk Map, 240 m).'},
-    {id:'wfall', fhr:1, label:'Windfall risk (screening)', int:1, brkP:[.4,.7,.85,.95], none:'No forest mapped', fn:(lv, c) => wfScore(lv, c), showFn:v => v + ' of 100',
-     note:'0 to 100: an interim screen of where trees are most likely to blow down, from storm and wind exposure, shallow or wet rooting soils, forest weakened by pests, and shallow-rooted conifer forest, scaled to 100 over the factors with data. Topographic exposure, tree size and form, and storm history at plots are not in it yet; the windfall study’s models will replace it.'}]); }
-/* windfall risk (screening): factors [key, label, weight, note] */
+     note:'Share of the treed area where 25% or more of the tree basal area is expected to die from insects and diseases over 2024 to 2038, without treatment (USDA Forest Service 2024 National Insect and Disease Risk Map, 240 m).'}]); }
+/* tree fall vulnerability (screening): factors [key, label, weight, note] */
 const WFDEF = [
-  ['wind', 'Damaging wind events', 20, 'Thunderstorm, high and strong wind and tornado reports per year (NOAA Storm Events), ranked among cells'],
+  ['expo', 'Topographic exposure', 20, 'Share of the cell on ridges, summits and upper slopes, standing 25 m or more above the ground 1 km around (USGS 3DEP elevation): where wind is strongest'],
+  ['wind', 'Damaging wind events', 15, 'Thunderstorm, high and strong wind and tornado reports per year (NOAA Storm Events), ranked among cells'],
   ['winter', 'Ice and winter storms', 10, 'Ice storm, winter storm, heavy snow and blizzard reports per year (NOAA Storm Events), ranked among cells: ice and wet snow load crowns'],
-  ['windy', 'Windy days', 10, 'Days a year with a daily mean wind of 15 mph or more (gridMET), ranked among cells'],
-  ['root', 'Shallow or wet rooting soils', 20, 'Share of the soils with bedrock within 50 cm or poorly drained (gSSURGO): roots cannot anchor deeply'],
-  ['pest', 'Forest weakened by pests', 20, 'Share of the treed area at risk of losing 25% or more of its basal area to insects and diseases (USFS 2024 risk map), ranked among cells'],
+  ['windy', 'Windy days', 5, 'Days a year with a daily mean wind of 15 mph or more (gridMET), ranked among cells'],
+  ['root', 'Shallow or wet rooting soils', 15, 'Share of the soils with bedrock within 50 cm or poorly drained (gSSURGO): roots cannot anchor deeply'],
+  ['pest', 'Forest weakened by pests', 15, 'Share of the treed area at risk of losing 25% or more of its basal area to insects and diseases (USFS 2024 risk map), ranked among cells'],
   ['conif', 'Shallow-rooted conifer forest', 20, 'Share of the mapped vegetation in spruce, fir, hemlock, pine and cedar types (APPA vegetation map): shallow roots and winter crowns that catch wind and ice']];
-const WFW = Object.fromEntries(WFDEF.map(d => [d[0], d[2]])), WFRANK = {}, WFCONIF = /spruce|fir\b|fir -|hemlock|pine|cedar|conifer|krumholz/i;
+const WFW = Object.fromEntries(WFDEF.map(d => [d[0], d[2]])), WFD0 = Object.assign({}, WFW), WFRANK = {}, WFCONIF = /spruce|fir\b|fir -|hemlock|pine|cedar|conifer|krumholz/i;
 let WFCX = null;
 function wfRaw(k, lv, c){ const v = (th, f) => val(th, f, lv, c);
   switch (k){
+    case 'expo': { const e = v('topo','TOPO_EXP'); return e == null ? null : Math.min(1, e / 100); }
     case 'wind': return v('wx','WX_EV_WIND'); case 'winter': return v('wx','WX_EV_WINTER'); case 'windy': return v('wx','WX_WINDY');
     case 'root': { const a = v('soil','SHALLOW_ROCK'), b = v('soil','POOR_DRAIN'); return a == null && b == null ? null : Math.min(1, ((a || 0) + (b || 0)) / 100); }
     case 'pest': return v('fhr','FHR_TAC') ? v('fhr','FHR_PCT') : null;
@@ -2808,6 +2830,8 @@ function wfParts(lv, c){ if (!wfGate(lv, c)) return [null, []];
   const wA = parts.reduce((t, p) => t + (p[2] == null ? 0 : p[3]), 0), pts = parts.reduce((t, p) => t + (p[2] || 0), 0);
   return [wA >= 40 ? Math.round(100 * pts / wA) : null, parts]; }
 const wfScore = (lv, c) => wfParts(lv, c)[0];
+{ const tq = Q.find(q => q.id === 'tvul'); if (tq) tq.m.push({id:'tfall', label:'Tree fall vulnerability', int:1, brkP:[.4,.7,.85,.95], none:'No forest mapped', fn:(lv, c) => wfScore(lv, c), showFn:v => v + ' of 100',
+  note:'0 to 100: a screening score for where trees are most likely to come down across the trail, from topographic exposure, storm and wind exposure, shallow or wet rooting soils, forest weakened by pests, and shallow-rooted conifer forest, scaled to 100 over the factors with data. Tree size and form and plot-level storm history are not in it yet; the windfall study’s models will replace it.'}); }
 /* the spread measures for one priority invasive live inside the invasives question; they open from its Priority invasives measure */
 { const inv = Q.find(q => q.id === 'inv'), ph = Q.find(q => q.id === 'phen');
   if (inv && ph) ph.m.filter(m => m.id === 'spread' || m.id === 'share').forEach(m => inv.m.push(Object.create(m, {pinv:{value:true}}))); }
@@ -3036,6 +3060,7 @@ function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
   if (WX && !WX.done && S.ext === 'corr') wxApply();
   if (TSL && !TSL.done && S.ext === 'corr') tslApply();
   if (typeof FHR !== 'undefined' && FHR && !FHR.done && S.ext === 'corr') fhrApply();
+  if (typeof TOPO !== 'undefined' && TOPO && !TOPO.done && S.ext === 'corr') topoApply();
   const lv = dispLevel();
   if (shown !== lv){ if (shown) map.removeLayer(GROUP[shown]); group(lv); shown = lv; restyle(); if (S.cells) GROUP[lv].addTo(map); }
   else restyle();
@@ -3068,7 +3093,7 @@ function extLoad(){ if (EXT.huc) return Promise.resolve(); if (extLoading) retur
       fetch(TSLHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(t => { if (t && t.themes) H.themes.slope = thConv(t, 'slope', H.levels); }).catch(() => {})]).then(() => { EXT.huc = H; }); });
   extLoading.catch(() => {}).then(() => { extLoading = null; });
   return extLoading; }
-function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.geo) D.themes.geo = {}; if (!D.themes.vis) D.themes.vis = {}; if (!D.themes.wx) D.themes.wx = {}; if (!D.themes.slope) D.themes.slope = {}; if (!D.themes.fhr) D.themes.fhr = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
+function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.geo) D.themes.geo = {}; if (!D.themes.vis) D.themes.vis = {}; if (!D.themes.wx) D.themes.wx = {}; if (!D.themes.slope) D.themes.slope = {}; if (!D.themes.fhr) D.themes.fhr = {}; if (!D.themes.topo) D.themes.topo = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
   for (const th in D.themes){ ROW[th] = {}; for (const lv in D.themes[th]){ const a = new Int32Array(D.levels[lv].id.length).fill(-1); D.themes[th][lv].ix.forEach((c,k) => a[c] = k); ROW[th][lv] = a; } }
   for (const lv in D.levels){ const m = new Map(); D.levels[lv].id.forEach((id,i) => m.set(id,i)); IDX[lv] = m; }
   BRK.clear(); for (const k in COVER) delete COVER[k]; for (const k in RINGS) delete RINGS[k]; }
@@ -3565,7 +3590,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
   const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : '';
   h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map((m, k, a) => (m.grp && (!k || a[k - 1].grp !== m.grp) ? `</div><h4 class="mgrp">${esc(m.grp)}</h4><div class="chips" role="group" aria-label="${esc(m.grp)}">` : '') + `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
-    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find ? blk('tvw', 'Model weights', `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
+    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find ? blk('tvw', 'Model weights', S.m.id === 'tfall' ? `<div id="tfwts">${tfWeightsHTML()}</div>` : `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
   const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
@@ -4196,7 +4221,7 @@ function expQ(t){ t = String(t);
 const expRank = t => { if (/^About/.test(String(t))) return -2; const q = expQ(t); return q === null ? -1 : q === 'zz' ? 99 : qRank(q); };
 /* Cells columns: the base columns, then each question's columns in the order of the questions */
 const COLQ = [[/^(veg_|nlcd_)/, 'veg'], [/^inat_(invasive|priority)/, 'inv'], [/^inat_forest_pests/, 'pest'], [/^inat_/, 'rec'], [/^ebird_/, 'bird'], [/^unique_species/, 'pri'],
-  [/^feat_/, 'feat'], [/^land_/, 'land'], [/^cultural_/, 'cult'], [/^visit_/, 'eff'], [/^(trail_vuln|trail_miles|trail_grade|trail_over|trail_side|trail_slope|trail_fall)/, 'tvul'], [/^wx_/, 'wx'], [/^forest_(pest_risk|windfall)/, 'pest']];
+  [/^feat_/, 'feat'], [/^land_/, 'land'], [/^cultural_/, 'cult'], [/^visit_/, 'eff'], [/^(trail_vuln|trail_miles|trail_grade|trail_over|trail_side|trail_slope|trail_fall|trail_tree|trail_topo)/, 'tvul'], [/^wx_/, 'wx'], [/^forest_pest_risk/, 'pest']];
 function expOrder(d){ d.cells = d.cells.map(r => { const ks = Object.keys(r), base = [], rest = [];
     ks.forEach((k, i) => { const m = COLQ.find(e => e[0].test(k)); if (m) rest.push([qRank(m[1]), i, k]); else base.push(k); });
     rest.sort((a, b) => a[0] - b[0] || a[1] - b[1]); const o = {}; base.concat(rest.map(x => x[2])).forEach(k => o[k] = r[k]); return o; });
@@ -4278,10 +4303,10 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
       land_administrators:n('lands','N_MGR'), land_pct_of_cell_mapped:n('lands','PCT_LAND'),
       cultural_plant_species:blank(cultCount(lv, c)), cultural_plant_records:cultReady(lv) ? n('inat','N_CULT_OBS') : '',
       visit_observer_days_per_year:(x => x == null ? '' : Math.round(x * 10) / 10)(visRecent(lv, c)), visit_average_years:visFull() - 2 + '-' + visFull(), visit_unique_observers:n('vis','VIS_OBSR'), visit_peak_month:v('vis','VIS_PEAK',c) ? CATCOL.VIS_PEAK[v('vis','VIS_PEAK',c) - 1][0] : '', visit_records_per_observer_day:n('vis','VIS_RPD'),
-      trail_vulnerability_score:blank(tvScore(lv, c)), ...Object.fromEntries(tvParts(lv, c)[1].map(p => ['trail_vuln_pts_' + p[0], p[2] == null ? '' : Math.round(p[2] * 10) / 10])),
+      trail_vulnerability_score:blank(tvScore(lv, c)), trail_tree_fall_vulnerability:blank(wfScore(lv, c)), trail_topo_exposed_pct:n('topo','TOPO_EXP'), ...Object.fromEntries(tvParts(lv, c)[1].map(p => ['trail_vuln_pts_' + p[0], p[2] == null ? '' : Math.round(p[2] * 10) / 10])),
       trail_miles_measured:n('slope','TS_MI'), trail_grade_avg_pct:n('slope','TS_GRADE'), trail_over_10pct_grade_pct:n('slope','TS_G10'), trail_over_20pct_grade_pct:n('slope','TS_G20'),
       trail_side_slope_avg_pct:n('slope','TS_SIDE'), trail_slope_alignment_avg_deg:n('slope','TS_SAA'), trail_fall_line_pct:n('slope','TS_FALL'),
-      forest_windfall_risk_screening:blank(wfScore(lv, c)), forest_pest_risk_pct_of_treed:n('fhr','FHR_PCT'), forest_pest_risk_acres:n('fhr','FHR_AC'), forest_pest_risk_treed_acres:n('fhr','FHR_TAC'),
+      forest_pest_risk_pct_of_treed:n('fhr','FHR_PCT'), forest_pest_risk_acres:n('fhr','FHR_AC'), forest_pest_risk_treed_acres:n('fhr','FHR_TAC'),
       wx_precip_in_per_year:n('wx','WX_PPT'), wx_wettest_month:v('wx','WX_WETM',c) != null ? MONTHS_LONG[v('wx','WX_WETM',c)] : '', wx_mean_temp_f:n('wx','WX_TMEAN'), wx_july_high_f:n('wx','WX_TMAX7'), wx_january_low_f:n('wx','WX_TMIN1'),
       wx_frost_free_days:n('wx','WX_FROSTFREE'), wx_heavy_rain_days_per_year:n('wx','WX_HEAVY'), wx_25yr_24hr_storm_in:n('wx','WX_P25'), wx_wind_mph_gridmet:n('wx','WX_WIND'), wx_windy_days_per_year_gridmet:n('wx','WX_WINDY'),
       wx_damaging_wind_events:n('wx','WX_EV_WIND'), wx_winter_storm_events:n('wx','WX_EV_WINTER'), wx_storm_event_years:wxYears() ? wxYears().join('-') : '',
