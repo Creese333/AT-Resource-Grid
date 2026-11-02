@@ -2,18 +2,23 @@
 Topographic wind exposure for the A.T. Resource Grid: a factor in the windfall risk screening score
 ("Where is the treadway most at risk?", Tree fall vulnerability).
 
-From USGS 3DEP 1 arc-second elevation (about 30 m; the 1-degree cloud-optimized GeoTIFFs, read at their first overview, about
-60 m, so only a few MB per tile are fetched). Each grid cell is sampled on a regular grid of points (as the weather build does).
-At every point the topographic position index (TPI) is the point's elevation minus the mean elevation 1 km away in eight
-directions: ridges, summits and upper slopes stand above their surroundings and take the wind; hollows and coves are sheltered.
-  TOPO_TPI   mean TPI of the cell's points, m (positive: the cell sits high in its landscape)
-  TOPO_EXP   share of the cell's points that are exposed (TPI over 25 m), %
+Measured on the trail itself: points every 30 m along the A.T. centerline (the same centerline and stations as the trail slope
+build, scripts/build_trail_slope.py), with elevations from USGS 3DEP 1 arc-second (the 1-degree cloud-optimized GeoTIFFs, read at
+their first overview, about 60 m, so only a few MB per tile are fetched). At every point the topographic position index (TPI) is
+the point's elevation minus the mean elevation 1 km away in eight directions: ridges, summits and upper slopes stand above their
+surroundings and take the wind; gaps, hollows and coves are sheltered.
+High-use areas count too: shelters, campsites, privies, parking areas and vistas from the A.T. facilities inventory (the points in
+index.html) are measured the same way, and each counts as much as 300 m of trail (SITE_W points), since people gather and camp there.
+  TOPO_TPI   mean TPI of the trail and high-use sites in the cell, m (positive: they sit high in their landscape)
+  TOPO_EXP   share of the trail and high-use sites in the cell that is exposed (TPI over 25 m), %
+  TOPO_SITE  high-use sites in the cell, and TOPO_SITE_EXP how many of them are exposed
+  TOPO_N     trail points measured in the cell (30 m apart); cells with fewer than 5 and no site are left empty
 
   python scripts/build_topo_exposure.py
-Writes data/topo_exposure.json (A.T. corridor cells; the treadway question is corridor only). Needs geopandas, shapely, rasterio, numpy.
+Writes data/topo_exposure.json (A.T. corridor cells; the treadway question is corridor only). Needs geopandas, pyogrio, shapely, pyproj, rasterio, numpy.
 Terrain does not change: run it once, and again only if the grid changes.
 """
-import json, os, re, time
+import json, os, re, sys, time
 from datetime import date
 import numpy as np, geopandas as gpd, shapely, rasterio
 from shapely.geometry import Polygon
@@ -25,6 +30,8 @@ TILE = 'https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current
 POINTS = {'hex': 5, 'cog': 8, 'wheel': 12}
 RADIUS = 1000.0            # m, the ring the point is compared with
 EXPOSED = 25.0             # m above the ring's mean elevation
+SITES = {'Shelter', 'Campsite', 'Privy', 'Parking', 'Vista'}
+SITE_W = 10                # a high-use site counts as 10 trail points (300 m of trail)
 
 
 def rings_of(L):
@@ -105,22 +112,35 @@ def tpi(dem, x, y):
 
 
 def main():
-    t0 = time.time(); grids = load_grids(); dem = DEM()
-    meta = {'built': date.today().isoformat(), 'source': 'USGS 3D Elevation Program, 1 arc-second DEM (read at about 60 m)', 'radius_m': RADIUS, 'exposed_m': EXPOSED}
-    for ext, L in grids.items():
-        themes = {}
-        for lv, cells in L.items():
-            x, y, own = sample_points(cells, lv); n = len(cells)
-            v = tpi(dem, x, y); ok = np.isfinite(v)
-            s = np.bincount(own[ok], weights=v[ok], minlength=n); k = np.bincount(own[ok], minlength=n)
-            e = np.bincount(own[ok], weights=(v[ok] > EXPOSED).astype(float), minlength=n)
-            with np.errstate(all='ignore'):
-                mean = np.where(k > 0, s / k, np.nan); share = np.where(k > 0, 100 * e / k, np.nan)
-            f = {'TOPO_TPI': [None if not np.isfinite(m) else int(round(m)) for m in mean], 'TOPO_EXP': [None if not np.isfinite(p) else round(float(p), 1) for p in share]}
-            themes[lv] = {'ids': cells['id'].tolist(), 'f': f}
-            print(f'{ext} {lv}: {n} cells, {len(x):,} points, median exposed {np.nanmedian(share):.0f}% ({time.time() - t0:.0f} s, {len(dem.t)} tiles)', flush=True)
-        json.dump({'run': date.today().isoformat(), 'meta': dict(meta, missing_tiles=dem.bad), 'themes': {'topo': themes}}, open(OUT[ext], 'w', encoding='utf-8'), separators=(',', ':'))
-        print('wrote', OUT[ext], f'{os.path.getsize(OUT[ext]) / 1e6:.1f} MB', flush=True)
+    t0 = time.time(); sys.path.insert(0, SCRIPTS); import build_trail_slope as ts
+    grids = ts.load_grids()                                           # in EPSG:5070, like the stations
+    x, y, u, v, part = ts.stations(ts.centerline())
+    x, y = x[::3], y[::3]                                             # every 30 m
+    ll = gpd.GeoSeries(gpd.points_from_xy(x, y), crs=ts.AEA).to_crs(4326); lon, lat = ll.x.values, ll.y.values
+    dem = DEM(); v = tpi(dem, lon, lat); ok = np.isfinite(v)
+    print(f'{len(lon):,} trail points; median TPI {np.nanmedian(v):.0f} m; {np.mean(v[ok] > EXPOSED) * 100:.0f}% exposed ({time.time() - t0:.0f} s, {len(dem.t)} tiles)', flush=True)
+    meta = {'built': date.today().isoformat(), 'source': 'USGS 3D Elevation Program, 1 arc-second DEM (read at about 60 m), on the A.T. centerline every 30 m', 'radius_m': RADIUS, 'exposed_m': EXPOSED, 'missing_tiles': dem.bad}
+    h = open(ts.INDEX, encoding='utf-8').read()
+    P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', h, re.S).group(1))
+    st = [f for f in (P.get('feat') or []) if f[0] in SITES and f[3] is not None]
+    slat = np.array([f[3] for f in st], float); slon = np.array([f[4] for f in st], float)
+    sv = tpi(dem, slon, slat) if len(st) else np.array([]); sok = np.isfinite(sv)
+    sxy = gpd.GeoSeries(gpd.points_from_xy(slon, slat), crs=4326).to_crs(ts.AEA); sx, sy = sxy.x.values, sxy.y.values
+    print(f'{len(st):,} high-use sites; {np.mean(sv[sok] > EXPOSED) * 100 if sok.any() else 0:.0f}% exposed', flush=True)
+    meta['sites'] = sorted(SITES); meta['site_weight_points'] = SITE_W
+    themes = {}
+    for lv, cells in grids['corr'].items():
+        own = ts.owners(cells, x, y); n = len(cells); m = (own >= 0) & ok
+        s_ = np.bincount(own[m], weights=v[m], minlength=n); k = np.bincount(own[m], minlength=n).astype(float); e = np.bincount(own[m], weights=(v[m] > EXPOSED).astype(float), minlength=n)
+        so = ts.owners(cells, sx, sy) if len(st) else np.array([], int); sm = (so >= 0) & sok
+        ns = np.bincount(so[sm], minlength=n); nse = np.bincount(so[sm], weights=(sv[sm] > EXPOSED).astype(float), minlength=n); ssum = np.bincount(so[sm], weights=sv[sm], minlength=n)
+        W = k + SITE_W * ns; keep = np.flatnonzero((k >= 5) | (ns > 0))
+        themes[lv] = {'ids': [cells['id'].iat[i] for i in keep], 'f': {
+            'TOPO_TPI': [int(round((s_[i] + SITE_W * ssum[i]) / W[i])) for i in keep], 'TOPO_EXP': [round(100 * (e[i] + SITE_W * nse[i]) / W[i], 1) for i in keep],
+            'TOPO_SITE': [int(ns[i]) for i in keep], 'TOPO_SITE_EXP': [int(nse[i]) for i in keep], 'TOPO_N': [int(k[i]) for i in keep]}}
+        print(f'{lv}: {len(keep)} cells with trail or high-use sites measured', flush=True)
+    json.dump({'run': date.today().isoformat(), 'meta': meta, 'themes': {'topo': themes}}, open(OUT['corr'], 'w', encoding='utf-8'), separators=(',', ':'))
+    print('wrote', OUT['corr'], f'{os.path.getsize(OUT["corr"]) / 1e6:.2f} MB ({time.time() - t0:.0f} s)', flush=True)
     if dem.bad: print('tiles not read:', ', '.join(dem.bad), flush=True)
 
 
