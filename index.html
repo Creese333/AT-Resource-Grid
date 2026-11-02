@@ -2580,7 +2580,7 @@ function tfWeightsHTML(){ if (!TFD) TFD = Object.assign({}, WFW); const tot = WF
     `<p class="tvleft${left ? ' due' : ''}">${left > 0 ? `<b>${f1(left)}</b> ${left === 1 ? 'point' : 'points'} left to assign. Raise a factor to use ${left === 1 ? 'it' : 'them'}.` : 'All 100 points are assigned.'}${changed ? ' Press Apply to update the scores.' : ''}</p>` +
     `<div class="tvbtns"><button type="button" class="tvapply" data-tfapply="1"${changed && !left ? '' : ' disabled'}>Apply</button>` +
     (changed ? '<button type="button" class="lbtn" data-tfundo="1">Undo changes</button>' : '') + (isRec ? '' : '<button type="button" class="lbtn" data-tfreset="1">Reset to recommended</button>') + '</div>' +
-    `<details class="tfabout"${store.get('tfabout', false) ? ' open' : ''}><summary>About the weights</summary><p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. Recommended weights put the most on exposure, since wind speed and gusts rise sharply on ridges and summits where much of the trail runs, then on storm history, rooting depth, pest-weakened trees and shallow-rooted conifers. Ice and winter storms and windy days add smaller amounts. This is a screening score: tree size, height-to-diameter ratio, crown form, vigor and documented windfall events from the windfall study will refine or replace it.</p></details>`; }
+    `<details class="tfabout"${store.get('tfabout', false) ? ' open' : ''}><summary>About the weights</summary><p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. Recommended weights put the most on exposure, since wind speed and gusts rise sharply on ridges and summits where much of the trail runs, then on storm history, pest-weakened trees and shallow-rooted conifers, with rooting depth and high-use areas (shelters, campsites, parking and vistas, where people gather under the trees) next. Ice and winter storms and windy days add smaller amounts. This is a screening score: tree size, height-to-diameter ratio, crown form, vigor and documented windfall events from the windfall study will refine or replace it.</p></details>`; }
 const tfDraw = () => { const el = $('#tfwts'); if (el) el.innerHTML = tfWeightsHTML(); };
 document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('tfabout')) store.set('tfabout', e.target.open); }, true);
 document.addEventListener('click', e => { const s = e.target.closest('[data-tfs]');
@@ -2803,25 +2803,28 @@ for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
      note:'Share of the treed area where 25% or more of the tree basal area is expected to die from insects and diseases over 2024 to 2038, without treatment (USDA Forest Service 2024 National Insect and Disease Risk Map, 240 m).'}]); }
 /* tree fall vulnerability (screening): factors [key, label, weight, note] */
 const WFDEF = [
-  ['expo', 'Topographic exposure', 20, 'Share of the cell on ridges, summits and upper slopes, standing 25 m or more above the ground 1 km around (USGS 3DEP elevation): where wind is strongest'],
+  ['expo', 'Topographic exposure', 20, 'Share of the trail and high-use sites in the cell on ridges, summits and upper slopes, 25 m or more above the ground 1 km around (USGS 3DEP elevation, measured every 30 m on the centerline; each shelter, campsite, privy, parking area or vista counts as 300 m of trail): where wind is strongest'],
   ['wind', 'Damaging wind events', 15, 'Thunderstorm, high and strong wind and tornado reports per year (NOAA Storm Events), ranked among cells'],
   ['winter', 'Ice and winter storms', 10, 'Ice storm, winter storm, heavy snow and blizzard reports per year (NOAA Storm Events), ranked among cells: ice and wet snow load crowns'],
   ['windy', 'Windy days', 5, 'Days a year with a daily mean wind of 15 mph or more (gridMET), ranked among cells'],
-  ['root', 'Shallow or wet rooting soils', 15, 'Share of the soils with bedrock within 50 cm or poorly drained (gSSURGO): roots cannot anchor deeply'],
+  ['root', 'Shallow or wet rooting soils', 10, 'Share of the soils with bedrock within 50 cm or poorly drained (gSSURGO): roots cannot anchor deeply'],
   ['pest', 'Forest weakened by pests', 15, 'Share of the treed area at risk of losing 25% or more of its basal area to insects and diseases (USFS 2024 risk map), ranked among cells'],
-  ['conif', 'Shallow-rooted conifer forest', 20, 'Share of the mapped vegetation in spruce, fir, hemlock, pine and cedar types (APPA vegetation map): shallow roots and winter crowns that catch wind and ice']];
+  ['use', 'High-use areas', 10, 'Shelters, campsites, privies, parking areas and vistas (A.T. facilities inventory), ranked among cells: where people gather, camp and park under the trees'],
+  ['conif', 'Shallow-rooted conifer forest', 15, 'Share of the mapped vegetation in spruce, fir, hemlock, pine and cedar types (APPA vegetation map): shallow roots and winter crowns that catch wind and ice']];
 const WFW = Object.fromEntries(WFDEF.map(d => [d[0], d[2]])), WFD0 = Object.assign({}, WFW), WFRANK = {}, WFCONIF = /spruce|fir\b|fir -|hemlock|pine|cedar|conifer|krumholz/i;
 let WFCX = null;
 function wfRaw(k, lv, c){ const v = (th, f) => val(th, f, lv, c);
   switch (k){
+    case 'use': return ['N_SHELTER','N_CAMPSITE','N_PRIVY','N_PARKING','N_VISTA'].reduce((t, f) => t + (v('feat', f) || 0), 0);
     case 'expo': { const e = v('topo','TOPO_EXP'); return e == null ? null : Math.min(1, e / 100); }
     case 'wind': return v('wx','WX_EV_WIND'); case 'winter': return v('wx','WX_EV_WINTER'); case 'windy': return v('wx','WX_WINDY');
     case 'root': { const a = v('soil','SHALLOW_ROCK'), b = v('soil','POOR_DRAIN'); return a == null && b == null ? null : Math.min(1, ((a || 0) + (b || 0)) / 100); }
     case 'pest': return v('fhr','FHR_TAC') ? v('fhr','FHR_PCT') : null;
     case 'conif': { const cp = v('veg','COMP'); if (!cp) return null; if (!WFCX || WFCX.n !== D.cats.DOM_TYPE.length) WFCX = {n:D.cats.DOM_TYPE.length, s:new Set(D.cats.DOM_TYPE.map((t, i) => WFCONIF.test(t) ? i : -1).filter(i => i >= 0))};
       let s = 0; for (let i = 0; i < cp.length; i += 2) if (WFCX.s.has(cp[i])) s += cp[i + 1]; return Math.min(1, s / 100); } } }
-const wfRanked = k => k === 'wind' || k === 'winter' || k === 'windy' || k === 'pest';
-function wfGate(lv, c){ return (val('fhr','FHR_TAC',lv,c) || 0) > 0 || (val('veg','L1_FOREST',lv,c) || 0) > 0; }
+const wfRanked = k => k === 'wind' || k === 'winter' || k === 'windy' || k === 'pest' || k === 'use';
+/* scored where the trail runs (trail slope build) or there is a high-use site, in forest: the APPA vegetation map decides where it covers the cell, the USFS treed area elsewhere */
+function wfGate(lv, c){ if (tvSlopeOn() && !((val('slope','TS_MI',lv,c) || 0) > 0) && !['N_SHELTER','N_CAMPSITE','N_PRIVY','N_PARKING','N_VISTA'].some(f => (val('feat', f, lv, c) || 0) > 0)) return false; return has('veg', lv, c) ? (val('veg','L1_FOREST',lv,c) || 0) > 0 : (val('fhr','FHR_TAC',lv,c) || 0) > 0; }
 function wfScale(k, lv, c){ const x = wfRaw(k, lv, c); if (x == null) return null; if (!wfRanked(k)) return Math.max(0, Math.min(1, x)); if (!(x > 0)) return 0;
   const key = k + '|' + lv + '|' + S.ext; let R = WFRANK[key]; if (!R || R.lev !== D.levels[lv]){ const a = []; for (let i = 0; i < D.levels[lv].id.length; i++) if (wfGate(lv, i)){ const y = wfRaw(k, lv, i); if (y > 0) a.push(y); } R = WFRANK[key] = {lev:D.levels[lv], a:a.sort((p, q) => p - q)}; }
   const a = R.a; if (!a.length) return 0; let lo = 0, hi = a.length; while (lo < hi){ const mid = (lo + hi) >> 1; if (a[mid] <= x) lo = mid + 1; else hi = mid; } return lo / a.length; }
@@ -2831,7 +2834,7 @@ function wfParts(lv, c){ if (!wfGate(lv, c)) return [null, []];
   return [wA >= 40 ? Math.round(100 * pts / wA) : null, parts]; }
 const wfScore = (lv, c) => wfParts(lv, c)[0];
 { const tq = Q.find(q => q.id === 'tvul'); if (tq) tq.m.push({id:'tfall', label:'Tree fall vulnerability', int:1, brkP:[.4,.7,.85,.95], none:'No forest mapped', fn:(lv, c) => wfScore(lv, c), showFn:v => v + ' of 100',
-  note:'0 to 100: a screening score for where trees are most likely to come down across the trail, from topographic exposure, storm and wind exposure, shallow or wet rooting soils, forest weakened by pests, and shallow-rooted conifer forest, scaled to 100 over the factors with data. Tree size and form and plot-level storm history are not in it yet; the windfall study’s models will replace it.'}); }
+  note:'0 to 100: a screening score for where trees are most likely to come down across the trail and at shelters, campsites, parking and vistas, from topographic exposure, high-use areas, storm and wind exposure, shallow or wet rooting soils, forest weakened by pests, and shallow-rooted conifer forest, scaled to 100 over the factors with data. Tree size and form and plot-level storm history are not in it yet; the windfall study’s models will replace it.'}); }
 /* the spread measures for one priority invasive live inside the invasives question; they open from its Priority invasives measure */
 { const inv = Q.find(q => q.id === 'inv'), ph = Q.find(q => q.id === 'phen');
   if (inv && ph) ph.m.filter(m => m.id === 'spread' || m.id === 'share').forEach(m => inv.m.push(Object.create(m, {pinv:{value:true}}))); }
