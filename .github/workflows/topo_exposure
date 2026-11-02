@@ -1,0 +1,36 @@
+# Builds topo_exposure.json for "Where is the treadway most at risk?" (Tree fall vulnerability): how much of each A.T. corridor
+# grid cell sits on ridges, summits and upper slopes, from USGS 3DEP 1 arc-second elevation. Terrain does not change, so run it
+# once from the Actions tab ("Run workflow"), and again only if the grid changes.
+name: Topographic exposure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install geopandas pyogrio shapely pyproj rasterio numpy
+      - name: Build topo_exposure.json
+        run: python scripts/build_topo_exposure.py
+      - name: Commit if changed
+        run: |
+          git config user.name  "topo-exposure-bot"
+          git config user.email "actions@users.noreply.github.com"
+          if [ -f data/topo_exposure.json ]; then git add data/topo_exposure.json; fi
+          git diff --cached --quiet && exit 0
+          git commit -m "Update topographic exposure"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1
