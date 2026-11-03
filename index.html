@@ -2584,7 +2584,7 @@ function tfWeightsHTML(){ if (!TFD) TFD = Object.assign({}, WFW); const tot = WF
     `<p class="tvleft${left ? ' due' : ''}">${left > 0 ? `<b>${f1(left)}</b> ${left === 1 ? 'point' : 'points'} left to assign. Raise a factor to use ${left === 1 ? 'it' : 'them'}.` : 'All 100 points are assigned.'}${changed ? ' Press Apply to update the scores.' : ''}</p>` +
     `<div class="tvbtns"><button type="button" class="tvapply" data-tfapply="1"${changed && !left ? '' : ' disabled'}>Apply</button>` +
     (changed ? '<button type="button" class="lbtn" data-tfundo="1">Undo changes</button>' : '') + (isRec ? '' : '<button type="button" class="lbtn" data-tfreset="1">Reset to recommended</button>') + '</div>' +
-    `<details class="tfabout"${store.get('tfabout', false) ? ' open' : ''}><summary>About the weights</summary><p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. The score multiplies three parts, so a place ranks high only where they line up: wind loading (exposure and storm history), tree weakness (mortality mapped from the air, pest risk, hemlock under attack, tall canopy, rooting soils, conifers) and people at risk (the trail, more at shelters, campsites, parking and vistas). Within each part, factors count by their weights; each part counts by the total of its weights. Exposure carries the most, since wind rises sharply on summits and exposed ridges; mapped mortality is the strongest sign of trees already coming down. Ice and winter storms and windy days add smaller amounts. This is a screening score: tree size, height-to-diameter ratio, crown form, vigor and documented windfall events from the windfall study will refine or replace it.</p></details>`; }
+    `<details class="tfabout"${store.get('tfabout', false) ? ' open' : ''}><summary>About the weights</summary><p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. The score multiplies three parts, so a place ranks high only where they line up: wind loading (exposure and storm history), tree weakness (forest pests and disease, shallow rooting, tall canopy) and people at risk (the trail, more at shelters, campsites, parking and vistas). Within each part, factors count by their weights. Wind loading and tree weakness are then ranked among the cells, so each part pulls by its total weight. Exposure carries the most, since wind rises sharply on summits and exposed ridges; forest pests and disease come next, since dead and dying trees are the ones that come down. Ice and winter storms and windy days add smaller amounts. This is a screening score: tree size, height-to-diameter ratio, crown form, vigor and documented windfall events from the windfall study will refine or replace it.</p></details>`; }
 const tfDraw = () => { const el = $('#tfwts'); if (el) el.innerHTML = tfWeightsHTML(); };
 document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('tfabout')) store.set('tfabout', e.target.open); }, true);
 document.addEventListener('click', e => { const s = e.target.closest('[data-tfs]');
@@ -2811,14 +2811,11 @@ for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
 /* tree fall vulnerability (screening): factors [key, label, weight, note, part] */
 const WFG = {load:'Wind loading', weak:'Tree weakness', people:'People at risk'};
 const WFDEF = [
-  ['expo', 'Topographic exposure', 20, 'How high the trail and high-use sites sit above the ground 1 km around (USGS 3DEP elevation, every 30 m on the centerline), ranked among trail cells: summits, knobs and exposed ridges take the strongest wind', 'load'],
+  ['expo', 'Topographic exposure', 30, 'How high the trail and high-use sites sit above the ground 1 km around (USGS 3DEP elevation, every 30 m on the centerline), ranked among trail cells: summits, knobs and exposed ridges take the strongest wind', 'load'],
   ['storm', 'Storm history', 10, 'Damaging wind, ice storm and winter storm reports per year (NOAA Storm Events, by county or forecast zone), ranked among cells', 'load'],
-  ['mort', 'Tree mortality mapped from the air', 15, 'Share of the trail and high-use sites inside areas mapped with tree mortality since 2016 (USFS Insect and Disease Survey aerial detection)', 'weak'],
-  ['pest', 'Forest at risk from pests', 10, 'Share of the treed area at risk of losing 25% or more of its basal area to insects and diseases (USFS 2024 risk map), ranked among cells', 'weak'],
-  ['hem', 'Hemlock under attack', 10, 'Share of the mapped vegetation in hemlock types (APPA vegetation map), counted in full where hemlock woolly adelgid or elongate hemlock scale is recorded in the cell and at 40% elsewhere', 'weak'],
+  ['pest', 'Forest pests and disease', 25, 'The highest of three signs of trees weakened by insects and disease: modeled risk of losing 25% or more of the basal area (USFS 2024 risk map, ranked among cells); damage mapped from the air since 2016 along the trail and at high-use sites (USFS Insect and Disease Survey, mortality in full and defoliation at half); and hemlock types (APPA vegetation map), counted in full where hemlock woolly adelgid or elongate hemlock scale is recorded in the cell', 'weak'],
+  ['root', 'Shallow rooting', 15, 'The higher of the share of soils with bedrock within 50 cm or poorly drained (gSSURGO) and the share of the mapped vegetation in shallow-rooted spruce, fir, hemlock, pine and cedar types (APPA vegetation map)', 'weak'],
   ['tall', 'Tall canopy', 10, 'Average canopy height along the trail and at high-use sites (LANDFIRE forest canopy height), ranked among cells: taller trees catch more wind and reach farther when they fall', 'weak'],
-  ['root', 'Shallow or wet rooting soils', 10, 'Share of the soils with bedrock within 50 cm or poorly drained (gSSURGO): roots cannot anchor deeply', 'weak'],
-  ['conif', 'Shallow-rooted conifer forest', 5, 'Share of the mapped vegetation in spruce, fir, hemlock, pine and cedar types (APPA vegetation map)', 'weak'],
   ['use', 'High-use areas', 10, 'Shelters, campsites, privies, parking areas and vistas (A.T. facilities inventory), ranked among cells. Every scored cell has trail, so this part never drops below half', 'people']];
 const WFW = Object.fromEntries(WFDEF.map(d => [d[0], d[2]])), WFD0 = Object.assign({}, WFW), WFRANK = {}, WFCONIF = /spruce|fir\b|fir -|hemlock|pine|cedar|conifer|krumholz/i;
 let WFCX = null, WFHX = null;
@@ -2829,33 +2826,46 @@ function wfRaw(k, lv, c){ const v = (th, f) => val(th, f, lv, c);
   switch (k){
     case 'expo': return v('topo','TOPO_TPI');
     case 'storm': { const a = v('wx','WX_EV_WIND'), b = v('wx','WX_EV_WINTER'); return a == null && b == null ? null : (a || 0) + (b || 0); }
-    case 'mort': { const m = v('topo','IDS_MORT'); return m == null ? null : Math.min(1, m / 100); }
-    case 'pest': return v('fhr','FHR_TAC') ? v('fhr','FHR_PCT') : null;
-    case 'hem': { const cp = v('veg','COMP'); if (!cp) return null; WFHX = wfTypes(/hemlock/i, WFHX); const sh = wfShare(cp, WFHX.s); if (!sh) return 0;
-      const pests = (invL('PEST_LIST', lv, c) || []).map(i => String(sppName(i).sci || '').toLowerCase()); return sh * (pests.some(s => /adelges tsugae|fiorinia externa/.test(s)) ? 1 : .4); }
+    case 'fhr': return v('fhr','FHR_TAC') ? v('fhr','FHR_PCT') : null;
+    case 'pest': { const r = wfScale('fhr', lv, c), m = v('topo','IDS_MORT'), d = v('topo','IDS_DEF'), cp = v('veg','COMP');
+      const dmg = m == null && d == null ? null : Math.min(1, ((m || 0) + .5 * (d || 0)) / 25);
+      let hem = null; if (cp){ WFHX = wfTypes(/hemlock/i, WFHX); const sh = wfShare(cp, WFHX.s);
+        hem = !sh ? 0 : Math.min(1, 2 * sh * ((invL('PEST_LIST', lv, c) || []).map(i => String(sppName(i).sci || '').toLowerCase()).some(t => /adelges tsugae|fiorinia externa/.test(t)) ? 1 : .4)); }
+      const xs = [r, dmg, hem].filter(x => x != null); return xs.length ? Math.max(...xs) : null; }
     case 'tall': return v('topo','CH_MEAN');
-    case 'root': { const a = v('soil','SHALLOW_ROCK'), b = v('soil','POOR_DRAIN'); return a == null && b == null ? null : Math.min(1, ((a || 0) + (b || 0)) / 100); }
-    case 'conif': { const cp = v('veg','COMP'); if (!cp) return null; WFCX = wfTypes(WFCONIF, WFCX); return wfShare(cp, WFCX.s); }
+    case 'root': { const a = v('soil','SHALLOW_ROCK'), b = v('soil','POOR_DRAIN'), cp = v('veg','COMP');
+      const so = a == null && b == null ? null : Math.min(1, ((a || 0) + (b || 0)) / 100); let cf = null; if (cp){ WFCX = wfTypes(WFCONIF, WFCX); cf = wfShare(cp, WFCX.s); }
+      return so == null && cf == null ? null : Math.max(so || 0, cf || 0); }
     case 'use': return WFFEAT.reduce((t, f) => t + (v('feat', f) || 0), 0); } }
-const wfRanked = k => k === 'storm' || k === 'pest' || k === 'use' || k === 'tall' || k === 'expo';
+const wfRanked = k => k === 'storm' || k === 'fhr' || k === 'use' || k === 'tall' || k === 'expo';
 /* scored where the trail runs (trail slope build) or there is a high-use site, in forest: the APPA vegetation map decides where it covers the cell, the USFS treed area elsewhere */
 function wfGate(lv, c){ if (tvSlopeOn() && !((val('slope','TS_MI',lv,c) || 0) > 0) && !WFFEAT.some(f => (val('feat', f, lv, c) || 0) > 0)) return false; return has('veg', lv, c) ? (val('veg','L1_FOREST',lv,c) || 0) > 0 : (val('fhr','FHR_TAC',lv,c) || 0) > 0; }
 /* ranked factors: where the cell stands among scored cells of its size (exposure counts every value, the others only those above 0) */
 function wfScale(k, lv, c){ const x = wfRaw(k, lv, c); if (x == null) return null; if (!wfRanked(k)) return Math.max(0, Math.min(1, x)); const all = k === 'expo'; if (!all && !(x > 0)) return 0;
   const key = k + '|' + lv + '|' + S.ext; let R = WFRANK[key]; if (!R || R.lev !== D.levels[lv]){ const a = []; for (let i = 0; i < D.levels[lv].id.length; i++) if (wfGate(lv, i)){ const y = wfRaw(k, lv, i); if (y != null && (all || y > 0)) a.push(y); } R = WFRANK[key] = {lev:D.levels[lv], a:a.sort((p, q) => p - q)}; }
   const a = R.a; if (!a.length) return 0; let lo = 0, hi = a.length; while (lo < hi){ const mid = (lo + hi) >> 1; if (a[mid] <= x) lo = mid + 1; else hi = mid; } return lo / a.length; }
-/* each part is the weighted average of its factors with data; the score multiplies the parts (a geometric mean weighted by each part's
-   total weight), so a cell scores high only where wind loading, tree weakness and people at risk are all high */
-function wfParts(lv, c){ if (!wfGate(lv, c)) return [null, []];
+/* each part is the weighted average of its factors with data. Wind loading and tree weakness are then ranked among scored cells, so each
+   part pulls by its weight rather than by how its layers happen to spread; the score multiplies the parts (a geometric mean weighted by
+   each part's total weight), so a cell scores high only where wind loading, tree weakness and people at risk are all high */
+function wfRawParts(lv, c){
   const parts = WFDEF.map(([k, lab, , , g]) => { const w = +WFW[k] || 0, s = wfScale(k, lv, c); return [k, lab, s == null ? null : w * s, w, g, s]; });
-  let lg = 0, wt = 0;
-  for (const g of Object.keys(WFG)){ const P = parts.filter(p => p[4] === g && p[5] != null && p[3] > 0); const W = P.reduce((t, p) => t + p[3], 0); if (!W) continue;
-    let v = P.reduce((t, p) => t + p[3] * p[5], 0) / W; if (g === 'people') v = .5 + .5 * v;
-    const Wg = WFDEF.filter(d => d[4] === g).reduce((t, d) => t + (+WFW[d[0]] || 0), 0); lg += Wg * Math.log(Math.max(.02, v)); wt += Wg; }
+  const pv = {};
+  for (const g of Object.keys(WFG)){ const P = parts.filter(p => p[4] === g && p[5] != null && p[3] > 0); const W = P.reduce((t, p) => t + p[3], 0);
+    pv[g] = W ? P.reduce((t, p) => t + p[3] * p[5], 0) / W : null; }
+  return [pv, parts]; }
+const WFPR = {};
+function wfPartRank(g, x, lv){ const key = g + '|' + lv + '|' + S.ext + '|' + WFDEF.map(d => WFW[d[0]]).join(','); let R = WFPR[key];
+  if (!R || R.lev !== D.levels[lv]){ const a = []; for (let i = 0; i < D.levels[lv].id.length; i++) if (wfGate(lv, i)){ const y = wfRawParts(lv, i)[0][g]; if (y != null) a.push(y); } R = WFPR[key] = {lev:D.levels[lv], a:a.sort((p, q) => p - q)}; }
+  const a = R.a; if (!a.length) return x; let lo = 0, hi = a.length; while (lo < hi){ const mid = (lo + hi) >> 1; if (a[mid] <= x) lo = mid + 1; else hi = mid; } return lo / a.length; }
+function wfParts(lv, c){ if (!wfGate(lv, c)) return [null, []];
+  const [pv, parts] = wfRawParts(lv, c); let lg = 0, wt = 0;
+  for (const g of Object.keys(WFG)){ let v = pv[g]; if (v == null) continue;
+    v = g === 'people' ? .5 + .5 * v : wfPartRank(g, v, lv);
+    const Wg = WFDEF.filter(d => d[4] === g).reduce((t, d) => t + (+WFW[d[0]] || 0), 0); if (!Wg) continue; lg += Wg * Math.log(Math.max(.02, v)); wt += Wg; }
   return [wt >= 40 ? Math.round(100 * Math.exp(lg / wt)) : null, parts]; }
 const wfScore = (lv, c) => wfParts(lv, c)[0];
 { const tq = Q.find(q => q.id === 'tvul'); if (tq) tq.m.push({id:'tfall', label:'Tree fall vulnerability', int:1, brkP:[.4,.7,.85,.95], none:'No forest mapped', fn:(lv, c) => wfScore(lv, c), showFn:v => v + ' of 100',
-  note:'0 to 100: a screening score for where trees are most likely to come down across the trail and at shelters, campsites, parking and vistas. It multiplies wind loading (topographic exposure, storm history), tree weakness (mortality mapped from the air, pest risk, hemlock under attack, tall canopy, rooting soils, conifers) and people at risk, so it is high only where all three line up. Tree size and form and plot-level storm history are not in it yet; the windfall study\u2019s models will replace it.'}); }
+  note:'0 to 100: a screening score for where trees are most likely to come down across the trail and at shelters, campsites, parking and vistas. It multiplies wind loading (topographic exposure, storm history), tree weakness (forest pests and disease, shallow rooting, tall canopy) and people at risk, so it is high only where all three line up. Tree size and form and plot-level storm history are not in it yet; the windfall study\u2019s models will replace it.'}); }
 /* the spread measures for one priority invasive live inside the invasives question; they open from its Priority invasives measure */
 { const inv = Q.find(q => q.id === 'inv'), ph = Q.find(q => q.id === 'phen');
   if (inv && ph) ph.m.filter(m => m.id === 'spread' || m.id === 'share').forEach(m => inv.m.push(Object.create(m, {pinv:{value:true}})));
