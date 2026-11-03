@@ -2175,7 +2175,7 @@ function tvRawText(k, x){ if (x == null) return 'no data'; switch (k){
 function tvFacts(lv, cells){ const ci = cells.filter(c => (val('slope','TS_MI',lv,c) || 0) > 0); if (!ci.length) return '';
   const mi = ci.reduce((t, c) => t + val('slope','TS_MI',lv,c), 0), w = f => ci.reduce((t, c) => t + (val('slope', f, lv, c) || 0) * val('slope','TS_MI',lv,c), 0) / mi;
   return `<div class="facts"><div><b>${fmt(w('TS_GRADE'), 0)}%</b>average grade</div><div><b>${fmt(w('TS_FALL'), 0)}%</b>on the fall line</div><div><b>${fmt(w('TS_G10'), 0)}%</b>of trail over 10%</div></div>` +
-    `<p style="font-size:13.5px">${fmt(mi, 1)} miles of trail measured; ${fmt(w('TS_G20'), 0)}% over 20% grade.</p>` + (tf => tf.length ? `<p style="font-size:13.5px">Tree fall vulnerability: <b>${Math.round(tf.reduce((s, v) => s + v, 0) / tf.length)}</b> of 100 (screening).</p>` : '')(ci.map(c => wfScore(lv, c)).filter(v => v != null)); }
+    `<p style="font-size:13.5px">${fmt(mi, 1)} miles of trail measured; ${fmt(w('TS_G20'), 0)}% over 20% grade.</p>`; }
 const tvNote = () => `A screening tool, not a trail condition assessment.${tvSlopeOn() ? '' : ' Trail slope has not been built yet (trail_slope.json), so these scores use soils, rain, the 25-year storm and use hot spots only, scaled to the factors with data.'}`;
 function tvBox(lv, cells){ let b = `<div class="sec" style="--hue:${HUE.tvul}"><h3>Trail vulnerability</h3>`; const many = cells.length > 1;
   const R = cells.map(c => [c, tvParts(lv, c)]).filter(x => x[1][0] != null);
@@ -2190,7 +2190,50 @@ function tvBox(lv, cells){ let b = `<div class="sec" style="--hue:${HUE.tvul}"><
     const txt = k === 'grade' && gs('TS_G10') != null ? `${fmt(gs('TS_G10'), 0)}% of the trail over 10% grade, ${fmt(gs('TS_G20'), 0)}% over 20%` : tvRawText(k, raw.length ? avg(raw) : null);
     return soilRow(`${lab} <span style="color:var(--muted)">(${txt}${many ? ', average' : ''})</span>`, `${fmt(avg(ps.map(p => p[2])), 0)} / ${w}`); }).join('') + '</div>';
   return b + `<p class="none" style="font-size:13.5px;margin-top:8px">${tvNote()}</p></div>`; }
-const tvSection = (lv, c) => tvBox(lv, [c]);
+const tvSection = (lv, c) => tvBox(lv, [c]) + tfBox(lv, [c]);
+/* tree fall vulnerability in the popup: the score and where it stands, what was measured at the trail and high-use sites, each
+   factor with its value and how high it runs here, and the forest pests recorded */
+const WFSC = {};
+function wfPct(lv, x){ const key = lv + '|' + S.ext + '|' + WFDEF.map(d => WFW[d[0]]).join(','); let R = WFSC[key];
+  if (!R || R.lev !== D.levels[lv]){ const a = []; for (let i = 0; i < D.levels[lv].id.length; i++){ const s = wfScore(lv, i); if (s != null) a.push(s); } R = WFSC[key] = {lev:D.levels[lv], a:a.sort((p, q) => p - q)}; }
+  const a = R.a; if (!a.length) return null; let lo = 0; while (lo < a.length && a[lo] < x) lo++; return Math.round(100 * lo / a.length); }
+const WFLEV = s => s == null ? '–' : s >= .67 ? 'High' : s >= .33 ? 'Moderate' : s > 0 ? 'Low' : 'None';
+const WFFEATN = {N_SHELTER:['shelter','shelters'], N_CAMPSITE:['campsite','campsites'], N_PRIVY:['privy','privies'], N_PARKING:['parking area','parking areas'], N_VISTA:['vista','vistas']};
+function tfBox(lv, cells){ if (!(D.themes.topo && D.themes.topo[lv])) return ''; const many = cells.length > 1;
+  let b = `<div class="sec" style="--hue:${HUE.tvul}"><h3>Tree fall vulnerability</h3>`;
+  const R = cells.map(c => [c, wfParts(lv, c)]).filter(x => x[1][0] != null);
+  if (!R.length) return b + `<p class="none">${cells.some(c => wfGate(lv, c)) ? 'Not enough data to score ' + (many ? 'the selected cells' : 'this cell') + '.' : 'No scored trail or high-use sites in forest ' + (many ? 'in the selected cells' : 'in this cell') + '.'}</p></div>`;
+  const cs = R.map(x => x[0]), sc = R.map(x => x[1][0]), avg = a => a.length ? a.reduce((t, x) => t + x, 0) / a.length : null;
+  const A = (th, f) => avg(cs.map(c => val(th, f, lv, c)).filter(v => v != null)), S_ = (th, f) => cs.reduce((t, c) => t + (val(th, f, lv, c) || 0), 0);
+  const m = Math.round(avg(sc)), pc = many ? null : wfPct(lv, m);
+  b += `<p><b>${m}</b> of 100${many ? ` on average <span style="color:var(--muted)">(${Math.min(...sc)} to ${Math.max(...sc)}; ${R.length} of ${cells.length} cells scored)</span>` : pc != null ? ` <span style="color:var(--muted)">· higher than ${pc}% of scored trail cells this size</span>` : ''}</p>`;
+  /* what was measured on the ground */
+  const exp = A('topo','TOPO_EXP'), tpi = A('topo','TOPO_TPI'), ch = A('topo','CH_MEAN'), mort = A('topo','IDS_MORT'), def = A('topo','IDS_DEF'), ns = S_('topo','TOPO_SITE'), nse = S_('topo','TOPO_SITE_EXP');
+  b += '<div class="facts">' + (exp != null ? `<div><b>${fmt(exp, 0)}%</b>of trail and sites exposed</div>` : '') + (ch != null ? `<div><b>${fmt(ch, 0)} m</b>average canopy height</div>` : '') +
+    (mort != null ? `<div><b>${fmt(Math.min(100, mort + (def || 0)), 0)}%</b>in tree damage mapped since 2016</div>` : '') + '</div>';
+  /* the factors */
+  const rows = WFDEF.map(([k, lab], i) => { const ss = R.map(x => x[1][1][i][5]).filter(v => v != null); const s = avg(ss); let t = '';
+    switch (k){
+      case 'expo': t = tpi == null ? 'no data' : `${fmt(Math.abs(tpi), 0)} m ${tpi >= 0 ? 'above' : 'below'} the ground 1 km around${exp != null ? `; ${fmt(exp, 0)}% of points exposed` : ''}`; break;
+      case 'storm': { const yr = typeof wxYears === 'function' && wxYears(); const w = A('wx','WX_EV_WIND'), wi = A('wx','WX_EV_WINTER'); t = w == null && wi == null ? 'no data' : `${fmt(w || 0, 0)} damaging wind and ${fmt(wi || 0, 0)} ice or winter storm reports${yr ? ', ' + yr.join('–') : ''}`; break; }
+      case 'pest': { const p = []; const fr = A('fhr','FHR_PCT'); if (fr != null) p.push(`${fmt(fr, 0)}% of treed area at risk, modeled`);
+        if (mort != null) p.push(mort > 0 || def > 0 ? `${fmt(mort, 0)}% of points in mapped mortality, ${fmt(def || 0, 0)}% in defoliation since 2016` : 'no mortality or defoliation mapped at the trail since 2016');
+        const hs = avg(cs.map(c => { const cp = val('veg','COMP',lv,c); if (!cp) return null; WFHX = wfTypes(/hemlock/i, WFHX); return wfShare(cp, WFHX.s); }).filter(v => v != null));
+        if (hs) p.push(`hemlock types ${fmt(100 * hs, 0)}% of the vegetation`); t = p.length ? p.join('; ') : 'no data'; break; }
+      case 'root': { const a = A('soil','SHALLOW_ROCK'), bb = A('soil','POOR_DRAIN'); const cf = avg(cs.map(c => { const cp = val('veg','COMP',lv,c); if (!cp) return null; WFCX = wfTypes(WFCONIF, WFCX); return wfShare(cp, WFCX.s); }).filter(v => v != null));
+        const p = []; if (a != null || bb != null) p.push(`${fmt((a || 0) + (bb || 0), 0)}% shallow or poorly drained soils`); if (cf != null) p.push(`${fmt(100 * cf, 0)}% conifer types`); t = p.length ? p.join('; ') : 'no data'; break; }
+      case 'tall': t = ch == null ? 'no data' : `${fmt(ch, 0)} m average`; break;
+      case 'use': { const p = WFFEAT.map(f => [f, S_('feat', f)]).filter(x => x[1] > 0).map(([f, n]) => `${fmt(n, 0)} ${WFFEATN[f][n === 1 ? 0 : 1]}`);
+        t = p.length ? p.join(', ') + (ns ? `; ${fmt(nse, 0)} of ${fmt(ns, 0)} exposed` : '') : 'trail only'; break; } }
+    return [k, lab, s, t]; });
+  b += '<div class="keys nosw">' + rows.map(([k, lab, s, t]) => soilRow(`${esc(lab)} <span style="color:var(--muted)">(${t}${many ? ', selected cells' : ''})</span>`, WFLEV(s))).join('') + '</div>';
+  const top = rows.filter(r => r[2] != null && r[2] >= .67).sort((p, q) => (+WFW[q[0]] || 0) * q[2] - (+WFW[p[0]] || 0) * p[2]).slice(0, 3).map(r => r[1].toLowerCase());
+  const low = rows.filter(r => r[2] != null && r[2] < .33 && (+WFW[r[0]] || 0) >= 15).map(r => r[1].toLowerCase());
+  if (top.length || low.length) b += `<p style="font-size:13.5px;margin-top:8px">${top.length ? 'Driven here by ' + top.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.' : ''}${low.length ? ` Held down by low ${low.join(' and ')}.` : ''}</p>`;
+  /* forest pests recorded */
+  const pl = [...new Set(cs.flatMap(c => invL('PEST_LIST', lv, c) || []))].map(i => sppName(i)).filter(n => n && (n.common || n.sci));
+  if (pl.length) b += `<p style="font-size:13.5px">Forest pests recorded: ${pl.map(n => esc(n.common || n.sci)).join(', ')}.</p>`;
+  return b + `<p class="none" style="font-size:13.5px;margin-top:8px">High, moderate and low show how strongly each factor runs here compared with other scored trail cells. The score multiplies wind loading, tree weakness and people at risk, so it is high only where all three line up. A screening score for where trees are most likely to come down across the trail and at high-use sites, not a stand or hazard tree assessment; the windfall study’s models will replace it.</p></div>`; }
 /* the top of the bar chart along the trail for the slope measures: a little over the 95th percentile of the cells, rounded up to 5,
    so the differences between stretches show (the few taller bars are drawn to the top and marked) */
 const TVTOP = {};
@@ -2565,7 +2608,7 @@ function restWeightsHTML(){ const kind = S.m.id === 'forest' ? 'forest' : 'grass
     `<p class="tvleft${left ? ' due' : ''}">${left > 0 ? `<b>${f1(left)}</b> ${left === 1 ? 'point' : 'points'} left to assign. Raise a factor to use ${left === 1 ? 'it' : 'them'}.` : 'All 100 points are assigned.'}${changed ? ' Press Apply to update the scores.' : ''}</p>` +
     `<div class="tvbtns"><button type="button" class="tvapply" data-rwapply="1"${changed && !left ? '' : ' disabled'}>Apply</button>` +
     (changed ? '<button type="button" class="lbtn" data-rwundo="1">Undo changes</button>' : '') + (isRec ? '' : '<button type="button" class="lbtn" data-rwreset="1">Reset to recommended</button>') + '</div>' +
-    `<details class="rwabout"${store.get('rwabout', false) ? ' open' : ''}><summary>About the weights</summary><p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. The grassland and forest scores each keep their own weights. ${RWABOUT[kind]} Herbicide use (wetlands, up to −10 points) and the lands setting are applied after the weights. Scores are ranked the same way as the treadway question: acres and counts by how a cell ranks among cells of its size, ratings and shares as they are.</p></details>`; }
+    `<details class="rwabout"${store.get('rwabout', false) ? ' open' : ''}><summary>About the weights</summary><p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. The grassland and forest scores each keep their own weights. ${RWABOUT[kind]} Herbicide use (wetlands, up to −10 points) and the lands setting are applied after the weights. Scores are ranked the same way as the trail question: acres and counts by how a cell ranks among cells of its size, ratings and shares as they are.</p></details>`; }
 const rwDraw = () => { const el = $('#rwts'); if (el) el.innerHTML = restWeightsHTML(); };
 document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('rwabout')) store.set('rwabout', e.target.open); if (e.target.classList && e.target.classList.contains('vzabout')) store.set('vzabout', e.target.open); }, true);
 document.addEventListener('click', e => { const kind = S.m.id === 'forest' ? 'forest' : 'grass', s = e.target.closest('[data-rws]');
@@ -2772,8 +2815,8 @@ const Q = [
      {id:'surf', grp:'Available geologic map data', label:'Surficial geologic mapping', kind:'cat', f:'SURF', note:'Mapping of surface materials such as glacial, river and landslide deposits covering at least half the cell.'},
      {id:'gis', grp:'Available geologic map data', label:'Digital geologic map data', kind:'cat', f:'GIS_BEST', note:'The most detailed geologic mapping covering at least half the cell that is available as GIS data.'},
      {id:'new', grp:'Available geologic map data', label:'Newest geologic map', kind:'cat', f:'GEO_NEWEST', fn:(lv,c) => geoNewest(lv, c), note:'Publication year of the newest published geologic map covering at least a tenth of the cell. Maps still in progress are listed when you select a cell.'}]},
- {id:'tvul', th:'slope', hue:HUE.tvul, ramp:'tvul', title:'Where is the treadway most at risk?',
-  use:'A model, like the restoration score, that ranks where the treadway is most likely to erode, rut or wash out. It adds points for trail grade and alignment with the fall line (measured along the A.T. centerline from USGS 3DEP lidar elevation), soil erosion and rutting hazard (NRCS), heavy rain and the 25-year storm (NOAA), and use hot spots: parking areas, shelters, campsites and vistas, where hikers gather and wear spreads (A.T. facilities inventory). Forest pests and invasive plants are added at a low weight as early signs of declining forest health, whose effects on canopy, ground cover, soils and downed trees cascade to the trail. Change the weights under Model weights. Select a cell to see what drives its score.',
+ {id:'tvul', th:'slope', hue:HUE.tvul, ramp:'tvul', title:'Where is the trail most at risk?',
+  use:'A model, like the restoration score, that ranks where the trail is most likely to erode, rut or wash out. It adds points for trail grade and alignment with the fall line (measured along the A.T. centerline from USGS 3DEP lidar elevation), soil erosion and rutting hazard (NRCS), heavy rain and the 25-year storm (NOAA), and use hot spots: parking areas, shelters, campsites and vistas, where hikers gather and wear spreads (A.T. facilities inventory). Forest pests and invasive plants are added at a low weight as early signs of declining forest health, whose effects on canopy, ground cover, soils and downed trees cascade to the trail. Change the weights under Model weights. Select a cell to see what drives its score.',
   m:[{id:'score', label:'Vulnerability score', int:1, brkP:[.4,.7,.85,.95], fn:(lv,c)=>tvScore(lv,c), none:'No trail here', note:'0 to 100: points from each factor, scaled to 100 over the factors with data. Higher means more likely to erode, rut or wash out.'},
      {id:'grade', label:'Average trail grade', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_GRADE'), th:'slope', f:'TS_GRADE', unit:'%', d:0, none:'No trail here', note:'Average grade along the trail, from USGS 3DEP elevation every 10 m, smoothed over 30 m.'},
      {id:'g10', label:'Trail over 10% grade', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_G10'), th:'slope', f:'TS_G10', unit:'%', d:0, zero:1, zeroText:'None', none:'No trail here', note:'Share of the trail steeper than 10%, where soil loss rises sharply.'},
@@ -4242,12 +4285,12 @@ function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerC
 /* records of a species in one cell once its full load is done; null before that */
 function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'done' ? st.counts[lv].get(c) || 0 : null; }
 /* panel sections follow the order of the questions; each question opens its own sections (survey effort has none of its own) */
-const SECORDER = ['cells','rest','tvul','geo','wx','vis','inat','cult','live','phen','ebird','nrpz','veg','soil','wet','feat','hist','lands'];
-const QSEC = {geo:['geo'], wx:['wx'], tvul:['tvul'], cult:['cult'], rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:['vis'], land:['lands'], phen:['phen'], pest:['phen','fhr']};
+const SECORDER = ['cells','rest','tvul','tfall','geo','wx','vis','inat','cult','live','phen','ebird','nrpz','veg','soil','wet','feat','hist','lands'];
+const QSEC = {geo:['geo'], wx:['wx'], tvul:['tvul','tfall'], cult:['cult'], rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:['vis'], land:['lands'], phen:['phen'], pest:['phen','fhr']};
 /* which question each popup section and export table belongs to; its place in the list of questions orders them, its color colors them */
 const SECQ = {'Restoration targets':'rest', 'Invasive species':'inv', 'Priority invasives':'pinv', 'iNaturalist Records':'rec', 'Forest pests':'pest', 'Flowering':'phen',
   'Plants of cultural significance':'cult', 'Birds':'bird', 'Unique species':'pri', 'Vegetation':'veg', 'Geology':'geo', 'Soils':'soil', 'Wetlands':'wet',
-  'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Citizen science observers':'eff', 'Land administrators':'land', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'Forest health risk':'pest'};
+  'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Citizen science observers':'eff', 'Land administrators':'land', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'Tree fall vulnerability':'tvul', 'Forest health risk':'pest'};
 const qRank = id => { const i = Q.findIndex(q => q.id === id); return i < 0 ? 98 : i; };
 const secRank = title => title === 'Cell by cell' ? -1 : SECQ[title] ? qRank(SECQ[title]) : 99;
 const secHue = title => { const q = Q.find(x => x.id === SECQ[title]); return q ? q.hue : null; };
@@ -4268,12 +4311,12 @@ function expOrder(d){ d.cells = d.cells.map(r => { const ks = Object.keys(r), ba
   d.species = d.species.map((r, i) => [expRank(r.group), i, r]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]);
   return d; }
 function finishProfile(html){ $('#pbody').innerHTML = html;
-  { const KEY = {'Forest health risk':'fhr', 'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'iNaturalist Records':'live', 'Birds':'ebird', 'Citizen science observers':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Land administrators':'lands'};
+  { const KEY = {'Forest health risk':'fhr', 'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'Tree fall vulnerability':'tfall', 'iNaturalist Records':'live', 'Birds':'ebird', 'Citizen science observers':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Land administrators':'lands'};
     const secs = [...document.querySelectorAll('#pbody .sec')]; if (secs.length > 1){ const par = secs[0].parentNode, anchor = document.createComment('secs'); par.insertBefore(anchor, secs[0]);
       const rank = el => secRank((el.querySelector('h3') || {}).textContent);
       secs.map((el, i) => [rank(el), i, el]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([, , el]) => par.insertBefore(el, anchor)); anchor.remove(); } }
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
-  const SECKEY = {'Forest health risk':'fhr', 'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'iNaturalist Records':'live', 'Birds':'ebird', 'Citizen science observers':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Historic resources':'hist', 'Land administrators':'lands'};
+  const SECKEY = {'Forest health risk':'fhr', 'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'Tree fall vulnerability':'tfall', 'iNaturalist Records':'live', 'Birds':'ebird', 'Citizen science observers':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Historic resources':'hist', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent, hue = secHue(h.textContent); if (hue) sec.style.setProperty('--hue', hue);
     const open = key in S.secOpen ? S.secOpen[key] : S.m.find ? key === S.m.th : (QSEC[S.q.id] || []).includes(key);
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
@@ -4601,7 +4644,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
     b += '</div>'; }
 
   b += S.q.id === 'wet' ? wetBox(lv, cells) + soilBox(lv, cells) : soilBox(lv, cells) + wetBox(lv, cells);
-  b += geoBox(lv, cells) + tvBox(lv, cells) + wxBox(lv, cells) + fhrBox(lv, cells) + visBox(lv, cells);
+  b += geoBox(lv, cells) + tvBox(lv, cells) + tfBox(lv, cells) + wxBox(lv, cells) + fhrBox(lv, cells) + visBox(lv, cells);
   if (!huc){ b += featBox(lv, cells); b = S.q.id === 'rest' ? restBox(lv, cells) + b : b + restBox(lv, cells); }
 
   // land administrators
