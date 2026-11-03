@@ -1082,11 +1082,13 @@ const PINVG = {EDRR:'Early detection (EDRR)', Priority:'Established priority'};
 const PHSP = PHEN.flatMap(g => g[1].map(([common, sci, kind, cand]) => ({common, sci, key:sci.toLowerCase().replace(/[^a-z]+/g, '-'), group:g[0], kind:kind || 'plant', cand:!!cand, set:PHSET[g[0]] || 'phen', pest:!!PHSET[g[0]]})));
 /* two questions share this engine: flowering (plants) and forest pests */
 function PINVM(){ return S.q.id === 'inv' && !!(S.m && S.m.pinv); }
-function PHQ(){ return !(S.m && S.m.fhr) && (S.q.id === 'phen' || S.q.id === 'pest' || PINVM()); }
+const CULTPH = new Set(['Sanguinaria canadensis', 'Erythronium americanum', 'Trillium erectum', 'Hepatica acutiloba', 'Thalictrum thalictroides', 'Cardamine diphylla', 'Arisaema triphyllum', 'Maianthemum racemosum', 'Asarum canadense']);
+function CULTM(){ return S.q.id === 'cult' && !!(S.m && S.m.cphen); }
+function PHQ(){ return !(S.m && S.m.fhr) && (S.q.id === 'phen' || S.q.id === 'pest' || PINVM() || CULTM()); }
 /* the two questions that map spread (first year recorded), with species ranked by records */
 function SPREADQ(){ return !(S.m && S.m.fhr) && (S.q.id === 'pest' || PINVM()); }
-const phSetNow = () => S.q.id === 'pest' ? 'pest' : S.q.id === 'inv' ? 'pinv' : 'phen';
-const phList = (set = phSetNow()) => PHSP.filter(s => s.set === set);
+const phSetNow = () => S.q.id === 'pest' ? 'pest' : S.q.id === 'inv' ? 'pinv' : S.q.id === 'cult' ? 'cphen' : 'phen';
+const phList = (set = phSetNow()) => set === 'cphen' ? PHSP.filter(s => s.set === 'phen' && CULTPH.has(s.sci)) : PHSP.filter(s => s.set === set);
 /* record counts of the forest pests in the project, looked up once and kept 30 days; the extra candidates show at PHPESTMIN or more */
 const PHPESTMIN = 100, PHCNT = {}; let phCntRun = false;
 /* Pre-built records: build_phenology.py (weekly GitHub Action) writes phen/index.json and phen/<species>.json.
@@ -1260,9 +1262,10 @@ function phWin(lv, c, s){ const A = phAgg(lv); if (!A || !A.any[c]) return null;
 const phTop = (lv, s) => { const A = phAgg(lv); return A ? Math.max(1, (phYear(lv) ? A.ymx[s] : A.mx[s]) / 3) : 1; };
 function phFirst(lv, c){ const A = phAgg(lv); if (!A || A.first[c] == null) return null; const y = phYear(lv); return y && A.first[c] > y ? null : A.first[c]; }
 const PHWAVE = [[0, ZERO, 'Recorded here, not these weeks'], [1, null, '1 record'], [2, null, '2 records'], [5, null, '3 to 5 records'], [10, null, '6 to 10 records'], [Infinity, null, 'over 10 records']];
-const PHWAVECOL = ['#FFE600','#FFC400','#FF9900','#F56A00','#D6430A'];   /* saturated, so the wave reads on topo maps and imagery alike */
-const phWaveCol = v => { if (v == null) return null; if (v === 0) return ZERO; const i = PHWAVE.findIndex(e => v <= e[0]); return PHWAVECOL[Math.max(0, Math.min(4, i - 1))]; };
-const phWaveLegend = () => `<div class="row"><i style="background:#FFE600;border:1px solid #FFB46B;border-radius:50%;width:6px;height:6px"></i><span>${PHWORD[phMain()] === 'records' ? 'Records' : PHWORD[phMain()][0].toUpperCase() + PHWORD[phMain()].slice(1) + ' records'} this week</span></div><div class="row"><i style="background:rgba(255,230,0,.45);border-radius:50%;width:4px;height:4px"></i><span>The week before</span></div><p class="sub">Cells:</p>` + PHWAVE.slice(1).map((e, i) => `<div class="row"><i style="background:${PHWAVECOL[i]}"></i><span>${e[2]}</span></div>`).join('') +
+const PHWAVECOL = ['#FFE600','#FFC400','#FF9900','#F56A00','#D6430A'];
+const phWaveCols = () => CULTM() ? RAMP.cult : PHWAVECOL, phDotCol = () => CULTM() ? '#F2E3C9' : '#FFE600', phDotEdge = () => CULTM() ? '#C19A6A' : '#FFB46B';   /* saturated, so the wave reads on topo maps and imagery alike */
+const phWaveCol = v => { if (v == null) return null; if (v === 0) return ZERO; const i = PHWAVE.findIndex(e => v <= e[0]); return phWaveCols()[Math.max(0, Math.min(4, i - 1))]; };
+const phWaveLegend = () => `<div class="row"><i style="background:${phDotCol()};border:1px solid ${phDotEdge()};border-radius:50%;width:6px;height:6px"></i><span>${PHWORD[phMain()] === 'records' ? 'Records' : PHWORD[phMain()][0].toUpperCase() + PHWORD[phMain()].slice(1) + ' records'} this week</span></div><div class="row"><i style="background:rgba(255,230,0,.45);border-radius:50%;width:4px;height:4px"></i><span>The week before</span></div><p class="sub">Cells:</p>` + PHWAVE.slice(1).map((e, i) => `<div class="row"><i style="background:${phWaveCols()[i]}"></i><span>${e[2]}</span></div>`).join('') +
   (phSelText() ? `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, ${phYear() ? phYear() + ' only' : 'years ' + esc(phSelText()) + ' together'}. Cells without records in these weeks are left blank.</p>`
     : `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, all years together.</p>`);
 /* dates by half month, early spring to late summer */
@@ -1319,8 +1322,8 @@ function phDots(){ const on = PHQ() && !SPREADQ() && S.m.id === 'wave' && !S.m.f
   const ok = v => y ? v === y : sel.length ? sel.includes(v) : true, now = [], prev = [];
   for (const [d, v, s, la, lo] of st.pts){ if (s !== ms || !ok(v)) continue; const w = wkOf(d); if (w !== wk && w !== wk - 1) continue;
     const c = phCell(lv, la, lo); if (c < 0 || !inSec(lv, c)) continue; (w === wk ? now : prev).push([la, lo]); }
-  for (const p of prev) L.circleMarker(p, {renderer:PHDOTS.r, radius:1.8, stroke:false, fillColor:'#FFE600', fillOpacity:.45, interactive:false}).addTo(PHDOTS);
-  for (const p of now) L.circleMarker(p, {renderer:PHDOTS.r, radius:2.6, color:'#FFB46B', weight:1, fillColor:'#FFE600', fillOpacity:1, interactive:false}).addTo(PHDOTS);
+  for (const p of prev) L.circleMarker(p, {renderer:PHDOTS.r, radius:1.8, stroke:false, fillColor:phDotCol(), fillOpacity:.45, interactive:false}).addTo(PHDOTS);
+  for (const p of now) L.circleMarker(p, {renderer:PHDOTS.r, radius:2.6, color:phDotEdge(), weight:1, fillColor:phDotCol(), fillOpacity:1, interactive:false}).addTo(PHDOTS);
   PHDOTS.n = now.length; }
 function phTick(){ phDots(); let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', vis = S.q.id === 'eff' && S.m.id === 'od' && !!S.visYr && !S.m.find, wxt = wxAnimOn() && (S.m.wxAnim === 'mon' ? S.wxMon != null : !!S.wxYr), on = acq || vis || wxt || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
   if (!t){ if (!on) return; t = document.createElement('div'); t.id = 'phtick'; t.setAttribute('aria-live', 'off'); document.getElementById('map').appendChild(t); }
@@ -2840,7 +2843,8 @@ const wfScore = (lv, c) => wfParts(lv, c)[0];
   note:'0 to 100: a screening score for where trees are most likely to come down across the trail and at shelters, campsites, parking and vistas, from topographic exposure, high-use areas, storm and wind exposure, shallow or wet rooting soils, forest weakened by pests, and shallow-rooted conifer forest, scaled to 100 over the factors with data. Tree size and form and plot-level storm history are not in it yet; the windfall study’s models will replace it.'}); }
 /* the spread measures for one priority invasive live inside the invasives question; they open from its Priority invasives measure */
 { const inv = Q.find(q => q.id === 'inv'), ph = Q.find(q => q.id === 'phen');
-  if (inv && ph) ph.m.filter(m => m.id === 'spread' || m.id === 'share').forEach(m => inv.m.push(Object.create(m, {pinv:{value:true}}))); }
+  if (inv && ph) ph.m.filter(m => m.id === 'spread' || m.id === 'share').forEach(m => inv.m.push(Object.create(m, {pinv:{value:true}})));
+  const cq = Q.find(x => x.id === 'cult'); if (cq && ph) ph.m.filter(m => m.id === 'wave').forEach(m => cq.m.push(Object.create(m, {cphen:{value:true}}))); }
 { const lq = Q.find(q => q.id === 'land'); if (lq){ const k = lq.m.findIndex(m => m.id === 'acq'); if (k > 0) lq.m.unshift(lq.m.splice(k, 1)[0]); } }
 { const iq = Q.find(q => q.id === 'inv'); if (iq){ const k = iq.m.findIndex(m => m.id === 'edrr'); if (k > 0) iq.m.unshift(iq.m.splice(k, 1)[0]); } }
 let JERRY = false;
@@ -3596,7 +3600,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
   const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : '';
   h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map((m, k, a) => (m.grp && (!k || a[k - 1].grp !== m.grp) ? `</div><h4 class="mgrp">${esc(m.grp)}</h4><div class="chips" role="group" aria-label="${esc(m.grp)}">` : '') + `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
-    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find ? blk('tvw', 'Model weights', S.m.id === 'tfall' ? `<div id="tfwts">${tfWeightsHTML()}</div>` : `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
+    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find && !CULTM() ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find ? blk('tvw', 'Model weights', S.m.id === 'tfall' ? `<div id="tfwts">${tfWeightsHTML()}</div>` : `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
   const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
