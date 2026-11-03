@@ -2578,7 +2578,7 @@ let TFD = null;   /* tree fall weights being edited; WFW (what the score uses) c
 function tfWeightsHTML(){ if (!TFD) TFD = Object.assign({}, WFW); const tot = WFDEF.reduce((t, d) => t + (+TFD[d[0]] || 0), 0), left = Math.round((100 - tot) * 10) / 10, f1 = x => fmt(x, x % 1 ? 1 : 0);
   const changed = WFDEF.some(d => (+TFD[d[0]] || 0) !== (+WFW[d[0]] || 0)), isRec = WFDEF.every(d => (+TFD[d[0]] || 0) === WFD0[d[0]]);
   return `<p class="phsub" style="margin-top:2px">Tree fall vulnerability score</p><div class="tvw2" role="group" aria-label="Tree fall vulnerability weights">` + WFDEF.map(([k, lab, w0, note, g], i) => { const w = +TFD[k] || 0;
-    return (i === 0 || WFDEF[i - 1][4] !== g ? `<p class="tvgrp">${esc(WFG[g])}</p>` : '') + `<div class="tvr"><span class="tvl" title="${esc(note)}">${esc(lab)}</span><span class="tvbar" aria-hidden="true"><i style="width:${Math.min(100, w * 2)}%"></i></span>` +
+    return `<div class="tvr"><span class="tvl" title="${esc(note)}">${esc(lab)}</span><span class="tvbar" aria-hidden="true"><i style="width:${Math.min(100, w * 2)}%"></i></span>` +
       `<button type="button" class="tvs" data-tfs="${k}" data-d="-1" aria-label="Lower ${esc(lab)}"${w <= 0 ? ' disabled' : ''}>−</button><b aria-live="polite">${f1(w)}</b>` +
       `<button type="button" class="tvs" data-tfs="${k}" data-d="1" aria-label="Raise ${esc(lab)}"${left <= 0 ? ' disabled' : ''}>+</button></div>`; }).join('') + '</div>' +
     `<p class="tvleft${left ? ' due' : ''}">${left > 0 ? `<b>${f1(left)}</b> ${left === 1 ? 'point' : 'points'} left to assign. Raise a factor to use ${left === 1 ? 'it' : 'them'}.` : 'All 100 points are assigned.'}${changed ? ' Press Apply to update the scores.' : ''}</p>` +
