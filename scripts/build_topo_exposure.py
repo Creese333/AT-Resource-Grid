@@ -13,12 +13,17 @@ index.html) are measured the same way, and each counts as much as 300 m of trail
   TOPO_EXP   share of the trail and high-use sites in the cell that is exposed (TPI over 25 m), %
   TOPO_SITE  high-use sites in the cell, and TOPO_SITE_EXP how many of them are exposed
   TOPO_N     trail points measured in the cell (30 m apart); cells with fewer than 5 and no site are left empty
+The same points also carry, for the tree fall score:
+  IDS_MORT   share of the trail and sites inside areas mapped with tree mortality since 2016, %, and IDS_DEF with defoliation
+             (USDA Forest Service Insect and Disease Survey, aerial detection damage areas)
+  CH_MEAN    average forest canopy height at the trail and sites, m (LANDFIRE forest canopy height; points under 3 m left out)
+Each source is optional: if one cannot be read, its fields are left out and the error is written to the file's meta.
 
   python scripts/build_topo_exposure.py
 Writes data/topo_exposure.json (A.T. corridor cells; the treadway question is corridor only). Needs geopandas, pyogrio, shapely, pyproj, rasterio, numpy.
 Terrain does not change: run it once, and again only if the grid changes.
 """
-import json, os, re, sys, time
+import json, os, re, sys, time, urllib.parse, urllib.request
 from datetime import date
 import numpy as np, geopandas as gpd, shapely, rasterio
 from shapely.geometry import Polygon
@@ -111,6 +116,95 @@ def tpi(dem, x, y):
         return z0 - np.nanmean(np.vstack(ring), axis=0)
 
 
+UA = {'User-Agent': 'AT-Resource-Grid tree fall build (NPS Appalachian National Scenic Trail)'}
+IDS = 'https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_InsectandDiseaseSurvey_01/MapServer/1'
+IDS_YEAR = 2016
+CANOPY = ['https://lfps.usgs.gov/arcgis/rest/services/Landfire_LF2023/LF2023_CH_CONUS/ImageServer',
+          'https://lfps.usgs.gov/arcgis/rest/services/Landfire_LF2022/LF2022_CH_CONUS/ImageServer',
+          'https://apps.fs.usda.gov/fsgisx01/rest/services/RDW_Landfire/US_ForestCanopyHeight_v200/ImageServer',
+          'https://apps.fs.usda.gov/fsgisx01/rest/services/RDW_Landfire/US_ForestCanopyHeight_v140/ImageServer']
+
+
+def http_json(url, data=None, tries=4, timeout=180):
+    last = ''
+    for k in range(tries):
+        try:
+            req = urllib.request.Request(url, data=urllib.parse.urlencode(data).encode() if data else None, headers=UA)
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                j = json.load(r)
+            if isinstance(j, dict) and j.get('error'):
+                raise RuntimeError(str(j['error'].get('message') or j['error'])[:200])
+            return j
+        except Exception as e:
+            last = f'{type(e).__name__}: {e}'; time.sleep(4 * (k + 1))
+    raise RuntimeError(last)
+
+
+def chunks_of(lon, lat, n=3000):
+    """bounding boxes over runs of consecutive trail points (the trail is in order), with a margin wide enough for nearby sites"""
+    for i in range(0, len(lon), n):
+        a, b = lon[i:i + n], lat[i:i + n]; ok = np.isfinite(a) & np.isfinite(b)
+        if ok.any(): yield float(a[ok].min()) - .04, float(b[ok].min()) - .04, float(a[ok].max()) + .04, float(b[ok].max()) + .04
+
+
+def ids_flags(lon, lat, nt, meta):
+    """for every point: inside a mapped mortality area, inside a mapped defoliation area (survey years from IDS_YEAR)"""
+    from shapely.geometry import shape
+    mort, defo = np.zeros(len(lon), bool), np.zeros(len(lon), bool)
+    kinds = {'mort': ('2,16', mort), 'def': ('1,12,13,14', defo)}; got = {k: 0 for k in kinds}
+    pts = shapely.points(lon, lat)
+    done = np.zeros(len(lon), bool)
+    for box in chunks_of(lon[:nt], lat[:nt]):
+        sel = np.flatnonzero(~done & (lon >= box[0]) & (lon <= box[2]) & (lat >= box[1]) & (lat <= box[3]))
+        if not len(sel): continue
+        done[sel] = True
+        for k, (codes, flag) in kinds.items():
+            where = f'survey_year >= {IDS_YEAR} AND damage_type_code IN ({codes})'
+            geo = json.dumps({'xmin': box[0], 'ymin': box[1], 'xmax': box[2], 'ymax': box[3], 'spatialReference': {'wkid': 4326}})
+            ids = http_json(IDS + '/query', {'where': where, 'geometry': geo, 'geometryType': 'esriGeometryEnvelope', 'inSR': 4326, 'spatialRel': 'esriSpatialRelIntersects', 'returnIdsOnly': 'true', 'f': 'json'}).get('objectIds') or []
+            polys = []
+            for i in range(0, len(ids), 200):
+                j = http_json(IDS + '/query', {'objectIds': ','.join(map(str, ids[i:i + 200])), 'outFields': 'survey_year', 'returnGeometry': 'true', 'outSR': 4326, 'maxAllowableOffset': .0003, 'f': 'geojson'})
+                for f in j.get('features') or []:
+                    try:
+                        g = shape(f['geometry'])
+                        if not g.is_empty: polys.append(g)
+                    except Exception:
+                        pass
+            got[k] += len(polys)
+            if polys:
+                tree = shapely.STRtree(polys); pi, _ = tree.query(pts[sel], predicate='within'); flag[sel[np.unique(pi)]] = True
+    meta['ids'] = {'from_year': IDS_YEAR, 'areas_read': got, 'points_in_mortality': int(mort.sum()), 'points_in_defoliation': int(defo.sum())}
+    print(f'IDS: {got} damage areas read; {mort.mean() * 100:.1f}% of points in mortality, {defo.mean() * 100:.1f}% in defoliation', flush=True)
+    return mort, defo
+
+
+def canopy(lon, lat, meta):
+    """forest canopy height (m) at every point from a LANDFIRE image service (values are meters x 10)"""
+    errs = []
+    for url in CANOPY:
+        try:
+            out = np.full(len(lon), np.nan); raw = []
+            for i in range(0, len(lon), 500):
+                g = json.dumps({'points': [[float(a), float(b)] for a, b in zip(lon[i:i + 500], lat[i:i + 500])], 'spatialReference': {'wkid': 4326}})
+                j = http_json(url + '/getSamples', {'geometry': g, 'geometryType': 'esriGeometryMultipoint', 'returnFirstValueOnly': 'true', 'f': 'json'})
+                for smp in j.get('samples') or []:
+                    k = i + int(smp.get('locationId', 0)); v = smp.get('value')
+                    try: v = float(str(v).split()[0])
+                    except Exception: continue
+                    if 0 <= k < len(out): out[k] = v; raw.append(v)
+                if i == 0 and not raw: raise RuntimeError('no samples returned')
+            raw = np.array(raw); vals, cnt = np.unique(np.round(raw), return_counts=True); top = sorted(zip(cnt.tolist(), vals.tolist()), reverse=True)[:12]
+            h = np.where((out >= 30) & (out <= 600), out / 10.0, np.nan)          # 3 to 60 m forest; other codes are not forest
+            meta['canopy'] = {'service': url, 'common_values': [v for _, v in top], 'forest_points_pct': round(float(np.isfinite(h).mean() * 100), 1)}
+            print(f'canopy height from {url}: {np.isfinite(h).mean() * 100:.0f}% forest points, median {np.nanmedian(h):.1f} m', flush=True)
+            return h
+        except Exception as e:
+            errs.append(f'{url.split("/services/")[1]}: {e}'); print(f'   canopy {url}: {e}', flush=True)
+    meta['canopy'] = {'error': ' | '.join(errs)[:900]}
+    return None
+
+
 def main():
     t0 = time.time(); sys.path.insert(0, SCRIPTS); import build_trail_slope as ts
     grids = ts.load_grids()                                           # in EPSG:5070, like the stations
@@ -128,6 +222,12 @@ def main():
     sxy = gpd.GeoSeries(gpd.points_from_xy(slon, slat), crs=4326).to_crs(ts.AEA); sx, sy = sxy.x.values, sxy.y.values
     print(f'{len(st):,} high-use sites; {np.mean(sv[sok] > EXPOSED) * 100 if sok.any() else 0:.0f}% exposed', flush=True)
     meta['sites'] = sorted(SITES); meta['site_weight_points'] = SITE_W
+    alon, alat = np.concatenate([lon, slon]), np.concatenate([lat, slat]); nt = len(lon)
+    try:
+        mort, defo = ids_flags(alon, alat, nt, meta)
+    except Exception as e:
+        mort = defo = None; meta['ids'] = {'error': str(e)[:600]}; print('IDS:', e, flush=True)
+    ch = canopy(alon, alat, meta)
     themes = {}
     for lv, cells in grids['corr'].items():
         own = ts.owners(cells, x, y); n = len(cells); m = (own >= 0) & ok
@@ -135,9 +235,20 @@ def main():
         so = ts.owners(cells, sx, sy) if len(st) else np.array([], int); sm = (so >= 0) & sok
         ns = np.bincount(so[sm], minlength=n); nse = np.bincount(so[sm], weights=(sv[sm] > EXPOSED).astype(float), minlength=n); ssum = np.bincount(so[sm], weights=sv[sm], minlength=n)
         W = k + SITE_W * ns; keep = np.flatnonzero((k >= 5) | (ns > 0))
+        def wmean(vals, scale=1.0):
+            # point values averaged with the site weighting (trail points 1, sites SITE_W); NaN values left out
+            if vals is None: return None
+            tv, sv_ = np.asarray(vals[:nt], float), np.asarray(vals[nt:], float)
+            tm = m & np.isfinite(tv); smk = ((so >= 0) if len(st) else np.zeros(0, bool)) & np.isfinite(sv_)
+            num = np.bincount(own[tm], weights=tv[tm], minlength=n) + SITE_W * np.bincount(so[smk], weights=sv_[smk], minlength=n)
+            den = np.bincount(own[tm], minlength=n) + SITE_W * np.bincount(so[smk], minlength=n)
+            return [None if den[i] == 0 else round(float(scale * num[i] / den[i]), 1) for i in keep]
         themes[lv] = {'ids': [cells['id'].iat[i] for i in keep], 'f': {
             'TOPO_TPI': [int(round((s_[i] + SITE_W * ssum[i]) / W[i])) for i in keep], 'TOPO_EXP': [round(100 * (e[i] + SITE_W * nse[i]) / W[i], 1) for i in keep],
             'TOPO_SITE': [int(ns[i]) for i in keep], 'TOPO_SITE_EXP': [int(nse[i]) for i in keep], 'TOPO_N': [int(k[i]) for i in keep]}}
+        f = themes[lv]['f']
+        if mort is not None: f['IDS_MORT'] = wmean(mort.astype(float), 100); f['IDS_DEF'] = wmean(defo.astype(float), 100)
+        if ch is not None: f['CH_MEAN'] = wmean(ch)
         print(f'{lv}: {len(keep)} cells with trail or high-use sites measured', flush=True)
     json.dump({'run': date.today().isoformat(), 'meta': meta, 'themes': {'topo': themes}}, open(OUT['corr'], 'w', encoding='utf-8'), separators=(',', ':'))
     print('wrote', OUT['corr'], f'{os.path.getsize(OUT["corr"]) / 1e6:.2f} MB ({time.time() - t0:.0f} s)', flush=True)
