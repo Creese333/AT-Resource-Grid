@@ -1997,7 +1997,7 @@ function cultTopHTML(){ if (!cultReady('hex')) return '';
   const tp = [...M.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)).slice(0, 10), sel = S.m.find && S.m.find.ls;
   let g = `<div id="culttop"><h4 class="phh">Most widely recorded species, ${esc(where)}</h4>`;
   if (!tp.length) return g + `<p class="none">No listed species recorded in ${esc(where)}.</p></div>`;
-  g += hbars(tp.map(s => [s.name, HUE.cult, s.n, fmt(s.n, 0), `${s.name} (${s.sci}): recorded in ${s.n} of the ${cells.length} square miles in ${where}. Click to map it.`, s.sci.toLowerCase()]), 'Most widely recorded species');
+  g += hbars(vRampRows(tp.map(s => [s.name, HUE.cult, s.n, fmt(s.n, 0), `${s.name} (${s.sci}): recorded in ${s.n} of the ${cells.length} square miles in ${where}. Click to map it.`, s.sci.toLowerCase()]), 'cult'), 'Most widely recorded species');
   return g + `<p class="phnote">Square miles with a research-grade iNaturalist record, in ${esc(where)}${where === 'the map view' ? ' (zoom or pan to change it, or select cells)' : ''}. Ginseng, goldenseal, ramps and lady’s slippers are left out at this scale. Records follow hikers, so a species recorded in few square miles may simply be overlooked. Click a species to map where it is recorded.</p></div>`; }
 function cultVizRefresh(){ geoVizRefresh(); qVizRefresh(); const t = $('#culttop'); if (t && S.q.id === 'cult' && !S.m.find) t.outerHTML = cultTopHTML(); }
 document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-cultsp],[data-cultall]'); if (!t) return;
@@ -2432,12 +2432,14 @@ const QVIZ = {
   hist: {title:'Historic resources by type', note:'National Register of Historic Places (NPS) by property type, and cemeteries mapped in OpenStreetMap.', fn(lv, cells){
     const A = hAgg(lv); if (!A) return []; const m = new Map(), lab = {building:'Buildings', structure:'Structures', district:'Districts', site:'Sites', object:'Objects'};
     cells.forEach(c => (A.list.get(c) || []).forEach(i => { const x = HIST.items[i], k = x.t === 'cem' ? 'Cemeteries' : lab[String(x.a.type || '').toLowerCase()] || 'Other National Register'; m.set(k, (m.get(k) || 0) + 1); }));
-    return vTop(m).map(([k, n]) => [k, k === 'Cemeteries' ? '#7C8C7A' : HUE.hist, n, fmt(n, 0), `${k}: ${fmt(n, 0)}`]); }},
+    return vRampRows(vTop(m).map(([k, n]) => [k, HUE.hist, n, fmt(n, 0), `${k}: ${fmt(n, 0)}`]), 'hist'); }},
   feat: {title:'Facilities by type', note:'A.T. facilities inventory, official and additional features.', fn(lv, cells){
     const T = [['N_SHELTER','Shelters'],['N_CAMPSITE','Campsites'],['N_PRIVY','Privies'],['N_PARKING','Parking areas'],['N_BRIDGE','Bridges'],['N_VISTA','Vistas'],['N_BUILDING','Buildings'],['N_DAM','Dams'],['N_TUNNEL','Tunnels']];
     return T.map(([f, nm]) => { let n = 0; cells.forEach(c => n += val('feat', f, lv, c) || 0); return [nm, FCOL[nm] || HUE.feat, n, fmt(n, 0), `${nm}: ${fmt(n, 0)}`]; }).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]); }}
 };
 /* measure-specific charts. pick(measure id) returns {title, note, fn} to use in place of the question's default chart */
+const vRampCol = (rp, v, mx) => { const R = RAMP[rp]; return R[mx > 0 ? Math.max(0, Math.min(R.length - 1, Math.ceil(R.length * v / mx) - 1)) : 0]; };
+const vRampRows = (rows, rp) => { const R = RAMP[rp], v = rows.map(r => +r[2] || 0), u = [...new Set(v)].sort((a, b) => a - b), n = u.length; rows.forEach((r, i) => { const k = u.indexOf(v[i]); r[1] = R[n < 2 ? R.length - 1 : Math.round((R.length - 1) * k / (n - 1))]; }); return rows; };
 const vHi = (rows, test) => rows.map(r => (r[6] = !!test(r), r));
 const vSpTop = (lv, cells, get, col, verb) => vTop(vSpp(lv, cells, get)).map(([i, n]) => vSpRow(i, n, col, `${verb} in ${nCells(n)}`));
 const vHist = (lv, cells, m, col) => { const B = [[0, 0, 'None'], [0.0001, 10, 'Under 10%'], [10, 25, '10 to 25%'], [25, 50, '25 to 50%'], [50, 75, '50 to 75%'], [75, 101, '75% or more']], cnt = B.map(() => 0); let n = 0;
