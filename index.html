@@ -174,6 +174,16 @@ button.tvapply:disabled{background:none;color:#8A97A6;border-color:#4A6182;curso
 .leaflet-bar{border:1px solid var(--line) !important;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 .leaflet-bar a,.leaflet-bar a:hover{background:var(--panel);color:#fff;border-bottom-color:var(--line)}
 .leaflet-bar a:hover{background:var(--ground)}
+.locctl a{display:flex !important;align-items:center;justify-content:center;cursor:pointer}
+.locctl a svg{width:18px;height:18px;display:block}
+.locctl a[aria-pressed="true"]{background:#1E6FD9 !important;color:#fff}
+.locctl a.busy svg{animation:locpulse 1s ease-in-out infinite}
+@keyframes locpulse{50%{opacity:.35}}
+@media (prefers-reduced-motion: reduce){.locctl a.busy svg{animation:none}}
+#locmsg{position:absolute;z-index:660;left:50%;bottom:44px;transform:translateX(-50%);background:rgba(10,19,33,.92);color:#fff;font-size:14px;padding:8px 12px;border-radius:6px;max-width:min(420px,calc(100% - 32px));text-align:center;pointer-events:none;opacity:0;transition:opacity .2s}
+#locmsg.on{opacity:1}
+.leaflet-tooltip.loctip{white-space:normal;width:220px;text-align:center}
+.locdot{background:#1E90FF;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 2px rgba(30,144,255,.45),0 1px 4px rgba(0,0,0,.5)}
 .leaflet-bar a.leaflet-disabled{background:var(--panel);color:#60738B}
 .leaflet-bar a,.leaflet-touch .leaflet-bar a{width:30px;height:30px;line-height:30px;box-sizing:border-box}
 .leaflet-bar a:first-child{height:31px}
@@ -3036,7 +3046,37 @@ const THIN_AC = 10;
 const faded = (m, lv, c) => S.fade && m.fade && (m.fadeFn ? m.fadeFn(lv, c) : m.th === 'veg' ? val('veg', 'VEG_AREA', lv, c) < THIN_AC : thin(m.th, lv, c));
 
 /* ---------- map ---------- */
-const map = L.map('map', {preferCanvas:true, zoomSnap:0, zoomDelta:.5, wheelPxPerZoomLevel:110, minZoom:4, maxZoom:18, attributionControl:true}); /* 18 is the tile layers' own limit */
+const map = L.map('map', {preferCanvas:true, zoomSnap:0, zoomDelta:.5, wheelPxPerZoomLevel:110, minZoom:4, maxZoom:18, attributionControl:true});
+/* ---------- find my location ---------- */
+const LOC = {on:false, first:true, dot:null, ring:null, btn:null, t:0};
+function locMsg(s, ms){ let e = document.getElementById('locmsg'); if (!e){ e = document.createElement('div'); e.id = 'locmsg'; e.setAttribute('role', 'status'); map.getContainer().parentNode.appendChild(e); }
+  e.textContent = s; e.classList.toggle('on', !!s); clearTimeout(LOC.t); if (s && ms) LOC.t = setTimeout(() => e.classList.remove('on'), ms); }
+function locWhere(ll){ try { const H = D && D.levels && D.levels.hex; if (!H) return ''; let best = Infinity, bc = -1;
+    for (let c = 0; c < H.id.length; c++){ const p = H.c[c]; if (!p) continue; const d = map.distance(ll, p); if (d < best){ best = d; bc = c; } }
+    if (bc < 0) return ''; const mi = best / 1609.34, tm = H.mi ? H.mi[bc] : null;
+    return mi < .6 ? `In an A.T. cell${tm != null ? ` near trail mile ${fmt(tm, 0)}` : ''}` : `About ${fmt(mi, mi < 10 ? 1 : 0)} miles from the nearest A.T. cell${tm != null ? ` (near trail mile ${fmt(tm, 0)})` : ''}`; } catch (e){ return ''; } }
+function locStop(){ LOC.on = false; map.stopLocate(); [LOC.dot, LOC.ring].forEach(l => l && map.removeLayer(l)); LOC.dot = LOC.ring = null;
+  if (LOC.btn){ LOC.btn.setAttribute('aria-pressed', 'false'); LOC.btn.classList.remove('busy'); LOC.btn.title = 'Show my location'; } }
+function locStart(){ if (!navigator.geolocation){ locMsg('This browser cannot share its location.', 4000); return; }
+  LOC.on = true; LOC.first = true; LOC.btn.setAttribute('aria-pressed', 'true'); LOC.btn.classList.add('busy'); LOC.btn.title = 'Stop showing my location'; locMsg('Finding your location…');
+  map.locate({watch:true, setView:false, enableHighAccuracy:true, maximumAge:15000, timeout:20000}); }
+map.on('locationfound', e => { if (!LOC.on) return; LOC.btn.classList.remove('busy'); const acc = Math.round(e.accuracy || 0), where = locWhere(e.latlng);
+  if (!LOC.ring) LOC.ring = L.circle(e.latlng, {radius:acc, color:'#1E90FF', weight:1, fillColor:'#1E90FF', fillOpacity:.12, interactive:false}).addTo(map); else LOC.ring.setLatLng(e.latlng).setRadius(acc);
+  const tip = `You are here${where ? ' · ' + where : ''} · accurate to about ${fmt(acc * 3.28084 > 1500 ? acc / 1609.34 : acc * 3.28084, 0)} ${acc * 3.28084 > 1500 ? 'miles' : 'feet'}`;
+  if (!LOC.dot) LOC.dot = L.marker(e.latlng, {icon:L.divIcon({className:'locdot', iconSize:[18, 18]}), keyboard:false, interactive:true, zIndexOffset:1000, alt:'Your location'}).bindTooltip(tip, {direction:'top', offset:[0, -10], className:'loctip'}).addTo(map);
+  else LOC.dot.setLatLng(e.latlng).setTooltipContent(tip);
+  if (LOC.first){ LOC.first = false; map.flyTo(e.latlng, Math.max(map.getZoom(), Math.min(14, acc > 2000 ? 10 : 13)), {duration:.8}); locMsg(where || 'Showing your location', 5000); } });
+map.on('locationerror', e => { if (!LOC.on) return; const denied = e.code === 1; locStop();
+  locMsg(denied ? 'Location is blocked for this site. Allow location in the browser’s site settings to use this.' : 'Your location could not be found. Try again outdoors or with a better signal.', 6000); });
+{ const Loc = L.Control.extend({options:{position:'topleft'}, onAdd(){ const d = L.DomUtil.create('div', 'leaflet-bar leaflet-control locctl'), a = L.DomUtil.create('a', '', d);
+    a.href = '#'; a.setAttribute('role', 'button'); a.setAttribute('aria-pressed', 'false'); a.setAttribute('aria-label', 'Show my location'); a.title = 'Show my location';
+    a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4"/></svg>';
+    L.DomEvent.disableClickPropagation(d); L.DomEvent.on(a, 'click', ev => { L.DomEvent.preventDefault(ev); LOC.on ? (locStop(), locMsg('')) : locStart(); }); LOC.btn = a; return d; }});
+  new Loc().addTo(map);
+  /* on phones the zoom buttons are hidden and the map controls run across the top, so the button sits just under them */
+  const place = () => { const d = document.querySelector('.locctl'), c = document.getElementById('ctls'); if (!d) return;
+    if (isPhone() && c){ const m = map.getContainer().getBoundingClientRect(), r = c.getBoundingClientRect(); d.style.marginTop = Math.max(10, Math.round(r.bottom - m.top + 8)) + 'px'; } else d.style.marginTop = ''; };
+  window.addEventListener('resize', place); setTimeout(place, 0); setTimeout(place, 1500); new ResizeObserver(place).observe(document.body); } /* 18 is the tile layers' own limit */
 map.attributionControl.setPrefix(false);
 const ATTR = 'Basemap: USGS The National Map';
 const TNM = 'https://basemap.nationalmap.gov/arcgis/rest/services/', OSMA = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
