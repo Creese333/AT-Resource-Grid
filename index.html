@@ -1263,7 +1263,7 @@ const phTop = (lv, s) => { const A = phAgg(lv); return A ? Math.max(1, (phYear(l
 function phFirst(lv, c){ const A = phAgg(lv); if (!A || A.first[c] == null) return null; const y = phYear(lv); return y && A.first[c] > y ? null : A.first[c]; }
 const PHWAVE = [[0, ZERO, 'Recorded here, not these weeks'], [1, null, '1 record'], [2, null, '2 records'], [5, null, '3 to 5 records'], [10, null, '6 to 10 records'], [Infinity, null, 'over 10 records']];
 const PHWAVECOL = ['#FFE600','#FFC400','#FF9900','#F56A00','#D6430A'];
-const phWaveCols = () => CULTM() ? RAMP.cult : PHWAVECOL, phDotCol = () => CULTM() ? '#F2E3C9' : '#FFE600', phDotEdge = () => CULTM() ? '#C19A6A' : '#FFB46B';   /* saturated, so the wave reads on topo maps and imagery alike */
+const phWaveCols = () => CULTM() ? RAMP.cult : PHWAVECOL, phDotCol = () => CULTM() ? '#C19A6A' : '#FFE600', phDotEdge = () => CULTM() ? '#C19A6A' : '#FFB46B';   /* saturated, so the wave reads on topo maps and imagery alike */
 const phWaveCol = v => { if (v == null) return null; if (v === 0) return ZERO; const i = PHWAVE.findIndex(e => v <= e[0]); return phWaveCols()[Math.max(0, Math.min(4, i - 1))]; };
 const phWaveLegend = () => `<div class="row"><i style="background:${phDotCol()};border:1px solid ${phDotEdge()};border-radius:50%;width:6px;height:6px"></i><span>${PHWORD[phMain()] === 'records' ? 'Records' : PHWORD[phMain()][0].toUpperCase() + PHWORD[phMain()].slice(1) + ' records'} this week</span></div><div class="row"><i style="background:rgba(255,230,0,.45);border-radius:50%;width:4px;height:4px"></i><span>The week before</span></div><p class="sub">Cells:</p>` + PHWAVE.slice(1).map((e, i) => `<div class="row"><i style="background:${phWaveCols()[i]}"></i><span>${e[2]}</span></div>`).join('') +
   (phSelText() ? `<p class="sub">Records in the three weeks around ${esc(wkDate(S.ph.wk))}, ${phYear() ? phYear() + ' only' : 'years ' + esc(phSelText()) + ' together'}. Cells without records in these weeks are left blank.</p>`
@@ -1322,8 +1322,8 @@ function phDots(){ const on = PHQ() && !SPREADQ() && S.m.id === 'wave' && !S.m.f
   const ok = v => y ? v === y : sel.length ? sel.includes(v) : true, now = [], prev = [];
   for (const [d, v, s, la, lo] of st.pts){ if (s !== ms || !ok(v)) continue; const w = wkOf(d); if (w !== wk && w !== wk - 1) continue;
     const c = phCell(lv, la, lo); if (c < 0 || !inSec(lv, c)) continue; (w === wk ? now : prev).push([la, lo]); }
-  for (const p of prev) L.circleMarker(p, {renderer:PHDOTS.r, radius:1.8, stroke:false, fillColor:phDotCol(), fillOpacity:.45, interactive:false}).addTo(PHDOTS);
-  for (const p of now) L.circleMarker(p, {renderer:PHDOTS.r, radius:2.6, color:phDotEdge(), weight:1, fillColor:phDotCol(), fillOpacity:1, interactive:false}).addTo(PHDOTS);
+  for (const p of prev) L.circleMarker(p, {renderer:PHDOTS.r, radius:CULTM() ? 1.4 : 1.8, stroke:false, fillColor:phDotCol(), fillOpacity:.45, interactive:false}).addTo(PHDOTS);
+  for (const p of now) L.circleMarker(p, {renderer:PHDOTS.r, radius:CULTM() ? 2 : 2.6, color:phDotEdge(), weight:CULTM() ? .6 : 1, fillColor:phDotCol(), fillOpacity:1, interactive:false}).addTo(PHDOTS);
   PHDOTS.n = now.length; }
 function phTick(){ phDots(); let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', vis = S.q.id === 'eff' && S.m.id === 'od' && !!S.visYr && !S.m.find, wxt = wxAnimOn() && (S.m.wxAnim === 'mon' ? S.wxMon != null : !!S.wxYr), on = acq || vis || wxt || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
   if (!t){ if (!on) return; t = document.createElement('div'); t.id = 'phtick'; t.setAttribute('aria-live', 'off'); document.getElementById('map').appendChild(t); }
