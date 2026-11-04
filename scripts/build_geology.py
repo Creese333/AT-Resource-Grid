@@ -22,8 +22,7 @@ lists, and per-level columns keyed by grid ID, the way inat_ebird.json does.
 Usage: python build_geology.py            (needs geopandas, pyogrio, shapely, pyproj)
        python build_geology.py --sgmc FILE (use a local SGMC file or folder instead of downloading)
 """
-import io, json, math, os, re, sys, time, urllib.parse, urllib.request, zipfile, tempfile, glob
-from collections import defaultdict
+import json, math, os, re, sys, time, urllib.parse, urllib.request, zipfile, tempfile, glob
 from datetime import date
 import warnings
 warnings.filterwarnings('ignore')

@@ -7,7 +7,7 @@ Standard library only. Run by the Historic resources workflow on GitHub (it reus
 The service's layers and field names are read from the service itself, so small schema changes do not break the build.
 If the service cannot be reached the existing place_names.json is kept.
 """
-import builtins, csv, io, json, os, re, sys, time, urllib.parse, urllib.request, zipfile
+import builtins, csv, io, json, os, re, time, urllib.parse, urllib.request, zipfile
 LOG = []
 def print(*a, **k):
     LOG.append(' '.join(str(x) for x in a)[:600]); builtins.print(*a, **k)

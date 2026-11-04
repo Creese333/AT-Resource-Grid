@@ -14,8 +14,8 @@ and writes historic_resources.json next to this script. The dashboard reads that
 
 Needs osmium-tool (apt) and shapely (pip) for the cemeteries. Runs in GitHub Actions (see .github/workflows/historic_resources.yml) or anywhere with Python 3.
 """
-import json, math, os, re, shutil, subprocess, sys, tempfile, time, urllib.parse, urllib.request
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import json, os, re, shutil, subprocess, sys, tempfile, time, urllib.parse, urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 SCRIPTS = os.path.dirname(os.path.abspath(__file__))          # scripts/

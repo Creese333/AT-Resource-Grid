@@ -403,7 +403,6 @@ def storms_part(grids, P):
 
 # ---------------------------------------------------------------- NOAA Atlas 14
 def atlas_part(P):
-    import rasterio
     vals = {k: np.full(len(P[k][0]), np.nan) for k in P}; used = []
     for reg in ATLAS_REGIONS:
         try:

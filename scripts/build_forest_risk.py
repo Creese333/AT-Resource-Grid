@@ -65,7 +65,6 @@ def summarize(src, cells):
     a = src.read(1, window=win, boundless=True, fill_value=src.nodata if src.nodata is not None else 3)
     lab = features.rasterize(((geom, i + 1) for i, geom in enumerate(c.geometry)), out_shape=a.shape, transform=src.window_transform(win), fill=0, dtype='int32')
     lab = lab.ravel(); a = a.ravel()
-    tot = np.bincount(lab, minlength=n + 1)[1:]
     risk = np.bincount(lab[a == 1], minlength=n + 1)[1:]
     treed = risk + np.bincount(lab[a == 0], minlength=n + 1)[1:]
     pct = [round(100 * r / t, 1) if t else None for r, t in zip(risk, treed)]

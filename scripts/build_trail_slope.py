@@ -29,7 +29,7 @@ inputs folder, or the public ArcGIS Online layer in CENTERLINE_ITEM (the item's 
   python build_trail_slope.py          (needs geopandas, pyogrio, shapely, pyproj, rasterio, numpy)
 Writes trail_slope.json (corridor) and trail_slope_huc10.json (HUC10 shell). Runs in GitHub Actions (.github/workflows/trail_slope.yml).
 """
-import io, json, math, os, re, sys, time, tempfile, urllib.parse, urllib.request, zipfile
+import json, os, re, time, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 import warnings
