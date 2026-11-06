@@ -525,6 +525,8 @@ header .blaze{width:14px;height:38px}
 .qs button.qgrp::before{content:none}.qs button.qgrp:first-child{margin-top:2px}.qs button.qgrp:hover{color:#fff;background:rgba(255,255,255,.04)}
 .qs button.qgrp i{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid currentColor;transition:transform .15s}
 .qs button.qgrp[aria-expanded=false] i{transform:rotate(-90deg)}
+.segleg{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12)}.segleg label{display:flex;gap:6px;align-items:center;font-weight:600;margin-bottom:4px;cursor:pointer}.segleg i.ln{height:5px !important;border-radius:2px}
+.segpopw .leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.35}.segpop table{border-collapse:collapse;margin:6px 0}.segpop td{padding:1px 8px 1px 0;vertical-align:top}.segpop td:first-child{color:var(--muted, #A8B8CA)}.segnote{font-size:12px;color:var(--muted, #A8B8CA)}
 </style>
 </head>
 <body>
@@ -603,7 +605,8 @@ header .blaze{width:14px;height:38px}
       <tr><td>Restoration targets</td><td>Built in this page from the layers above</td><td>Two 0 to 100 scores for grasslands and forests. How they are scored is set out under Restoration targets below.</td></tr>
       <tr><td>Flowering</td><td>iNaturalist research-grade records, built weekly, with newer records fetched live</td><td>Nearly fifty plants: trail-wide, A.T. Seasons, northern and southern indicators, and AMC focal species. First, peak and season length follow USA National Phenology Network measures, pooled across years. The flowering calendar by latitude follows the USA-NPN calendar view: the middle 80% and 50% of flowering-record dates and the median for each band of latitude, from 2010 on; bands with fewer than 20 records are not drawn. These are dates of photographs of the plant in flower, not measured flowering periods. Records follow hikers, so compare years by eye as leads for field checks; for measured change see A.T. Seasons (Nature’s Notebook).</td></tr>
       <tr><td>Forest health risk</td><td>USDA Forest Service 2024 National Insect and Disease Risk Map (composite risk, 240 m)</td><td>The share of each cell's treed area, and its acres, where 25% or more of the tree basal area is expected to die from insects and diseases over 2024 to 2038 without treatment. The map combines 172 insect and disease hazard models. Counted from the 240 m cells whose centers fall in each grid cell. A strategic, broad-scale planning map, not a stand-level assessment.</td></tr>
-      <tr><td>Trail vulnerability</td><td>Trail slope from the A.T. centerline and USGS 3DEP elevation (1 m lidar where available, 10 m elsewhere), rebuilt yearly; with the soils, weather, storm events and visitation layers above</td><td>Grade, side slope and slope alignment are measured every 10 m along the mapped centerline. Grade is the sustained grade over about 90 m (elevations smoothed over 50 m, rise taken over 40 m), so lidar noise and a line a few meters off the tread average out. Cells holding only a short piece of trail are blended with the trail just before and after it (up to 800 m each way along the line; a quarter mile of the cell's own trail counts equally with it), so a few steep steps don't push a cell to the top. The score adds points per factor (default weights: trail grade 35, fall-line alignment 15, side slope 10, heavy rain 15, use hot spots 10, soil erosion hazard 5, wet organic soils 5, forest pests 2.5, invasive plants 2.5; tested against the 2004–2013 trail assessments, where within each trail club section they rank recorded treadway problems at a Spearman correlation of 0.26, against 0.22 for the earlier weights and 0.22 for one assessment predicting the next) and scales them to 100 over the factors with data. Shares and NRCS ratings are used as they are; rain, wet soils, use hot spots (parking areas, shelters, campsites and vistas) and forest pests and invasive plants (species reported to iNaturalist or EDDMapS) are ranked among cells of the same size. Forest pests and invasive plants carry a low weight as early indicators of declining forest health and its cascading effects; like all citizen-science records they reflect where people have looked. Use hot spots stand in for use because citizen-science records follow naturalists and birders rather than hikers; they are counted in the A.T. corridor cells only. It screens for a closer look and is not a trail condition assessment.</td></tr>
+      <tr><td>Trail vulnerability</td><td>Trail slope from the A.T. centerline and USGS 3DEP elevation (1 m lidar where available, 10 m elsewhere), rebuilt yearly; with the soils, weather, storm events and visitation layers above</td><td>Grade, side slope and slope alignment are measured every 10 m along the mapped centerline. Grade is the sustained grade over about 90 m (elevations smoothed over 50 m, rise taken over 40 m), so lidar noise and a line a few meters off the tread average out. Cells holding only a short piece of trail are blended with the trail just before and after it (up to 800 m each way along the line; a quarter mile of the cell's own trail counts equally with it), so a few steep steps don't push a cell to the top. The score adds points per factor (default weights: steepest trail grade 40, steepest side slope 10, alignment with the slope 10, heavy rain 15, use hot spots 10, soil erosion hazard 5, wet organic soils 5, forest pests 2.5, invasive plants 2.5; tested against the 2004–2013 trail assessments, where within each trail club section they rank recorded treadway problems at a Spearman correlation of 0.30, against 0.22 for the first weights and 0.22 for one assessment predicting the next) and scales them to 100 over the factors with data. Shares and NRCS ratings are used as they are; rain, wet soils, use hot spots (parking areas, shelters, campsites and vistas) and forest pests and invasive plants (species reported to iNaturalist or EDDMapS) are ranked among cells of the same size. Forest pests and invasive plants carry a low weight as early indicators of declining forest health and its cascading effects; like all citizen-science records they reflect where people have looked. Use hot spots stand in for use because citizen-science records follow naturalists and birders rather than hikers; they are counted in the A.T. corridor cells only. It screens for a closer look and is not a trail condition assessment.</td></tr>
+      <tr><td>Trail segments</td><td>The A.T. centerline cut into 21,769 segments of about a tenth of a mile (160 m), measured every 10 m from USGS 3DEP elevation by the trail slope build</td><td>Each segment carries its steepest sustained grade, average grade, side slope, how directly it runs up the slope and an erosion risk score (ranks among all segments: grade 60%, side slope 20%, alignment 20%), and, where the build has read elevation rings 30 m and 100 m around it, whether it sits in a low spot. The trail score's slope factors use each cell's steepest tenth of segments. Segments are drawn under the trail question when zoomed in; the same segments are in gis/at_trail_slope_segments.gpkg for GIS.</td></tr>
       <tr><td>Recorded trail problems</td><td>A.T. trail assessments, 2004–2008 and 2009–2013: 16,373 problems recorded by trail clubs and partners in 82 club sections, with their kind, severity and the fix called for (provided by APPA)</td><td>Each record is placed in its grid cell. Treadway problems are counted by kind (erosion, drainage, other) and severity, per mile of trail, and compared with the club section average: recorded problems divided by what the cell's trail would hold at its trail club section's average rate, since sections recorded at rates from 0.4 to 28.7 problems a mile. The wet-tread score (provisional) averages each trail cell's rank in farm fields, wetland and stream crossings, where drainage problems were recorded most. Problems found 13 to 22 years ago; many have been fixed and some trail relocated since.</td></tr>
       <tr><td>Weather and climate</td><td>PRISM 1991–2020 normals, 800 m (PRISM Group, Oregon State University); NOAA nClimGrid-Daily, 1991–2020; NOAA Atlas 14; NOAA Storm Events Database, 1996 to the last full year; gridMET wind (University of Idaho), 1991–2020. Rebuilt each January; storm events every quarter</td><td>Normals, frost-free season, heavy-rain days, the 25-year storm and wind are sampled on a regular grid of points in each cell and averaged. PRISM and Atlas 14 resolve the mountains well; nClimGrid-Daily and gridMET are about 4 km, so the highest ridges are smoothed. gridMET is a research dataset, not an official record, and understates ridge-top wind. Each storm event counts in every cell whose center is in the National Weather Service forecast zone or county it was reported for, so the counts mean the same at every cell size and show where events are common rather than exact spots; a cell's count is not a count of separate storms across the trail. Map colors use one set of classes for every cell size and both extents.</td></tr>
       <tr><td>Citizen science observers</td><td>iNaturalist, eBird and EDDMapS records (the same downloads as above), counted as observer-days: one person active in a square mile on one day</td><td>An index of naturalist and birder activity, not a count of visitors; it follows the "user-day" method used to track park visitation from photo and social-media posts, and validated against counters and official counts in several studies (see Sources). An eBird checklist within 250 m of an iNaturalist observer on the same day and square mile counts as the same party; EDDMapS reports are report-days. Most of the rise in observer-days since 2010 comes from more people using iNaturalist, not more visitors, so compare places and seasons with more confidence than years.</td></tr>
@@ -1980,7 +1983,7 @@ if (!D.themes.geo) D.themes.geo = {};
 if (!D.themes.vis) D.themes.vis = {};
 if (!D.themes.wx) D.themes.wx = {};
 if (!D.themes.nrpz) D.themes.nrpz = {};
-if (!D.themes.slope) D.themes.slope = {}; if (!D.themes.fhr) D.themes.fhr = {}; if (!D.themes.topo) D.themes.topo = {}; if (!D.themes.defic) D.themes.defic = {};
+if (!D.themes.slope) D.themes.slope = {}; if (!D.themes.fhr) D.themes.fhr = {}; if (!D.themes.topo) D.themes.topo = {}; if (!D.themes.defic) D.themes.defic = {}; if (!D.themes.seg) D.themes.seg = {};
 /* geologic maps and bedrock units shared by both extents: GEOT = {maps:[[id, name, year, scale, type, gis, reference, url, notes]],
    units:[[name, label, age, lithology class, age class, major lithologies, carbonate, mafic, state]], meta} */
 let GEOT = null;
@@ -2103,9 +2106,9 @@ const wxSection = (lv, c) => wxBox(lv, [c]);
    Factor values: shares and NRCS ratings are used as they are (0 to 1); rain, the 25-year storm and use hot spots are scored by how the cell ranks among
    cells of its size (0 lowest, 1 highest), as restoration does with counts. Weights can be changed under Model weights */
 const TVDEF = [
-  ['grade', 'Trail grade', 35, 'slope', 'The share of trail over 10% grade and the share over 20%, averaged, so the steepest trail adds more (USGS 3DEP). The strongest match to recorded erosion problems'],
-  ['fall', 'Fall-line alignment', 15, 'slope', 'Share of the trail within 22.5° of the fall line on ground steeper than 5%'],
-  ['side', 'Side slope', 10, 'slope', 'Average steepness of the ground the trail crosses (USGS 3DEP): trail cut across steep ground loses its outer edge and tread'],
+  ['g90', 'Steepest trail grade', 40, 'seg', 'The steepest sustained grade (over 40 m) on the steepest tenth of the cell’s trail segments, ranked among cells (USGS 3DEP, tenth-mile segments). The strongest match to recorded erosion: a segment with a recorded erosion problem is steeper than one without in the same club section 67% of the time'],
+  ['side90', 'Steepest side slope', 10, 'seg', 'Side slope of the ground the trail crosses, on the steepest tenth of the cell’s segments, ranked among cells: trail cut across steep ground loses its outer edge and tread'],
+  ['align', 'Alignment with the slope', 10, 'seg', 'How directly the trail runs up the slope on the tenth of the cell’s segments that run most directly up it (0° = straight up), ranked among cells: water runs down trail that follows the slope'],
   ['rain', 'Heavy rain', 15, 'wx', 'Days a year with 1 inch or more of rain (NOAA nClimGrid-Daily), ranked among cells'],
   ['use', 'Use hot spots', 10, 'feat', 'Parking areas, shelters, campsites and vistas on the trail (A.T. facilities inventory), ranked among cells: where hikers gather, stop and spread out'],
   ['eros', 'Soil erosion hazard', 5, 'soil', 'NRCS erosion hazard for unsurfaced trails, 0 (slight) to 1 (very severe)'],
@@ -2121,14 +2124,19 @@ function tvRaw(k, lv, c){ const v = (th, f) => val(th, f, lv, c);
     case 'grade': { const a = v('slope','TS_G10'), b = v('slope','TS_G20'); return a == null ? null : Math.min(1, (a + (b || 0)) / 200); }
     case 'fall': { const a = v('slope','TS_FALL'); return a == null ? null : a / 100; }
     case 'eros': return v('soil','EROS_HR');
+    case 'g90': return v('seg','SG_G90');
+    case 'side90': return v('seg','SG_S90');
+    case 'align': { const a = v('seg','SG_A10'); return a == null ? null : 90 - a; }
     case 'side': { const a = v('slope','TS_SIDE'); return a == null ? null : Math.min(1, a / 100); }
     case 'wet': { const a = v('soil','HYDRIC'), o = v('soil','OM'); return a == null && o == null ? null : (a || 0) + (o || 0) / 20; }
     case 'rain': return v('wx','WX_HEAVY');
     case 'inv': { const a = invL('INVASIVE_LIST', lv, c); return a == null && !hasInv(lv, c) ? null : (a || []).length; }
     case 'pest': { const a = invL('PEST_LIST', lv, c); return a == null && !hasInv(lv, c) ? null : (a || []).length; }
     case 'use': { if (!has('feat', lv, c)) return D.themes.feat && D.themes.feat[lv] && S.ext === 'corr' ? 0 : null; return ['N_PARKING','N_SHELTER','N_CAMPSITE','N_VISTA'].reduce((t, f) => t + (val('feat', f, lv, c) || 0), 0); } } }
-const TVRANK = {}, tvRanked = k => k === 'rain' || k === 'wet' || k === 'use' || k === 'pest' || k === 'inv';
-function tvScale(k, lv, c){ const x = tvRaw(k, lv, c); if (x == null) return null; if (!tvRanked(k)) return Math.max(0, Math.min(1, x)); if (!(x > 0)) return 0;
+const TVRANK = {}, tvRanked = k => k === 'rain' || k === 'wet' || k === 'use' || k === 'pest' || k === 'inv' || k === 'g90' || k === 'side90' || k === 'align';
+/* a cell with trail but no segment of its own (a short piece; the segment's middle lies next door) takes the rank of its cell-wide slope measure */
+const TVSEGFB = {g90:'grade', side90:'side', align:'fall'};
+function tvScale(k, lv, c){ const x = tvRaw(k, lv, c); if (x == null) return TVSEGFB[k] ? tvScale(TVSEGFB[k], lv, c) : null; if (!tvRanked(k)) return Math.max(0, Math.min(1, x)); if (!(x > 0)) return 0;
   const key = k + '|' + lv + '|' + S.ext; let R = TVRANK[key]; if (!R || R.lev !== D.levels[lv]){ const a = []; for (let i = 0; i < D.levels[lv].id.length; i++) if (tvGate(lv, i)){ const y = tvRaw(k, lv, i); if (y > 0) a.push(y); } R = TVRANK[key] = {lev:D.levels[lv], a:a.sort((p, q) => p - q)}; }
   const a = R.a; if (!a.length) return 0; let lo = 0, hi = a.length; while (lo < hi){ const mid = (lo + hi) >> 1; if (a[mid] <= x) lo = mid + 1; else hi = mid; } return lo / a.length; }
 /* [score, parts [key, label, points, weight, raw], weight with data] */
@@ -2140,6 +2148,7 @@ const tvScore = (lv, c) => tvParts(lv, c)[0];
 function tvRawText(k, x){ if (x == null) return 'no data'; switch (k){
   case 'grade': return fmt(x * 100, 0) + '% steep-trail score'; case 'fall': return fmt(x * 100, 0) + '% of the trail'; case 'side': return fmt(x * 100, 0) + '% average side slope'; case 'wet': return x ? fmt(Math.floor(x), 0) + '% hydric soils' : 'none';
   case 'eros': return fmt(x, 2) + ' of 1'; case 'rain': return fmt(x, 1) + ' days a year';
+  case 'g90': return fmt(x, 0) + '% grade on its steepest tenth of trail'; case 'side90': return fmt(x, 0) + '% side slope on its steepest tenth'; case 'align': return 'within ' + fmt(90 - x, 0) + '° of straight up the slope on its most direct tenth';
   case 'use': return x ? `${fmt(x, 0)} ${x === 1 ? 'site' : 'sites'}` : 'none';
   case 'inv': return x ? `${fmt(x, 0)} invasive plant species reported` : 'none reported';
   case 'pest': return x ? `${fmt(x, 0)} pest ${x === 1 ? 'species' : 'species'} reported` : 'none reported'; } return ''; }
@@ -2154,6 +2163,9 @@ function tvBox(lv, cells){ let b = `<div class="sec" style="--hue:${HUE.tvul}"><
   const sc = R.map(x => x[1][0]), avg = a => a.reduce((t, x) => t + x, 0) / a.length;
   b += `<p><b>${Math.round(avg(sc))}</b> of 100${many ? ` on average <span style="color:var(--muted)">(${Math.min(...sc)} to ${Math.max(...sc)}; ${R.length} of ${cells.length} cells scored)</span>` : ''}</p>`;
   b += tvFacts(lv, R.map(x => x[0]));
+  if (D.themes.seg && D.themes.seg[lv]){ const cs = R.map(x => x[0]).filter(c => val('seg', 'SG_N', lv, c)), N = cs.reduce((t, c) => t + (val('seg', 'SG_N', lv, c) || 0), 0);
+    if (N){ const hi = cs.reduce((t, c) => t + (val('seg', 'SG_HI', lv, c) || 0) * (val('seg', 'SG_N', lv, c) || 0), 0) / N;
+      b += `<p style="font-size:13.5px">${fmt(N, 0)} tenth-mile trail ${N === 1 ? 'segment' : 'segments'}; ${fmt(hi, 0)}% of the trail in the top fifth of segment erosion risk. Zoom in under this question to see each segment.</p>`; } }
   { const wt = R.map(x => wtScore(lv, x[0])).filter(v => v != null); if (wt.length) b += `<p style="font-size:13.5px">Wet-tread risk (provisional): <b>${Math.round(wt.reduce((t, v) => t + v, 0) / wt.length)}</b> of 100${many ? ' on average' : ''}.</p>`; }
   if (deficOn()){ const cs = R.map(x => x[0]), S_ = f => cs.reduce((t, c) => t + (val('defic', f, lv, c) || 0), 0), n = S_('DF_N'), ex = S_('DF_EXP'), st = S_('DF_SITE');
     b += `<p style="font-size:13.5px">Recorded in the 2004–2013 trail assessments: ${n ? `<b>${fmt(n, 0)}</b> treadway ${n === 1 ? 'problem' : 'problems'} (${fmt(S_('DF_EROS'), 0)} erosion, ${fmt(S_('DF_DRAIN'), 0)} drainage, ${fmt(S_('DF_OTHER'), 0)} other; ${fmt(S_('DF_SEV'), 0)} serious or critical)${ex >= .5 ? `, ${fmt(n / ex, 1)}× the average of ${many ? 'their club sections' : 'its club section'}` : ''}` : 'no treadway problems'}${st ? `; ${fmt(st, 0)} at sites and in the corridor` : ''}.</p>`; }
@@ -2226,7 +2238,7 @@ function tvWeightsHTML(){ if (!TVD) TVD = Object.assign({}, TVW); const tot = TV
     `<p class="tvleft${left ? ' due' : ''}">${left > 0 ? `<b>${f1(left)}</b> ${left === 1 ? 'point' : 'points'} left to assign. Raise a factor to use ${left === 1 ? 'it' : 'them'}.` : 'All 100 points are assigned.'}${changed ? ' Press Apply to update the scores.' : ''}</p>` +
     `<div class="tvbtns"><button type="button" class="tvapply" data-tvapply="1"${changed && !left ? '' : ' disabled'}>Apply</button>` +
     (changed ? '<button type="button" class="lbtn" data-tvundo="1">Undo changes</button>' : '') + (isRec ? '' : '<button type="button" class="lbtn" data-tvreset="1">Reset to recommended</button>') + '</div>' +
-    `<details class="tvabout"${store.get('tvabout', false) ? ' open' : ''}><summary>About the weights</summary>` + '<p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. Recommended weights were tested against the 16,373 problems recorded in the 2004–08 and 2009–13 trail assessments: trail grade matched recorded erosion best, then side slope, use hot spots, alignment with the fall line and heavy rain; the soil ratings matched little, and erodible soils, rutting hazard and the 25-year storm not at all, so they are left out. Forest pests and invasive plants carry a low weight as early signs of declining forest health.</p></details>'; }
+    `<details class="tvabout"${store.get('tvabout', false) ? ' open' : ''}><summary>About the weights</summary>` + '<p class="phnote">The weights share 100 points. Lower one factor to free points, then raise another. Recommended weights were tested against the 16,373 problems recorded in the 2004–08 and 2009–13 trail assessments. Grade matched recorded erosion best, measured on the steepest tenth-mile segments rather than averaged over the cell, then heavy rain, side slope, how directly the trail runs up the slope, and use hot spots; the soil ratings matched little, and erodible soils, rutting hazard and the 25-year storm not at all, so they are left out. Forest pests and invasive plants carry a low weight as early signs of declining forest health.</p></details>'; }
 document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('tvabout')) store.set('tvabout', e.target.open); }, true);
 function tvRefresh(full){ for (const k in TVRANK) delete TVRANK[k]; BRK.clear(); restyle(); strip(); legend(); qVizRefresh(); if (full) side(); else { const p = $('#pbody'); if (p && (S.cell != null || S.box)) profileRefresh(); } }
 const profileRefresh = () => { if (S.box) side(); else if (S.cell != null) profile(); };
@@ -2600,26 +2612,53 @@ document.addEventListener('click', e => { const s = e.target.closest('[data-tfs]
 /* wet-tread risk (provisional): where the trail crosses farm fields, wetland and streams. In the 2004-2013 assessments drainage
    problems matched these (within-district Spearman 0.16, steady in both cycles) and not grade or the soil ratings. Each part is
    ranked among trail cells; the score is their average, 0 to 100. Replaced once trail segments carry their own wetness measures. */
-const WTDEF = [['agric', 'Farm fields', v => v('veg','L1_AGRIC')], ['wetl', 'Wetland', v => v('veg','L1_WETLAND')], ['brdg', 'Stream crossings (bridges)', v => v('feat','N_BRIDGE')]];
+const WTDEF = [['agric', 'Farm fields', v => v('veg','L1_AGRIC')], ['wetl', 'Wetland', v => v('veg','L1_WETLAND')], ['brdg', 'Stream crossings (bridges)', v => v('feat','N_BRIDGE')], ['lows', 'Low, flat trail', v => v('seg','SG_WET')]];
 const WTRANK = {};
 function wtParts(lv, c){ if (!tvGate(lv, c)) return null; const v = (th, f) => val(th, f, lv, c);
   const P = WTDEF.map(([k, lab, g], i) => { const x = g(v); if (x == null) return [k, lab, null, x]; if (!(x > 0)) return [k, lab, 0, x];
     const key = k + '|' + lv + '|' + S.ext; let R = WTRANK[key];
     if (!R || R.lev !== D.levels[lv]){ const a = []; for (let j = 0; j < D.levels[lv].id.length; j++) if (tvGate(lv, j)){ const y = WTDEF[i][2]((th, f) => val(th, f, lv, j)); if (y > 0) a.push(y); } R = WTRANK[key] = {lev:D.levels[lv], a:a.sort((p, q) => p - q)}; }
     let lo = 0, hi = R.a.length; while (lo < hi){ const mid = (lo + hi) >> 1; if (R.a[mid] <= x) lo = mid + 1; else hi = mid; } return [k, lab, R.a.length ? lo / R.a.length : 0, x]; });
-  const ok = P.filter(p => p[2] != null); return ok.length >= 2 ? [Math.round(100 * ok.reduce((t, p) => t + p[2], 0) / ok.length), P] : null; }
+  const ok = P.filter(p => p[2] != null && !(p[0] === 'lows' && p[3] == null)); return ok.length >= 2 ? [Math.round(100 * ok.reduce((t, p) => t + p[2], 0) / ok.length), P] : null; }
 const wtScore = (lv, c) => { const r = wtParts(lv, c); return r ? r[0] : null; };
 const deficOn = () => !!(DEFIC && DEFIC.done);
 { const p1 = QVIZ.tvul.pick; QVIZ.tvul.pick = id => {
-  if (id === 'wett') return {title:'Where the wet-tread score comes from', note:'Each part is ranked among trail cells and the three are averaged. The colored part is its average rank in the cells shown. Provisional.', html(lv, cells){
+  if (id === 'wett') return {title:'Where the wet-tread score comes from', note:'Each part is ranked among trail cells and the parts are averaged. The colored part is its average share of the points in the cells shown. Provisional.', html(lv, cells){
     const s = WTDEF.map(() => 0), n = WTDEF.map(() => 0); let k = 0;
-    cells.forEach(c => { const r = wtParts(lv, c); if (!r) return; k++; r[1].forEach((p, i) => { if (p[2] != null){ s[i] += p[2] * 100 / 3; n[i]++; } }); });
-    return k ? trackChart(WTDEF.map(([key, lab], i) => [lab, n[i] ? s[i] / n[i] : null, 100 / 3, n[i] ? `${lab}: adds ${fmt(s[i] / n[i], 1)} of its ${fmt(100 / 3, 1)} possible points on average, over ${nCells(n[i])}` : `${lab}: no data here`]), 'Where the wet-tread score comes from', HUE.tvul) : ''; }};
+    cells.forEach(c => { const r = wtParts(lv, c); if (!r) return; k++; const m_ = r[1].filter(p => p[2] != null && !(p[0] === 'lows' && p[3] == null)).length || 1;
+      r[1].forEach((p, i) => { if (p[2] != null && !(p[0] === 'lows' && p[3] == null)){ s[i] += p[2] * 100 / m_; n[i]++; } }); });
+    const parts = WTDEF.map((d_, i) => i).filter(i => n[i]), pw = 100 / (parts.length || 1);
+    return k ? trackChart(parts.map(i => [WTDEF[i][1], s[i] / n[i], pw, `${WTDEF[i][1]}: adds ${fmt(s[i] / n[i], 1)} of its ${fmt(pw, 1)} possible points on average, over ${nCells(n[i])}`]), 'Where the wet-tread score comes from', HUE.tvul) : ''; }};
   if (id === 'defrel' || id === 'defrate') return {title:'Recorded trail problems by kind', html:null, note:'Problems recorded in the 2004–08 and 2009–13 trail assessments in the cells shown. Erosion and drainage are treadway problems; sites are campsites, shelters, privies, parking, bridges and the corridor.', fn(lv, cells){
     const K = [['DF_EROS', 'Erosion'], ['DF_DRAIN', 'Drainage'], ['DF_OTHER', 'Other treadway'], ['DF_SITE', 'Sites and corridor']], t = K.map(() => 0);
     cells.forEach(c => K.forEach(([f], i) => { t[i] += val('defic', f, lv, c) || 0; })); const tot = t.reduce((a, b) => a + b, 0);
     return tot ? vRampRows(K.map(([f, lab], i) => [lab, HUE.tvul, t[i], fmt(t[i], 0), `${lab}: ${fmt(t[i], 0)} recorded (${vPct(t[i], tot)})`]), 'tvul') : []; }};
   return p1(id); }; }
+/* trail segments on the map: under the trail question (not tree fall), zoomed in to about 7 miles across or closer, each
+   tenth-mile segment drawn over the cells in its erosion risk class; a click opens its numbers */
+let SEGL = null, segKey = '', segOn = true; try { segOn = localStorage.getItem('atgrid_segs') !== '0'; } catch (e) {}
+const SEGZ = 12, SEGBRK = [40, 60, 80, 90];
+const segCls = r => r == null ? -1 : SEGBRK.filter(b => r >= b).length;
+function segVisible(){ return !!(SEGS && segOn && S.q && S.q.id === 'tvul' && S.m && S.m.id !== 'tfall' && S.ext === 'corr' && map.getZoom() >= SEGZ); }
+function segDraw(){ if (!SEGS){ return; } if (!SEGL){ if (!map.getPane('segs')){ map.createPane('segs').style.zIndex = 430; } SEGL = L.layerGroup().addTo(map); SEGL.r = L.canvas({pane:'segs', padding:.3}); }
+  if (!segVisible()){ if (segKey){ SEGL.clearLayers(); segKey = ''; } return; }
+  const b = map.getBounds().pad(.15), s = SEGS.segs, key = [b.toBBoxString(), map.getZoom() | 0].join('|'); if (key === segKey) return; segKey = key; SEGL.clearLayers();
+  const R = RAMP.tvul, s_ = b.getSouth(), n_ = b.getNorth(), w_ = b.getWest(), e_ = b.getEast(), wt = map.getZoom() >= 14 ? 6 : 4.5;
+  for (let i = 0; i < s.n; i++){ const o = 4 * i; if (s.bb[o + 2] < s_ || s.bb[o] > n_ || s.bb[o + 3] < w_ || s.bb[o + 1] > e_) continue;
+    const g = s.g[i], pts = []; let la = g[0], lo = g[1]; pts.push([la / 1e5, lo / 1e5]); for (let k = 2; k < g.length; k += 2){ la += g[k]; lo += g[k + 1]; pts.push([la / 1e5, lo / 1e5]); }
+    const k = segCls(s.risk[i]);
+    L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:'#0B1320', weight:wt + 3, opacity:.9, lineCap:'butt', interactive:false}).addTo(SEGL);
+    L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:k < 0 ? '#8A96A8' : R[k], weight:wt, opacity:1, lineCap:'butt', bubblingMouseEvents:false})
+      .on('click', ev => { L.DomEvent.stopPropagation(ev); segPopup(i, ev.latlng); }).addTo(SEGL); } }
+function segPopup(i, ll){ const s = SEGS.segs, v = (a, d = 0) => a && a[i] != null ? fmt(a[i], d) : '–', r = s.risk[i];
+  let rec = ''; if (DEFIC && DEFIC.segs){ if (!DEFIC.segs.m) DEFIC.segs.m = new Map(DEFIC.segs.id.map((x, j) => [x, j])); const j = DEFIC.segs.m.get(s.id[i]);
+    rec = j == null ? 'none recorded' : `${DEFIC.segs.eros[j]} erosion, ${DEFIC.segs.drain[j]} drainage, ${DEFIC.segs.other[j]} other`; }
+  const low = s.tpi30 && s.tpi30[i] != null ? `<tr><td>Ground around it</td><td>${s.tpi30[i] < 0 ? fmt(-s.tpi30[i], 1) + ' m below the ground 30 m around (a low spot)' : fmt(s.tpi30[i], 1) + ' m above the ground 30 m around'}</td></tr>` : '';
+  const html = `<div class="segpop"><b>Trail segment near mile ${v(s.mile, 1)}</b><br>Erosion risk <b>${r == null ? '–' : fmt(r, 0) + ' of 100'}</b>${r >= 80 ? ' · top fifth of the trail' : ''}<table>
+    <tr><td>Steepest sustained grade</td><td>${v(s.gmax, 1)}%</td></tr><tr><td>Average grade</td><td>${v(s.gavg, 1)}%</td></tr><tr><td>Over 10% / over 20%</td><td>${v(s.o10)}% / ${v(s.o20)}% of it</td></tr>
+    <tr><td>Side slope</td><td>${v(s.side)}%</td></tr><tr><td>Alignment</td><td>${s.align[i] == null ? '–' : 'within ' + fmt(s.align[i], 0) + '° of straight up the slope'}</td></tr><tr><td>On the fall line</td><td>${v(s.fall)}% of it</td></tr>${low}
+    ${rec ? `<tr><td>Recorded 2004–2013</td><td>${rec}</td></tr>` : ''}</table><span class="segnote">About 160 m of trail. Risk ranks grade (60%), side slope (20%) and alignment (20%) among all segments.</span></div>`;
+  L.popup({maxWidth:300, className:'segpopw'}).setLatLng(ll).setContent(html).openOn(map); }
 const EXTNO = ['tvul'];   /* questions that list the extent but measure only the trail itself, so HUC10 is shown greyed out */
 QVIZ.pest = {title:'Forest at risk by state', note:'Share of the treed area at risk of losing 25% or more of its tree basal area to insects and diseases over 2024 to 2038, with the acres at risk (USDA Forest Service 2024 National Insect and Disease Risk Map).' + VSTNOTE, fn(lv, cells){
     const r = VST.map(() => 0), t = VST.map(() => 0);
@@ -2633,6 +2672,13 @@ const fhrSection = (lv, c) => fhrBox(lv, [c]);
 var FHR = null; const FHRHUC = 'data/forest_risk_huc10.json';
 var TOPO = null;
 var DEFIC = null;
+var SEGS = null;
+function segApply(){ const j = SEGS; if (!j || j.done || S.ext !== 'corr') return; j.done = true; D.themes.seg = thConv(j, 'seg', D.levels); extIndex(); }
+fetch('data/trail_segments.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (!j || !j.segs) return; SEGS = j;
+  const s = j.segs, n = s.id.length; s.n = n; s.bb = new Float32Array(4 * n);
+  for (let i = 0; i < n; i++){ const g = s.g[i]; let la = g[0], lo = g[1], a0 = la, a1 = la, o0 = lo, o1 = lo; for (let k = 2; k < g.length; k += 2){ la += g[k]; lo += g[k + 1]; if (la < a0) a0 = la; if (la > a1) a1 = la; if (lo < o0) o0 = lo; if (lo > o1) o1 = lo; } s.bb.set([a0 / 1e5, o0 / 1e5, a1 / 1e5, o1 / 1e5], 4 * i); }
+  s.byId = new Map(s.id.map((v, i) => [v, i]));
+  if (S.ext === 'corr'){ segApply(); TVRANK && Object.keys(TVRANK).forEach(k => delete TVRANK[k]); BRK.clear(); redraw(); } }).catch(() => {});
 function deficApply(){ const j = DEFIC; if (!j || j.done || S.ext !== 'corr') return; j.done = true; D.themes.defic = thConv(j, 'defic', D.levels); extIndex(); }
 fetch('data/trail_deficiencies.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ DEFIC = j; if (S.ext === 'corr'){ deficApply(); BRK.clear(); redraw(); } } }).catch(() => {});
 function topoApply(){ const j = TOPO; if (!j || j.done || S.ext !== 'corr') return; j.done = true; D.themes.topo = thConv(j, 'topo', D.levels); for (const k in WFRANK) delete WFRANK[k]; extIndex(); }
@@ -2797,7 +2843,7 @@ const Q = [
      {id:'gis', grp:'Available geologic map data', label:'Digital geologic map data', kind:'cat', f:'GIS_BEST', note:'The most detailed geologic mapping covering at least half the cell that is available as GIS data.'},
      {id:'new', grp:'Available geologic map data', label:'Newest geologic map', kind:'cat', f:'GEO_NEWEST', fn:(lv,c) => geoNewest(lv, c), note:'Publication year of the newest published geologic map covering at least a tenth of the cell. Maps still in progress are listed when you select a cell.'}]},
  {id:'tvul', th:'slope', hue:HUE.tvul, ramp:'tvul', title:'Where is the trail most at risk?',
-  use:'A model, like the restoration score, that ranks where the trail is most likely to erode, rut or wash out. It adds points for trail grade, side slope and alignment with the fall line (measured along the A.T. centerline from USGS 3DEP lidar elevation), heavy rain (NOAA), use hot spots: parking areas, shelters, campsites and vistas, where hikers gather and wear spreads (A.T. facilities inventory), and soil erosion hazard and wet soils (NRCS). The weights were tested against the problems recorded in the 2004–2013 trail assessments, which are also mapped here, with a separate, provisional score for wet tread. Forest pests and invasive plants are added at a low weight as early signs of declining forest health, whose effects on canopy, ground cover, soils and downed trees cascade to the trail. Change the weights under Model weights. Select a cell to see what drives its score.',
+  use:'A model, like the restoration score, that ranks where the trail is most likely to erode, rut or wash out. It adds points for trail grade, side slope and how directly the trail runs up the slope, each taken from the cell’s steepest tenth-mile trail segments (measured along the A.T. centerline from USGS 3DEP lidar elevation), heavy rain (NOAA), use hot spots: parking areas, shelters, campsites and vistas, where hikers gather and wear spreads (A.T. facilities inventory), and soil erosion hazard and wet soils (NRCS). The weights were tested against the problems recorded in the 2004–2013 trail assessments, which are also mapped here, with a separate, provisional score for wet tread. Forest pests and invasive plants are added at a low weight as early signs of declining forest health, whose effects on canopy, ground cover, soils and downed trees cascade to the trail. Change the weights under Model weights. Select a cell to see what drives its score.',
   m:[{id:'score', label:'Vulnerability score', int:1, brkP:[.4,.7,.85,.95], fn:(lv,c)=>tvScore(lv,c), none:'No trail here', note:'0 to 100: points from each factor, scaled to 100 over the factors with data. Higher means more likely to erode, rut or wash out.'},
      {id:'grade', label:'Average trail grade', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_GRADE'), th:'slope', f:'TS_GRADE', unit:'%', d:0, none:'No trail here', note:'Average grade along the trail, from USGS 3DEP elevation every 10 m, smoothed over 30 m.'},
      {id:'g10', label:'Trail over 10% grade', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_G10'), th:'slope', f:'TS_G10', unit:'%', d:0, zero:1, zeroText:'None', none:'No trail here', note:'Share of the trail steeper than 10%, where soil loss rises sharply.'},
@@ -3166,6 +3212,7 @@ function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
   if (typeof FHR !== 'undefined' && FHR && !FHR.done && S.ext === 'corr') fhrApply();
   if (typeof TOPO !== 'undefined' && TOPO && !TOPO.done && S.ext === 'corr') topoApply();
   if (typeof DEFIC !== 'undefined' && DEFIC && !DEFIC.done && S.ext === 'corr') deficApply();
+  if (typeof SEGS !== 'undefined' && SEGS && !SEGS.done && S.ext === 'corr') segApply();
   const lv = dispLevel();
   if (shown !== lv){ if (shown) map.removeLayer(GROUP[shown]); group(lv); shown = lv; restyle(); if (S.cells) GROUP[lv].addTo(map); }
   else restyle();
@@ -3198,7 +3245,7 @@ function extLoad(){ if (EXT.huc) return Promise.resolve(); if (extLoading) retur
       fetch(TSLHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(t => { if (t && t.themes) H.themes.slope = thConv(t, 'slope', H.levels); }).catch(() => {})]).then(() => { EXT.huc = H; }); });
   extLoading.catch(() => {}).then(() => { extLoading = null; });
   return extLoading; }
-function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.geo) D.themes.geo = {}; if (!D.themes.vis) D.themes.vis = {}; if (!D.themes.wx) D.themes.wx = {}; if (!D.themes.slope) D.themes.slope = {}; if (!D.themes.fhr) D.themes.fhr = {}; if (!D.themes.topo) D.themes.topo = {}; if (!D.themes.defic) D.themes.defic = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
+function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.geo) D.themes.geo = {}; if (!D.themes.vis) D.themes.vis = {}; if (!D.themes.wx) D.themes.wx = {}; if (!D.themes.slope) D.themes.slope = {}; if (!D.themes.fhr) D.themes.fhr = {}; if (!D.themes.topo) D.themes.topo = {}; if (!D.themes.defic) D.themes.defic = {}; if (!D.themes.seg) D.themes.seg = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
   for (const th in D.themes){ ROW[th] = {}; for (const lv in D.themes[th]){ const a = new Int32Array(D.levels[lv].id.length).fill(-1); D.themes[th][lv].ix.forEach((c,k) => a[c] = k); ROW[th][lv] = a; } }
   for (const lv in D.levels){ const m = new Map(); D.levels[lv].id.forEach((id,i) => m.set(id,i)); IDX[lv] = m; }
   BRK.clear(); for (const k in COVER) delete COVER[k]; for (const k in RINGS) delete RINGS[k]; }
@@ -3238,6 +3285,15 @@ const CORRSET = {}; function inCorr(lv, c){ if (!EXT.corr) return true; const s_
 function refreshProfile(){ if ((S.cell != null || S.box) && $('#profile').classList.contains('open')) profile(); }
 map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !== shown){ draw(); strip(); } else if (shown) restyle(); });
 map.on('moveend', viewWindow);
+map.on('moveend zoomend', () => segDraw());
+{ const r0 = redraw; redraw = function(){ r0(); segDraw(); }; }
+{ const l0 = legend; legend = function(){ l0(); const e = $('#legend'); if (!e || !SEGS || !S.q || S.q.id !== 'tvul' || S.m.id === 'tfall' || S.ext !== 'corr') return;
+    const R = RAMP.tvul, lab = ['under 40', '40 to 60', '60 to 80', '80 to 90', '90 and over'];
+    const d = document.createElement('div'); d.className = 'segleg';
+    d.innerHTML = `<label><input type="checkbox" id="segtog"${segOn ? ' checked' : ''}> Trail segments, erosion risk${map.getZoom() < SEGZ ? ' <span class="sub">(zoom in to see)</span>' : ''}</label>` + lab.map((t, k) => `<div class="row"><i class="ln" style="background:${R[k]}"></i><span>${t}</span></div>`).join('');
+    const b = e.querySelector('#legbody') || e; b.appendChild(d);
+    d.querySelector('#segtog').addEventListener('change', ev => { segOn = ev.target.checked; try { localStorage.setItem('atgrid_segs', segOn ? '1' : '0'); } catch (x) {} segKey = ''; segDraw(); }); }; }
+map.on('zoomend', () => { const t = $('#segtog'); if (t) legend(); });
 map.createPane('states').style.zIndex = 412; map.getPane('states').style.pointerEvents = 'none';
 let STL = null, stOn = true; try { stOn = localStorage.getItem('atgrid_states') !== '0'; } catch (e) {}
 function statesShow(){ const cb = $('#stlines'); if (cb) cb.checked = stOn; if (!STL) return; if (stOn) STL.addTo(map); else map.removeLayer(STL); }
@@ -4408,7 +4464,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
       land_administrators:n('lands','N_MGR'), land_pct_of_cell_mapped:n('lands','PCT_LAND'),
       cultural_plant_species:blank(cultCount(lv, c)), cultural_plant_records:cultReady(lv) ? n('inat','N_CULT_OBS') : '',
       visit_observer_days_per_year:(x => x == null ? '' : Math.round(x * 10) / 10)(visRecent(lv, c)), visit_average_years:visFull() - 2 + '-' + visFull(), visit_unique_observers:n('vis','VIS_OBSR'), visit_peak_month:v('vis','VIS_PEAK',c) ? CATCOL.VIS_PEAK[v('vis','VIS_PEAK',c) - 1][0] : '', visit_records_per_observer_day:n('vis','VIS_RPD'),
-      trail_vulnerability_score:blank(tvScore(lv, c)), trail_wet_tread_risk_provisional:blank(wtScore(lv, c)), trail_tree_fall_vulnerability:blank(wfScore(lv, c)), recorded_treadway_problems_2004_2013:n('defic','DF_N'), recorded_erosion_problems:n('defic','DF_EROS'), recorded_drainage_problems:n('defic','DF_DRAIN'), recorded_other_treadway_problems:n('defic','DF_OTHER'), recorded_site_corridor_problems:n('defic','DF_SITE'), recorded_serious_critical_problems:n('defic','DF_SEV'), recorded_problems_per_mile:n('defic','DF_RATE'), recorded_problems_vs_club_section_avg:n('defic','DF_REL'), trail_topo_exposed_pct:n('topo','TOPO_EXP'), ...Object.fromEntries(tvParts(lv, c)[1].map(p => ['trail_vuln_pts_' + p[0], p[2] == null ? '' : Math.round(p[2] * 10) / 10])),
+      trail_vulnerability_score:blank(tvScore(lv, c)), trail_wet_tread_risk_provisional:blank(wtScore(lv, c)), trail_tree_fall_vulnerability:blank(wfScore(lv, c)), recorded_treadway_problems_2004_2013:n('defic','DF_N'), recorded_erosion_problems:n('defic','DF_EROS'), recorded_drainage_problems:n('defic','DF_DRAIN'), recorded_other_treadway_problems:n('defic','DF_OTHER'), recorded_site_corridor_problems:n('defic','DF_SITE'), recorded_serious_critical_problems:n('defic','DF_SEV'), recorded_problems_per_mile:n('defic','DF_RATE'), trail_steepest_grade_p90_pct:n('seg','SG_G90'), trail_steepest_side_slope_p90_pct:n('seg','SG_S90'), trail_most_direct_alignment_p10_deg:n('seg','SG_A10'), trail_share_top_fifth_segment_risk_pct:n('seg','SG_HI'), trail_share_wet_prone_segments_pct:n('seg','SG_WET'), trail_segments:n('seg','SG_N'), recorded_problems_vs_club_section_avg:n('defic','DF_REL'), trail_topo_exposed_pct:n('topo','TOPO_EXP'), ...Object.fromEntries(tvParts(lv, c)[1].map(p => ['trail_vuln_pts_' + p[0], p[2] == null ? '' : Math.round(p[2] * 10) / 10])),
       trail_miles_measured:n('slope','TS_MI'), trail_grade_avg_pct:n('slope','TS_GRADE'), trail_over_10pct_grade_pct:n('slope','TS_G10'), trail_over_20pct_grade_pct:n('slope','TS_G20'),
       trail_side_slope_avg_pct:n('slope','TS_SIDE'), trail_slope_alignment_avg_deg:n('slope','TS_SAA'), trail_fall_line_pct:n('slope','TS_FALL'),
       forest_pest_risk_pct_of_treed:n('fhr','FHR_PCT'), forest_pest_risk_acres:n('fhr','FHR_AC'), forest_pest_risk_treed_acres:n('fhr','FHR_TAC'),
