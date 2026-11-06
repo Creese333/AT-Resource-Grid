@@ -1,7 +1,10 @@
 # Builds trail_slope.json (A.T. corridor) and trail_slope_huc10.json (HUC10 shell) for "Where is the trail most vulnerable to damage?":
 # treadway grade, side slope and slope alignment along the A.T. centerline, from USGS 3DEP elevation (1 m lidar where available).
 # The centerline is at_centerline.geojson / .zip / .gpkg in the inputs folder if there is one, otherwise the public ArcGIS Online item below.
-# It also writes gis/at_trail_slope_segments.gpkg: the centerline in tenth-mile segments with grade and fall line, for GIS.
+# It also writes gis/at_trail_slope_segments.gpkg (the centerline in tenth-mile segments, for GIS) and data/trail_segments.json
+# (the same segments for the dashboard's trail map, with low spots from elevation rings around each segment).
+# Choose "segments only" to add the elevation rings and rewrite the segment files from the GeoPackage already in gis/,
+# without measuring the whole trail again (much faster).
 # Run it from the Actions tab ("Run workflow") after the centerline changes; it also runs once a year, on 10 February.
 name: Trail slope
 
@@ -9,6 +12,12 @@ on:
   schedule:
     - cron: '17 10 10 2 *'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'What to build'
+        type: choice
+        options: ['full', 'segments only']
+        default: 'full'
 
 permissions:
   contents: write
@@ -28,13 +37,14 @@ jobs:
           python-version: '3.12'
       - name: Install
         run: pip install geopandas pyogrio shapely pyproj rasterio numpy
-      - name: Build trail_slope.json
-        run: python scripts/build_trail_slope.py
+      - name: Build trail slope and segments
+        run: |
+          if [ "${{ github.event.inputs.mode }}" = "segments only" ]; then python scripts/build_trail_slope.py --segments-only; else python scripts/build_trail_slope.py; fi
       - name: Commit if changed
         run: |
           git config user.name  "trail-slope-bot"
           git config user.email "actions@users.noreply.github.com"
-          for f in data/trail_slope.json data/trail_slope_huc10.json gis/at_trail_slope_segments.gpkg; do if [ -f "$f" ]; then git add "$f"; fi; done
+          for f in data/trail_slope.json data/trail_slope_huc10.json data/trail_segments.json gis/at_trail_slope_segments.gpkg; do if [ -f "$f" ]; then git add "$f"; fi; done
           git diff --cached --quiet && exit 0
           git commit -m "Update trail slope summaries and GIS segments"
           for i in 1 2 3; do
