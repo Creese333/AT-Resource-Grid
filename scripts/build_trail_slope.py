@@ -34,9 +34,17 @@ each with its own measured values (not blended with the trail around it):
   seg_id, grid_id (the 1 sq mi cell at the segment's middle), near_mile (that cell's trail mile), length_m,
   grade_avg_pct, grade_max_pct (the steepest sustained grade in the segment), over10_pct, over20_pct, fall_line_pct,
   side_slope_pct, align_angle_deg, steps (10 m steps measured)
-The dashboard does not load this file.
+The dashboard does not load the GeoPackage; it loads data/trail_segments.json, written from the same segments:
+  each segment as a simplified line (about 3 m) with its grade, side slope, alignment, an erosion risk score and, from elevation
+  read in rings 30 m and 100 m around its middle, how far it sits above or below the ground around it (tpi30_m, tpi100_m:
+  negative = a low spot where water gathers); and for every grid cell the 90th percentile of its segments' steepest sustained
+  grade (SG_G90) and side slope (SG_S90), the 10th percentile of their alignment angle (SG_A10: the segments that run most
+  directly up the slope), the share of its trail in the top fifth of segment erosion risk (SG_HI) and in wet-prone segments
+  (SG_WET: gentle grade, flat ground and a low spot), and its number of segments (SG_N).
+  python build_trail_slope.py --segments-only    reads the GeoPackage already in gis/, adds the elevation rings and rewrites
+                                                 the GeoPackage and data/trail_segments.json without measuring the trail again
 """
-import json, os, re, time, urllib.parse, urllib.request
+import json, os, re, sys, time, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 import warnings
@@ -56,6 +64,9 @@ HUCFILE = os.path.join(DATA, 'soils_wetlands_huc10.json')
 OUT = {'corr': os.path.join(DATA, 'trail_slope.json'), 'huc': os.path.join(DATA, 'trail_slope_huc10.json')}
 SEGFILE = os.path.join(HERE, 'gis', 'at_trail_slope_segments.gpkg')
 SEG_STEPS = 16                          # steps (160 m, about a tenth of a mile) in a GIS segment
+SEGJSON = os.path.join(DATA, 'trail_segments.json')
+RINGS = (30, 100)                       # m: elevation rings around each segment's middle, for low spots
+WET = {'grade_avg_pct': 5, 'side_slope_pct': 15, 'tpi30_m': -0.25}   # wet-prone segment: gentler, flatter and lower than these
 LOCAL = ['at_centerline.geojson', 'at_centerline.zip', 'at_centerline.gpkg']
 CENTERLINE_ITEM = os.environ.get('CENTERLINE_ITEM', '71975f7fc14347c7a6c1059fdb593f91')
 AGOL = 'https://www.arcgis.com/sharing/rest/content/items/{}?f=json'
@@ -319,8 +330,88 @@ def segments(x, y, part, grade, side, saa, hexcells, hexmi):
     seg = seg[['seg_id', 'grid_id', 'near_mile', 'length_m', 'grade_avg_pct', 'grade_max_pct', 'over10_pct', 'over20_pct', 'fall_line_pct', 'side_slope_pct', 'align_angle_deg', 'steps', 'geometry']]
     os.makedirs(os.path.dirname(SEGFILE), exist_ok=True)
     if os.path.exists(SEGFILE): os.remove(SEGFILE)
+    try: seg = segment_rings(seg)
+    except Exception as e: print(f'elevation rings not read: {e}', flush=True)
     seg.to_file(SEGFILE, layer='trail_slope_segments', driver='GPKG')
     print(f'wrote {os.path.relpath(SEGFILE, HERE)} ({len(seg):,} segments, {seg.length_m.sum() / 1609.344:,.1f} miles, {os.path.getsize(SEGFILE) / 1e6:.1f} MB)', flush=True)
+    return seg
+
+
+def segment_rings(seg):
+    """elevation at each segment's middle and in 8 directions at each RINGS distance: tpi<r>_m = middle minus the ring's mean"""
+    g = seg.to_crs(AEA).geometry; mid = g.interpolate(0.5, normalized=True); mx, my = mid.x.values, mid.y.values
+    ang = np.arange(8) * np.pi / 4; px = [mx]; py = [my]
+    for r in RINGS:
+        for a in ang: px.append(mx + r * np.cos(a)); py.append(my + r * np.sin(a))
+    px = np.concatenate(px); py = np.concatenate(py)
+    ll = gpd.GeoSeries(gpd.points_from_xy(px, py), crs=AEA).to_crs(4326); lon, lat = ll.x.values, ll.y.values
+    print(f'reading {len(lon):,} elevations around segment middles', flush=True)
+    z = tiles_fill(lon, lat, samples(lon, lat)).reshape(1 + 8 * len(RINGS), len(mx))
+    for k, r in enumerate(RINGS):
+        ring = z[1 + 8 * k: 1 + 8 * (k + 1)]
+        with np.errstate(all='ignore'): t = z[0] - np.nanmean(ring, axis=0)
+        seg[f'tpi{r}_m'] = np.round(t, 2)
+    return seg
+
+
+def enc_line(coords):
+    """[lat0, lon0, dlat, dlon, ...] in 1e-5 degrees, the same coding the page uses for grid cells"""
+    out = []; pla = plo = None
+    for lo, la in coords:
+        a, o = int(round(la * 1e5)), int(round(lo * 1e5))
+        if pla is None: out += [a, o]
+        else: out += [a - pla, o - plo]
+        pla, plo = a, o
+    return out
+
+
+def write_segment_json(seg, P):
+    """data/trail_segments.json for the dashboard (see the top of this file)"""
+    s = seg.copy()
+    pr = lambda c, asc=True: s[c].rank(pct=True, ascending=asc).fillna(.5)
+    s['risk'] = np.round(100 * (.6 * pr('grade_max_pct') + .2 * pr('side_slope_pct') + .2 * pr('align_angle_deg', False)), 0)
+    s.loc[s.grade_avg_pct.isna(), 'risk'] = np.nan
+    s['hi'] = s.risk >= s.risk.quantile(.8)
+    wet = np.ones(len(s), bool)
+    for c, lim in WET.items():
+        wet &= (s[c] < lim).values if c in s else False
+    s['wet'] = wet
+    simp = s.to_crs(AEA).geometry.simplify(3).to_crs(4326)
+    lines = [enc_line(list(g.coords)) for g in simp]
+    num = lambda c, d=1: [None if v is None or not np.isfinite(v) else round(float(v), d) for v in s[c].values] if c in s else None
+    segs = {'id': s.seg_id.astype(int).tolist(), 'mile': num('near_mile'), 'grid': s.grid_id.tolist(), 'g': lines,
+            'gavg': num('grade_avg_pct'), 'gmax': num('grade_max_pct'), 'o10': num('over10_pct', 0), 'o20': num('over20_pct', 0), 'fall': num('fall_line_pct', 0),
+            'side': num('side_slope_pct', 0), 'align': num('align_angle_deg', 0), 'risk': num('risk', 0), 'tpi30': num('tpi30_m'), 'tpi100': num('tpi100_m')}
+    segs = {k: v for k, v in segs.items() if v is not None}
+    # cell summaries: the 1 sq mi cell is the segment's own; larger cells take the segments whose middle falls in them
+    mid = gpd.GeoDataFrame(s.drop(columns='geometry'), geometry=s.to_crs(AEA).geometry.interpolate(0.5, normalized=True).to_crs(4326), crs=4326)
+    themes = {}
+    for lv in ('hex', 'cog', 'wheel'):
+        if lv == 'hex': t = mid.assign(cell=mid.grid_id)
+        else:
+            G = gpd.GeoDataFrame({'cell': P['levels'][lv]['id']}, geometry=rings_of(P['levels'][lv]), crs=4326)
+            t = gpd.sjoin(mid, G, how='inner', predicate='within')
+        t = t[t.cell.notna()]; g = t.groupby('cell'); km = t.length_m / 1000
+        f = {'SG_G90': g.grade_max_pct.quantile(.9), 'SG_S90': g.side_slope_pct.quantile(.9), 'SG_A10': g.align_angle_deg.quantile(.1),
+             'SG_HI': (t.hi * km).groupby(t.cell).sum() / km.groupby(t.cell).sum() * 100, 'SG_N': g.size()}
+        if 'tpi30_m' in t: f['SG_WET'] = (t.wet * km).groupby(t.cell).sum() / km.groupby(t.cell).sum() * 100
+        ids = sorted(f['SG_N'].index)
+        themes[lv] = {'ids': ids, 'f': {k: [None if not np.isfinite(v.get(i, np.nan)) else (int(v[i]) if k == 'SG_N' else round(float(v[i]), 1)) for i in ids] for k, v in f.items()}}
+    meta = {'built': date.today().isoformat(), 'segments': len(s), 'segment_steps': SEG_STEPS, 'simplify_m': 3, 'rings_m': list(RINGS) if 'tpi30_m' in s else [],
+            'risk': 'erosion risk 0-100 = 60% the rank of the steepest sustained grade in the segment, 20% side slope, 20% how directly it runs up the slope (alignment angle), ranks among all segments; top fifth = SG_HI',
+            'wet_prone': WET, 'test': 'against the 2004-2013 trail assessments a segment with a recorded erosion problem outranks one without in the same club section 67% of the time on grade alone'}
+    with open(SEGJSON, 'w', encoding='utf-8') as fh: json.dump({'meta': meta, 'segs': segs, 'themes': {'seg': themes}}, fh, separators=(',', ':'))
+    print(f'wrote {os.path.relpath(SEGJSON, HERE)} ({len(s):,} segments, {os.path.getsize(SEGJSON) / 1e6:.1f} MB)', flush=True)
+
+
+def segments_only():
+    """add the elevation rings to the GeoPackage already in gis/ and rewrite it with data/trail_segments.json"""
+    seg = gpd.read_file(SEGFILE)
+    try: seg = segment_rings(seg)
+    except Exception as e: print(f'elevation rings not read: {e}', flush=True)
+    os.remove(SEGFILE); seg.to_file(SEGFILE, layer='trail_slope_segments', driver='GPKG')
+    P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', open(INDEX, encoding='utf-8').read(), re.S).group(1))
+    write_segment_json(seg, P)
 
 
 def main():
@@ -341,7 +432,8 @@ def main():
             'miles': round(len(x) * STEP / 1609.344, 1), 'source': 'USGS 3DEP (elevation service at 1 m; 1/3 arc-second tiles where it had no value)'}
     try:
         P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', open(INDEX, encoding='utf-8').read(), re.S).group(1))
-        segments(x, y, part, grade, side, saa, grids['corr']['hex'], dict(zip(P['levels']['hex']['id'], P['levels']['hex']['mi'])))
+        seg = segments(x, y, part, grade, side, saa, grids['corr']['hex'], dict(zip(P['levels']['hex']['id'], P['levels']['hex']['mi'])))
+        write_segment_json(seg, P)
     except Exception as e:
         print(f'GIS segments not written: {e}', flush=True)
     for ext, L in grids.items():
@@ -353,4 +445,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    segments_only() if '--segments-only' in sys.argv[1:] else main()
