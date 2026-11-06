@@ -28,6 +28,13 @@ inputs folder, or the public ArcGIS Online layer in CENTERLINE_ITEM (the item's 
 
   python build_trail_slope.py          (needs geopandas, pyogrio, shapely, pyproj, rasterio, numpy)
 Writes trail_slope.json (corridor) and trail_slope_huc10.json (HUC10 shell). Runs in GitHub Actions (.github/workflows/trail_slope.yml).
+
+Also writes gis/at_trail_slope_segments.gpkg for GIS: the centerline cut into segments of about a tenth of a mile (16 steps, 160 m),
+each with its own measured values (not blended with the trail around it):
+  seg_id, grid_id (the 1 sq mi cell at the segment's middle), near_mile (that cell's trail mile), length_m,
+  grade_avg_pct, grade_max_pct (the steepest sustained grade in the segment), over10_pct, over20_pct, fall_line_pct,
+  side_slope_pct, align_angle_deg, steps (10 m steps measured)
+The dashboard does not load this file.
 """
 import json, os, re, time, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -47,6 +54,8 @@ for _d in (DATA, INPUTS, CACHE): os.makedirs(_d, exist_ok=True)
 INDEX = os.path.join(HERE, 'index.html')
 HUCFILE = os.path.join(DATA, 'soils_wetlands_huc10.json')
 OUT = {'corr': os.path.join(DATA, 'trail_slope.json'), 'huc': os.path.join(DATA, 'trail_slope_huc10.json')}
+SEGFILE = os.path.join(HERE, 'gis', 'at_trail_slope_segments.gpkg')
+SEG_STEPS = 16                          # steps (160 m, about a tenth of a mile) in a GIS segment
 LOCAL = ['at_centerline.geojson', 'at_centerline.zip', 'at_centerline.gpkg']
 CENTERLINE_ITEM = os.environ.get('CENTERLINE_ITEM', '71975f7fc14347c7a6c1059fdb593f91')
 AGOL = 'https://www.arcgis.com/sharing/rest/content/items/{}?f=json'
@@ -277,6 +286,43 @@ def summarize_all(L, x, y, part, grade, side, saa):
     return out
 
 
+def segments(x, y, part, grade, side, saa, hexcells, hexmi):
+    """the centerline as segments of about SEG_STEPS steps, each stretch cut evenly so no short piece is left at its end; each
+    segment's line runs through its steps and on to the first step of the next one, so the segments meet"""
+    from shapely.geometry import LineString
+    val, cnt = step_values(grade, side, saa)
+    rows, geoms, mids = [], [], []
+    for k in np.unique(part):
+        idx = np.flatnonzero(part == k)
+        if len(idx) < 2: continue
+        for sl in np.array_split(idx, max(1, int(round(len(idx) / SEG_STEPS)))):
+            if not len(sl): continue
+            end = sl[-1] + 1 if sl[-1] + 1 <= idx[-1] else sl[-1]
+            pts = np.r_[sl, end] if end != sl[-1] else sl
+            if len(pts) < 2: continue
+            g = LineString(np.c_[x[pts], y[pts]]); m = sl[len(sl) // 2]
+            r = lambda key, mul=1: (None if not cnt[key][sl].sum() else round(float(val[key][sl].sum() / cnt[key][sl].sum() * mul), 1))
+            ok = np.isfinite(grade[sl])
+            rows.append({'length_m': round(g.length, 1), 'grade_avg_pct': r('grade'), 'grade_max_pct': round(float(np.nanmax(grade[sl])), 1) if ok.any() else None,
+                         'over10_pct': r('g10', 100), 'over20_pct': r('g20', 100), 'fall_line_pct': r('fall', 100), 'side_slope_pct': r('side'),
+                         'align_angle_deg': r('saa'), 'steps': int(ok.sum())})
+            geoms.append(g); mids.append(m)
+    own = owners(hexcells, x[mids], y[mids]); ids = hexcells['id'].tolist()
+    out_ = np.flatnonzero(own < 0)                                  # a segment just outside the grid takes the nearest cell
+    if len(out_):
+        pts = gpd.GeoDataFrame({'i': out_}, geometry=gpd.points_from_xy(x[np.array(mids)[out_]], y[np.array(mids)[out_]]), crs=AEA)
+        j = gpd.sjoin_nearest(pts, hexcells[['geometry']], how='left').drop_duplicates('i'); own[j['i'].values] = j['index_right'].values
+    for row, o in zip(rows, own):
+        row['grid_id'] = ids[o] if o >= 0 else None; row['near_mile'] = round(hexmi.get(row['grid_id']), 1) if row['grid_id'] in hexmi else None
+    seg = gpd.GeoDataFrame(rows, geometry=geoms, crs=AEA).to_crs(4326)
+    seg = seg.sort_values('near_mile', na_position='last', kind='stable').reset_index(drop=True); seg.insert(0, 'seg_id', np.arange(1, len(seg) + 1))
+    seg = seg[['seg_id', 'grid_id', 'near_mile', 'length_m', 'grade_avg_pct', 'grade_max_pct', 'over10_pct', 'over20_pct', 'fall_line_pct', 'side_slope_pct', 'align_angle_deg', 'steps', 'geometry']]
+    os.makedirs(os.path.dirname(SEGFILE), exist_ok=True)
+    if os.path.exists(SEGFILE): os.remove(SEGFILE)
+    seg.to_file(SEGFILE, layer='trail_slope_segments', driver='GPKG')
+    print(f'wrote {os.path.relpath(SEGFILE, HERE)} ({len(seg):,} segments, {seg.length_m.sum() / 1609.344:,.1f} miles, {os.path.getsize(SEGFILE) / 1e6:.1f} MB)', flush=True)
+
+
 def main():
     t0 = time.time(); grids = load_grids()
     x, y, u, v, part = stations(centerline())
@@ -293,6 +339,11 @@ def main():
     print(f'trail: average grade {np.nanmean(grade):.1f}%, {np.mean(grade[ok] > 10) * 100:.0f}% over 10%, {np.mean(grade[ok] > 20) * 100:.0f}% over 20%', flush=True)
     meta = {'built': date.today().isoformat(), 'step_m': STEP, 'offset_m': OFF, 'smooth_m': STEP * SMOOTH, 'grade_m': 2 * GRADE_HALF * STEP, 'shrink_steps': SHRINK_K, 'window_steps': WINDOW, 'fall_deg': FALL_DEG, 'on_slope_pct': ON_SLOPE,
             'miles': round(len(x) * STEP / 1609.344, 1), 'source': 'USGS 3DEP (elevation service at 1 m; 1/3 arc-second tiles where it had no value)'}
+    try:
+        P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', open(INDEX, encoding='utf-8').read(), re.S).group(1))
+        segments(x, y, part, grade, side, saa, grids['corr']['hex'], dict(zip(P['levels']['hex']['id'], P['levels']['hex']['mi'])))
+    except Exception as e:
+        print(f'GIS segments not written: {e}', flush=True)
     for ext, L in grids.items():
         themes = summarize_all(L, x, y, part, grade, side, saa)
         with open(OUT[ext], 'w', encoding='utf-8') as fh:
