@@ -2640,7 +2640,7 @@ let SEGL = null, segKey = '', segOn = true; try { segOn = localStorage.getItem('
 const SEGZ = 12, SEGBRK = [40, 60, 80, 90];
 const segCls = r => r == null ? -1 : SEGBRK.filter(b => r >= b).length;
 function segVisible(){ return !!(SEGS && segOn && S.q && S.q.id === 'tvul' && S.m && S.m.id !== 'tfall' && S.ext === 'corr' && map.getZoom() >= SEGZ); }
-function segDraw(){ if (!SEGS){ return; } if (!SEGL){ if (!map.getPane('segs')){ map.createPane('segs').style.zIndex = 430; } SEGL = L.layerGroup().addTo(map); SEGL.r = L.canvas({pane:'segs', padding:.3}); }
+function segDraw(){ if (!SEGS){ return; } if (!SEGL){ if (!map.getPane('segs')){ const sp = map.createPane('segs'); sp.style.zIndex = 430; sp.style.pointerEvents = 'none'; } SEGL = L.layerGroup().addTo(map); SEGL.r = L.canvas({pane:'segs', padding:.3}); }
   if (!segVisible()){ if (segKey){ SEGL.clearLayers(); segKey = ''; } return; }
   const b = map.getBounds().pad(.15), s = SEGS.segs, key = [b.toBBoxString(), map.getZoom() | 0].join('|'); if (key === segKey) return; segKey = key; SEGL.clearLayers();
   const R = RAMP.tvul, s_ = b.getSouth(), n_ = b.getNorth(), w_ = b.getWest(), e_ = b.getEast(), wt = map.getZoom() >= 14 ? 6 : 4.5;
@@ -2648,8 +2648,11 @@ function segDraw(){ if (!SEGS){ return; } if (!SEGL){ if (!map.getPane('segs')){
     const g = s.g[i], pts = []; let la = g[0], lo = g[1]; pts.push([la / 1e5, lo / 1e5]); for (let k = 2; k < g.length; k += 2){ la += g[k]; lo += g[k + 1]; pts.push([la / 1e5, lo / 1e5]); }
     const k = segCls(s.risk[i]);
     L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:'#0B1320', weight:wt + 3, opacity:.9, lineCap:'butt', interactive:false}).addTo(SEGL);
-    L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:k < 0 ? '#8A96A8' : R[k], weight:wt, opacity:1, lineCap:'butt', bubblingMouseEvents:false})
-      .on('click', ev => { L.DomEvent.stopPropagation(ev); segPopup(i, ev.latlng); }).addTo(SEGL); } }
+    const ln = L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:k < 0 ? '#8A96A8' : R[k], weight:wt, opacity:1, lineCap:'butt', interactive:false}); ln._si = i; ln.addTo(SEGL); } }
+/* the segment layer lets clicks through to the cells under it; a click within a few pixels of a drawn segment opens the segment instead */
+function segHit(ll){ if (!SEGL || !segKey || !segVisible()) return false; const pt = map.latLngToLayerPoint(ll); let best = null;
+  SEGL.eachLayer(ly => { if (best == null && ly._si != null && ly._pxBounds && ly._containsPoint && ly._containsPoint(pt)) best = ly._si; });
+  if (best == null) return false; segPopup(best, ll); return true; }
 function segPopup(i, ll){ const s = SEGS.segs, v = (a, d = 0) => a && a[i] != null ? fmt(a[i], d) : '–', r = s.risk[i];
   let rec = ''; if (DEFIC && DEFIC.segs){ if (!DEFIC.segs.m) DEFIC.segs.m = new Map(DEFIC.segs.id.map((x, j) => [x, j])); const j = DEFIC.segs.m.get(s.id[i]);
     rec = j == null ? 'none recorded' : `${DEFIC.segs.eros[j]} erosion, ${DEFIC.segs.drain[j]} drainage, ${DEFIC.segs.other[j]} other`; }
@@ -3156,7 +3159,7 @@ function group(lv){ if (GROUP[lv]) return GROUP[lv];
   POLY[lv] = ps; const g = L.featureGroup(ps);
   g.on('click', e => { if (S.drawing || Date.now() - S.boxAt < 450) return; const oe = e.originalEvent || {};
     if (S.picking || oe.shiftKey || oe.ctrlKey || oe.metaKey){ pickToggle(lv, e.propagatedFrom._c); return; }
-    if (liveHit(e.latlng)) return; select(lv, e.propagatedFrom._c, false); });
+    if (liveHit(e.latlng) || segHit(e.latlng)) return; select(lv, e.propagatedFrom._c, false); });
   g.on('mouseover', e => { const c = e.propagatedFrom._c, L_ = D.levels[lv]; if (S.drawing || (TOUCHDEV && isPhone()) || (c === S.cell && lv === S.cellLv)) return;
     tip.setLatLng(e.latlng).setContent(`<b>${esc(show(S.m, S.m.get(lv, c)))}</b><br>${S.m.label}<br>Near mile ${fmt(L_.mi[c],0)}`); tip.addTo(map); });
   g.on('mousemove', e => tip.setLatLng(e.latlng));
@@ -3447,7 +3450,7 @@ function liveHit(latlng){ const cp = map.latLngToContainerPoint(latlng), tol = T
     const polyHit = ll => Array.isArray(ll[0]) && Array.isArray(ll[0][0]) ? ll.some(polyHit) : (Array.isArray(ll[0]) ? (inside(ll[0]) && !ll.slice(1).some(inside)) : inside(ll));
     l.group.eachLayer(g => { if (g.eachLayer) g.eachLayer(ly => { if (!hit && ly.getLatLngs && ly.getBounds().contains(latlng) && polyHit(ly.getLatLngs())) hit = ly; }); }); if (hit) return open(l, hit.feature ? hit.feature.properties || {} : {}); }
   return false; }
-map.on('click', e => { if (S.drawing || Date.now() - S.boxAt < 450) return; if (liveHit(e.latlng)) return;
+map.on('click', e => { if (S.drawing || Date.now() - S.boxAt < 450) return; if (liveHit(e.latlng) || segHit(e.latlng)) return;
   /* a big grid keeps empty cells off the canvas, so a click there is matched to its cell here */
   const lv = dispLevel(), ps = POLY[lv]; if (!ps || ps.length <= BIGGRID || !S.cells) return; const c = phCell(lv, e.latlng.lat, e.latlng.lng); if (c < 0) return;
   const oe = e.originalEvent || {}; if (S.picking || oe.shiftKey || oe.ctrlKey || oe.metaKey){ pickToggle(lv, c); return; } select(lv, c, false); });
