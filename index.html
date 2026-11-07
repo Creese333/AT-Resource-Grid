@@ -2931,8 +2931,8 @@ function wfParts(lv, c){ if (!wfGate(lv, c)) return [null, []];
   return [wt >= 40 ? Math.round(100 * Math.exp(lg / wt)) : null, parts]; }
 const wfScore = (lv, c) => wfParts(lv, c)[0];
 { const tq = Q.find(q => q.id === 'tvul'); if (tq){
-  tq.m.push({id:'defrel', label:'Trail problems vs. club section', hideFn:() => !deficOn(), fn:(lv, c) => val('defic','DF_REL',lv,c), d:1, unit:'×', brkFix:[.5, 1, 2, 4], showFn:v => fmt(v, 1) + '× the club section average', none:'None recorded',
-    note:'Treadway problems recorded 2004–13, against the club section’s average: 1 is average, 2 is twice. Many since fixed.'});
+  tq.m.push({id:'defrel', label:'Trail problem hot spots', hideFn:() => !deficOn(), fn:(lv, c) => val('defic','DF_REL',lv,c), d:1, unit:'×', brkFix:[.5, 1, 2, 4], showFn:v => fmt(v, 1) + '× the rate for its club section', none:'None recorded',
+    note:'Where more treadway problems were recorded (2004–13) than on the rest of the same club section: 1 is typical, 2 is twice as many. Many since fixed.'});
   tq.m.push({id:'defrate', label:'Recorded trail problems per mile', hideFn:() => !deficOn(), fn:(lv, c) => val('defic','DF_RATE',lv,c), d:1, showFn:v => fmt(v, 1) + ' a mile', none:'None recorded',
     note:'Treadway problems recorded per mile, 2004–13. Rates vary by assessor as much as by trail.'}); } }
 { const tq = Q.find(q => q.id === 'tvul'); if (tq) tq.m.push({id:'tfall', label:'Tree fall vulnerability', int:1, brkP:[.4,.7,.85,.95], none:'No forest mapped', fn:(lv, c) => wfScore(lv, c), showFn:v => v + ' of 100',
