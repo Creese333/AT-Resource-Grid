@@ -4440,8 +4440,54 @@ function finishProfile(html){ $('#pbody').innerHTML = html;
   { const pb = $('#pbody'), o = pb.querySelector('.sectog[aria-expanded=true]'); if (o){ const d = o.getBoundingClientRect().top - pb.getBoundingClientRect().top; if (d > pb.clientHeight * .5) pb.scrollTop = d - 8; } } }
 
 /* ---------- export of the selection shown in the popup ---------- */
-const EXPORTBTNS = '<button type="button" class="exp" id="pexcsv" title="Download everything in this panel as a CSV file">Export CSV</button><button type="button" class="exp" id="pexxls" title="Download everything in this panel as an Excel workbook">Export Excel</button><p class="pexmsg" id="pexmsg" role="status"></p>';
-function exportWire(){ const a = $('#pexcsv'), b = $('#pexxls'); if (a) a.onclick = () => exportRun('csv'); if (b) b.onclick = () => exportRun('xlsx'); }
+const EXPORTBTNS = '<button type="button" class="exp" id="pextxt" title="Download a plain-language summary of the selected cells as a text file">Describe as text</button><button type="button" class="exp" id="pexcsv" title="Download everything in this panel as a CSV file">Export CSV</button><button type="button" class="exp" id="pexxls" title="Download everything in this panel as an Excel workbook">Export Excel</button><p class="pexmsg" id="pexmsg" role="status"></p>';
+/* Describe as text: for each question, its headline measures for the selection, in words, with where the selection ranks
+   among all cells of the same size. One cell gives its value; several give their range and middle value. The rare species
+   rating is included only when it has been unlocked on this page, as in the exports. */
+const DESC = [['rest', ['grass', 'forest']], ['tvul', ['score', 'grade', 'defrel', 'tfall']], ['feat', ['atmi', 'shel', 'camp', 'park', 'vist', 'side']],
+  ['land', ['mgrs', 'appa']], ['veg', ['type', 'cover', 'types']], ['soil', ['vuln', 'high', 'hydric']], ['wet', ['type', 'acres']],
+  ['inv', ['edrr', 'spp', 'pct', 'pest']], ['pest', ['fhr']], ['bird', ['bcc', 'spp']], ['rec', ['obs', 'spp']], ['eff', ['od', 'peak']],
+  ['geo', ['lith', 'age']], ['wx', ['ppt', 'heavy', 'p25']], ['hist', ['hany', 'hnr']], ['cult', ['spp']], ['pri', ['tier']]];
+const DESCR = new Map(), DESCSUM = new Set(['feat.atmi', 'feat.shel', 'feat.camp', 'feat.park', 'feat.vist', 'feat.side', 'wet.acres', 'hist.hany', 'hist.hnr', 'inv.pest', 'rec.obs']);
+/* a range written once: "41 to 78 of 100", "1 to 3 vistas" */
+const descRange = (a, b) => { const re = /^([<>~]?[-\d.,]+)(.*)$/, x = a.match(re), y = b.match(re); if (x && y && (x[2] === y[2] || x[2] + 's' === y[2] || x[2] + 'es' === y[2])) return x[1] + ' to ' + b; return a + ' to ' + b; };
+function descRank(m, lv, v, qid){ const k = qid + '.' + m.id + '.' + lv; let a = DESCR.get(k);
+  if (!a){ a = []; const n = D.levels[lv].id.length; for (let c = 0; c < n; c++){ const x = m.get(lv, c); if (typeof x === 'number' && isFinite(x)) a.push(x); } a.sort((p, q) => p - q); DESCR.set(k, a); }
+  if (a.length < 20 || a[0] === a[a.length - 1]) return null; let lo = 0, hi = a.length; while (lo < hi){ const md = (lo + hi) >> 1; if (a[md] < v) lo = md + 1; else hi = md; }
+  return Math.round(100 * lo / a.length); }
+function descMeasure(m, lv, cells, qid){ const vs = cells.map(c => m.get(lv, c)).filter(x => typeof x === 'number' && isFinite(x)); if (!vs.length) return null;
+  const lab = m.label.replace(/\s*\(estimated\)/, ' (estimated)'), lc = lab.charAt(0).toLowerCase() + lab.slice(1);
+  if (m.kind === 'cat'){ const cnt = new Map(); vs.forEach(x => cnt.set(x, (cnt.get(x) || 0) + 1)); const top = [...cnt.entries()].sort((a, b) => b[1] - a[1]);
+    const nm = x => show(m, x); if (top.length === 1 || cells.length === 1) return `${lc}: ${nm(top[0][0])}`;
+    return `${lc}: mostly ${nm(top[0][0])} (${top[0][1]} of ${vs.length} cells)${top[1] ? `, then ${nm(top[1][0])}` : ''}`; }
+  vs.sort((a, b) => a - b);
+  if (cells.length > 1 && DESCSUM.has(qid + '.' + m.id)){ const t = vs.reduce((a, b) => a + b, 0), tt = Math.round(t * 10) / 10; return `${lc}: ${show(m, tt)} in all${vs.length < cells.length ? ` (in ${vs.length} of the ${cells.length} cells)` : ''}`; }
+  const mid = vs[Math.floor((vs.length - 1) / 2)], r = descRank(m, lv, mid, qid), some = cells.length > 1 && vs.length < cells.length ? `${vs.length} of the ${cells.length} cells have a value` : '';
+  const where = r == null ? '' : r >= 80 ? `, among the highest fifth of ${LV[lv].name} cells` : r <= 20 ? `, among the lowest fifth of ${LV[lv].name} cells` : `, higher than about ${r}% of ${LV[lv].name} cells`;
+  if (vs.length === 1 || vs[0] === vs[vs.length - 1]) return `${lc}: ${show(m, vs[0])}${where}${some ? ` (${some})` : ''}`;
+  return `${lc}: ${descRange(show(m, vs[0]), show(m, vs[vs.length - 1]))} across the cells (middle value ${show(m, mid)}${where}${some ? '; ' + some : ''})`; }
+function describeText(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S.box.cells.slice() : [S.cell], L_ = D.levels[lv]; if (lv == null || !cells.length || cells[0] == null) return '';
+  cells.sort((a, b) => L_.mi[a] - L_.mi[b]); const N = cells.length, mi0 = L_.mi[cells[0]], mi1 = L_.mi[cells[N - 1]];
+  const uniq = a => [...new Set(a.filter(Boolean))], list = a => a.length < 3 ? a.join(' and ') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+  const clubs = uniq(cells.map(c => cat('club', L_.club[c]))), regs = uniq(cells.map(c => regionOf(L_.mi[c])));
+  const out = [], wrap = s => s.replace(/(?![^\n]{1,100}$)([^\n]{1,100})\s/g, '$1\n');
+  out.push('A.T. Resource Grid: summary of ' + (N === 1 ? `one ${LV[lv].name} cell (${L_.id[cells[0]]})` : `${N} ${LV[lv].name} cells`));
+  out.push(`Generated ${localDay()} from grid.trailassessment.org`, '');
+  out.push(wrap(`${N === 1 ? 'This cell is' : 'These cells are'} ${N === 1 || mi0 === mi1 ? `near A.T. mile ${fmt(mi0, 0)}` : `between A.T. miles ${fmt(mi0, 0)} and ${fmt(mi1, 0)}`}${regs.length ? `, in the ${list(regs)} ${regs.length === 1 ? 'region' : 'regions'}` : ''}${clubs.length ? `, maintained by ${list(clubs)}` : ''}.`), '');
+  DESC.forEach(([qid, ids]) => { const q = Q.find(x => x.id === qid); if (!q) return; if (qid === 'pri' && !JERRY) return;
+    const parts = ids.map(id => q.m.find(x => x.id === id)).filter(Boolean).map(m => descMeasure(m, lv, cells, qid)).filter(Boolean);
+    if (qid === 'tvul' && typeof SEGS !== 'undefined' && SEGS && SEGS.segs){ const cnt = [0, 0, 0, 0]; let n = 0; cells.forEach(c => segsIn(lv, c).forEach(i => { const k = tsrOf(i); if (k >= 0){ cnt[k]++; n++; } }));
+      if (n) parts.push('Trail Sustainability Rating (Marion & Wimpey 2017) of the ' + fmt(n, 0) + ' trail segments of about 500 feet: ' + [0, 1, 2, 3].filter(k => cnt[k]).map(k => `${Math.round(100 * cnt[k] / n)}% ${TSR[k].t.toLowerCase()}`).join(', ')); }
+    if (!parts.length) return;
+    out.push(q.title.toUpperCase()); out.push(wrap(parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('. ') + '.'), ''); });
+  out.push(wrap('These are screening summaries from public data sets; see About the data on the site for sources, dates and limits. They are not a substitute for field review.'));
+  return out.join('\n').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/<[^>]+>/g, '') + '\n'; }
+async function describeRun(){ const msg = $('#pexmsg'); if (msg) msg.textContent = 'Writing the summary…';
+  try { await liveEnsure().catch(() => {}); const t = describeText(); if (!t){ if (msg) msg.textContent = 'Select a cell first.'; return; }
+    const n = S.box ? S.box.cells.length : 1;
+    download(`AT_resource_grid_summary_${n}_${n === 1 ? 'cell' : 'cells'}_${localDay()}.txt`, new Blob([t.replace(/\n/g, '\r\n')], {type:'text/plain;charset=utf-8'}));
+    if (msg) msg.textContent = 'Summary downloaded.'; } catch (e){ if (msg) msg.textContent = 'Could not write the summary.'; } }
+function exportWire(){ { const t = $('#pextxt'); if (t) t.onclick = describeRun; } const a = $('#pexcsv'), b = $('#pexxls'); if (a) a.onclick = () => exportRun('csv'); if (b) b.onclick = () => exportRun('xlsx'); }
 const localDay = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const liveKey = () => S.box ? (S.ext === 'huc' ? 'huc:' : '') + S.box.lv + ':' + S.box.cells.join(',') : D.levels[S.cellLv].id[S.cell];
 function liveEnsure(){ if (!window.ATiNat || ATiNat.cached(liveKey())) return Promise.resolve();
