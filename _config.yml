@@ -1,0 +1,9 @@
+# GitHub Pages publishes only the dashboard and the data it loads.
+# Build inputs, caches, scripts and GIS downloads stay in the repository but are left out of the website,
+# which keeps each deploy about half the size.
+exclude:
+  - cache
+  - inputs
+  - gis
+  - scripts
+  - tools
