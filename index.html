@@ -3700,6 +3700,28 @@ if (USE_MILE_MARKERS) milePts().then(alignMiles).catch(() => {});
 arcQuery(SVC + 'ANST_Centerline/FeatureServer/0', {outFields:'OBJECTID', maxAllowableOffset:'0.0003', geometryPrecision:5}).then(f => { const lines = [];
   f.forEach(x => { const g = x.geometry; if (!g) return; (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach(c => { if (c.length > 1) lines.push(c.map(p => [p[1], p[0]])); }); });
   if (lines.length > 500){ trailCase.setLatLngs(lines); trailLine.setLatLngs(lines); S.trailLive = true; } }).catch(() => {});
+/* detailed trail line: fetched by 0.25° tiles as the map moves, simplified to about 2 m; a tile that fails leaves the generalized line showing */
+const HIZ = 12, HIT = .25, HIC = new Map();
+const trailCaseHi = L.polyline([], {renderer:trailR, color:'#fff', weight:4.6, opacity:.9, interactive:false}).addTo(map);
+const trailLineHi = L.polyline([], {renderer:trailR, color:'#14294A', weight:2.2, interactive:false}).addTo(map);
+let hiKey = '', hiTimer = 0;
+function hiTile(tx, ty){ const k = tx + ',' + ty; if (HIC.has(k)) return HIC.get(k);
+  const w = tx * HIT, s = ty * HIT, p = arcQuery(SVC + 'ANST_Centerline/FeatureServer/0', {outFields:'OBJECTID', geometry:[w, s, w + HIT, s + HIT].join(','), geometryType:'esriGeometryEnvelope', inSR:4326, spatialRel:'esriSpatialRelIntersects', maxAllowableOffset:'0.00002', geometryPrecision:6}, 5)
+    .then(f => { const lines = []; f.forEach(x => { const g = x.geometry; if (!g) return; (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach(c => { if (c.length > 1) lines.push(c.map(q => [q[1], q[0]])); }); }); return lines; })
+    .catch(() => { HIC.delete(k); return null; });
+  HIC.set(k, p); return p; }
+function trailHi(){ clearTimeout(hiTimer); hiTimer = setTimeout(async () => {
+  const z = map.getZoom(); if (z < HIZ){ if (hiKey){ hiKey = ''; trailCaseHi.setLatLngs([]); trailLineHi.setLatLngs([]); trailStyle(); } return; }
+  const b = map.getBounds().pad(.2), x0 = Math.floor(b.getWest() / HIT), x1 = Math.floor(b.getEast() / HIT), y0 = Math.floor(b.getSouth() / HIT), y1 = Math.floor(b.getNorth() / HIT);
+  const key = [x0, x1, y0, y1].join('|'); if (key === hiKey) return; const tiles = [];
+  for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) tiles.push(hiTile(x, y));
+  const got = await Promise.all(tiles); if (map.getZoom() < HIZ) return;
+  if (got.some(t => t == null) || !got.some(t => t.length)){ hiKey = ''; trailStyle(); return; }    /* keep the generalized line if any tile failed */
+  hiKey = key; const lines = [].concat(...got); trailCaseHi.setLatLngs(lines); trailLineHi.setLatLngs(lines); trailStyle(); }, 250); }
+{ const t0 = trailStyle; trailStyle = function(){ t0(); const on = !!hiKey && map.getZoom() >= HIZ, dk = DARKBASE[S.base];
+  trailCaseHi.setStyle({color: dk ? '#14294A' : '#fff', opacity: on ? .9 : 0}); trailLineHi.setStyle({color: dk ? '#fff' : '#14294A', opacity: on ? 1 : 0});
+  if (on){ trailCase.setStyle({opacity:0}); trailLine.setStyle({opacity:0}); } }; }
+map.on('moveend zoomend', trailHi); trailHi();
 
 /* ---------- phone gestures ----------
    On a phone the map fills most of the screen, so a one-finger drag on it must scroll the page.
