@@ -2365,7 +2365,7 @@ const vPct = (v, t) => { const p = t ? 100 * v / t : 0; return p > 0 && p < 1 ? 
 const vTop = (m, n) => [...m].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]))).slice(0, n || 10);
 const vSpp = (lv, cells, f, th) => { const m = new Map(); cells.forEach(c => (f ? f(c) : val(th, 'X', lv, c) || []).forEach(i => m.set(i, (m.get(i) || 0) + 1))); return m; };
 const vSpRow = (i, n, col, tip) => { const p = sppName(i); return [p.common || p.sci, col, n, fmt(n, 0), `${p.common ? p.common + ' (' + p.sci + ')' : p.sci}: ${tip}. Click to map it.`, p.sci.toLowerCase()]; };
-const FCOL = {'Shelters':'#E3733B', 'Campsites':'#2E6B3A', 'Privies':'#74224E', 'Parking areas':'#23436B', 'Bridges':'#4FA096', 'Vistas':'#B38E2F', 'Buildings':'#A089CC', 'Dams':'#801818', 'Tunnels':'#3D3D3D'};
+const FCOL = {'Shelters':'#D62839', 'Campsites':'#2E6B3A', 'Privies':'#74224E', 'Parking areas':'#23436B', 'Bridges':'#4FA096', 'Vistas':'#B38E2F', 'Buildings':'#A089CC', 'Dams':'#801818', 'Tunnels':'#3D3D3D'};
 const QVIZ = {
   land: {title:'Land by administrator', note:'Share of the mapped A.T. land, from the tract records summarized to each cell. Generalized to the grid; not a boundary determination.', fn(lv, cells, nTop){
     const m = new Map(); let tot = 0; cells.forEach(c => { const p = val('lands','MGRS',lv,c), ac = val('lands','LAND_AC',lv,c) || 0; if (!p) return; for (let k = 0; k < p.length; k += 2){ const a = ac * p[k + 1] / 100; m.set(p[k], (m.get(p[k]) || 0) + a); tot += a; } });
@@ -3351,7 +3351,7 @@ const LANDKEY = [['FEDERAL LAND - NPS - APPA FEE','NPS, A.T. fee land','rgb(0,77
   ['STATE LAND','State','rgb(85,255,0)'],['CONSERVATION LAND','Conservation land','rgb(211,255,190)'],['TOWN LAND','Town','rgb(255,255,115)']];
 const LANDMAP = new Map(LANDKEY.map(k => [k[0], k]));
 const LIVE = [
-  {id:'shelters', name:'Shelters', url:SVC + 'ANST_Facilities/FeatureServer/4', type:'pt', color:'#E3733B'},
+  {id:'shelters', name:'Shelters', url:SVC + 'ANST_Facilities/FeatureServer/4', type:'pt', color:'#D62839'},
   {id:'campsites', name:'Campsites', url:SVC + 'ANST_Facilities/FeatureServer/1', type:'pt', color:'#2E6B3A'},
   {id:'parking', name:'Parking', url:SVC + 'ANST_Facilities/FeatureServer/2', type:'pt', color:'#23436B'},
   {id:'privies', name:'Privies', url:SVC + 'ANST_Facilities/FeatureServer/3', type:'pt', color:'#74224E'},
