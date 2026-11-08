@@ -3172,7 +3172,7 @@ const BASEDEF = [
 /* Mapbox basemaps: paste a Mapbox public access token (it starts with pk.) between the quotes below.
    With no token the Mapbox options stay hidden and the page works as before. */
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiY3JlZXNlMzMzIiwiYSI6ImNtdXNwMWoxdTAzcWMyeXEwbWFiMXZzbHEifQ.bFsp9wzSfpJ5BPzcwc8_UA';
-const MAPBOX_ON = false;   /* set to true to offer the Mapbox basemaps again (they need Mapbox credits) */
+const MAPBOX_ON = true;    /* set to true to offer the Mapbox basemaps again (they need Mapbox credits) */
 if (MAPBOX_TOKEN && MAPBOX_ON){ const MBA = '&copy; <a href="https://www.mapbox.com/about/maps/" target="_blank" rel="noopener">Mapbox</a> ' + OSMA + ' <a href="https://www.mapbox.com/map-feedback/" target="_blank" rel="noopener">Improve this map</a>';
   const mb = id => L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/' + id + '/tiles/512/{z}/{x}/{y}' + (L.Browser.retina ? '@2x' : '') + '?access_token=' + MAPBOX_TOKEN, {tileSize:512, zoomOffset:-1, maxNativeZoom:21, attribution:MBA});
   BASEDEF.push(['mbout', 'Mapbox outdoors', mb('outdoors-v12')], ['mbsat', 'Mapbox satellite streets', mb('satellite-streets-v12'), 1], ['mblight', 'Mapbox light', mb('light-v11')]); }
