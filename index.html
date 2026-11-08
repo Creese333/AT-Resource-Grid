@@ -546,7 +546,12 @@ header .blaze{width:14px;height:38px}
 #phbox figcaption{color:#E8EEF6;font-size:14px;margin-top:8px;display:flex;justify-content:space-between;gap:16px}#phbox figcaption span{opacity:.6;font-size:12.5px;white-space:nowrap}
 #phbox>button{position:absolute;top:12px;right:16px;background:none;border:0;color:#fff;font-size:32px;cursor:pointer}
 @media (max-width:640px){.tph img{height:120px}.tph.n2 img{height:90px}}
-@media (max-width:640px){.tour{left:8px;right:8px;width:auto;transform:none;padding:13px 14px 11px;font-size:14.5px}}
+@media (max-width:860px){body.touring #mapwrap{height:var(--tmh,52vh);min-height:0}
+  .tour{position:static;width:auto;max-width:none;margin:0;border-radius:0;box-shadow:none;border-top:3px solid #F0C419;height:var(--tph,48vh);max-height:none;overflow-y:auto;padding:10px 14px 0;font-size:14.5px;display:flex;flex-direction:column}
+  .tour h3{font-size:16.5px}.tour p{margin:4px 0 6px}.tour .tnote{display:none}.tph{margin:6px 0 2px}.tph img{height:84px}.tph.n2 img{height:72px}
+  .tour .tnav{position:sticky;bottom:0;z-index:1;margin-top:auto;padding:8px 0 10px;background:#101C2E;box-shadow:0 -6px 8px -4px #101C2E}
+  .tour{position:relative;top:auto !important;left:auto;right:auto;background:#101C2E}.tour .tk .tkt{display:none}.tour .tk{margin-bottom:2px}.tph img{height:72px}.tph.n2 img{height:64px}}
+@media (max-width:640px){.tour{padding:12px 14px 10px;font-size:14.5px}}
 </style>
 </head>
 <body>
@@ -1991,12 +1996,17 @@ function cultScope(){ const H = D.levels.hex;
   if (S.cell != null && D.levels[S.cellLv]) return [cultHexIn([D.levels[S.cellLv].id[S.cell]]), 'the selected cell'];
   const b = map.getBounds(), out = []; for (let c = 0; c < H.id.length; c++) if (inSec('hex', c) && b.contains(H.c[c])) out.push(c); return [out, 'the map view']; }
 function cultTopHTML(){ if (!cultReady('hex')) return '';
-  const [cells, where] = cultScope(), M = new Map();
+  const inv = S.m && S.m.id === 'withinv', [all, where] = cultScope(), M = new Map();
+  const cells = inv ? all.filter(c => (invL('EDRR_LIST', 'hex', c) || []).length) : all;
   cells.forEach(c => (cultL('hex', c) || []).forEach(i => { const e = cultOf(i); if (!e) return; const p = sppName(i), k = p.sci.toLowerCase(); let s = M.get(k); if (!s) M.set(k, s = {name:e[1] || p.common || p.sci, sci:p.sci, n:0}); s.n++; }));
   const tp = [...M.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)).slice(0, 10);
-  let g = `<div id="culttop"><h4 class="phh">Most widely recorded species, ${esc(where)}</h4>`;
-  if (!tp.length) return g + `<p class="none">No listed species recorded in ${esc(where)}.</p></div>`;
+  let g = `<div id="culttop"><h4 class="phh">${inv ? 'Culturally significant species recorded with priority invasives' : 'Most widely recorded species'}, ${esc(where)}</h4>`;
+  if (!tp.length) return g + `<p class="none">${inv ? 'No listed species recorded where priority invasives are also recorded' : 'No listed species recorded'} in ${esc(where)}.</p></div>`;
   g += hbars(vRampRows(tp.map(s => [s.name, HUE.cult, s.n, fmt(s.n, 0), `${s.name} (${s.sci}): recorded in ${s.n} of the ${cells.length} square miles in ${where}. Click to map it.`, s.sci.toLowerCase()]), 'cult'), 'Most widely recorded species');
+  if (inv){ const IV = new Map(); cells.forEach(c => { if (!(cultL('hex', c) || []).length) return; (invL('EDRR_LIST', 'hex', c) || []).forEach(i => { const p = sppName(i), k = p.sci.toLowerCase(); let s = IV.get(k); if (!s) IV.set(k, s = {name:p.common || p.sci, sci:p.sci, n:0}); s.n++; }); });
+    const ti = [...IV.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)).slice(0, 10);
+    if (ti.length) g += `<h4 class="phh">Priority invasives recorded with them</h4>` + hbars(ti.map(s => [s.name, HUE.pinv, s.n, fmt(s.n, 0), `${s.name} (${s.sci}): in ${s.n} of the square miles where listed plants and priority invasives are both recorded.`]), 'Priority invasives recorded with them');
+    return g + `<p class="phnote">Square miles in ${esc(where)} where a listed plant and a priority invasive plant are both recorded (research-grade iNaturalist records and EDDMapS reports): where invasive plant control would protect them. Ginseng, goldenseal, ramps and lady’s slippers are left out at this scale.</p></div>`; }
   return g + `<p class="phnote">Square miles with a research-grade iNaturalist record, in ${esc(where)}${where === 'the map view' ? ' (zoom or pan to change it, or select cells)' : ''}. Ginseng, goldenseal, ramps and lady’s slippers are left out at this scale. Records follow hikers, so a species recorded in few square miles may simply be overlooked. Click a species to map where it is recorded.</p></div>`; }
 function cultVizRefresh(){ geoVizRefresh(); qVizRefresh(); const t = $('#culttop'); if (t && S.q.id === 'cult' && !S.m.find) t.outerHTML = cultTopHTML(); }
 document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-cultsp],[data-cultall]'); if (!t) return;
@@ -4578,18 +4588,21 @@ function tourText(st, lv, cells){ const q = Q.find(x => x.id === st.q), m = q &&
   const range = !vs.length ? 'not recorded' : vs[0] === vs[vs.length - 1] ? show(m, vs[0]) : descRange(lo, show(m, vs[vs.length - 1]));
   const regs = [...new Set(cells.map(c => regionOf(L_.mi[c])))], list = a => a.length < 3 ? a.join(' and ') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
   return esc(st.x).replace('{n}', cells.length).replace('{max}', vs.length ? esc(show(m, vs[vs.length - 1])).replace(/^(\d[\d,.]*)\s.*$/, '$1') : '0').replace('{total}', fmt(vs.reduce((a, b) => a + b, 0), 0)).replace('{range}', esc(range)).replace('{regions}', esc(list(regs)) + (regs.length === 1 ? ' region' : ' regions')); }
-function tourGo(k){ const T = TOURS[TOUR.id]; if (!T) return; const W = isPhone() ? $('#mapwrap') : null, t0 = W ? W.getBoundingClientRect().top : 0;   /* phones: the map stays where it was on screen */ TOUR.k = Math.max(0, Math.min(T.steps.length - 1, k)); const st = T.steps[TOUR.k];
+function tourGo(k){ const T = TOURS[TOUR.id]; if (!T) return;  TOUR.k = Math.max(0, Math.min(T.steps.length - 1, k)); const st = T.steps[TOUR.k];
   const q = Q.find(x => x.id === st.q); if (q){ S.q = q; S.m = q.m.find(x => x.id === st.m) || q.m[0]; } S.level = st.lv; BRK.clear(); const [lv, cells] = tourCells(st); if (!cells.length) clearSel(); redraw();   /* a new selection replaces the old one without clearing first, so phones don't jump */
-  if (cells.length){ selectMany(lv, cells, null, 'Tour stop: ' + st.t); S.box.tour = true; profile(); const b = L.latLngBounds([]); cells.forEach(c => ring(lv, c).forEach(p => b.extend(p))); map.flyToBounds(b.pad(st.pick.top ? .05 : .6), {duration:1.2, maxZoom:12}); }
-  else if (st.view === 'trail') map.flyToBounds(trailLine.getBounds(), {duration:1.2});
-  else if (Array.isArray(st.view)) map.flyToBounds(st.view, {duration:1.2});
-  if (st.zoom && cells.length) setTimeout(() => { const p = st.pick.near; map.flyTo(p, st.zoom, {duration:.8}); }, 1300);
+  const ph = isPhone(); if (ph) tourMobile(true);
+  if (cells.length){ selectMany(lv, cells, null, 'Tour stop: ' + st.t); S.box.tour = true; profile(); }
   tourSitesDraw(TOURS[TOUR.id], st); tourDraw(lv, cells);
-  if (W){ const hold = () => { const d = W.getBoundingClientRect().top - t0; if (Math.abs(d) > 1) scrollBy(0, d); }; hold(); const t1 = performance.now() + 1200; let user = false; const quit = () => { user = true; }; ['touchstart', 'wheel', 'keydown'].forEach(ev => addEventListener(ev, quit, {once:true, passive:true}));
-    const loop = () => { if (user || !TOUR.id) return; hold(); if (performance.now() < t1) requestAnimationFrame(loop); }; requestAnimationFrame(loop); } }
+  if (ph) map.invalidateSize();
+  let bd = null; if (cells.length){ bd = L.latLngBounds([]); cells.forEach(c => ring(lv, c).forEach(p => bd.extend(p))); bd = bd.pad(st.pick.top ? .05 : .6); }
+  else if (st.view === 'trail') bd = trailLine.getBounds(); else if (Array.isArray(st.view)) bd = L.latLngBounds(st.view);
+  if (ph){ map.stop(); if (st.zoom && cells.length) map.setView(st.pick.near, st.zoom, {animate:false}); else if (bd) map.fitBounds(bd, {animate:false, maxZoom:12}); }
+  else { if (bd) map.flyToBounds(bd, {duration:1.2, maxZoom:12}); if (st.zoom && cells.length) setTimeout(() => { if (TOUR.id) map.flyTo(st.pick.near, st.zoom, {duration:.8}); }, 1300); }
+  if (ph) tourScroll(); }
 function tourDraw(lv, cells){ const T = TOURS[TOUR.id], st = T.steps[TOUR.k], N = T.steps.length; let d = $('#tour');
-  if (!d){ d = document.createElement('div'); d.id = 'tour'; d.className = 'tour'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'Guided tour'); $('#mapwrap').appendChild(d); L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d); }
-  d.innerHTML = `<button class="tx" type="button" aria-label="End the tour">×</button><div class="tk">Tour · ${esc(T.title)} · ${TOUR.k + 1} of ${N}</div><h3>${esc(st.t)}</h3>${tourPhotos(T, st)}<p>${tourText(st, lv, cells)}</p>
+  if (!d){ d = document.createElement('div'); d.id = 'tour'; d.className = 'tour'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'Guided tour'); L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d); }
+  if (isPhone()){ if (d.previousElementSibling !== $('#mapwrap')) $('#mapwrap').after(d); } else if (d.parentNode !== $('#mapwrap')) $('#mapwrap').appendChild(d);
+  d.innerHTML = `<button class="tx" type="button" aria-label="End the tour">×</button><div class="tk"><span class="tkt">Tour · ${esc(T.title)} · </span>${TOUR.k + 1} of ${N}</div><h3>${esc(st.t)}</h3>${tourPhotos(T, st)}<p>${tourText(st, lv, cells)}</p>
     <div class="tnav"><div class="dots">${T.steps.map((_, i) => `<i${i === TOUR.k ? ' class="on"' : ''}></i>`).join('')}</div><button type="button" data-t="-1"${TOUR.k ? '' : ' disabled'}>Back</button><button type="button" class="pri" data-t="1">${TOUR.k === N - 1 ? 'Finish' : 'Next'}</button></div>
     ${TOUR.k === 0 ? '<div class="tnote">Demo tour. Use the arrow keys or the buttons; the map stays live, so you can click around at any step.</div>' : ''}`;
   tourPlace(); d.querySelectorAll('[data-ph]').forEach(b => b.onclick = () => photoBox(T.sites[+b.dataset.ph].ph));
@@ -4603,7 +4616,7 @@ function photoBox(p){ let o = $('#phbox'); if (o) o.remove(); o = document.creat
   const close = () => { o.remove(); document.removeEventListener('keydown', esc1, true); }, esc1 = e => { if (e.key === 'Escape'){ e.stopPropagation(); close(); } };
   o.onclick = e => { if (e.target === o || e.target.tagName === 'BUTTON') close(); }; document.addEventListener('keydown', esc1, true); document.body.appendChild(o); o.querySelector('button').focus(); }
 /* the tour panel sits at the left of the map, level with the Guiding Questions and below the map controls; the controls' drop-downs (basemap, map layers) open over it */
-function tourPlace(){ const d = $('#tour'), w = $('#mapwrap'); if (!d || !w) return; const top0 = w.getBoundingClientRect().top; let b = 0;
+function tourPlace(){ const d = $('#tour'), w = $('#mapwrap'); if (!d || !w || isPhone()) return; const top0 = w.getBoundingClientRect().top; let b = 0;
   ['#ctlrow1', '#ctlrow2', '.leaflet-control-zoom'].forEach(sel => { const e = document.querySelector(sel); if (!e || e.offsetParent === null) return;
     const kids = sel[0] === '#' ? [...e.children] : [e]; kids.forEach(k => { if (k.offsetParent === null || k.id === 'layerspanel') return; const r = k.getBoundingClientRect(); if (r.height) b = Math.max(b, r.bottom); }); });
   /* beside the side panel, the panel's top lines up with the start of the Guiding Questions (where the panel turns dark blue) */
@@ -4611,8 +4624,14 @@ function tourPlace(){ const d = $('#tour'), w = $('#mapwrap'); if (!d || !w) ret
   const side = gr && gr.right <= wr.left + 4 && gr.top > wr.top ? gr.top - top0 : 0;
   const t = Math.max(10, Math.round(b - top0 + 8), Math.round(side)); d.style.top = t + 'px'; d.style.maxHeight = `calc(100% - ${t + 12}px)`; }
 addEventListener('resize', tourPlace);
+/* phones: while a tour runs the map takes the top of the screen and the tour sits under it, the two together one screen tall */
+function tourMobile(on){ document.body.classList.toggle('touring', !!on); if (on) tourSize(); }
+/* sized from the visible screen height (phone browser bars included), so map plus tour fill the screen exactly */
+function tourSize(){ const H = window.visualViewport ? visualViewport.height : innerHeight, m = Math.max(230, Math.round(H * .47)); document.body.style.setProperty('--tmh', m + 'px'); $('#mapwrap').style.height = m + 'px'; document.body.style.setProperty('--tph', Math.max(220, Math.round(H - m)) + 'px'); }
+addEventListener('resize', () => { if (document.body.classList.contains('touring')) tourSize(); });
+function tourScroll(){ const w = $('#mapwrap'); if (!w) return; const y = w.getBoundingClientRect().top + scrollY; if (Math.abs(scrollY - y) > 2) scrollTo({top:y, behavior:'auto'}); }
 function tourStart(id){ if (!TOURS[id]) return; if (typeof goatEvent === 'function') goatEvent('tour-' + id); if (TOUR.leg == null){ TOUR.leg = S.legend; S.legend = false; } TOUR.id = id; tourGo(0); }   /* the legend folds up while the tour panel is open */
-function tourEnd(){ TOUR.id = null; const d = $('#tour'); if (d) d.remove(); if (tourSites){ tourSites.remove(); tourSites = null; } if (TOUR.leg != null){ S.legend = TOUR.leg; TOUR.leg = null; legend(); } try { const h = new URLSearchParams(location.hash.slice(1)); if (h.has('tour')){ h.delete('tour'); history.replaceState(null, '', '#' + h.toString()); } } catch (x) {} }
+function tourEnd(){ TOUR.id = null; const d = $('#tour'); if (d) d.remove(); if (document.body.classList.contains('touring')){ tourMobile(false); lockW = 0; lockMapHeight(); map.invalidateSize(); } if (tourSites){ tourSites.remove(); tourSites = null; } if (TOUR.leg != null){ S.legend = TOUR.leg; TOUR.leg = null; legend(); } try { const h = new URLSearchParams(location.hash.slice(1)); if (h.has('tour')){ h.delete('tour'); history.replaceState(null, '', '#' + h.toString()); } } catch (x) {} }
 document.addEventListener('keydown', e => { if (!TOUR.id || /input|select|textarea/i.test((e.target.tagName || ''))) return;
   if (e.key === 'ArrowRight') tourGo(TOUR.k + 1); else if (e.key === 'ArrowLeft') tourGo(TOUR.k - 1); else if (e.key === 'Escape') tourEnd(); });
 /* the Tour chip sits inside the question it belongs to; it starts the tour without switching the question first */
@@ -5082,7 +5101,7 @@ function selectMany(lv, cells, bounds, label, within, picked){ S.cell = null; pi
   const rings = cells.map(c => [ring(lv, c)]); selOuter.setLatLngs(rings); selInner.setLatLngs(rings);
   if (bounds) boxRect.setBounds(bounds).addTo(map); else boxRect.remove();
   profile(); writeHash();
-  if (isPhone()){ placeProfile(); sheet(S.sheetFull ? 'full' : 'peek'); if (!bounds && !(typeof TOUR !== 'undefined' && TOUR.id)) $('#mapwrap').scrollIntoView({block:'start'}); showBar(); } }
+  if (isPhone()){ placeProfile(); sheet(S.sheetFull ? 'full' : 'peek'); if (!bounds && !(typeof TOUR !== 'undefined' && TOUR.id)){ $('#mapwrap').scrollIntoView({block:'start'}); showBar(); } } }
 
 /* ---------- trail strip ---------- */
 const BIN = 10; let NB = Math.ceil(D.totalMi / BIN);
@@ -5201,7 +5220,7 @@ function viewWindow(){ const w = $('#vwin'), svg = $('#stripsvg'); if (!w || !sv
 /* Phones: browsers resize the window as their address bar slides in and out while you scroll. The map's height is set once, in pixels,
    and only recalculated when the screen width changes (a rotation), so the map block stays the same size while scrolling. */
 let lockW = 0;
-function lockMapHeight(){ const mw = $('#mapwrap'); if (VW() > 860){ if (mw.style.height){ mw.style.height = ''; lockW = 0; map.invalidateSize(); } return; }
+function lockMapHeight(){ const mw = $('#mapwrap'); if (document.body.classList.contains('touring') && VW() <= 860) return; if (VW() > 860){ if (mw.style.height){ mw.style.height = ''; lockW = 0; map.invalidateSize(); } return; }
   if (VW() === lockW) return; lockW = VW(); mw.style.height = Math.max(360, Math.round(VH() * .62)) + 'px'; map.invalidateSize(); }
 lockMapHeight();
 let rz, rzW = VW(); window.addEventListener('resize', () => { lockMapHeight(); clearTimeout(rz); rz = setTimeout(() => { const wChanged = VW() !== rzW; rzW = VW(); if (wChanged || VW() > 860){ strip(); map.invalidateSize(); } }, 150); });
