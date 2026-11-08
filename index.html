@@ -546,7 +546,7 @@ header .blaze{width:14px;height:38px}
 #phbox figcaption{color:#E8EEF6;font-size:14px;margin-top:8px;display:flex;justify-content:space-between;gap:16px}#phbox figcaption span{opacity:.6;font-size:12.5px;white-space:nowrap}
 #phbox>button{position:absolute;top:12px;right:16px;background:none;border:0;color:#fff;font-size:32px;cursor:pointer}
 @media (max-width:640px){.tph img{height:120px}.tph.n2 img{height:90px}}
-@media (max-width:860px){body.touring #mapwrap{height:var(--tmh,52vh);min-height:0}
+@media (max-width:860px){body.touring{overflow-anchor:none}body.touring #mapwrap{height:var(--tmh,52vh);min-height:0}
   .tour{position:static;width:auto;max-width:none;margin:0;border-radius:0;box-shadow:none;border-top:3px solid #F0C419;height:var(--tph,48vh);max-height:none;overflow-y:auto;padding:10px 14px 0;font-size:14.5px;display:flex;flex-direction:column}
   .tour h3{font-size:16.5px}.tour p{margin:4px 0 6px}.tour .tnote{display:none}.tph{margin:6px 0 2px}.tph img{height:84px}.tph.n2 img{height:72px}
   .tour .tnav{position:sticky;bottom:0;z-index:1;margin-top:auto;padding:8px 0 10px;background:#101C2E;box-shadow:0 -6px 8px -4px #101C2E}
@@ -4590,7 +4590,7 @@ function tourText(st, lv, cells){ const q = Q.find(x => x.id === st.q), m = q &&
   return esc(st.x).replace('{n}', cells.length).replace('{max}', vs.length ? esc(show(m, vs[vs.length - 1])).replace(/^(\d[\d,.]*)\s.*$/, '$1') : '0').replace('{total}', fmt(vs.reduce((a, b) => a + b, 0), 0)).replace('{range}', esc(range)).replace('{regions}', esc(list(regs)) + (regs.length === 1 ? ' region' : ' regions')); }
 function tourGo(k){ const T = TOURS[TOUR.id]; if (!T) return;  TOUR.k = Math.max(0, Math.min(T.steps.length - 1, k)); const st = T.steps[TOUR.k];
   const q = Q.find(x => x.id === st.q); if (q){ S.q = q; S.m = q.m.find(x => x.id === st.m) || q.m[0]; } S.level = st.lv; BRK.clear(); const [lv, cells] = tourCells(st); if (!cells.length) clearSel(); redraw();   /* a new selection replaces the old one without clearing first, so phones don't jump */
-  const ph = isPhone(); if (ph) tourMobile(true);
+  const ph = isPhone(); if (ph){ TOUR.userScrolled = false; tourMobile(true); }
   if (cells.length){ selectMany(lv, cells, null, 'Tour stop: ' + st.t); S.box.tour = true; profile(); }
   tourSitesDraw(TOURS[TOUR.id], st); tourDraw(lv, cells);
   if (ph) map.invalidateSize();
@@ -4625,7 +4625,13 @@ function tourPlace(){ const d = $('#tour'), w = $('#mapwrap'); if (!d || !w || i
   const t = Math.max(10, Math.round(b - top0 + 8), Math.round(side)); d.style.top = t + 'px'; d.style.maxHeight = `calc(100% - ${t + 12}px)`; }
 addEventListener('resize', tourPlace);
 /* phones: while a tour runs the map takes the top of the screen and the tour sits under it, the two together one screen tall */
-function tourMobile(on){ document.body.classList.toggle('touring', !!on); if (on) tourSize(); }
+function tourMobile(on){ document.body.classList.toggle('touring', !!on); if (on) tourSize();
+  /* while touring, anything above the map that changes height afterwards (lists, charts, legends filling in) would push the map
+     down the page; on phones without scroll anchoring (Safari) that shows as a jump, so the map is put back at the top each time,
+     unless the person has scrolled the page themselves */
+  if (on && !TOUR.ro && window.ResizeObserver){ TOUR.ro = new ResizeObserver(() => { if (TOUR.id && isPhone() && !TOUR.userScrolled) tourScroll(); }); TOUR.ro.observe(document.body);
+    const mine = () => { TOUR.userScrolled = true; }; addEventListener('touchmove', mine, {passive:true}); addEventListener('wheel', mine, {passive:true}); TOUR.offUser = () => { removeEventListener('touchmove', mine); removeEventListener('wheel', mine); }; }
+  if (!on && TOUR.ro){ TOUR.ro.disconnect(); TOUR.ro = null; if (TOUR.offUser) TOUR.offUser(); } }
 /* sized from the visible screen height (phone browser bars included), so map plus tour fill the screen exactly */
 function tourSize(){ const H = window.visualViewport ? visualViewport.height : innerHeight, m = Math.max(230, Math.round(H * .47)); document.body.style.setProperty('--tmh', m + 'px'); $('#mapwrap').style.height = m + 'px'; document.body.style.setProperty('--tph', Math.max(220, Math.round(H - m)) + 'px'); }
 addEventListener('resize', () => { if (document.body.classList.contains('touring')) tourSize(); });
