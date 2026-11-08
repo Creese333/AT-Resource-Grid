@@ -4567,7 +4567,7 @@ const TOURS = {
      x:'On South Mountain, two active projects sit on the 1862 Battle of South Mountain battlefield: the 17th Michigan Field near the Reno Monument at Fox’s Gap, and the meadows at Dahlgren Chapel near Turner’s Gap. Restoring native grasses, sedges and wildflowers here brings back open ground in historic settings. Grassland scores here: {range}.'},
     {t:'Open land, open views', q:'feat', m:'vist', lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[1], ph:[1],
      x:'Open fields keep the views open. The A.T. is a national scenic trail: the National Trails System Act of 1968 set it aside to conserve the nationally significant scenic, historic, natural and cultural qualities of the land it crosses. Fields like those below Cove Mountain open long views across the valley to the ridges; keeping these landscapes open keeps the views, and the scenic character the trail was protected for. The visual resource inventory records {total} vistas in these Cumberland Valley cells.'},
-    {t:'Part of a larger effort', q:'rest', m:'grass', lv:'wheel', view:[[38.6, -78.6], [44.6, -69.5]],
+    {t:'Part of a larger effort', q:'rest', m:'grass', lv:'wheel', view:[[38.6, -78.6], [44.6, -69.5]], img:{f:'grassland-site-visit', c:'NPS staff and partners on a grassland restoration site visit', a:'A group of people in field clothes standing in a wide meadow of grasses and white wildflowers under a cloudy sky, with wooded hills beyond'},
      x:'The A.T. work is part of the Eastern Grasslands Initiative. In 2026, its first year of treatment, grassland restoration projects got under way in more than 30 national parks, from the fields at Gettysburg and Valley Forge’s Grand Parade to Minute Man.'},
     {t:'Explore on your own', q:'rest', m:'grass', lv:'auto', view:'trail',
      x:'Click any cell to see its grassland score and what drives it, or select an area and use Describe as text for a written summary. About the data explains the sources and limits.'}]}
@@ -4606,11 +4606,12 @@ function tourDraw(lv, cells){ const T = TOURS[TOUR.id], st = T.steps[TOUR.k], N 
   d.innerHTML = `<button class="tx" type="button" aria-label="End the tour">×</button><div class="tk"><span class="tkt">Tour · ${esc(T.title)} · </span>${TOUR.k + 1} of ${N}</div><h3>${esc(st.t)}</h3><div class="tbody">${tourPhotos(T, st)}<p>${tourText(st, lv, cells)}</p></div>
     <div class="tnav"><div class="dots">${T.steps.map((_, i) => `<i${i === TOUR.k ? ' class="on"' : ''}></i>`).join('')}</div><button type="button" data-t="-1"${TOUR.k ? '' : ' disabled'}>Back</button><button type="button" class="pri" data-t="1">${TOUR.k === N - 1 ? 'Finish' : 'Next'}</button></div>
     ${TOUR.k === 0 ? '<div class="tnote">Demo tour. Use the arrow keys or the buttons; the map stays live, so you can click around at any step.</div>' : ''}`;
-  tourPlace(); d.querySelectorAll('[data-ph]').forEach(b => b.onclick = () => photoBox(T.sites[+b.dataset.ph].ph));
+  tourPlace(); d.querySelectorAll('[data-ph]').forEach(b => b.onclick = () => photoBox(T.sites[+b.dataset.ph].ph)); d.querySelectorAll('[data-phimg]').forEach(b => b.onclick = () => photoBox(st.img));
   d.querySelector('.tx').onclick = tourEnd; d.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const s = +b.dataset.t; if (s > 0 && TOUR.k === N - 1) tourEnd(); else tourGo(TOUR.k + s); }); }
 const PHDIR = 'images/';
 /* the photos of the sites a step is about: one fills the width, two sit side by side; a site stop shows only its own photo */
-function tourPhotos(T, st){ const ix = (st.ph || (st.q === 'rest' ? st.sites : null) || []).filter(i => T.sites[i] && T.sites[i].ph); if (!ix.length || ix.length > 2) return '';
+function tourPhotos(T, st){ if (st.img) return `<div class="tph n1"><button type="button" data-phimg="1" aria-label="Enlarge photo: ${esc(st.img.c)}"><img src="${PHDIR + st.img.f}-sm.webp" alt="${esc(st.img.a)}" loading="lazy"></button></div>`;
+  const ix = (st.ph || (st.q === 'rest' ? st.sites : null) || []).filter(i => T.sites[i] && T.sites[i].ph); if (!ix.length || ix.length > 2) return '';
   return `<div class="tph n${ix.length}">${ix.map(i => { const p = T.sites[i].ph; return `<button type="button" data-ph="${i}" aria-label="Enlarge photo: ${esc(p.c)}"><img src="${PHDIR + p.f}-sm.webp" alt="${esc(p.a)}" loading="lazy"></button>`; }).join('')}</div>`; }
 function photoBox(p){ let o = $('#phbox'); if (o) o.remove(); o = document.createElement('div'); o.id = 'phbox'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-label', p.c);
   o.innerHTML = `<figure><img src="${PHDIR + p.f}.webp" alt="${esc(p.a)}"><figcaption>${esc(p.c)}<span>Photo: ${esc(p.by || 'Casey Reese')}</span></figcaption></figure><button type="button" aria-label="Close photo">×</button>`;
