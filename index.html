@@ -4528,10 +4528,12 @@ const TOURS = {
      x:'An active restoration on an A.T. farm field that also holds the historic Chambers/Urie cemetery. The field is being restored to native grasses, sedges and wildflowers: habitat and a cultural landscape cared for together. Grassland score here: {range}.'},
     {t:'Cove Mountain Grasslands', q:'rest', m:'grass', lv:'hex', pick:{near:[40.31883, -77.07872], km:.01}, sites:[1], zoom:14,
      x:'Near Cove Mountain, another active project is restoring native grasses, sedges and wildflowers on A.T. lands. Grassland score here: {range}.'},
-    {t:'Why it matters for birds', q:'bird', m:'bcc', lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[0, 1],
-     x:'Grassland birds such as bobolink and eastern meadowlark are among North America’s fastest-declining birds, and managed fields can hold them. Birds of Conservation Concern recorded in these Cumberland Valley cells: {range}.'},
+    {t:'Open land, open views', q:'feat', m:'vist', lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[1], ph:[1],
+     x:'Open fields keep the views open. The A.T. is a national scenic trail: the National Trails System Act of 1968 set it aside to conserve the nationally significant scenic, historic, natural and cultural qualities of the land it crosses. Fields like those below Cove Mountain open long views across the valley to the ridges; keeping these landscapes open keeps the views, and the scenic character the trail was protected for. The facilities inventory records {total} vistas in these Cumberland Valley cells.'},
+    {t:'Why it matters for birds', q:'bird', m:'gr', lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[0, 1],
+     x:'Grassland birds such as bobolink and eastern meadowlark are among North America’s fastest-declining birds, and managed fields can hold them. Up to {max} grassland bird species have been recorded in a single square mile here.'},
     {t:'Keeping fields open, and native', q:'inv', m:'edrr', lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[0, 1],
-     x:'Old fields are where invasive shrubs and grasses take hold first. Restoration pairs invasive control with native seeding and the right mowing or burning schedule. Priority invasives reported here: {range}.'},
+     x:'Old fields are where invasive shrubs and grasses take hold first. Restoration pairs invasive control with native seeding and the right mowing or burning schedule. Up to {max} priority invasive species have been reported in a single square mile here.'},
     {t:'South Mountain, Maryland', q:'rest', m:'grass', lv:'hex', pick:{near:[39.478, -77.6174], km:2.2}, sites:[2, 3], zoom:13,
      x:'On South Mountain, two active projects sit on the 1862 Battle of South Mountain battlefield: the 17th Michigan Field near the Reno Monument at Fox’s Gap, and the meadows at Dahlgren Chapel near Turner’s Gap. Restoring native grasses, sedges and wildflowers here brings back open ground in historic settings. Grassland scores here: {range}.'},
     {t:'Shays’ Rebellion site, Massachusetts', q:'rest', m:'grass', lv:'hex', pick:{near:[42.14697, -73.38067], km:.01}, sites:[4], zoom:14,
@@ -4557,7 +4559,7 @@ function tourText(st, lv, cells){ const q = Q.find(x => x.id === st.q), m = q &&
   const lo = vs.length && vs[0] === 0 && vs[vs.length - 1] > 0 ? '0' : vs.length ? show(m, vs[0]) : '';
   const range = !vs.length ? 'not recorded' : vs[0] === vs[vs.length - 1] ? show(m, vs[0]) : descRange(lo, show(m, vs[vs.length - 1]));
   const regs = [...new Set(cells.map(c => regionOf(L_.mi[c])))], list = a => a.length < 3 ? a.join(' and ') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
-  return esc(st.x).replace('{n}', cells.length).replace('{range}', esc(range)).replace('{regions}', esc(list(regs)) + (regs.length === 1 ? ' region' : ' regions')); }
+  return esc(st.x).replace('{n}', cells.length).replace('{max}', vs.length ? esc(show(m, vs[vs.length - 1])).replace(/^(\d[\d,.]*)\s.*$/, '$1') : '0').replace('{total}', fmt(vs.reduce((a, b) => a + b, 0), 0)).replace('{range}', esc(range)).replace('{regions}', esc(list(regs)) + (regs.length === 1 ? ' region' : ' regions')); }
 function tourGo(k){ const T = TOURS[TOUR.id]; if (!T) return; TOUR.k = Math.max(0, Math.min(T.steps.length - 1, k)); const st = T.steps[TOUR.k];
   const q = Q.find(x => x.id === st.q); if (q){ S.q = q; S.m = q.m.find(x => x.id === st.m) || q.m[0]; } S.level = st.lv; BRK.clear(); clearSel(); redraw();
   const [lv, cells] = tourCells(st);
@@ -4575,7 +4577,7 @@ function tourDraw(lv, cells){ const T = TOURS[TOUR.id], st = T.steps[TOUR.k], N 
   d.querySelector('.tx').onclick = tourEnd; d.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const s = +b.dataset.t; if (s > 0 && TOUR.k === N - 1) tourEnd(); else tourGo(TOUR.k + s); }); }
 const PHDIR = 'images/';
 /* the photos of the sites a step is about: one fills the width, two sit side by side; a site stop shows only its own photo */
-function tourPhotos(T, st){ const ix = (st.sites || []).filter(i => T.sites[i] && T.sites[i].ph); if (!ix.length || ix.length > 2 || st.q !== 'rest') return '';
+function tourPhotos(T, st){ const ix = (st.ph || (st.q === 'rest' ? st.sites : null) || []).filter(i => T.sites[i] && T.sites[i].ph); if (!ix.length || ix.length > 2) return '';
   return `<div class="tph n${ix.length}">${ix.map(i => { const p = T.sites[i].ph; return `<button type="button" data-ph="${i}" aria-label="Enlarge photo: ${esc(p.c)}"><img src="${PHDIR + p.f}-sm.webp" alt="${esc(p.a)}" loading="lazy"></button>`; }).join('')}</div>`; }
 function photoBox(p){ let o = $('#phbox'); if (o) o.remove(); o = document.createElement('div'); o.id = 'phbox'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-label', p.c);
   o.innerHTML = `<figure><img src="${PHDIR + p.f}.webp" alt="${esc(p.a)}"><figcaption>${esc(p.c)}<span>Photo: ${esc(p.by || 'Casey Reese')}</span></figcaption></figure><button type="button" aria-label="Close photo">×</button>`;
