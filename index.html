@@ -547,10 +547,11 @@ header .blaze{width:14px;height:38px}
 #phbox>button{position:absolute;top:12px;right:16px;background:none;border:0;color:#fff;font-size:32px;cursor:pointer}
 @media (max-width:640px){.tph img{height:120px}.tph.n2 img{height:90px}}
 @media (max-width:860px){body.touring{overflow-anchor:none}body.touring #mapwrap{height:var(--tmh,52vh);min-height:0}
-  .tour{position:static;width:auto;max-width:none;margin:0;border-radius:0;box-shadow:none;border-top:3px solid #F0C419;height:var(--tph,48vh);max-height:none;overflow-y:auto;padding:10px 14px 0;font-size:14.5px;display:flex;flex-direction:column}
-  .tour h3{font-size:16.5px}.tour p{margin:4px 0 6px}.tour .tnote{display:none}.tph{margin:6px 0 2px}.tph img{height:84px}.tph.n2 img{height:72px}
-  .tour .tnav{position:sticky;bottom:0;z-index:1;margin-top:auto;padding:8px 0 10px;background:#101C2E;box-shadow:0 -6px 8px -4px #101C2E}
-  .tour{position:relative;top:auto !important;left:auto;right:auto;background:#101C2E}.tour .tk .tkt{display:none}.tour .tk{margin-bottom:2px}.tph img{height:72px}.tph.n2 img{height:64px}}
+  .tour{position:static;width:auto;max-width:none;margin:0;border-radius:0;box-shadow:none;border-top:3px solid #F0C419;height:var(--tph,38vh);max-height:none;overflow-y:auto;padding:6px 12px 0;font-size:13.5px;line-height:1.4;display:flex;flex-direction:column}
+  .tour h3{font-size:15px;margin:0 0 2px;padding-right:30px}.tour p{margin:2px 0 4px}.tour .tnote{display:none}.tour .tbody{display:block}
+  .tph{float:left;width:38%;margin:3px 10px 2px 0}.tph.n2{grid-template-columns:1fr 1fr;width:46%;gap:4px}.tph img{height:66px}.tph.n2 img{height:66px}
+  .tour .tnav{position:sticky;bottom:0;z-index:1;margin-top:auto;padding:5px 0 7px;background:#101C2E;box-shadow:0 -6px 8px -4px #101C2E}.tour .tnav button{padding:5px 14px;font-size:13.5px}
+  .tour{position:relative;top:auto !important;left:auto;right:auto;background:#101C2E}.tour .tk .tkt{display:none}.tour .tk{margin:0;font-size:11px}.tour .tx{top:0;right:0}}
 @media (max-width:640px){.tour{padding:12px 14px 10px;font-size:14.5px}}
 </style>
 </head>
@@ -4602,7 +4603,7 @@ function tourGo(k){ const T = TOURS[TOUR.id]; if (!T) return;  TOUR.k = Math.max
 function tourDraw(lv, cells){ const T = TOURS[TOUR.id], st = T.steps[TOUR.k], N = T.steps.length; let d = $('#tour');
   if (!d){ d = document.createElement('div'); d.id = 'tour'; d.className = 'tour'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'Guided tour'); L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d); }
   if (isPhone()){ if (d.previousElementSibling !== $('#mapwrap')) $('#mapwrap').after(d); } else if (d.parentNode !== $('#mapwrap')) $('#mapwrap').appendChild(d);
-  d.innerHTML = `<button class="tx" type="button" aria-label="End the tour">×</button><div class="tk"><span class="tkt">Tour · ${esc(T.title)} · </span>${TOUR.k + 1} of ${N}</div><h3>${esc(st.t)}</h3>${tourPhotos(T, st)}<p>${tourText(st, lv, cells)}</p>
+  d.innerHTML = `<button class="tx" type="button" aria-label="End the tour">×</button><div class="tk"><span class="tkt">Tour · ${esc(T.title)} · </span>${TOUR.k + 1} of ${N}</div><h3>${esc(st.t)}</h3><div class="tbody">${tourPhotos(T, st)}<p>${tourText(st, lv, cells)}</p></div>
     <div class="tnav"><div class="dots">${T.steps.map((_, i) => `<i${i === TOUR.k ? ' class="on"' : ''}></i>`).join('')}</div><button type="button" data-t="-1"${TOUR.k ? '' : ' disabled'}>Back</button><button type="button" class="pri" data-t="1">${TOUR.k === N - 1 ? 'Finish' : 'Next'}</button></div>
     ${TOUR.k === 0 ? '<div class="tnote">Demo tour. Use the arrow keys or the buttons; the map stays live, so you can click around at any step.</div>' : ''}`;
   tourPlace(); d.querySelectorAll('[data-ph]').forEach(b => b.onclick = () => photoBox(T.sites[+b.dataset.ph].ph));
@@ -4633,7 +4634,7 @@ function tourMobile(on){ document.body.classList.toggle('touring', !!on); if (on
     const mine = () => { TOUR.userScrolled = true; }; addEventListener('touchmove', mine, {passive:true}); addEventListener('wheel', mine, {passive:true}); TOUR.offUser = () => { removeEventListener('touchmove', mine); removeEventListener('wheel', mine); }; }
   if (!on && TOUR.ro){ TOUR.ro.disconnect(); TOUR.ro = null; if (TOUR.offUser) TOUR.offUser(); } }
 /* sized from the visible screen height (phone browser bars included), so map plus tour fill the screen exactly */
-function tourSize(){ const H = window.visualViewport ? visualViewport.height : innerHeight, m = Math.max(230, Math.round(H * .47)); document.body.style.setProperty('--tmh', m + 'px'); $('#mapwrap').style.height = m + 'px'; document.body.style.setProperty('--tph', Math.max(220, Math.round(H - m)) + 'px'); }
+function tourSize(){ const H = window.visualViewport ? visualViewport.height : innerHeight, m = Math.max(260, Math.round(H * .62)); document.body.style.setProperty('--tmh', m + 'px'); $('#mapwrap').style.height = m + 'px'; document.body.style.setProperty('--tph', Math.max(190, Math.round(H - m)) + 'px'); }
 addEventListener('resize', () => { if (document.body.classList.contains('touring')) tourSize(); });
 function tourScroll(){ const w = $('#mapwrap'); if (!w) return; const y = w.getBoundingClientRect().top + scrollY; if (Math.abs(scrollY - y) > 2) scrollTo({top:y, behavior:'auto'}); }
 function tourStart(id){ if (!TOURS[id]) return; if (typeof goatEvent === 'function') goatEvent('tour-' + id); if (TOUR.leg == null){ TOUR.leg = S.legend; S.legend = false; } TOUR.id = id; tourGo(0); }   /* the legend folds up while the tour panel is open */
