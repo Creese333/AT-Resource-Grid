@@ -527,7 +527,7 @@ header .blaze{width:14px;height:38px}
 .qs button.qgrp[aria-expanded=false] i{transform:rotate(-90deg)}
 .segleg{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12)}.segleg label{display:flex;gap:6px;align-items:center;font-weight:600;margin-bottom:4px;cursor:pointer}.segleg i.ln{height:5px !important;border-radius:2px}.segmode{display:flex;gap:4px;margin:2px 0 6px}.segmode button{flex:1;font:inherit;font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;cursor:pointer}.segmode button.on{background:rgba(255,255,255,.16);font-weight:600}
 .segpopw .leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.35}.segpop table{border-collapse:collapse;margin:6px 0}.segpop td{padding:1px 8px 1px 0;vertical-align:top}.segpop td:first-child{color:var(--muted, #A8B8CA)}.segnote{font-size:12px;color:var(--muted, #A8B8CA)}
-.tour{position:absolute;left:12px;bottom:28px;z-index:1200;width:min(400px,calc(100% - 24px));background:rgba(16,28,46,.96);color:#EEF2F7;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:14px 16px 12px;font-size:14px;line-height:1.45}
+.tour{position:absolute;left:12px;top:120px;z-index:450;overflow-y:auto;width:min(400px,calc(100% - 24px));background:rgba(16,28,46,.96);color:#EEF2F7;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:14px 16px 12px;font-size:14px;line-height:1.45}
 .tour h3{margin:0 0 2px;font-size:16px}.tour .tk{padding-right:22px;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin-bottom:6px}
 .tour p{margin:6px 0 10px}.tour .tnav{display:flex;align-items:center;gap:8px}.tour .tnav button{font:inherit;font-size:13px;padding:6px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.25);background:transparent;color:inherit;cursor:pointer}
 .tour .tnav button.pri{background:#E8EEF6;color:#14294A;border-color:#E8EEF6;font-weight:600}.tour .tnav button:disabled{opacity:.35;cursor:default}
@@ -546,7 +546,7 @@ header .blaze{width:14px;height:38px}
 #phbox figcaption{color:#E8EEF6;font-size:14px;margin-top:8px;display:flex;justify-content:space-between;gap:16px}#phbox figcaption span{opacity:.6;font-size:12.5px;white-space:nowrap}
 #phbox>button{position:absolute;top:12px;right:16px;background:none;border:0;color:#fff;font-size:32px;cursor:pointer}
 @media (max-width:640px){.tph img{height:120px}.tph.n2 img{height:90px}}
-@media (max-width:640px){.tour{left:8px;right:8px;width:auto;transform:none;bottom:auto;top:118px;font-size:13.5px;padding:12px 13px 10px}}
+@media (max-width:640px){.tour{left:8px;right:8px;width:auto;transform:none;font-size:13.5px;padding:12px 13px 10px}}
 </style>
 </head>
 <body>
@@ -4574,7 +4574,7 @@ function tourDraw(lv, cells){ const T = TOURS[TOUR.id], st = T.steps[TOUR.k], N 
   d.innerHTML = `<button class="tx" type="button" aria-label="End the tour">×</button><div class="tk">Tour · ${esc(T.title)} · ${TOUR.k + 1} of ${N}</div><h3>${esc(st.t)}</h3>${tourPhotos(T, st)}<p>${tourText(st, lv, cells)}</p>
     <div class="tnav"><div class="dots">${T.steps.map((_, i) => `<i${i === TOUR.k ? ' class="on"' : ''}></i>`).join('')}</div><button type="button" data-t="-1"${TOUR.k ? '' : ' disabled'}>Back</button><button type="button" class="pri" data-t="1">${TOUR.k === N - 1 ? 'Finish' : 'Next'}</button></div>
     ${TOUR.k === 0 ? '<div class="tnote">Demo tour. Use the arrow keys or the buttons; the map stays live, so you can click around at any step.</div>' : ''}`;
-  d.querySelectorAll('[data-ph]').forEach(b => b.onclick = () => photoBox(T.sites[+b.dataset.ph].ph));
+  tourPlace(); d.querySelectorAll('[data-ph]').forEach(b => b.onclick = () => photoBox(T.sites[+b.dataset.ph].ph));
   d.querySelector('.tx').onclick = tourEnd; d.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const s = +b.dataset.t; if (s > 0 && TOUR.k === N - 1) tourEnd(); else tourGo(TOUR.k + s); }); }
 const PHDIR = 'images/';
 /* the photos of the sites a step is about: one fills the width, two sit side by side; a site stop shows only its own photo */
@@ -4584,6 +4584,12 @@ function photoBox(p){ let o = $('#phbox'); if (o) o.remove(); o = document.creat
   o.innerHTML = `<figure><img src="${PHDIR + p.f}.webp" alt="${esc(p.a)}"><figcaption>${esc(p.c)}<span>Photo: ${esc(p.by || 'Casey Reese')}</span></figcaption></figure><button type="button" aria-label="Close photo">×</button>`;
   const close = () => { o.remove(); document.removeEventListener('keydown', esc1, true); }, esc1 = e => { if (e.key === 'Escape'){ e.stopPropagation(); close(); } };
   o.onclick = e => { if (e.target === o || e.target.tagName === 'BUTTON') close(); }; document.addEventListener('keydown', esc1, true); document.body.appendChild(o); o.querySelector('button').focus(); }
+/* the tour panel sits at the top left of the map, just under the map controls; the controls' drop-downs (basemap, map layers) open over it */
+function tourPlace(){ const d = $('#tour'), w = $('#mapwrap'); if (!d || !w) return; const top0 = w.getBoundingClientRect().top; let b = 0;
+  ['#ctlrow1', '#ctlrow2', '.leaflet-control-zoom'].forEach(sel => { const e = document.querySelector(sel); if (!e || e.offsetParent === null) return;
+    const kids = sel[0] === '#' ? [...e.children] : [e]; kids.forEach(k => { if (k.offsetParent === null || k.id === 'layerspanel') return; const r = k.getBoundingClientRect(); if (r.height) b = Math.max(b, r.bottom); }); });
+  const t = Math.max(10, Math.round(b - top0 + 8)); d.style.top = t + 'px'; d.style.maxHeight = `calc(100% - ${t + 12}px)`; }
+addEventListener('resize', tourPlace);
 function tourStart(id){ if (!TOURS[id]) return; if (TOUR.leg == null){ TOUR.leg = S.legend; S.legend = false; } TOUR.id = id; tourGo(0); }   /* the legend folds up while the tour panel is open */
 function tourEnd(){ TOUR.id = null; const d = $('#tour'); if (d) d.remove(); if (tourSites){ tourSites.remove(); tourSites = null; } if (TOUR.leg != null){ S.legend = TOUR.leg; TOUR.leg = null; legend(); } try { const h = new URLSearchParams(location.hash.slice(1)); if (h.has('tour')){ h.delete('tour'); history.replaceState(null, '', '#' + h.toString()); } } catch (x) {} }
 document.addEventListener('keydown', e => { if (!TOUR.id || /input|select|textarea/i.test((e.target.tagName || ''))) return;
