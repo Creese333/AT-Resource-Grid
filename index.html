@@ -4549,19 +4549,19 @@ const TOURS = {
    steps:[
     {t:'Open land on a mountain trail', q:'rest', m:'grass', lv:'wheel', view:'trail',
      x:'The A.T. is known as a mountain footpath, but it also crosses farms, meadows and grassy balds. About 5,000 acres of open land are maintained along the corridor, and 986 acres are farmed under agricultural special use permits: 31 farms in 7 states. Darker cells score higher for grassland and early-successional restoration; the stars mark active restoration projects.'},
-    {t:'Where the potential is highest', q:'rest', m:'grass', lv:'wheel', pick:{top:8},
+    {t:'Where the potential is highest', q:'rest', m:'grass', lv:'wheel', pick:{top:8}, img:{f:'dashboard-grassland-example', c:'The dashboard’s grassland scores for 1 sq mi cells along the A.T. through the Cumberland Valley, Pennsylvania: darker red cells score higher', a:'A map of hexagon cells colored from pale green to dark red along the white line of the Appalachian Trail, with a legend of grassland scores', by:'Map: A.T. Resource Grid'},
      x:'These {n} cells score highest for grassland restoration, from {range}. They fall in the {regions}: valleys and lowland crossings where the trail leaves the ridges and passes through farm country.'},
     {t:'Shays’ Rebellion site, Massachusetts', q:'rest', m:'grass', lv:'hex', pick:{near:[42.14697, -73.38067], km:.01}, sites:[4], zoom:14,
      x:'In the Housatonic Valley of southern Berkshire County, at the site of the last battle of Shays’ Rebellion (1787), native grasses, sedges and wildflowers were seeded on A.T. lands in November 2026: restoring a historic open landscape and habitat together. Grassland score here: {range}.'},
     {t:'The Cumberland Valley, Pennsylvania', q:'rest', m:'grass', lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[0, 1],
      x:'Between South Mountain and Blue Mountain, the trail crosses the Cumberland Valley through working farmland. About 80% of the A.T.’s agricultural permits are here. Farmers keep the fields open under permit, and some fields are being restored to native grasses, sedges and wildflowers. Grassland scores in the selected cells run {range}.'},
-    {t:'Chambers/Urie field', q:'rest', m:'grass', lv:'hex', pick:{near:[40.17508, -77.11936], km:.01}, sites:[0], zoom:14,
+    {t:'Chambers/Urie field', q:'rest', m:'grass', lv:'hex', pick:{near:[40.17508, -77.11936], km:.01}, sites:[0], ph:[0], zoom:14, img:{f:'chambers-urie-cemetery', c:'The Chambers/Urie cemetery, inside the restoration field', a:'Weathered nineteenth-century headstones inside an iron fence and low stone wall, with trees and a green field beyond'},
      x:'An active restoration on an A.T. farm field that also holds the historic Chambers/Urie cemetery. The field is being restored to native grasses, sedges and wildflowers: habitat and a cultural landscape cared for together. Grassland score here: {range}.'},
     {t:'Cove Mountain Grasslands', q:'rest', m:'grass', lv:'hex', pick:{near:[40.31883, -77.07872], km:.01}, sites:[1], zoom:14,
-     x:'Near Cove Mountain, another active project is restoring native grasses, sedges and wildflowers on A.T. lands. Grassland score here: {range}.'},
-    {t:'Why it matters for birds', q:'bird', m:'gr', lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[0, 1],
+     x:'Near Cove Mountain, another active project is restoring native grasses, sedges and wildflowers on A.T. lands. A local farmer will manage the field, harvesting it for mushroom compost, so it stays in agricultural use while growing native species. Grassland score here: {range}.'},
+    {t:'Why it matters for birds', q:'bird', m:'gr', img:{f:'bobolink', c:'Bobolink, a grassland bird that nests in hayfields and meadows', a:'A male bobolink, black with a buff nape and white back, perched on a thin stem above tall grass', by:''}, lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[0, 1],
      x:'Grassland birds such as bobolink and eastern meadowlark are among North America’s fastest-declining birds, and managed fields can hold them. Up to {max} grassland bird species have been recorded in a single square mile here.'},
-    {t:'Keeping fields open, and native', q:'inv', m:'edrr', lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[0, 1],
+    {t:'Keeping fields open, and native', q:'inv', m:'edrr', img:{f:'milkweed-meadow', c:'Butterfly milkweed in a restored meadow', a:'Orange butterfly milkweed flowers in a meadow of grasses and wildflowers, with an NPS ranger and others walking through it'}, lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[0, 1],
      x:'Old fields are where invasive shrubs and grasses take hold first. Restoration pairs invasive control with native seeding and the right mowing or burning schedule. Up to {max} priority invasive species have been reported in a single square mile here.'},
     {t:'South Mountain, Maryland', q:'rest', m:'grass', lv:'hex', pick:{near:[39.478, -77.6174], km:2.2}, sites:[2, 3], zoom:13,
      x:'On South Mountain, two active projects sit on the 1862 Battle of South Mountain battlefield: the 17th Michigan Field near the Reno Monument at Fox’s Gap, and the meadows at Dahlgren Chapel near Turner’s Gap. Restoring native grasses, sedges and wildflowers here brings back open ground in historic settings. Grassland scores here: {range}.'},
@@ -4569,7 +4569,7 @@ const TOURS = {
      x:'Open fields keep the views open. The A.T. is a national scenic trail: the National Trails System Act of 1968 set it aside to conserve the nationally significant scenic, historic, natural and cultural qualities of the land it crosses. Fields like those below Cove Mountain open long views across the valley to the ridges; keeping these landscapes open keeps the views, and the scenic character the trail was protected for. The visual resource inventory records {total} vistas in these Cumberland Valley cells.'},
     {t:'Part of a larger effort', q:'rest', m:'grass', lv:'wheel', view:[[38.6, -78.6], [44.6, -69.5]], img:{f:'grassland-site-visit', c:'NPS staff and partners on a grassland restoration site visit', a:'A group of people in field clothes standing in a wide meadow of grasses and white wildflowers under a cloudy sky, with wooded hills beyond'},
      x:'The A.T. work is part of the Eastern Grasslands Initiative. In 2026, its first year of treatment, grassland restoration projects got under way in more than 30 national parks, from the fields at Gettysburg and Valley Forge’s Grand Parade to Minute Man.'},
-    {t:'Explore on your own', q:'rest', m:'grass', lv:'auto', view:'trail',
+    {t:'Explore on your own', q:'rest', m:'grass', lv:'auto', view:'trail', img:{f:'meadow-path', c:'A footpath through a native grass meadow', a:'A narrow dirt footpath through a mowed strip between tall native grasses, under a big cloudy sky'},
      x:'Click any cell to see its grassland score and what drives it, or select an area and use Describe as text for a written summary. About the data explains the sources and limits.'}]}
 };
 const TOUR = {id:null, k:0};
@@ -4606,15 +4606,16 @@ function tourDraw(lv, cells){ const T = TOURS[TOUR.id], st = T.steps[TOUR.k], N 
   d.innerHTML = `<button class="tx" type="button" aria-label="End the tour">×</button><div class="tk"><span class="tkt">Tour · ${esc(T.title)} · </span>${TOUR.k + 1} of ${N}</div><h3>${esc(st.t)}</h3><div class="tbody">${tourPhotos(T, st)}<p>${tourText(st, lv, cells)}</p></div>
     <div class="tnav"><div class="dots">${T.steps.map((_, i) => `<i${i === TOUR.k ? ' class="on"' : ''}></i>`).join('')}</div><button type="button" data-t="-1"${TOUR.k ? '' : ' disabled'}>Back</button><button type="button" class="pri" data-t="1">${TOUR.k === N - 1 ? 'Finish' : 'Next'}</button></div>
     ${TOUR.k === 0 ? '<div class="tnote">Demo tour. Use the arrow keys or the buttons; the map stays live, so you can click around at any step.</div>' : ''}`;
-  tourPlace(); d.querySelectorAll('[data-ph]').forEach(b => b.onclick = () => photoBox(T.sites[+b.dataset.ph].ph)); d.querySelectorAll('[data-phimg]').forEach(b => b.onclick = () => photoBox(st.img));
+  tourPlace(); { const P = tourPics(T, st); d.querySelectorAll('[data-pk]').forEach(b => b.onclick = () => photoBox(P[+b.dataset.pk])); }
   d.querySelector('.tx').onclick = tourEnd; d.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const s = +b.dataset.t; if (s > 0 && TOUR.k === N - 1) tourEnd(); else tourGo(TOUR.k + s); }); }
 const PHDIR = 'images/';
 /* the photos of the sites a step is about: one fills the width, two sit side by side; a site stop shows only its own photo */
-function tourPhotos(T, st){ if (st.img) return `<div class="tph n1"><button type="button" data-phimg="1" aria-label="Enlarge photo: ${esc(st.img.c)}"><img src="${PHDIR + st.img.f}-sm.webp" alt="${esc(st.img.a)}" loading="lazy"></button></div>`;
-  const ix = (st.ph || (st.q === 'rest' ? st.sites : null) || []).filter(i => T.sites[i] && T.sites[i].ph); if (!ix.length || ix.length > 2) return '';
-  return `<div class="tph n${ix.length}">${ix.map(i => { const p = T.sites[i].ph; return `<button type="button" data-ph="${i}" aria-label="Enlarge photo: ${esc(p.c)}"><img src="${PHDIR + p.f}-sm.webp" alt="${esc(p.a)}" loading="lazy"></button>`; }).join('')}</div>`; }
+function tourPics(T, st){ const own = st.img ? [].concat(st.img) : [], ix = (st.ph || (st.q === 'rest' && !own.length ? st.sites : null) || []).filter(i => T.sites[i] && T.sites[i].ph);
+  const all = ix.map(i => T.sites[i].ph).concat(own); return all.length > 2 ? all.slice(0, 2) : all; }
+function tourPhotos(T, st){ const P = tourPics(T, st); if (!P.length) return '';
+  return `<div class="tph n${P.length}">${P.map((p, k) => `<button type="button" data-pk="${k}" aria-label="Enlarge photo: ${esc(p.c)}"><img src="${PHDIR + p.f}-sm.webp" alt="${esc(p.a)}" loading="lazy"></button>`).join('')}</div>`; }
 function photoBox(p){ let o = $('#phbox'); if (o) o.remove(); o = document.createElement('div'); o.id = 'phbox'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-label', p.c);
-  o.innerHTML = `<figure><img src="${PHDIR + p.f}.webp" alt="${esc(p.a)}"><figcaption>${esc(p.c)}<span>Photo: ${esc(p.by || 'Casey Reese')}</span></figcaption></figure><button type="button" aria-label="Close photo">×</button>`;
+  o.innerHTML = `<figure><img src="${PHDIR + p.f}.webp" alt="${esc(p.a)}"><figcaption>${esc(p.c)}${p.by === '' ? '' : `<span>${p.by && /^(Image|Map)/.test(p.by) ? esc(p.by) : 'Photo: ' + esc(p.by || 'Casey Reese')}</span>`}</figcaption></figure><button type="button" aria-label="Close photo">×</button>`;
   const close = () => { o.remove(); document.removeEventListener('keydown', esc1, true); }, esc1 = e => { if (e.key === 'Escape'){ e.stopPropagation(); close(); } };
   o.onclick = e => { if (e.target === o || e.target.tagName === 'BUTTON') close(); }; document.addEventListener('keydown', esc1, true); document.body.appendChild(o); o.querySelector('button').focus(); }
 /* the tour panel sits at the left of the map, level with the Guiding Questions and below the map controls; the controls' drop-downs (basemap, map layers) open over it */
