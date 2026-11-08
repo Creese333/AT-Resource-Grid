@@ -3005,7 +3005,7 @@ Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind 
 
 /* ---------- state ---------- */
 /* The basemap the page opens on: USGS topo. */
-const DEFBASE = 'naip';
+const DEFBASE = 'hires';
 /* When does it flower here? opens on Flowering, week by week, so Play shows the season moving north (Pest and invasives keep their own list) */
 { const p = Q.find(q => q.id === 'phen'); if (p){ const w = p.m.find(m => m.id === 'wave'); if (w) p.m = [w, ...p.m.filter(m => m !== w)]; } }
 const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', sec:'all', cell:null, cellLv:null, fade:true, base:DEFBASE, legend: VW() > 860, secOpen: {}, cells: true, box: null, drawing: false, boxAt: 0, sheetFull: false, ext: 'corr', extMsg: '', side: {qs:true, viz:true, sel:true, instr:false, sum:false, vsumr:false, vsums:false, about:false, measures:true, results:false, tvw:true, rw:true, mgmt:false, hadm:false}};
@@ -3152,15 +3152,22 @@ const TNM = 'https://basemap.nationalmap.gov/arcgis/rest/services/', OSMA = '&co
 /* NAIP: the USDA's National Agriculture Imagery Program aerial photos (about 0.6 m), drawn by the USGS image service for each map tile.
    ImgLayer uses the cached USGS imagery tiles below zoom naipFrom (quick, and the image service is slow for wide views) and NAIP from there in. */
 const NAIPX = 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage';
+const NAIPPX = 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage';
+const NAIPPA = 'Imagery: USGS NAIP Plus (NAIP and high resolution orthoimagery) via <a href="https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer" target="_blank" rel="noopener">USGS The National Map</a>';
 const NAIPA = 'Imagery: USDA NAIP via <a href="https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer" target="_blank" rel="noopener">USGS The National Map</a>';
 const NAIPDPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
 function naipUrl(lyr, c){ const ts = lyr.getTileSize(), m = lyr._map, crs = m.options.crs, p0 = c.scaleBy(ts), p1 = p0.add(ts);
   const nw = crs.project(m.unproject(p0, c.z)), se = crs.project(m.unproject(p1, c.z));
-  return NAIPX + '?' + new URLSearchParams({bbox:[nw.x, se.y, se.x, nw.y].map(v => v.toFixed(2)).join(','), bboxSR:3857, imageSR:3857, size:Math.round(ts.x * NAIPDPR) + ',' + Math.round(ts.y * NAIPDPR),
-    format:'jpg', compressionQuality:92, interpolation:'RSP_BilinearInterpolation', f:'image'}); }
-const ImgLayer = L.TileLayer.extend({ getTileUrl(c){ return c.z >= this.options.naipFrom ? naipUrl(this, c) : L.Util.template(this._url, {z:c.z, x:c.x, y:c.y}); } });
+  return (lyr.options.svc || NAIPX) + '?' + new URLSearchParams({bbox:[nw.x, se.y, se.x, nw.y].map(v => v.toFixed(2)).join(','), bboxSR:3857, imageSR:3857, size:Math.round(ts.x * NAIPDPR) + ',' + Math.round(ts.y * NAIPDPR),
+    format:'jpg', compressionQuality:lyr.options.q || 92, interpolation:lyr.options.interp || 'RSP_BilinearInterpolation', f:'image'}); }
+const ImgLayer = L.TileLayer.extend({ getTileUrl(c){ return c.z >= this.options.naipFrom ? naipUrl(this, c) : L.Util.template(this._url, {z:c.z, x:c.x, y:c.y}); },
+  /* if the NAIP Plus service fails for a tile, that tile tries plain NAIP once */
+  createTile(c, done){ let alt = null; if (this.options.svc && c.z >= this.options.naipFrom){ const o = this.options.svc; this.options.svc = NAIPX; try { alt = naipUrl(this, c); } finally { this.options.svc = o; } }
+    const img = L.TileLayer.prototype.createTile.call(this, c, done); if (alt) img.addEventListener('error', () => { if (img.dataset.alt) return; img.dataset.alt = '1'; img.src = alt; });
+    return img; } });
 const BASEDEF = [
   ['topo', 'USGS topo', L.tileLayer(TNM + 'USGSTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR, className:'muted-tiles'})],
+  ['hires', 'USGS imagery, highest resolution', new ImgLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {svc:NAIPPX, naipFrom:15, maxNativeZoom:19, interp:'RSP_CubicConvolution', q:94, updateWhenZooming:false, keepBuffer:3, attribution:NAIPPA}), 1],
   ['naip', 'NAIP aerial (USDA)', new ImgLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {naipFrom:16, maxNativeZoom:18, updateWhenZooming:false, keepBuffer:3, attribution:NAIPA}), 1],
   ['img', 'USGS imagery', new ImgLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {naipFrom:17, maxNativeZoom:18, updateWhenZooming:false, keepBuffer:3, attribution:ATTR}), 1],
   ['imgl', 'USGS imagery with labels', L.tileLayer(TNM + 'USGSImageryTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR}), 1],
@@ -3172,7 +3179,7 @@ const BASEDEF = [
 /* Mapbox basemaps: paste a Mapbox public access token (it starts with pk.) between the quotes below.
    With no token the Mapbox options stay hidden and the page works as before. */
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiY3JlZXNlMzMzIiwiYSI6ImNtdXNwMWoxdTAzcWMyeXEwbWFiMXZzbHEifQ.bFsp9wzSfpJ5BPzcwc8_UA';
-const MAPBOX_ON = true;    /* set to true to offer the Mapbox basemaps again (they need Mapbox credits) */
+const MAPBOX_ON = false;   /* set to true to offer the Mapbox basemaps again (they need Mapbox credits) */
 if (MAPBOX_TOKEN && MAPBOX_ON){ const MBA = '&copy; <a href="https://www.mapbox.com/about/maps/" target="_blank" rel="noopener">Mapbox</a> ' + OSMA + ' <a href="https://www.mapbox.com/map-feedback/" target="_blank" rel="noopener">Improve this map</a>';
   const mb = id => L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/' + id + '/tiles/512/{z}/{x}/{y}' + (L.Browser.retina ? '@2x' : '') + '?access_token=' + MAPBOX_TOKEN, {tileSize:512, zoomOffset:-1, maxNativeZoom:21, attribution:MBA});
   BASEDEF.push(['mbout', 'Mapbox outdoors', mb('outdoors-v12')], ['mbsat', 'Mapbox satellite streets', mb('satellite-streets-v12'), 1], ['mblight', 'Mapbox light', mb('light-v11')]); }
