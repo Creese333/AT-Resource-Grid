@@ -2645,6 +2645,14 @@ const deficOn = () => !!(DEFIC && DEFIC.done);
 let SEGL = null, segKey = '', segOn = true; try { segOn = localStorage.getItem('atgrid_segs') !== '0'; } catch (e) {}
 const SEGZ = 12, SEGBRK = [40, 60, 80, 90];
 const segCls = r => r == null ? -1 : SEGBRK.filter(b => r >= b).length;
+function segDecode(g){ const p = []; let la = g[0], lo = g[1]; p.push([la / 1e5, lo / 1e5]); for (let k = 2; k < g.length; k += 2){ la += g[k]; lo += g[k + 1]; p.push([la / 1e5, lo / 1e5]); } return p; }
+function segJoins(){ const s = SEGS.segs; if (s.join) return; s.join = new Map(); const C = new Map(), key = (a, o) => Math.floor(a / .0005) + ',' + Math.floor(o / .0005), ends = [];
+  for (let i = 0; i < s.n; i++){ const p = segDecode(s.g[i]); [[p[0], 0], [p[p.length - 1], 1]].forEach(([q, w]) => { const e = [q[0], q[1], i, w]; ends.push(e); const k = key(q[0], q[1]); if (!C.has(k)) C.set(k, []); C.get(k).push(e); }); }
+  const m = (a, b) => Math.hypot((a[0] - b[0]) * 111000, (a[1] - b[1]) * 111000 * Math.cos(a[0] * Math.PI / 180));
+  for (const e of ends){ let best = null, bd = 45, touch = false; const ka = Math.floor(e[0] / .0005), ko = Math.floor(e[1] / .0005);
+    for (let x = -1; x <= 1; x++) for (let y = -1; y <= 1; y++) (C.get((ka + x) + ',' + (ko + y)) || []).forEach(f => { if (f[2] === e[2]) return; const d = m(e, f); if (d < 1.5) touch = true; else if (d < bd){ bd = d; best = f; } });
+    if (!touch && best) s.join.set(e[2] + ':' + e[3], [best[0], best[1]]); } }
+function segPts(i){ const s = SEGS.segs; segJoins(); const p = segDecode(s.g[i]), a = s.join.get(i + ':0'), b = s.join.get(i + ':1'); if (a) p.unshift(a); if (b) p.push(b); return p; }
 /* the angle between the trail and straight uphill, in words: 0° climbs straight up the slope, 90° runs level across it */
 const alignWords = a => a < 20 ? 'climbs straight up the slope' : a < 45 ? 'climbs close to straight up the slope' : a < 70 ? 'climbs the slope at a slant' : 'runs mostly across the slope';
 /* low, flat trail: gentle (average grade under 5%), on a gentle hillside (under 15%) and lower than the ground 30 m around (by 0.25 m or more).
@@ -2668,11 +2676,13 @@ function segDraw(){ if (!SEGS){ return; } if (!SEGL){ if (!map.getPane('segs')){
   if (!segVisible()){ if (SEGL.getLayers().length) SEGL.clearLayers(); segKey = ''; return; }   /* turning the box off clears the segments right away */
   const b = map.getBounds().pad(.15), s = SEGS.segs, key = [b.toBBoxString(), map.getZoom() | 0, segMode].join('|'); if (key === segKey) return; segKey = key; SEGL.clearLayers();
   const R = RAMP.tvul, s_ = b.getSouth(), n_ = b.getNorth(), w_ = b.getWest(), e_ = b.getEast(), wt = map.getZoom() >= 14 ? 6 : 4.5;
+  const vis = [];
   for (let i = 0; i < s.n; i++){ const o = 4 * i; if (s.bb[o + 2] < s_ || s.bb[o] > n_ || s.bb[o + 3] < w_ || s.bb[o + 1] > e_) continue;
-    const g = s.g[i], pts = []; let la = g[0], lo = g[1]; pts.push([la / 1e5, lo / 1e5]); for (let k = 2; k < g.length; k += 2){ la += g[k]; lo += g[k + 1]; pts.push([la / 1e5, lo / 1e5]); }
-    const k = segCls(s.risk[i]);
-    L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:'#0B1320', weight:wt + 3, opacity:.9, lineCap:'butt', interactive:false}).addTo(SEGL);
-    const ln = L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:segMode === 'tsr' ? (tsrOf(i) < 0 ? '#8A96A8' : TSR[tsrOf(i)].c) : k < 0 ? '#8A96A8' : R[k], weight:wt, opacity:1, lineCap:'butt', interactive:false}); ln._si = i; ln.addTo(SEGL);
+    const pts = segPts(i); vis.push([i, pts]); }
+  /* all the dark casing first, then the colors, with round ends, so neighboring segments join without notches or slivers */
+  vis.forEach(([i, pts]) => L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:'#0B1320', weight:wt + 3, opacity:.9, lineCap:'round', lineJoin:'round', interactive:false}).addTo(SEGL));
+  for (const [i, pts] of vis){ const k = segCls(s.risk[i]);
+    const ln = L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:segMode === 'tsr' ? (tsrOf(i) < 0 ? '#8A96A8' : TSR[tsrOf(i)].c) : k < 0 ? '#8A96A8' : R[k], weight:wt, opacity:1, lineCap:'round', lineJoin:'round', interactive:false}); ln._si = i; ln.addTo(SEGL);
     if (segWet(i)) L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:SEGWETC, weight:Math.max(2.5, wt - 1.5), opacity:1, dashArray:'4 6', lineCap:'round', interactive:false}).addTo(SEGL); } }
 /* the segment layer lets clicks through to the cells under it; a click within a few pixels of a drawn segment opens the segment instead */
 function segHit(ll){ if (!SEGL || !segKey || !segVisible()) return false; const pt = map.latLngToLayerPoint(ll); let best = null;
