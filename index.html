@@ -527,6 +527,16 @@ header .blaze{width:14px;height:38px}
 .qs button.qgrp[aria-expanded=false] i{transform:rotate(-90deg)}
 .segleg{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12)}.segleg label{display:flex;gap:6px;align-items:center;font-weight:600;margin-bottom:4px;cursor:pointer}.segleg i.ln{height:5px !important;border-radius:2px}.segmode{display:flex;gap:4px;margin:2px 0 6px}.segmode button{flex:1;font:inherit;font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;cursor:pointer}.segmode button.on{background:rgba(255,255,255,.16);font-weight:600}
 .segpopw .leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.35}.segpop table{border-collapse:collapse;margin:6px 0}.segpop td{padding:1px 8px 1px 0;vertical-align:top}.segpop td:first-child{color:var(--muted, #A8B8CA)}.segnote{font-size:12px;color:var(--muted, #A8B8CA)}
+.tour{position:absolute;left:12px;bottom:28px;z-index:1200;width:min(400px,calc(100% - 24px));background:rgba(16,28,46,.96);color:#EEF2F7;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:14px 16px 12px;font-size:14px;line-height:1.45}
+.tour h3{margin:0 0 2px;font-size:16px}.tour .tk{padding-right:22px;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin-bottom:6px}
+.tour p{margin:6px 0 10px}.tour .tnav{display:flex;align-items:center;gap:8px}.tour .tnav button{font:inherit;font-size:13px;padding:6px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.25);background:transparent;color:inherit;cursor:pointer}
+.tour .tnav button.pri{background:#E8EEF6;color:#14294A;border-color:#E8EEF6;font-weight:600}.tour .tnav button:disabled{opacity:.35;cursor:default}
+.tour .dots{display:flex;gap:5px;margin-right:auto}.tour .dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.28)}.tour .dots i.on{background:#fff}
+.tour .tx{position:absolute;top:8px;right:10px;background:none;border:0;color:inherit;font-size:20px;line-height:1;cursor:pointer;opacity:.7}
+.tour .tnote{font-size:11.5px;opacity:.65;margin-top:8px}
+.tsite svg{fill:#F2C94C;stroke:#14294A;stroke-width:1.6;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}.tsite.on svg{fill:#FFE27A;transform:scale(1.25)}
+.tsitetip{font-weight:600;font-size:12.5px}
+@media (max-width:640px){.tour{left:8px;right:8px;width:auto;transform:none;bottom:auto;top:118px;font-size:13.5px;padding:12px 13px 10px}}
 </style>
 </head>
 <body>
@@ -561,6 +571,7 @@ header .blaze{width:14px;height:38px}
           <button id="cellsbtn" type="button" aria-pressed="true" title="Turn the colored cells on or off to see the basemap"><i aria-hidden="true"></i><span>Cells on</span></button>
           <button id="boxbtn" type="button" aria-pressed="false" title="Draw a box on the map to select every cell inside it"><i aria-hidden="true"></i><span>Select area</span></button><button id="pickbtn" type="button" aria-pressed="false" title="Tap cells to add or remove them from the selection (on a computer, Shift-click works any time)"><i aria-hidden="true"></i><span>Pick cells</span></button>
           <button id="clearbtn" type="button" hidden>Clear selection</button>
+          <button id="tourbtn" type="button" title="Take a guided tour of the map"><span>Tour</span></button>
         </div>
       </div>
     </div>
@@ -1817,7 +1828,7 @@ const RESTDEF = {
     ['inv', 'Priority invasive plants', 20], ['hiker', 'Hiker gathering spots', 20]]}};
 const RW = {grass:Object.fromEntries(RESTDEF.grass.parts.map(p => [p[0], p[2]])), forest:Object.fromEntries(RESTDEF.forest.parts.map(p => [p[0], p[2]]))};
 const RWD = {grass:null, forest:null};   /* weights being edited, per score; RW (what the scores use) changes only on Apply */
-const RNOTE = {open:'Acres of open habitat (herbaceous, shrub and agricultural) on corridor lands, ranked among cells', forest:'Acres of forest on corridor lands, ranked among cells',
+const RNOTE = {open:'Acres of open habitat on corridor lands, ranked among cells: the larger of the vegetation map’s herbaceous, shrub and agricultural acres and the maintained landscapes (meadows and fields, farm fields and balds) in the A.T. facilities inventory, since the vegetation map does not cover all A.T. lands', forest:'Acres of forest on corridor lands, ranked among cells',
   rare:'Rare species priority zone rating: very highly sensitive counts in full, highly two thirds, moderately one third', inv:'Priority invasive plant species reported to iNaturalist or EDDMapS, ranked among cells',
   pest:'Forest pest species reported to iNaturalist or EDDMapS, ranked among cells', soil:'Share of the soils in land capability classes 1 to 4, suited to grassland management (NRCS)',
   birds:'Grassland and shrubland bird species on eBird checklists, ranked among cells', vista:'Any vista in the cell (A.T. facilities inventory)',
@@ -1838,7 +1849,8 @@ function restTier(lv, c){ let plv = lv, pc = c; if (!D.themes.nrpz[lv]){ const p
   if (!D.themes.nrpz[plv]) return null; const t = val('nrpz','review_tie',plv,pc); return t == null ? null : D.cats.review_tie[t]; }
 function restRaw(k, lv, c){ const v = (th, f) => val(th, f, lv, c) || 0, va = val('veg','VEG_AREA',lv,c);
   switch (k){
-    case 'open': return va == null ? null : Math.min(va * (v('veg','L1_HERB') + v('veg','L1_SHRUB') + v('veg','L1_AGRIC')) / 100, v('lands','LAND_AC'));
+    case 'open': { const vm = va == null ? null : va * (v('veg','L1_HERB') + v('veg','L1_SHRUB') + v('veg','L1_AGRIC')) / 100, ml = val('feat','ML_AC',lv,c);
+      if (vm == null && !ml) return null; const la = val('lands','LAND_AC',lv,c), x = Math.max(vm || 0, ml || 0); return la ? Math.min(x, la) : x; }
     case 'forest': return va == null ? null : Math.min(va * v('veg','L1_FOREST') / 100, v('lands','LAND_AC'));
     case 'rare': { const t = restTier(lv, c); return t ? TIERVAL[t] || 0 : 0; }
     case 'inv': return (invL('EDRR_LIST',lv,c) || []).length;
@@ -1866,7 +1878,8 @@ function restParts(kind, lv, c){ const d = RESTDEF[kind], g = restRaw(d.gate, lv
   return [Math.max(0, Math.min(100, Math.round(pts * mult))), parts, wet, mult, sh, pts]; }
 const restScore = (kind, lv, c) => { if (!has('veg', lv, c)) return null; const r = restParts(kind, lv, c); return S.appa && r[0] != null && (!(r[4] && r[4].appa > 0) || r[0] === 0) ? null : r[0]; };
 function restRawText(k, x, lv, c){ switch (k){
-  case 'open': case 'forest': return fmt(x, 0) + ' acres on corridor lands';
+  case 'open': { const ml = val('feat','ML_AC',lv,c); return fmt(x, 0) + ' acres on corridor lands' + (ml && ml >= x - .5 ? ', from the maintained landscapes inventory' : ''); }
+  case 'forest': return fmt(x, 0) + ' acres on corridor lands';
   case 'rare': { if (!JERRY) return 'not shown; other factors scaled to 100'; const t = restTier(lv, c); return t ? (CATCOL.review_tie.find(e => e[0] === t) || [0,0,t])[2] : 'none rated'; }
   case 'inv': return x ? `${x} ${x === 1 ? 'species' : 'species'}` : 'none reported';
   case 'pest': return x ? `${x} ${x === 1 ? 'species' : 'species'}` : 'none reported';
@@ -2987,6 +3000,7 @@ function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   if (h.get('base')) S.base = h.get('base');
   if (h.get('sec')) S.sec = h.get('sec');
   if (h.get('find')) S.pendingFind = h.get('find');
+  if (h.get('tour')) S.pendingTour = h.get('tour');
   if (h.get('layers')) S.pendingLayers = h.get('layers').split(',');
   if (h.get('ext') === 'huc') S.pendingExt = 'huc';
   if (h.get('herb') === '1') S.herb = true;
@@ -4487,6 +4501,72 @@ async function describeRun(){ const msg = $('#pexmsg'); if (msg) msg.textContent
     const n = S.box ? S.box.cells.length : 1;
     download(`AT_resource_grid_summary_${n}_${n === 1 ? 'cell' : 'cells'}_${localDay()}.txt`, new Blob([t.replace(/\n/g, '\r\n')], {type:'text/plain;charset=utf-8'}));
     if (msg) msg.textContent = 'Summary downloaded.'; } catch (e){ if (msg) msg.textContent = 'Could not write the summary.'; } }
+/* ---------- guided tours ---------- */
+const TOURS = {
+  grassland: {title:'Grassland restoration along the A.T.',
+   sites:[{n:'Chambers/Urie field', at:[40.17508, -77.11936]}, {n:'Cove Mountain Grasslands', at:[40.31883, -77.07872]},
+     {n:'Reno Monument', at:[39.47128, -77.61650]}, {n:'Dahlgren Chapel', at:[39.48442, -77.61833]}, {n:'Shays’ Rebellion site', at:[42.14697, -73.38067]}],
+   steps:[
+    {t:'Open land on a mountain trail', q:'rest', m:'grass', lv:'wheel', view:'trail',
+     x:'The A.T. is known as a mountain footpath, but it also crosses farms, meadows and grassy balds. About 5,000 acres of open land are maintained along the corridor, and 986 acres are farmed under agricultural special use permits: 31 farms in 7 states. Darker cells score higher for grassland and early-successional restoration; the stars mark active restoration projects.'},
+    {t:'Where the potential is highest', q:'rest', m:'grass', lv:'wheel', pick:{top:8},
+     x:'These {n} cells score highest for grassland restoration, from {range}. They fall in the {regions}: valleys and lowland crossings where the trail leaves the ridges and passes through farm country.'},
+    {t:'The Cumberland Valley, Pennsylvania', q:'rest', m:'grass', lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[0, 1],
+     x:'Between South Mountain and Blue Mountain, the trail crosses the Cumberland Valley through working farmland. About 80% of the A.T.’s agricultural permits are here. Farmers keep the fields open under permit, and some fields are being restored to native grasses, sedges and wildflowers. Grassland scores in the selected cells run {range}.'},
+    {t:'Chambers/Urie field', q:'rest', m:'grass', lv:'hex', pick:{near:[40.17508, -77.11936], km:.01}, sites:[0], zoom:14,
+     x:'An active restoration on an A.T. farm field that also holds the historic Chambers/Urie cemetery. The field is being restored to native grasses, sedges and wildflowers: habitat and a cultural landscape cared for together. Grassland score here: {range}.'},
+    {t:'Cove Mountain Grasslands', q:'rest', m:'grass', lv:'hex', pick:{near:[40.31883, -77.07872], km:.01}, sites:[1], zoom:14,
+     x:'Near Cove Mountain, another active project is restoring native grasses, sedges and wildflowers on A.T. lands. Grassland score here: {range}.'},
+    {t:'Why it matters for birds', q:'bird', m:'bcc', lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[0, 1],
+     x:'Grassland birds such as bobolink and eastern meadowlark are among North America’s fastest-declining birds, and managed fields can hold them. Birds of Conservation Concern recorded in these Cumberland Valley cells: {range}.'},
+    {t:'Keeping fields open, and native', q:'inv', m:'edrr', lv:'hex', pick:{near:[40.24, -77.12], km:11}, sites:[0, 1],
+     x:'Old fields are where invasive shrubs and grasses take hold first. Restoration pairs invasive control with native seeding and the right mowing or burning schedule. Priority invasives reported here: {range}.'},
+    {t:'South Mountain, Maryland', q:'rest', m:'grass', lv:'hex', pick:{near:[39.478, -77.6174], km:2.2}, sites:[2, 3], zoom:13,
+     x:'On South Mountain, two active projects sit on the 1862 Battle of South Mountain battlefield: around the Reno Monument at Fox’s Gap and at Dahlgren Chapel near Turner’s Gap. Restoring native grasses, sedges and wildflowers here brings back open ground in historic settings. Grassland scores here: {range}.'},
+    {t:'Shays’ Rebellion site, Massachusetts', q:'rest', m:'grass', lv:'hex', pick:{near:[42.14697, -73.38067], km:.01}, sites:[4], zoom:14,
+     x:'In the Housatonic Valley of southern Berkshire County, at the site of the last battle of Shays’ Rebellion (1787), native grasses, sedges and wildflowers were seeded on A.T. lands in November 2026: restoring a historic open landscape and habitat together. Grassland score here: {range}.'},
+    {t:'Part of a larger effort', q:'rest', m:'grass', lv:'wheel', view:[[38.6, -78.6], [44.6, -69.5]],
+     x:'The A.T. work is part of the Eastern Grasslands Initiative. In 2026, its first year of treatment, more than 20 National Park Service units in the Northeast began restoring native grasslands, from the fields at Gettysburg and Valley Forge’s Grand Parade to Minute Man.'},
+    {t:'Explore on your own', q:'rest', m:'grass', lv:'auto', view:'trail',
+     x:'Click any cell to see its grassland score and what drives it, or select an area and use Describe as text for a written summary. About the data explains the sources and limits.'}]}
+};
+const TOUR = {id:null, k:0};
+let tourSites = null;
+function tourSitesDraw(T, st){ if (!tourSites) tourSites = L.layerGroup().addTo(map); tourSites.clearLayers(); (T.sites || []).forEach((x, i) => {
+  const on = (st.sites || []).includes(i), mk = L.marker(x.at, {icon:L.divIcon({className:'tsite' + (on ? ' on' : ''), html:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>', iconSize:[22, 22], iconAnchor:[11, 11]}), keyboard:false, zIndexOffset:900});
+  mk.bindTooltip(esc(x.n), {permanent:on, direction:'top', offset:[0, -10], className:'tsitetip'}); tourSites.addLayer(mk); }); }
+function tourCells(st){ const lv = st.lv === 'auto' ? dispLevel() : st.lv, L_ = D.levels[lv], n = L_.id.length, p = st.pick; if (!p) return [lv, []];
+  const q = Q.find(x => x.id === st.q), m = q && q.m.find(x => x.id === st.m);
+  if (p.top){ const a = []; for (let c = 0; c < n; c++){ const v = m.get(lv, c); if (typeof v === 'number') a.push([v, c]); } a.sort((x, y) => y[0] - x[0]); return [lv, a.slice(0, p.top).map(x => x[1])]; }
+  const [la, lo] = p.near, out = []; let best = -1, bd = 1e9; for (let c = 0; c < n; c++){ const r = ring(lv, c); let a0 = 0, o0 = 0; r.forEach(q => { a0 += q[0]; o0 += q[1]; }); a0 /= r.length; o0 /= r.length;   /* the cell's center, not its first vertex */
+    const dy = (a0 - la) * 111, dx = (o0 - lo) * 111 * Math.cos(la * Math.PI / 180), d = Math.hypot(dx, dy); if (d <= p.km) out.push(c); if (d < bd){ bd = d; best = c; } }
+  return [lv, out.length ? out : best >= 0 && bd < 8 ? [best] : []]; }
+function tourText(st, lv, cells){ const q = Q.find(x => x.id === st.q), m = q && q.m.find(x => x.id === st.m), L_ = D.levels[lv];
+  const vs = m ? cells.map(c => m.get(lv, c)).filter(v => typeof v === 'number').sort((a, b) => a - b) : [];
+  const lo = vs.length && vs[0] === 0 && vs[vs.length - 1] > 0 ? '0' : vs.length ? show(m, vs[0]) : '';
+  const range = !vs.length ? 'not recorded' : vs[0] === vs[vs.length - 1] ? show(m, vs[0]) : descRange(lo, show(m, vs[vs.length - 1]));
+  const regs = [...new Set(cells.map(c => regionOf(L_.mi[c])))], list = a => a.length < 3 ? a.join(' and ') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+  return esc(st.x).replace('{n}', cells.length).replace('{range}', esc(range)).replace('{regions}', esc(list(regs)) + (regs.length === 1 ? ' region' : ' regions')); }
+function tourGo(k){ const T = TOURS[TOUR.id]; if (!T) return; TOUR.k = Math.max(0, Math.min(T.steps.length - 1, k)); const st = T.steps[TOUR.k];
+  const q = Q.find(x => x.id === st.q); if (q){ S.q = q; S.m = q.m.find(x => x.id === st.m) || q.m[0]; } S.level = st.lv; BRK.clear(); clearSel(); redraw();
+  const [lv, cells] = tourCells(st);
+  if (cells.length){ selectMany(lv, cells, null, 'Tour stop: ' + st.t); S.box.tour = true; profile(); const b = L.latLngBounds([]); cells.forEach(c => ring(lv, c).forEach(p => b.extend(p))); map.flyToBounds(b.pad(st.pick.top ? .05 : .6), {duration:1.2, maxZoom:12}); }
+  else if (st.view === 'trail') map.flyToBounds(trailLine.getBounds(), {duration:1.2});
+  else if (Array.isArray(st.view)) map.flyToBounds(st.view, {duration:1.2});
+  if (st.zoom && cells.length) setTimeout(() => { const p = st.pick.near; map.flyTo(p, st.zoom, {duration:.8}); }, 1300);
+  tourSitesDraw(TOURS[TOUR.id], st); tourDraw(lv, cells); }
+function tourDraw(lv, cells){ const T = TOURS[TOUR.id], st = T.steps[TOUR.k], N = T.steps.length; let d = $('#tour');
+  if (!d){ d = document.createElement('div'); d.id = 'tour'; d.className = 'tour'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'Guided tour'); $('#mapwrap').appendChild(d); L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d); }
+  d.innerHTML = `<button class="tx" type="button" aria-label="End the tour">×</button><div class="tk">Tour · ${esc(T.title)} · ${TOUR.k + 1} of ${N}</div><h3>${esc(st.t)}</h3><p>${tourText(st, lv, cells)}</p>
+    <div class="tnav"><div class="dots">${T.steps.map((_, i) => `<i${i === TOUR.k ? ' class="on"' : ''}></i>`).join('')}</div><button type="button" data-t="-1"${TOUR.k ? '' : ' disabled'}>Back</button><button type="button" class="pri" data-t="1">${TOUR.k === N - 1 ? 'Finish' : 'Next'}</button></div>
+    ${TOUR.k === 0 ? '<div class="tnote">Demo tour. Use the arrow keys or the buttons; the map stays live, so you can click around at any step.</div>' : ''}`;
+  d.querySelector('.tx').onclick = tourEnd; d.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const s = +b.dataset.t; if (s > 0 && TOUR.k === N - 1) tourEnd(); else tourGo(TOUR.k + s); }); }
+function tourStart(id){ if (!TOURS[id]) return; if (TOUR.leg == null){ TOUR.leg = S.legend; S.legend = false; } TOUR.id = id; tourGo(0); }   /* the legend folds up while the tour panel is open */
+function tourEnd(){ TOUR.id = null; const d = $('#tour'); if (d) d.remove(); if (tourSites){ tourSites.remove(); tourSites = null; } if (TOUR.leg != null){ S.legend = TOUR.leg; TOUR.leg = null; legend(); } try { const h = new URLSearchParams(location.hash.slice(1)); if (h.has('tour')){ h.delete('tour'); history.replaceState(null, '', '#' + h.toString()); } } catch (x) {} }
+document.addEventListener('keydown', e => { if (!TOUR.id || /input|select|textarea/i.test((e.target.tagName || ''))) return;
+  if (e.key === 'ArrowRight') tourGo(TOUR.k + 1); else if (e.key === 'ArrowLeft') tourGo(TOUR.k - 1); else if (e.key === 'Escape') tourEnd(); });
+$('#tourbtn').addEventListener('click', () => tourStart('grassland'));
+setTimeout(() => { if (S.pendingTour) tourStart(S.pendingTour); S.pendingTour = null; }, 1200);
 function exportWire(){ { const t = $('#pextxt'); if (t) t.onclick = describeRun; } const a = $('#pexcsv'), b = $('#pexxls'); if (a) a.onclick = () => exportRun('csv'); if (b) b.onclick = () => exportRun('xlsx'); }
 const localDay = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const liveKey = () => S.box ? (S.ext === 'huc' ? 'huc:' : '') + S.box.lv + ':' + S.box.cells.join(',') : D.levels[S.cellLv].id[S.cell];
@@ -4640,7 +4720,7 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
   ab('Extent', S.ext === 'huc' ? 'HUC10 watershed: every grid cell in the HUC10 shell. ' + HUCONLY + ' They are left out.' : 'A.T. corridor grid cells');
   ab('Cells exported', cells.length); ab('Cell size', LV[lv].name); ab('Section of trail', secName()); ab('Measure on screen', S.m.label);
   ab('Selection', S.box ? (S.box.within ? `Every ${LV[S.box.lv].name} cell inside the ${LV[S.box.within[0]].name} cell ${D.levels[S.box.within[0]].id[S.box.within[1]]}`
-    : S.box.label ? 'Every cell with ' + S.box.label : 'Cells inside a box drawn on the map') : 'One cell clicked on the map');
+    : S.box.label ? (S.box.tour ? S.box.label : 'Every cell with ' + S.box.label) : 'Cells inside a box drawn on the map') : 'One cell clicked on the map');
   ab('Note', 'Each row is a grid cell summary, not a field record. A blank value means no data for that layer in the cell.');
   ab('Note', 'Species lists: birds, invasive plants and forest pests are complete for each cell. Other iNaturalist species are only the ten most recorded.');
   ab('Note', 'Land administrator shares are of the mapped land in the cell. Generalized to the grid; not a boundary determination.');
@@ -4743,7 +4823,7 @@ function cellTable(lv, cells){ const L_ = D.levels[lv], ms = S.q.m.filter(m => !
 function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[lv], N = cells.length; setSppBox(cells.map(c => ring(lv, c)));
   const mis = cells.map(c => L_.mi[c]), lo = Math.min(...mis), hi = Math.max(...mis);
   const w = S.box.within, wName = w && `${LV[w[0]].name} cell near mile ${fmt(D.levels[w[0]].mi[w[1]], 0)}`;
-  let h = `<h2>${nCells(N)} selected</h2><p>${w ? `Every ${LV[lv].name} cell inside the ${wName}` : `${S.box.picked ? 'Picked one by one. ' : ''}${S.box.label ? 'Every cell with ' + esc(S.box.label) + '. ' : ''}${LV[lv].name} cells, trail miles ${fmt(lo,0)} to ${fmt(hi,0)}`}</p>`;
+  let h = `<h2>${nCells(N)} selected</h2><p>${w ? `Every ${LV[lv].name} cell inside the ${wName}` : `${S.box.picked ? 'Picked one by one. ' : ''}${S.box.label ? (S.box.tour ? esc(S.box.label) : 'Every cell with ' + esc(S.box.label)) + '. ' : ''}${LV[lv].name} cells, trail miles ${fmt(lo,0)} to ${fmt(hi,0)}`}</p>`;
   h += `<p class="peekval"><span>${esc(S.m.label)}:</span> <b>${esc(boxMeasure(S.m, lv, cells))}</b></p>`;
   const sr = w ? scaleRow(w, lv) : null;
   h += (sr ? sr[0] : '') + `<div class="pnav"><button type="button" id="pclearbox">Clear selection</button>${EXPORTBTNS}</div>`;
