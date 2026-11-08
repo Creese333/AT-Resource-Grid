@@ -4611,7 +4611,7 @@ function tourPlace(){ const d = $('#tour'), w = $('#mapwrap'); if (!d || !w) ret
   const side = gr && gr.right <= wr.left + 4 && gr.top > wr.top ? gr.top - top0 : 0;
   const t = Math.max(10, Math.round(b - top0 + 8), Math.round(side)); d.style.top = t + 'px'; d.style.maxHeight = `calc(100% - ${t + 12}px)`; }
 addEventListener('resize', tourPlace);
-function tourStart(id){ if (!TOURS[id]) return; if (TOUR.leg == null){ TOUR.leg = S.legend; S.legend = false; } TOUR.id = id; tourGo(0); }   /* the legend folds up while the tour panel is open */
+function tourStart(id){ if (!TOURS[id]) return; if (typeof goatEvent === 'function') goatEvent('tour-' + id); if (TOUR.leg == null){ TOUR.leg = S.legend; S.legend = false; } TOUR.id = id; tourGo(0); }   /* the legend folds up while the tour panel is open */
 function tourEnd(){ TOUR.id = null; const d = $('#tour'); if (d) d.remove(); if (tourSites){ tourSites.remove(); tourSites = null; } if (TOUR.leg != null){ S.legend = TOUR.leg; TOUR.leg = null; legend(); } try { const h = new URLSearchParams(location.hash.slice(1)); if (h.has('tour')){ h.delete('tour'); history.replaceState(null, '', '#' + h.toString()); } } catch (x) {} }
 document.addEventListener('keydown', e => { if (!TOUR.id || /input|select|textarea/i.test((e.target.tagName || ''))) return;
   if (e.key === 'ArrowRight') tourGo(TOUR.k + 1); else if (e.key === 'ArrowLeft') tourGo(TOUR.k - 1); else if (e.key === 'Escape') tourEnd(); });
@@ -4620,6 +4620,12 @@ const QTOUR = {rest:'grassland'};
 document.addEventListener('click', e => { const t = e.target.closest('.qtour'); if (!t) return; e.preventDefault(); e.stopPropagation(); tourStart(t.dataset.tour); }, true);
 document.addEventListener('keydown', e => { const t = e.target.closest && e.target.closest('.qtour'); if (!t || (e.key !== 'Enter' && e.key !== ' ')) return; e.preventDefault(); e.stopPropagation(); tourStart(t.dataset.tour); }, true);
 setTimeout(() => { if (S.pendingTour) tourStart(S.pendingTour); S.pendingTour = null; }, 1200);
+const GOAT = 'atgrid';   /* GoatCounter site code, e.g. 'atgrid' for atgrid.goatcounter.com */
+if (GOAT && !/^(localhost|127\.)/.test(location.hostname)){ const s = document.createElement('script'); s.async = true; s.src = 'https://gc.zgo.at/count.js'; s.dataset.goatcounter = 'https://' + GOAT + '.goatcounter.com/count'; document.head.appendChild(s); }
+/* events: which questions, tours and exports people use (counted as paths under /event/, no personal data) */
+function goatEvent(name){ try { if (GOAT && window.goatcounter && window.goatcounter.count) window.goatcounter.count({path:'event/' + name, title:name, event:true}); } catch (x) {} }
+document.addEventListener('click', e => { const b = e.target.closest('[data-q], #pexcsv, #pexxls, #pextxt'); if (!b) return;
+  goatEvent(b.dataset.q ? 'question-' + b.dataset.q : 'export-' + b.id.slice(3)); });
 function exportWire(){ { const t = $('#pextxt'); if (t) t.onclick = describeRun; } const a = $('#pexcsv'), b = $('#pexxls'); if (a) a.onclick = () => exportRun('csv'); if (b) b.onclick = () => exportRun('xlsx'); }
 const localDay = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const liveKey = () => S.box ? (S.ext === 'huc' ? 'huc:' : '') + S.box.lv + ':' + S.box.cells.join(',') : D.levels[S.cellLv].id[S.cell];
