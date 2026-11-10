@@ -1021,7 +1021,7 @@ D.cats.VIS_PEAK = CATCOL.VIS_PEAK.map(e => e[0]);
 CATCOL.WX_WETM = [['January','#2F4B7C'],['February','#46669A'],['March','#6E8FBF'],['April','#3E8E7E'],['May','#6BAA75'],['June','#A3C17A'],['July','#D9B44A'],['August','#C98A3E'],['September','#B5653A'],['October','#8E4B5A'],['November','#9C7AA8'],['December','#5E5A8C']]; D.cats.WX_WETM = CATCOL.WX_WETM.map(e => e[0]);
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 /* Blue Ridge color scheme */
-const HUE = {lands:'#3B82F6', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#B03A73', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94', wx:'#4A7FB5', tvul:'#6A4FB3', mig:'#D0458B'};
+const HUE = {lands:'#3B82F6', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#B03A73', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94', wx:'#4A7FB5', tvul:'#6A4FB3', mig:'#7CAE2B'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -3011,7 +3011,7 @@ if (JERRY) document.body.classList.add('jerry');
    [day of year, year, lat, lon], one per checklist; effort.json holds the checklists in each corridor square mile by year and week.
    Values are the share of a cell's checklists that reported the species, so busy trailheads do not outweigh quiet ridges. */
 const MIGF = 'data/birds/', MIGMIN = 8, MIGBAND = 30, MIGBR = [2, 5, 10, 20];
-RAMP.mig = ['#FCE4F0','#F5B3D3','#E978B0','#D0458B','#8E2460'];   /* raspberry, apart from every other question's color */
+RAMP.mig = ['#F0F8D8','#D5EC9B','#A9D25A','#7CAE2B','#4A7215'];   /* spring green, apart from the other bird question's blue */
 const MIG = {st:'', idx:null, eff:null, sp:{}}, MIGIX = new WeakMap(), MIGE = new WeakMap(), MIGR = new WeakMap();
 const MIGS = {sp:'hylocichla-mustelina', season:'', wk:15, band:-1, auto:true};
 let migTimer = null;
@@ -3115,7 +3115,7 @@ function migCal(lv, cells){ const E = migE(lv), R = migR(lv); if (!E || !R || !c
     g += `<h4 class="phh">${esc(sel.n)}: share of checklists by week</h4><svg class="migcal" viewBox="0 0 ${W} ${lh}" role="img" aria-label="${esc(sel.n)} weekly share"><rect x="${lw}" y="4" width="${52 * cw}" height="${lh - 14}" rx="3" fill="#FFFFFF"/>` +
       `<rect x="${X(a) - cw / 2}" y="4" width="${(b - a + 1) * cw}" height="${lh - 14}" fill="#EEF3F8"/>` +
       `<text x="${lw - 5}" y="${Y(mx) + 4}" text-anchor="end" class="mct">${fmt(mx, 0)}%</text><text x="${lw - 5}" y="${Y(0) + 4}" text-anchor="end" class="mct">0</text>` +
-      path.map(s => `<path d="M${s.join(' L')}" fill="none" stroke="#D0458B" stroke-width="2" stroke-linejoin="round"/>`).join('') +
+      path.map(s => `<path d="M${s.join(' L')}" fill="none" stroke="#7CAE2B" stroke-width="2" stroke-linejoin="round"/>`).join('') +
       `<line x1="${X(MIGS.wk)}" x2="${X(MIGS.wk)}" y1="4" y2="${lh - 10}" stroke="#14294A" stroke-width="1"/>` +
       'JFMAMJJASOND'.split('').map((t, i) => `<text x="${lw + Math.round((new Date(2021, i, 1) - new Date(2021, 0, 1)) / 6048e5) * cw}" y="${lh}" class="mct">${t}</text>`).join('') + '</svg>'; }
   return g; }
