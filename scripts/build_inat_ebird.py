@@ -32,6 +32,8 @@ its previous summaries are kept and the rest of the build goes on.
      and the checklists in each corridor square mile by year and week (data/birds/effort.json), the effort that turns records into
      "how often birders reported it". data/birds/index.json lists the species. Adding or removing a row in the CSV is enough;
      the next eBird run writes the new species and drops the files of species no longer listed. The summaries above are unchanged.
+     The list's SPRING_MIGRATION and FALL_MIGRATION columns (eBird Status and Trends season dates, 'MM-DD/MM-DD') go into index.json
+     as each species' spring and fall, which set the dashboard's season ranges.
 Standard library only.
 """
 import base64, csv, gzip, hashlib, io, json, math, os, re, sys, time, urllib.parse, urllib.request, zipfile
@@ -339,6 +341,10 @@ def load_migration():
         if not sci:
             continue
         k = migr_key(sci); info[k] = {'sci': sci, 'common': (r.get('COMMON_NAME') or '').strip(), 'story': (r.get('STORY') or '').strip()}
+        for col, key in (('SPRING_MIGRATION', 'spring'), ('FALL_MIGRATION', 'fall')):   # eBird Status and Trends migration dates, 'MM-DD/MM-DD'
+            v = (r.get(col) or '').strip()
+            if re.fullmatch(r'\d\d-\d\d/\d\d-\d\d', v):
+                info[k][key] = v
         for x in [sci] + (r.get('ALT_SCI_NAMES') or '').split(';'):
             if x.strip():
                 spp[norm(x)] = k
