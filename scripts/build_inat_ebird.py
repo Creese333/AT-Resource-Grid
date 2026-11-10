@@ -27,6 +27,11 @@ its previous summaries are kept and the rest of the build goes on.
      within LONG_DAYS days, on at least LONG_MIN_DAYS different days (thru- and section-hikers moving along the trail). Off-trail
      share: iNaturalist and eBird records more than OFF_M from the mapped A.T. centerline (side trails and shelters count as off). Each run saves compact observer-day files (visits_inat.csv.gz, visits_ebird.csv.gz, visits_edd.csv.gz, with
      observer names replaced by short one-way codes) so a run that rebuilds only one dataset can still combine all three.
+  6. Bird migration (eBird runs only): for each species in inputs/bird_migration_species.csv, its eBird records in the corridor's
+     1 sq mi cells since MIGR_FROM, one per checklist, as [day of year, year, latitude, longitude] in data/birds/<species key>.json;
+     and the checklists in each corridor square mile by year and week (data/birds/effort.json), the effort that turns records into
+     "how often birders reported it". data/birds/index.json lists the species. Adding or removing a row in the CSV is enough;
+     the next eBird run writes the new species and drops the files of species no longer listed. The summaries above are unchanged.
 Standard library only.
 """
 import base64, csv, gzip, hashlib, io, json, math, os, re, sys, time, urllib.parse, urllib.request, zipfile
@@ -79,6 +84,11 @@ LONG_MI, LONG_DAYS, LONG_MIN_DAYS = 100, 30, 4   # records spanning 100+ trail m
 VIS_FROM = 2010                 # first year in the yearly visitation counts
 OFF_M = 100                     # records farther than this from the A.T. centerline are off-trail
 TRAIL_IDX = None                # A.T. centerline segments by 0.01 degree square, set in main()
+# bird migration (section 6 above)
+MIGR_LIST = os.path.join(INPUTS, 'bird_migration_species.csv')
+MIGR_DIR = os.path.join(DATA, 'birds')
+MIGR_FROM = 2010                # first year kept, as for the flowering records
+MIGR = None                     # set in summarize() for eBird: {'spp': {name: key}, 'info': {key: row}, 'pts': {key: {(unit, ...)}}, 'eff': {(hex, year, week): {units}}}
 
 
 def trail_index(parts):
@@ -314,6 +324,49 @@ def load_birds():
     return look, guild, common
 
 
+def migr_key(sci):
+    """file key for a species, as the flowering files use: 'Hylocichla mustelina' -> 'hylocichla-mustelina'"""
+    return re.sub(r'[^a-z]+', '-', sci.lower()).strip('-')
+
+
+def load_migration():
+    """the species in bird_migration_species.csv: {'spp': {any listed name: key}, 'info': {key: row}}, or None with no list"""
+    if not os.path.exists(MIGR_LIST):
+        return None
+    spp, info = {}, {}
+    for r in csv.DictReader(open(MIGR_LIST, encoding='utf-8-sig')):
+        sci = (r.get('SCI_NAME') or '').strip()
+        if not sci:
+            continue
+        k = migr_key(sci); info[k] = {'sci': sci, 'common': (r.get('COMMON_NAME') or '').strip(), 'story': (r.get('STORY') or '').strip()}
+        for x in [sci] + (r.get('ALT_SCI_NAMES') or '').split(';'):
+            if x.strip():
+                spp[norm(x)] = k
+    return {'spp': spp, 'info': info, 'pts': defaultdict(set), 'eff': defaultdict(set)} if info else None
+
+
+def migr_save(levels, info):
+    """writes data/birds/: one file per listed species, effort.json and index.json; drops files of species no longer listed"""
+    os.makedirs(MIGR_DIR, exist_ok=True)
+    ids = levels['hex']['id']; built = datetime.now(timezone.utc).strftime('%Y-%m-%d'); idx = {}
+    for k, row in MIGR['info'].items():
+        P = MIGR['pts'].get(k, ())                # {(checklist, day of year, year, lat, lon, hex)}
+        pts = sorted(p[1:5] for p in P)
+        jsave(dict(row, built=built, n=len(pts), pts=[list(p) for p in pts]), os.path.join(MIGR_DIR, k + '.json'))
+        idx[k] = dict(row, n=len(pts), cells=len({p[5] for p in P}))
+    eff = defaultdict(list)                       # hex id -> [year, week, checklists, year, week, checklists, ...]
+    for (hx, y, wk), u in sorted(MIGR['eff'].items()):
+        eff[ids[hx]] += [y, wk, len(u)]
+    jsave({'built': built, 'from': MIGR_FROM, 'week': 'week 1 = days 1-7 of the year, week 53 = days 365-366',
+           'note': 'eBird checklists (observer, date and place) per 1 sq mi corridor cell', 'cells': eff}, os.path.join(MIGR_DIR, 'effort.json'))
+    jsave({'built': built, 'from': MIGR_FROM, 'ebird': info, 'species': idx,
+           'pts': '[day of year, year, latitude, longitude], one per checklist'}, os.path.join(MIGR_DIR, 'index.json'))
+    for f in os.listdir(MIGR_DIR):
+        if f.endswith('.json') and f[:-5] not in idx and f not in ('index.json', 'effort.json'):
+            os.remove(os.path.join(MIGR_DIR, f))
+    print(f'bird migration: {len(idx)} species, {sum(v["n"] for v in idx.values()):,} records, {len(eff):,} square miles with checklists', flush=True)
+
+
 def bcrs(s):
     return {int(x) for x in re.findall(r'\b(\d{1,3})\b', s or '')}
 
@@ -434,6 +487,8 @@ def summarize(kind, zpath, grids, names):
     cult = load_cultural() if kind == 'inat' else None
     sens = set()     # dug or poached plants: listed only in 49 sq mi cells
     look, guild, common = load_birds() if kind == 'ebird' else (None, None, None)
+    global MIGR
+    MIGR = load_migration() if kind == 'ebird' else None
     cells = {g: {lv: defaultdict(lambda: new_cell(kind)) for lv in L} for g, L in grids.items()}
     cutoff = str(date.today().year - RECENT_YEARS)
     n_in = {g: 0 for g in grids}; n_all = 0; t0 = time.time(); keys = {}; uid = {}; wid = {}
@@ -465,6 +520,17 @@ def summarize(kind, zpath, grids, names):
             sp = (r.get('species') or '').strip() or None
             ukey = f'{who}|{d}'                        # visit: observer and date
         unit = uid.setdefault(ukey, len(uid)) if d else None
+        if MIGR and 'corr' in hits and unit is not None and len(d) == 10 and d[:4].isdigit() and int(d[:4]) >= MIGR_FROM:   # bird migration
+            try:
+                yd = date.fromisoformat(d).timetuple().tm_yday
+            except ValueError:
+                yd = None
+            if yd:
+                hx = hits['corr']['hex']; y = int(d[:4])
+                MIGR['eff'][(hx, y, (yd - 1) // 7 + 1)].add(unit)
+                mk = sp and (MIGR['spp'].get(norm(sp)) or MIGR['spp'].get(norm(binomial(r.get('species')))))
+                if mk:
+                    MIGR['pts'][mk].add((unit, yd, y, round(la, 4), round(lo, 4), hx))
         if len(d) == 10 and who:      # visitation: observer-days by square mile
             g0 = 'huc' if 'huc' in hits else 'corr'; hid = grids[g0]['hex']['id'][hits[g0]['hex']]
             e = VISITS[kind].get((who, d, hid)); off = 1 if off_trail(la, lo) else 0
@@ -935,7 +1001,7 @@ def load_huc():
 def main():
     which = (sys.argv[1] if len(sys.argv) > 1 else 'inat').lower()
     kinds = ['inat', 'ebird'] if which == 'both' else [which]
-    global TRAIL_IDX
+    global TRAIL_IDX, MIGR
     D, levels = load_grid(); huc = load_huc()
     TRAIL_IDX = trail_index(D.get('trail') or [])
     grids = {'corr': levels}
@@ -960,6 +1026,8 @@ def main():
     for k in kinds:
         path, info = download(k, huc or levels)        # one download covers both grids
         res = summarize(k, path, grids, names); vis_save(k)
+        if k == 'ebird' and MIGR:
+            migr_save(levels, info); MIGR = None
         for g in grids:
             themes[g][k] = res[g]
         meta[k] = dict(info, built=datetime.now(timezone.utc).strftime('%Y-%m-%d'))
