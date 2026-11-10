@@ -1021,7 +1021,7 @@ D.cats.VIS_PEAK = CATCOL.VIS_PEAK.map(e => e[0]);
 CATCOL.WX_WETM = [['January','#2F4B7C'],['February','#46669A'],['March','#6E8FBF'],['April','#3E8E7E'],['May','#6BAA75'],['June','#A3C17A'],['July','#D9B44A'],['August','#C98A3E'],['September','#B5653A'],['October','#8E4B5A'],['November','#9C7AA8'],['December','#5E5A8C']]; D.cats.WX_WETM = CATCOL.WX_WETM.map(e => e[0]);
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 /* Blue Ridge color scheme */
-const HUE = {lands:'#3B82F6', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#B03A73', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94', wx:'#4A7FB5', tvul:'#6A4FB3', mig:'#7CAE2B'};
+const HUE = {lands:'#3B82F6', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#B03A73', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94', wx:'#4A7FB5', tvul:'#6A4FB3', mig:'#8CC63F'};
 /* eBird habitat groups: each has a species count field (_SPP) and a species list field (_LIST); exports spell out the shortened label */
 const BIRD_GROUPS = [['FOREST_INT','Forest interior'],['FOREST_GEN','Forest generalist'],['CONIFER','High-elev. conifer','High-elevation conifer'],['SHRUB','Shrubland'],['GRASS','Grassland'],
   ['EDGE','Edge'],['WETLAND','Wetland'],['RIPARIAN','Riparian'],['WATERBIRD','Waterbird'],['SHORE','Shorebird'],['SEABIRD','Seabird']]
@@ -3011,20 +3011,21 @@ if (JERRY) document.body.classList.add('jerry');
    [day of year, year, lat, lon], one per checklist; effort.json holds the checklists in each corridor square mile by year and week.
    Values are the share of a cell's checklists that reported the species, so busy trailheads do not outweigh quiet ridges. */
 const MIGF = 'data/birds/', MIGMIN = 8, MIGBAND = 30, MIGBR = [2, 5, 10, 20];
-RAMP.mig = ['#F0F8D8','#D5EC9B','#A9D25A','#7CAE2B','#4A7215'];   /* spring green, apart from the other bird question's blue */
+RAMP.mig = ['#EAF8C0','#CDEE6A','#A3D82B','#6BB33A','#3A8A3E'];   /* spring migration: lime to a darker green that still shows over imagery */
+RAMP.migf = ['#FFF0DC','#FDD3A0','#F9A85A','#E57A1F','#A24F0E'];  /* fall migration: orange */
 const MIG = {st:'', idx:null, eff:null, sp:{}}, MIGIX = new WeakMap(), MIGE = new WeakMap(), MIGR = new WeakMap();
 const MIGS = {sp:'hylocichla-mustelina', season:'', wk:15, band:-1, auto:true};
 let migTimer = null;
 /* the weeks the slider and Play cover, and the season each story group opens on */
-const MIGSEA = {spring:[10, 24], fall:[31, 45]}, MIGSEAW = {spring:[6, 20], fall:[37, 51]};
-const MIGDEF = {'Fall hawk migration':'fall', 'Passing through':'fall', 'Winter arrivals':'fall'};
-const MIGNOTE = {'Fall hawk migration':'Hawk watch sites on the trail report far more hawks than the ridges between them, so a few cells stand out.',
+const MIGSEA = {spring:[10, 24], fall:[31, 45]};
+const MIGDEF = {'Fall flights':'fall', 'Passing through':'fall'};
+const MIGNOTE = {'High-peak breeders':'These birds nest on the high peaks in spruce-fir, so they show up mainly in the highest cells and arrive later than birds lower down. Blackpoll warblers and Swainson’s thrushes also pass through the whole trail in May and September.',
   'Passing through':'These birds nest north of the trail and are seen here only on the way through.',
-  'Winter arrivals':'Fall shows arrival, spring shows departure; dark-eyed juncos also nest on the high peaks.'};
+  'Fall flights':'Hawk watch sites on the trail report far more hawks and nighthawks than the ridges between them, so a few cells stand out.'};
 const MIGREG = [['NH · ME', 43.6, 90], ['CT · MA · VT', 41.6, 43.6], ['PA · NJ · NY', 39.72, 41.6], ['VA · WV · MD', 37.3, 39.72], ['GA · NC · TN', -90, 37.3]];
 const migSp = () => MIG.idx && MIG.idx.species[MIGS.sp] || null;
 const migSeason = () => { const s = migSp(); return MIGS.season || (s && MIGDEF[s.story]) || 'spring'; };
-const migRange = () => { const s = migSp(); return (s && s.story === 'Winter arrivals' ? MIGSEAW : MIGSEA)[migSeason()]; };
+const migRange = () => MIGSEA[migSeason()];
 const migKey = (lv, id) => lv === 'hex' ? id : id.split('-').slice(0, lv === 'cog' ? 4 : 3).join('-');
 function migLoad(){ if (MIG.st) return; MIG.st = 'loading';
   const get = f => fetch(MIGF + f + '.json', {cache:'no-cache'}).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
@@ -3060,14 +3061,15 @@ function migShare(lv, c, wk){ const E = migE(lv), R = migR(lv); if (!E || !R) re
 function migPeak(lv, c){ const [a, b] = migRange(); let best = 0, bw = 0, any = false;
   for (let w = a; w <= b; w++){ const s = migShare(lv, c, w); if (s == null) continue; any = true; if (s > best){ best = s; bw = w; } }
   return any ? bw : null; }
-const migCol = v => { if (v == null) return null; if (v === 0) return ZERO; const i = MIGBR.findIndex(b => v < b); return RAMP.mig[i < 0 ? 4 : i]; };
-function migPeakCol(v){ if (v == null) return null; if (v === 0) return ZERO; const [a, b] = migRange(); return RAMP.mig[Math.max(0, Math.min(4, Math.floor((v - a) * 5 / (b - a + 1))))]; }
+const migRamp = f => (f == null ? migSeason() === 'fall' : f) ? RAMP.migf : RAMP.mig;
+const migCol = (v, f) => { if (v == null) return null; if (v === 0) return ZERO; const i = MIGBR.findIndex(b => v < b); return migRamp(typeof f === 'boolean' ? f : null)[i < 0 ? 4 : i]; };
+function migPeakCol(v){ if (v == null) return null; if (v === 0) return ZERO; const [a, b] = migRange(); return migRamp()[Math.max(0, Math.min(4, Math.floor((v - a) * 5 / (b - a + 1))))]; }
 const migNote = () => { const s = migSp(); return s && MIGNOTE[s.story] ? `<p class="sub">${esc(MIGNOTE[s.story])}</p>` : ''; };
 const migRow = (c, t) => c ? `<div class="row"><i style="background:${c}"></i><span>${t}</span></div>` : `<div class="row"><i class="hollow"></i><span>${t}</span></div>`;
-function migLegShare(){ return migRow(null, 'None reported') + migRow(RAMP.mig[0], 'under 2%') + migRow(RAMP.mig[1], '2 to 5%') + migRow(RAMP.mig[2], '5 to 10%') + migRow(RAMP.mig[3], '10 to 20%') + migRow(RAMP.mig[4], '20% or more') +
+function migLegShare(){ const R_ = migRamp(); return migRow(null, 'None reported') + migRow(R_[0], 'under 2%') + migRow(R_[1], '2 to 5%') + migRow(R_[2], '5 to 10%') + migRow(R_[3], '10 to 20%') + migRow(R_[4], '20% or more') +
   `<p class="sub">Share of eBird checklists in these weeks that reported it, ${esc(wkLabel(MIGS.wk))} and the week either side, all years since ${MIG.idx ? MIG.idx.from : 2010}.</p>` + migNote(); }
 function migLegPeak(){ const [a, b] = migRange(), n = b - a + 1; let h = migRow(null, 'Not reported this season');
-  for (let i = 0; i < 5; i++){ const w0 = a + Math.ceil(i * n / 5), w1 = a + Math.ceil((i + 1) * n / 5) - 1; h += migRow(RAMP.mig[i], `${esc(wkDate(w0))} to ${esc(wkDate(Math.min(b, w1)))}`); }
+  for (let i = 0; i < 5; i++){ const w0 = a + Math.ceil(i * n / 5), w1 = a + Math.ceil((i + 1) * n / 5) - 1; h += migRow(migRamp()[i], `${esc(wkDate(w0))} to ${esc(wkDate(Math.min(b, w1)))}`); }
   return h + `<p class="sub">The week with the highest share of checklists reporting it, ${migSeason()}.</p>` + migNote(); }
 const migWkText = () => `${wkLabel(MIGS.wk)} · all years since ${MIG.idx ? MIG.idx.from : 2010}`;
 function migBlock(){ migLoad();
@@ -3100,31 +3102,31 @@ function migCal(lv, cells){ const E = migE(lv), R = migR(lv); if (!E || !R || !c
   const rs = rows.filter(o => o.e.some(x => x >= MIGBAND)); if (!rs.length) return '';
   const [a, b] = migRange(), W = 340, lw = 76, cw = (W - lw - 2) / 52, rh = 19, top = 14, H = top + rs.length * rh, fall = migSeason() === 'fall';
   rs.forEach(o => { o.sh = Array.from({length:52}, (_, w) => o.e[w] >= MIGBAND ? 100 * o.r[w] / o.e[w] : null); o.mk = migMark(o.sh, a, b); });
-  let g = `<svg class="migcal" viewBox="0 0 ${W} ${H + 2}" role="img" aria-label="Migration calendar by region"><rect x="${lw}" y="${top}" width="${52 * cw}" height="${rs.length * rh}" rx="3" fill="#FFFFFF"/>`;
+  let g = `<svg class="migcal" viewBox="0 0 ${W} ${H + 2}" role="img" aria-label="Migration calendar by region">`;
   'JFMAMJJASOND'.split('').forEach((t, i) => { g += `<text x="${lw + Math.round((new Date(2021, i, 1) - new Date(2021, 0, 1)) / 6048e5) * cw}" y="10" class="mct">${t}</text>`; });
   rs.forEach((o, j) => { const y = top + j * rh;
-    g += `<g class="migrow${MIGS.band === o.i ? ' on' : ''}" data-migband="${o.i}" tabindex="0" role="button" aria-label="${esc(o.n)}: show its weekly line"><text x="${lw - 5}" y="${y + rh / 2 + 4}" text-anchor="end" class="mrl">${esc(o.n)}</text>`;
-    o.sh.forEach((v, w) => { if (v == null){ g += `<rect x="${(lw + w * cw).toFixed(1)}" y="${y + 1}" width="${(cw + .3).toFixed(1)}" height="${rh - 2}" fill="#E2E5E9"><title>${esc(o.n)}, week of ${esc(wkDate(w + 1))}: fewer than ${MIGBAND} checklists</title></rect>`; return; } g += `<rect x="${(lw + w * cw).toFixed(1)}" y="${y + 1}" width="${(cw + .3).toFixed(1)}" height="${rh - 2}" fill="${v === 0 ? '#FFFFFF' : migCol(v)}"><title>${esc(o.n)}, week of ${esc(wkDate(w + 1))}: ${fmt(v, v < 10 ? 1 : 0)}% of ${fmt(o.e[w], 0)} checklists</title></rect>`; });
+    g += `<g class="migrow${MIGS.band === o.i ? ' on' : ''}" data-migband="${o.i}" tabindex="0" role="button" aria-label="${esc(o.n)}: show its weekly line"><text x="${lw - 5}" y="${y + rh / 2 + 4}" text-anchor="end" class="mrl">${esc(o.n)}</text><rect x="${lw}" y="${y + 1}" width="${(52 * cw).toFixed(1)}" height="${rh - 2}" fill="none" stroke="#2E405A" stroke-width="1"/>`;
+    o.sh.forEach((v, w) => { if (v === 0) return; if (v == null){ g += `<rect x="${(lw + w * cw).toFixed(1)}" y="${y + 1}" width="${(cw + .3).toFixed(1)}" height="${rh - 2}" fill="#3A4C66"><title>${esc(o.n)}, week of ${esc(wkDate(w + 1))}: fewer than ${MIGBAND} checklists</title></rect>`; return; } g += `<rect x="${(lw + w * cw).toFixed(1)}" y="${y + 1}" width="${(cw + .3).toFixed(1)}" height="${rh - 2}" fill="${migCol(v, w >= 26)}"><title>${esc(o.n)}, week of ${esc(wkDate(w + 1))}: ${fmt(v, v < 10 ? 1 : 0)}% of ${fmt(o.e[w], 0)} checklists</title></rect>`; });
     if (o.mk) g += `<rect x="${(lw + (o.mk[0] - 1) * cw).toFixed(1)}" y="${y + rh - 5}" width="${cw.toFixed(1)}" height="4" fill="#D62839"><title>${fall ? 'Fall peak' : 'Arrives about'} ${esc(wkDate(o.mk[0]))}</title></rect>`;
     g += '</g>'; });
-  g += `<rect x="${(lw + (MIGS.wk - 1) * cw).toFixed(1)}" y="${top - 1}" width="${cw.toFixed(1)}" height="${rs.length * rh + 2}" fill="none" stroke="#14294A" stroke-width="1.2"/></svg>`;
+  g += `<rect x="${(lw + (MIGS.wk - 1) * cw).toFixed(1)}" y="${top - 1}" width="${cw.toFixed(1)}" height="${rs.length * rh + 2}" fill="none" stroke="#FFFFFF" stroke-width="1.2"/></svg>`;
   g += '<ul class="migmk">' + rs.map(o => `<li><b>${esc(o.n)}</b> ${o.mk ? (fall ? `fall peak ${esc(wkDate(o.mk[0]))} · ${fmt(o.mk[1], 0)}% of checklists` : `arrives about ${esc(wkDate(o.mk[0]))} · peak ${fmt(o.mk[1], 0)}%`) : 'too few reports this season'}</li>`).join('') + '</ul>';
   const sel = rs.find(o => o.i === MIGS.band);
   if (sel){ const lh = 96, mx = Math.max(5, ...sel.sh.filter(v => v != null)), X = w => lw + (w - .5) * cw, Y = v => 8 + (lh - 22) * (1 - v / mx);
     const path = []; let cur = []; sel.sh.forEach((v, w) => { if (v == null){ if (cur.length) path.push(cur); cur = []; } else cur.push(X(w + 1).toFixed(1) + ' ' + Y(v).toFixed(1)); }); if (cur.length) path.push(cur);
-    g += `<h4 class="phh">${esc(sel.n)}: share of checklists by week</h4><svg class="migcal" viewBox="0 0 ${W} ${lh}" role="img" aria-label="${esc(sel.n)} weekly share"><rect x="${lw}" y="4" width="${52 * cw}" height="${lh - 14}" rx="3" fill="#FFFFFF"/>` +
-      `<rect x="${X(a) - cw / 2}" y="4" width="${(b - a + 1) * cw}" height="${lh - 14}" fill="#EEF3F8"/>` +
+    g += `<h4 class="phh">${esc(sel.n)}: share of checklists by week</h4><svg class="migcal" viewBox="0 0 ${W} ${lh}" role="img" aria-label="${esc(sel.n)} weekly share"><line x1="${lw}" x2="${lw + 52 * cw}" y1="${Y(0)}" y2="${Y(0)}" stroke="#3A4C66" stroke-width="1"/>` +
+      `<rect x="${X(a) - cw / 2}" y="4" width="${(b - a + 1) * cw}" height="${lh - 14}" fill="#1F3049"/>` +
       `<text x="${lw - 5}" y="${Y(mx) + 4}" text-anchor="end" class="mct">${fmt(mx, 0)}%</text><text x="${lw - 5}" y="${Y(0) + 4}" text-anchor="end" class="mct">0</text>` +
-      path.map(s => `<path d="M${s.join(' L')}" fill="none" stroke="#7CAE2B" stroke-width="2" stroke-linejoin="round"/>`).join('') +
-      `<line x1="${X(MIGS.wk)}" x2="${X(MIGS.wk)}" y1="4" y2="${lh - 10}" stroke="#14294A" stroke-width="1"/>` +
+      path.map(s => `<path d="M${s.join(' L')}" fill="none" stroke="${migSeason() === 'fall' ? '#E57A1F' : '#A3D82B'}" stroke-width="2" stroke-linejoin="round"/>`).join('') +
+      `<line x1="${X(MIGS.wk)}" x2="${X(MIGS.wk)}" y1="4" y2="${lh - 10}" stroke="#DDE6F0" stroke-width="1" stroke-dasharray="2 2"/>` +
       'JFMAMJJASOND'.split('').map((t, i) => `<text x="${lw + Math.round((new Date(2021, i, 1) - new Date(2021, 0, 1)) / 6048e5) * cw}" y="${lh}" class="mct">${t}</text>`).join('') + '</svg>'; }
   return g; }
 document.addEventListener('click', e => { const r = e.target.closest('[data-migband]'); if (!r) return; const i = +r.dataset.migband; MIGS.band = MIGS.band === i ? -1 : i; qVizRefresh(); });
 document.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const r = e.target.closest && e.target.closest('[data-migband]'); if (!r) return; e.preventDefault(); r.click(); });
-QVIZ.mig = {title:'Migration calendar', note:'Share of eBird checklists in each region, Georgia to Maine, that reported the species each week, all years since 2010 pooled. Red mark: in spring, the first week it reaches half its spring peak; in fall, its fall peak. White: none reported; gray: fewer than 30 checklists that week. The outlined week is the one on the map. Click a region for its weekly line.',
+QVIZ.mig = {title:'Migration calendar', note:'Share of eBird checklists in each region, Georgia to Maine, that reported the species each week, all years since 2010 pooled. Red mark: in spring, the first week it reaches half its spring peak; in fall, its fall peak. Green: January to June; orange: July to December. Clear: none reported; gray: fewer than 30 checklists that week. The outlined week is the one on the map. Click a region for its weekly line.',
   html:(sl, cells) => migCal(sl, cells)};
 Q.push({id:'mig', th:'ebird', hue:HUE.mig, ramp:'mig', title:'When are migrating birds here?',
-  use:'When 24 migratory birds arrive, pass through and leave along the trail, from eBird checklists since 2010, updated each January. Migration, week by week opens first: each cell shows the share of checklists in the three weeks around the date that reported the species, so Play shows birds moving up the trail in spring and down it in fall. Peak week maps the week each cell reports the species most. Visualizations add a migration calendar by region, Georgia to Maine. Share of checklists, not counts, so busy trailheads don’t outweigh quiet ridges; a missing cell means too few checklists that week, not absence.',
+  use:'When 18 migratory birds arrive, pass through and leave along the trail, from eBird checklists since 2010, updated each January. Migration, week by week opens first: each cell shows the share of checklists in the three weeks around the date that reported the species, so Play shows birds moving up the trail in spring and down it in fall. Peak week maps the week each cell reports the species most. Visualizations add a migration calendar by region, Georgia to Maine. Share of checklists, not counts, so busy trailheads don’t outweigh quiet ridges; a missing cell means too few checklists that week, not absence.',
   m:[{id:'migwk', label:'Migration, week by week', unit:'%', d:1, fn:(lv, c) => migShare(lv, c, MIGS.wk), colorFn:migCol, legendFn:migLegShare, stripTop:() => 30, zeroClear:1, nullHide:1,
       showFn:v => v === 0 ? 'none reported these weeks' : `${fmt(v, v < 10 ? 1 : 0)}% of checklists`, none:`Not drawn: fewer than ${MIGMIN} checklists in these weeks`},
      {id:'migpk', label:'Peak week', d:0, fn:migPeak, colorFn:migPeakCol, legendFn:migLegPeak, zeroClear:1, nullHide:1,
