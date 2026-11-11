@@ -559,7 +559,7 @@ header .blaze{width:14px;height:38px}
 .migcard.mob{position:static;width:auto;max-height:none;border-radius:8px;margin:0 0 10px;box-shadow:none}
 .migcard .mcph{position:relative;height:150px;background:#22344d}.migcard .mcph img{width:100%;height:100%;object-fit:cover;object-position:50% 35%;display:block}
 .migcard .mcph.none{display:flex;align-items:center;justify-content:center;gap:8px;color:#8FA2B7;font-size:12px}.migcard .mcph.none svg{width:64px;height:40px}
-.migcard .mccr{position:absolute;right:0;bottom:0;background:rgba(0,0,0,.6);color:#E9EEF4;font-size:10.5px;padding:2px 6px;border-top-left-radius:6px}
+.migcard .mccr{position:absolute;right:0;bottom:0;max-width:100%;background:rgba(0,0,0,.6);color:#E9EEF4;font-size:10.5px;padding:2px 6px;border-top-left-radius:6px;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}a.mccr:hover{text-decoration:underline}
 .migcard .mcx{position:absolute;right:6px;top:6px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(10,20,32,.75);color:#fff;font-size:19px;line-height:30px;cursor:pointer;z-index:1}
 .migcard .mcbd{padding:10px 12px 12px}.migcard .mcnm{font-size:17px;font-weight:700;margin:0}.migcard .mcsci{font-style:italic;color:#A8B8CA;font-size:12.5px}
 .migcard .mcgrp{display:inline-block;margin:6px 0 2px;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid #4A5D77;color:#DFE7F0}
@@ -3189,7 +3189,7 @@ const MIGPRO = {
     note:'Another spruce budworm specialist; it passes the trail in late May and again in September.'},
   'buteo-platypterus':{cr:'USFWS', win:'Central America to Bolivia and Brazil', mi:3200, tags:['PIF'], aab:'Broad-winged_Hawk',
     note:'Rides thermals along the ridges; mid-September kettles at trail-side hawk watches can number in the thousands.'},
-  'pandion-haliaetus':{cr:'Becky Harrison / USFWS', win:'The Caribbean and northern South America', mi:2500, tags:[], aab:'Osprey',
+  'pandion-haliaetus':{pos:'50% 20%', cr:'Becky Harrison / USFWS', win:'The Caribbean and northern South America', mi:2500, tags:[], aab:'Osprey',
     note:'Follows rivers and ridgelines south; the hawk watches count steady flights through September.'},
   'chordeiles-minor':{cr:'Dave Menke / USFWS', win:'South America east of the Andes', mi:4100, tags:['BCCa', 'PIF'], aab:'Common_Nighthawk',
     note:'Loose flocks stream over the ridges at dusk in late August and early September.'},
@@ -3199,7 +3199,7 @@ const MIGPRO = {
     note:'Hunts open fields and grassy balds; fall flights pass the hawk watches in September.'},
   'falco-columbarius':{cr:'Lee Karney / USFWS', win:'Southern United States, the Caribbean and northern South America', mi:1400, tags:[], aab:'Merlin',
     note:'A fast, dark falcon that passes the ridges mostly in late September and October.'},
-  'falco-peregrinus':{cr:'Jo Keller / USFWS', win:'Coastal United States to South America', mi:3200, tags:['PIF'], aab:'Peregrine_Falcon',
+  'falco-peregrinus':{pos:'50% 12%', cr:'Jo Keller / USFWS', win:'Coastal United States to South America', mi:3200, tags:['PIF'], aab:'Peregrine_Falcon',
     note:'Arctic-nesting peregrines pass the ridges in early October; a few pairs again nest on cliffs near the trail.'},
   'circus-hudsonius':{cr:'Lucas Sarwas / USFWS', win:'Southern United States to Central America', mi:1000, tags:['PIF'], aab:'Northern_Harrier',
     note:'Glides low over fields and balds with its wings in a shallow V; migrates along the ridges from September into November.'},
@@ -3223,6 +3223,8 @@ const MIGPRO = {
     note:'Eats hairy caterpillars that other birds avoid, including spongy moth and tent caterpillars; more turn up in outbreak years.'}};
 const MIGTAG = {BCC:'Bird of Conservation Concern', BCCn:'Bird of Conservation Concern, northern New England', BCCa:'Bird of Conservation Concern, Appalachian Mountains', PIF:'Partners in Flight priority'};
 const MIGSIL = '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M6 26c8-1 13-5 18-11 3-4 7-6 11-5l4-3 1 4c5 2 8 6 9 10l9 3-9 1c-3 4-9 7-17 7-8 0-15-2-26-6z" fill="#3A4C66"/></svg>';
+let MIGCR = null;
+fetch('images/birds/credits.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j){ MIGCR = j; const c = document.getElementById('migcard'); if (c){ c.dataset.k = ''; migCard(); } } }).catch(() => {});
 let migCardOn = (() => { try { return store.get('migcard', true); } catch (e) { return true; } })();
 /* share of trail checklists reporting the species at its busiest week, trail-wide, all years */
 function migPeakAll(){ const E = migE('wheel'), R = migR('wheel'); if (!E || !R) return null; const n = D.levels.wheel.id.length; let best = 0, bw = 0;
@@ -3230,8 +3232,10 @@ function migPeakAll(){ const E = migE('wheel'), R = migR('wheel'); if (!E || !R)
   return best ? [100 * best, bw] : null; }
 function migCardHTML(){ const k = MIGS.sp, s = migSp(), p = MIGPRO[k]; if (!s || !p) return '';
   const W = migWins(), pk = migPeakAll(), seg = (w, c, t) => w ? `<i style="left:${((w[0] - 1) / 52 * 100).toFixed(2)}%;width:${((w[1] - w[0] + 1) / 52 * 100).toFixed(2)}%;background:${c}" title="${t}"></i>` : '';
-  const ph = p.ph === 0 ? `<div class="mcph none">${MIGSIL}<span>Photo wanted</span></div>`
-    : `<div class="mcph"><img src="images/birds/${k}.webp" alt="" loading="lazy" onerror="this.parentNode.classList.add('none');this.outerHTML='${MIGSIL.replace(/"/g, '&quot;')}'"><span class="mccr">${esc(p.cr)}</span></div>`;
+  /* images/birds/credits.json (written by the bird photos workflow) says which photos exist and whose they are */
+  const c = MIGCR ? MIGCR[k] : (p.ph === 0 ? null : {cr:p.cr, lic:'', page:''}), lic = c && c.lic && c.lic !== 'Public domain' ? ` (${c.lic})` : '';
+  const ph = !c ? `<div class="mcph none">${MIGSIL}<span>Photo wanted</span></div>`
+    : `<div class="mcph"><img src="images/birds/${k}.webp" alt=""${p.pos ? ` style="object-position:${p.pos}"` : ''} loading="lazy" onerror="this.parentNode.classList.add('none');this.outerHTML='${MIGSIL.replace(/"/g, '&quot;')}'">${c.page && /^https:/.test(c.page) ? `<a class="mccr" href="${esc(c.page)}" target="_blank" rel="noopener">${esc(c.cr + lic)}</a>` : `<span class="mccr">${esc(c.cr + lic)}</span>`}</div>`;
   return ph + `<button type="button" class="mcx" aria-label="Hide bird profile">×</button><div class="mcbd"><p class="mcnm">${esc(s.common)}</p><div class="mcsci">${esc(s.sci)}</div><span class="mcgrp">${esc(s.story)}</span>
     <div class="mcbar" role="img" aria-label="eBird seasons">${seg(W.txt.spring && W.spring, '#A3D82B', 'Spring migration')}${seg(W.txt.breeding && W.breeding, '#8796AB', 'Nesting season')}${seg(W.txt.fall && W.fall, '#E57A1F', 'Fall migration')}</div>
     <dl><dt>Seasons</dt><dd>${[W.txt.spring && `<b class="sp">Spring</b> ${esc(W.txt.spring)}`, W.txt.breeding && `<b class="ns">nesting</b> ${esc(W.txt.breeding)}`, W.txt.fall && `<b class="fa">fall</b> ${esc(W.txt.fall)}`].filter(Boolean).join(' · ')} <span class="mcsrc">(eBird)</span></dd>
