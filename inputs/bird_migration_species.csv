@@ -1,25 +1,25 @@
-SCI_NAME,ALT_SCI_NAMES,COMMON_NAME,STORY,SPRING_MIGRATION,FALL_MIGRATION
-Catharus bicknelli,,Bicknell's Thrush,High-peak breeders,05-10/05-24,
-Setophaga striata,Dendroica striata,Blackpoll Warbler,High-peak breeders,04-12/06-07,08-09/12-06
-Catharus ustulatus,,Swainson's Thrush,High-peak breeders,03-15/06-07,07-19/11-08
-Contopus cooperi,Contopus borealis,Olive-sided Flycatcher,High-peak breeders,03-22/06-14,07-26/11-08
-Leiothlypis peregrina,Oreothlypis peregrina;Vermivora peregrina,Tennessee Warbler,Passing through,03-22/05-31,08-02/11-29
-Setophaga tigrina,Dendroica tigrina,Cape May Warbler,Passing through,03-22/05-31,08-02/11-08
-Setophaga castanea,Dendroica castanea,Bay-breasted Warbler,Passing through,03-29/06-07,08-02/11-29
-Buteo platypterus,,Broad-winged Hawk,Fall flights,02-22/06-07,08-02/11-22
-Pandion haliaetus,,Osprey,Fall flights,02-15/05-17,08-02/12-20
-Chordeiles minor,,Common Nighthawk,Fall flights,03-22/06-14,07-26/11-15
-Accipiter striatus,,Sharp-shinned Hawk,Fall flights,03-15/05-24,08-30/11-29
-Falco sparverius,,American Kestrel,Fall flights,02-22/05-10,08-09/11-08
-Falco columbarius,,Merlin,Fall flights,03-08/05-24,08-02/11-29
-Falco peregrinus,,Peregrine Falcon,Fall flights,02-22/05-31,07-26/11-15
-Circus hudsonius,Circus cyaneus,Northern Harrier,Fall flights,02-22/05-31,07-12/12-06
-Aquila chrysaetos,,Golden Eagle,Fall flights,02-08/05-31,08-30/11-29
-Dolichonyx oryzivorus,,Bobolink,Fields and shrublands,04-19/05-31,08-02/11-08
-Tyrannus tyrannus,,Eastern Kingbird,Fields and shrublands,03-01/05-31,08-09/11-29
-Setophaga discolor,Dendroica discolor,Prairie Warbler,Fields and shrublands,03-22/05-24,07-12/11-08
-Hylocichla mustelina,,Wood Thrush,Conservation priorities,03-08/05-24,08-02/11-15
-Setophaga cerulea,Dendroica cerulea,Cerulean Warbler,Conservation priorities,03-08/05-10,07-26/10-18
-Cardellina canadensis,Wilsonia canadensis,Canada Warbler,Conservation priorities,03-22/06-07,08-02/11-22
-Antrostomus vociferus,Caprimulgus vociferus,Eastern Whip-poor-will,Conservation priorities,02-08/05-17,
-Coccyzus erythropthalmus,,Black-billed Cuckoo,Conservation priorities,03-15/06-07,08-09/11-01
+SCI_NAME,ALT_SCI_NAMES,COMMON_NAME,STORY,SPRING_MIGRATION,BREEDING,FALL_MIGRATION,NESTS_ON_TRAIL
+Catharus bicknelli,,Bicknell's Thrush,High-peak breeders,05-10/05-24,05-31/07-26,,yes
+Setophaga striata,Dendroica striata,Blackpoll Warbler,High-peak breeders,04-12/06-07,06-14/08-02,08-09/12-06,yes
+Catharus ustulatus,,Swainson's Thrush,High-peak breeders,03-15/06-07,06-14/07-12,07-19/11-08,yes
+Contopus cooperi,Contopus borealis,Olive-sided Flycatcher,High-peak breeders,03-22/06-14,06-21/07-19,07-26/11-08,yes
+Leiothlypis peregrina,Oreothlypis peregrina;Vermivora peregrina,Tennessee Warbler,Passing through,03-22/05-31,06-07/07-12,08-02/11-29,no
+Setophaga tigrina,Dendroica tigrina,Cape May Warbler,Passing through,03-22/05-31,06-07/07-05,08-02/11-08,no
+Setophaga castanea,Dendroica castanea,Bay-breasted Warbler,Passing through,03-29/06-07,06-14/07-12,08-02/11-29,no
+Buteo platypterus,,Broad-winged Hawk,Fall flights,02-22/06-07,06-14/07-26,08-02/11-22,yes
+Pandion haliaetus,,Osprey,Fall flights,02-15/05-17,05-24/07-26,08-02/12-20,yes
+Chordeiles minor,,Common Nighthawk,Fall flights,03-22/06-14,06-21/07-19,07-26/11-15,yes
+Accipiter striatus,,Sharp-shinned Hawk,Fall flights,03-15/05-24,05-31/08-09,08-30/11-29,yes
+Falco sparverius,,American Kestrel,Fall flights,02-22/05-10,05-17/08-02,08-09/11-08,yes
+Falco columbarius,,Merlin,Fall flights,03-08/05-24,05-31/07-26,08-02/11-29,no
+Falco peregrinus,,Peregrine Falcon,Fall flights,02-22/05-31,06-07/07-19,07-26/11-15,yes
+Circus hudsonius,Circus cyaneus,Northern Harrier,Fall flights,02-22/05-31,06-07/07-05,07-12/12-06,yes
+Aquila chrysaetos,,Golden Eagle,Fall flights,02-08/05-31,06-07/08-23,08-30/11-29,no
+Dolichonyx oryzivorus,,Bobolink,Fields and shrublands,04-19/05-31,06-07/07-26,08-02/11-08,yes
+Tyrannus tyrannus,,Eastern Kingbird,Fields and shrublands,03-01/05-31,06-07/08-02,08-09/11-29,yes
+Setophaga discolor,Dendroica discolor,Prairie Warbler,Fields and shrublands,03-22/05-24,05-31/07-05,07-12/11-08,yes
+Hylocichla mustelina,,Wood Thrush,Conservation priorities,03-08/05-24,05-31/07-26,08-02/11-15,yes
+Setophaga cerulea,Dendroica cerulea,Cerulean Warbler,Conservation priorities,03-08/05-10,05-17/07-19,07-26/10-18,yes
+Cardellina canadensis,Wilsonia canadensis,Canada Warbler,Conservation priorities,03-22/06-07,06-14/07-26,08-02/11-22,yes
+Antrostomus vociferus,Caprimulgus vociferus,Eastern Whip-poor-will,Conservation priorities,02-08/05-17,05-24/07-26,,yes
+Coccyzus erythropthalmus,,Black-billed Cuckoo,Conservation priorities,03-15/06-07,06-14/08-02,08-09/11-01,yes
