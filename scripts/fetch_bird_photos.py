@@ -4,7 +4,8 @@ Also writes images/birds/credits.json (photographer, license, source page) for t
 
 download_from can be:
   a direct image link (federal photos)   -> uses the credit and license columns
-  inat                                   -> the species' iNaturalist featured photo, or its next photo, that is CC BY, CC0 or public domain
+  inat                                   -> the species' iNaturalist featured photo, or its next featured photo, that is CC BY, CC0 or
+                                            public domain; if none is, its most-faved openly licensed research-grade observation photo
   inat:<photo id>                        -> that iNaturalist photo (it must be CC BY, CC0 or public domain)
   blank                                  -> no photo (the card shows "Photo wanted")
 Existing photos are kept unless the workflow is run with "redo"."""
@@ -44,7 +45,14 @@ def inat_pick(sci, pid):
     for p in cands:
         if p.get('license_code') in OPEN:
             return p
-    raise ValueError('no CC BY / CC0 photo among its featured photos')
+    # none of its featured photos is openly licensed: take the most-faved research-grade observation photo that is
+    obs = get('https://api.inaturalist.org/v1/observations?' + urllib.parse.urlencode({
+        'taxon_id': t['id'], 'photo_license': 'cc-by,cc0', 'quality_grade': 'research', 'order_by': 'votes', 'order': 'desc', 'per_page': 30}))['results']
+    for o in obs:
+        for p in o.get('photos', []):
+            if p.get('license_code') in OPEN:
+                return p
+    raise ValueError('no CC BY / CC0 photo found on iNaturalist')
 
 def save(img_bytes, dst):
     im = Image.open(io.BytesIO(img_bytes)).convert('RGB')
