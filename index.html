@@ -574,7 +574,7 @@ header .blaze{width:14px;height:38px}
 /* ---- question layout: Question, Show, Answer, More ---- */
 aside{position:relative}
 .qhead{padding:10px 14px 8px 15px;border-bottom:1px solid var(--line)}
-.qcrumb{font-size:12px;color:#93A8C0;letter-spacing:.01em}
+.qcrumb{font-size:14px;font-weight:600;color:#fff;letter-spacing:.01em}
 .qtitle{display:flex;align-items:center;gap:10px;margin-top:2px}
 .qtitle h2{flex:1;min-width:0;display:flex;align-items:center;gap:10px;margin:0;font-family:var(--cond);font-size:19px;line-height:1.25;color:#fff}
 .qtitle h2::before{content:'';flex:none;width:12px;height:33px;background:color-mix(in srgb,var(--hue) 88%,#fff);-webkit-mask:var(--blaze) center/100% 100% no-repeat;mask:var(--blaze) center/100% 100% no-repeat}
@@ -600,7 +600,7 @@ button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;
 .anslegend{display:none}
 #ctlbtn,.ptabs{display:none}
 .qsec{display:contents}
-@media (min-width:861px){ .qsec>.blk.res{flex:1 0 auto;display:flex;flex-direction:column} }
+
 /* ---- phones: map and trail profile on top, buttons open one part of the panel below ---- */
 @media (max-width:860px){
   body.stackui{height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;padding:0}
@@ -3455,7 +3455,7 @@ const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', 
 /* settings kept in this browser between visits (try/catch: private windows can refuse) */
 const store = {get(k, d){ try { const v = localStorage.getItem('atgrid_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v){ try { localStorage.setItem('atgrid_' + k, JSON.stringify(v)); } catch (e) {} }};
-Object.assign(S.side, store.get('side2', {})); S.side.qs = false;   /* the question list starts closed */ store.get('qgroups', []).forEach(g => QGOFF.add(g)); { const lg = store.get('legend', null); if (lg != null) S.legend = lg; } S.secOpen = store.get('secs', {});
+Object.assign(S.side, store.get('side2', {})); S.side.qs = false; S.side.results = false;   /* the question list and Results start closed */ store.get('qgroups', []).forEach(g => QGOFF.add(g)); { const lg = store.get('legend', null); if (lg != null) S.legend = lg; } S.secOpen = store.get('secs', {});
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q') && qVis(x)); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
@@ -4318,7 +4318,7 @@ function howDraw(){ let d = $('#howto'); if (HOWK < 0){ if (d) d.remove(); howHL
   d.innerHTML = `<div class="hk">How to use · ${HOWK + 1} of ${HOWTO.length}</div><button type="button" class="hx" data-howx="1" aria-label="Close">×</button><h3>${st.t}</h3><p>${st.x()}</p>` +
     `<div class="hnav"><div class="hdots">${HOWTO.map((_, i) => `<i${i === HOWK ? ' class="on"' : ''}></i>`).join('')}</div>` + (last ? `<button type="button" class="qtour hgo" data-tour="grassland">Start the grassland tour</button><button type="button" class="pri" data-howx="1">Done</button>`
       : `<button type="button" data-howb="1"${HOWK ? '' : ' disabled'}>Back</button><button type="button" class="pri" data-hown="1">Next</button>`) + '</div>';
-  if (!isPhone()){ const a = $('aside').getBoundingClientRect(); d.style.left = (a.right + 18) + 'px'; d.style.top = d.style.bottom = ''; }
+  if (!isPhone()){ const a = $('aside').getBoundingClientRect(); d.style.left = (a.right + 18) + 'px'; const qh = $('.qhead'); d.style.top = Math.max(70, qh ? qh.getBoundingClientRect().top : 70) + 'px'; d.style.bottom = 'auto'; }
   else { /* phones: the card sits in the half of the screen away from what it points at, so that stays in view */
     d.style.left = ''; const e = st.el(), r = e ? e.getBoundingClientRect() : null, H = innerHeight;
     const low = r && (r.top + Math.min(r.height, H) / 2) < H * .45 && r.height < H * .6;
