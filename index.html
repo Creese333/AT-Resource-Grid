@@ -555,6 +555,21 @@ header .blaze{width:14px;height:38px}
 @media (max-width:640px){.tour{padding:12px 14px 10px;font-size:14.5px}}
 .migcal{display:block;width:100%;height:auto;margin:4px 0 2px}.migcal .mct{font-size:9px;fill:#A8B8CA}.migcal .mrl{font-size:10.5px;fill:#DDE6F0}
 .migrow{cursor:pointer}.migrow:hover .mrl,.migrow.on .mrl{fill:#fff;font-weight:600}.migrow:focus-visible{outline:2px solid var(--blaze)}
+.migcard{position:absolute;right:12px;bottom:28px;z-index:440;width:300px;max-height:calc(100% - 140px);overflow:auto;background:rgba(20,34,53,.97);color:#EEF3F8;border:1px solid #33465F;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.45);font-size:13px;line-height:1.45}
+.migcard.mob{position:static;width:auto;max-height:none;border-radius:8px;margin:0 0 10px;box-shadow:none}
+.migcard .mcph{position:relative;height:150px;background:#22344d}.migcard .mcph img{width:100%;height:100%;object-fit:cover;object-position:50% 35%;display:block}
+.migcard .mcph.none{display:flex;align-items:center;justify-content:center;gap:8px;color:#8FA2B7;font-size:12px}.migcard .mcph.none svg{width:64px;height:40px}
+.migcard .mccr{position:absolute;right:0;bottom:0;background:rgba(0,0,0,.6);color:#E9EEF4;font-size:10.5px;padding:2px 6px;border-top-left-radius:6px}
+.migcard .mcx{position:absolute;right:6px;top:6px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(10,20,32,.75);color:#fff;font-size:19px;line-height:30px;cursor:pointer;z-index:1}
+.migcard .mcbd{padding:10px 12px 12px}.migcard .mcnm{font-size:17px;font-weight:700;margin:0}.migcard .mcsci{font-style:italic;color:#A8B8CA;font-size:12.5px}
+.migcard .mcgrp{display:inline-block;margin:6px 0 2px;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid #4A5D77;color:#DFE7F0}
+.migcard .mcbar{position:relative;height:8px;border-radius:4px;background:#22344D;margin:10px 0 2px;overflow:hidden}.migcard .mcbar i{position:absolute;top:0;bottom:0}
+.migcard dl{margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px}.migcard dt{color:#A8B8CA}.migcard dd{margin:0}
+.migcard b.sp{color:#A3D82B}.migcard b.ns{color:#B8C4D3}.migcard b.fa{color:#E57A1F}.migcard .mcsrc{color:#8FA2B7}
+.migcard .mctags{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 0}.migcard .mctags span{font-size:11px;padding:2px 7px;border-radius:4px;background:#2B3B53;color:#E3EAF2}.migcard .mctags span.w{background:#5A2A2A;color:#FFD9D2}
+.migcard .mcnote{margin:10px 0 0;color:#DDE6F0}.migcard .mcmore{display:inline-block;margin-top:8px;color:#8FC8FF;text-decoration:none}.migcard .mcmore:hover{text-decoration:underline}
+.migcardbtn{position:absolute;right:12px;bottom:28px;z-index:440;border:1px solid #33465F;background:rgba(20,34,53,.95);color:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;cursor:pointer}
+.migcardbtn.mob{position:static;margin:0 0 10px}
 </style>
 </head>
 <body>
@@ -3106,7 +3121,7 @@ function migPlay(on){ if (migTimer){ clearInterval(migTimer); migTimer = null; }
   if (on){ const [a, b] = migRange(); if (MIGS.wk >= b) MIGS.wk = a; migFrame();
     migTimer = setInterval(() => { if (S.q.id !== 'mig' || S.m.id !== 'migwk'){ migPlay(false); return; } const [a, b] = migRange(); MIGS.wk = MIGS.wk >= b ? a : MIGS.wk + 1; migFrame(); }, 650); }
   migCtl(); }
-function migWire(){ const s = $('#migsp'); if (!s) return;
+function migWire(){ migCard(); const s = $('#migsp'); if (!s) return;
   s.onchange = () => keepPlace(s, ['#migsp'], () => { migPlay(false); MIGS.sp = s.value; MIGS.season = ''; MIGS.wk = migRange()[0]; MIGS.auto = true; migSpLoad(); BRK.clear(); redraw(); });
   document.querySelectorAll('[data-migse]').forEach(x => x.onclick = () => { migPlay(false); MIGS.season = x.dataset.migse; MIGS.wk = migRange()[0]; MIGS.auto = true; migSpLoad(); });
   const r = $('#migwk'); if (r){ r.oninput = () => { MIGS.wk = +r.value; migFrame(); }; r.onchange = () => redraw(); }
@@ -3154,6 +3169,85 @@ function migCal(lv, cells){ const E = migE(lv), R = migR(lv); if (!E || !R || !c
   return g; }
 document.addEventListener('click', e => { const r = e.target.closest('[data-migband]'); if (!r) return; const i = +r.dataset.migband; MIGS.band = MIGS.band === i ? -1 : i; qVizRefresh(); });
 document.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const r = e.target.closest && e.target.closest('[data-migband]'); if (!r) return; e.preventDefault(); r.click(); });
+/* bird profiles: photo credit and license, winter range, miles (mid-trail to the middle of the winter range; Golden Eagle from its
+   nesting grounds), conservation tags (BCC: USFWS Birds of Conservation Concern 2021; PIF: Partners in Flight priority in a trail
+   Bird Conservation Region), a line about the bird on the trail, and its All About Birds page. ph:0 = no photo yet. */
+const MIGPRO = {
+  'catharus-bicknelli':{ph:0, win:'Mid- and high-elevation forest in the Greater Antilles, mostly Hispaniola', mi:1500, tags:['BCC', 'PIF'], aab:'Bicknells_Thrush',
+    note:'About 37% of U.S. Bicknell’s thrushes nest within a mile of the A.T., in stunted spruce-fir mostly above 2,600 feet.'},
+  'setophaga-striata':{cr:'Donna Dewhurst / USFWS', win:'Northern South America, mostly the Amazon basin', mi:3100, tags:[], aab:'Blackpoll_Warbler',
+    note:'Nests in spruce-fir on the northern high peaks; in fall many fly nonstop over the Atlantic to South America.'},
+  'catharus-ustulatus':{cr:'USGS Bird Banding Laboratory', win:'Andes foothills of northern South America', mi:2900, tags:[], aab:'Swainsons_Thrush',
+    note:'Its rising, spiraling song comes from the northern spruce-fir; elsewhere it passes through in May and September, calling overhead at night.'},
+  'contopus-cooperi':{ph:0, win:'Andes of northern South America', mi:2900, tags:['BCC', 'PIF'], aab:'Olive-sided_Flycatcher',
+    note:'Calls “quick, three beers” from dead snags at the edges of high-elevation conifer forest and burns.'},
+  'leiothlypis-peregrina':{cr:'USFWS', win:'Southern Mexico to northern South America', mi:2100, tags:[], aab:'Tennessee_Warbler',
+    note:'Nests in Canada’s boreal forest; on the trail it is a spring and fall visitor, usually high in the canopy.'},
+  'setophaga-tigrina':{cr:'USGS Bird Banding Laboratory', win:'The Caribbean islands', mi:1400, tags:['BCCn', 'PIF'], aab:'Cape_May_Warbler',
+    note:'Follows spruce budworm outbreaks in the boreal north; on the trail it is seen in migration, most in mid-September.'},
+  'setophaga-castanea':{cr:'NPS / G. Etter', win:'Panama to northern Colombia and Venezuela', mi:2200, tags:['BCCn', 'PIF'], aab:'Bay-breasted_Warbler',
+    note:'Another spruce budworm specialist; it passes the trail in late May and again in September.'},
+  'buteo-platypterus':{cr:'USFWS', win:'Central America to Bolivia and Brazil', mi:3200, tags:['PIF'], aab:'Broad-winged_Hawk',
+    note:'Rides thermals along the ridges; mid-September kettles at trail-side hawk watches can number in the thousands.'},
+  'pandion-haliaetus':{cr:'Becky Harrison / USFWS', win:'The Caribbean and northern South America', mi:2500, tags:[], aab:'Osprey',
+    note:'Follows rivers and ridgelines south; the hawk watches count steady flights through September.'},
+  'chordeiles-minor':{cr:'Dave Menke / USFWS', win:'South America east of the Andes', mi:4100, tags:['BCCa', 'PIF'], aab:'Common_Nighthawk',
+    note:'Loose flocks stream over the ridges at dusk in late August and early September.'},
+  'accipiter-striatus':{cr:'USDA Forest Service (CC BY)', win:'Southern United States to Central America', mi:1100, tags:[], aab:'Sharp-shinned_Hawk',
+    note:'One of the most-counted hawks at the ridge hawk watches, peaking in late September and October.'},
+  'falco-sparverius':{cr:'James “Newt” Perdue / USFWS', win:'Southern United States and Mexico; some stay year-round', mi:800, tags:['PIF'], aab:'American_Kestrel',
+    note:'Hunts open fields and grassy balds; fall flights pass the hawk watches in September.'},
+  'falco-columbarius':{cr:'Lee Karney / USFWS', win:'Southern United States, the Caribbean and northern South America', mi:1400, tags:[], aab:'Merlin',
+    note:'A fast, dark falcon that passes the ridges mostly in late September and October.'},
+  'falco-peregrinus':{cr:'Jo Keller / USFWS', win:'Coastal United States to South America', mi:3200, tags:['PIF'], aab:'Peregrine_Falcon',
+    note:'Arctic-nesting peregrines pass the ridges in early October; a few pairs again nest on cliffs near the trail.'},
+  'circus-hudsonius':{cr:'Lucas Sarwas / USFWS', win:'Southern United States to Central America', mi:1000, tags:['PIF'], aab:'Northern_Harrier',
+    note:'Glides low over fields and balds with its wings in a shallow V; migrates along the ridges from September into November.'},
+  'aquila-chrysaetos':{cr:'Dave Menke / USFWS', win:'The central and southern Appalachians', mi:1100, from:'nesting grounds in Quebec and Labrador', tags:[], aab:'Golden_Eagle',
+    note:'The small eastern population rides ridge updrafts south in late October and November and winters along the Appalachians.'},
+  'dolichonyx-oryzivorus':{cr:'Grayson Smith / USFWS', win:'Grasslands of southern South America', mi:4400, tags:['BCC', 'PIF'], aab:'Bobolink',
+    note:'Nests in hayfields along the trail, where late mowing lets its young fledge; fall flocks gather before the long flight south.'},
+  'tyrannus-tyrannus':{cr:'Steve Arena / USFWS (CC BY)', win:'The western Amazon basin', mi:3300, tags:['PIF'], aab:'Eastern_Kingbird',
+    note:'Perches on fence lines and snags over A.T. fields and wetlands, chasing off birds many times its size.'},
+  'setophaga-discolor':{cr:'Steve Maslowski / USFWS', win:'Florida and the Caribbean', mi:1300, tags:['BCC', 'PIF'], aab:'Prairie_Warbler',
+    note:'Despite its name, a bird of young shrubby growth: old fields, clearcuts and utility rights-of-way along the trail.'},
+  'hylocichla-mustelina':{cr:'Michael Schramm / USFWS', win:'Lowland tropical forest, southern Mexico to Panama', mi:1900, tags:['BCC', 'PIF'], aab:'Wood_Thrush',
+    note:'Its flute-like evening song carries through mature hardwood forest along the trail; it nests low in the shaded understory.'},
+  'setophaga-cerulea':{cr:'Mikey Lutmerding / USGS', win:'Andes slopes, Venezuela to Peru', mi:3000, tags:['BCC', 'PIF'], aab:'Cerulean_Warbler',
+    note:'Nests high in the canopy of mature hardwoods on ridges and slopes; the central Appalachians hold much of its population.'},
+  'cardellina-canadensis':{cr:'Ryan Hagerty / USFWS', win:'Andes of northern South America', mi:2600, tags:['BCC', 'PIF'], aab:'Canada_Warbler',
+    note:'Nests on or near the ground in moist, shrubby mountain forest, including rhododendron thickets.'},
+  'antrostomus-vociferus':{ph:0, win:'Gulf Coast to Central America', mi:1500, tags:['BCC', 'PIF'], aab:'Eastern_Whip-poor-will',
+    note:'Heard far more than seen: it calls its name on moonlit nights from open woods near fields and clearings.'},
+  'coccyzus-erythropthalmus':{cr:'USGS Bird Banding Laboratory', win:'Northwestern South America', mi:2800, tags:['BCC', 'PIF'], aab:'Black-billed_Cuckoo',
+    note:'Eats hairy caterpillars that other birds avoid, including spongy moth and tent caterpillars; more turn up in outbreak years.'}};
+const MIGTAG = {BCC:'Bird of Conservation Concern', BCCn:'Bird of Conservation Concern, northern New England', BCCa:'Bird of Conservation Concern, Appalachian Mountains', PIF:'Partners in Flight priority'};
+const MIGSIL = '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M6 26c8-1 13-5 18-11 3-4 7-6 11-5l4-3 1 4c5 2 8 6 9 10l9 3-9 1c-3 4-9 7-17 7-8 0-15-2-26-6z" fill="#3A4C66"/></svg>';
+let migCardOn = (() => { try { return store.get('migcard', true); } catch (e) { return true; } })();
+/* share of trail checklists reporting the species at its busiest week, trail-wide, all years */
+function migPeakAll(){ const E = migE('wheel'), R = migR('wheel'); if (!E || !R) return null; const n = D.levels.wheel.id.length; let best = 0, bw = 0;
+  for (let w = 0; w < 52; w++){ let e = 0, r = 0; for (let c = 0; c < n; c++){ e += E[c * 53 + w]; r += R[c * 53 + w]; } if (e >= MIGBAND && r / e > best){ best = r / e; bw = w + 1; } }
+  return best ? [100 * best, bw] : null; }
+function migCardHTML(){ const k = MIGS.sp, s = migSp(), p = MIGPRO[k]; if (!s || !p) return '';
+  const W = migWins(), pk = migPeakAll(), seg = (w, c, t) => w ? `<i style="left:${((w[0] - 1) / 52 * 100).toFixed(2)}%;width:${((w[1] - w[0] + 1) / 52 * 100).toFixed(2)}%;background:${c}" title="${t}"></i>` : '';
+  const ph = p.ph === 0 ? `<div class="mcph none">${MIGSIL}<span>Photo wanted</span></div>`
+    : `<div class="mcph"><img src="images/birds/${k}.webp" alt="" loading="lazy" onerror="this.parentNode.classList.add('none');this.outerHTML='${MIGSIL.replace(/"/g, '&quot;')}'"><span class="mccr">${esc(p.cr)}</span></div>`;
+  return ph + `<button type="button" class="mcx" aria-label="Hide bird profile">×</button><div class="mcbd"><p class="mcnm">${esc(s.common)}</p><div class="mcsci">${esc(s.sci)}</div><span class="mcgrp">${esc(s.story)}</span>
+    <div class="mcbar" role="img" aria-label="eBird seasons">${seg(W.txt.spring && W.spring, '#A3D82B', 'Spring migration')}${seg(W.txt.breeding && W.breeding, '#8796AB', 'Nesting season')}${seg(W.txt.fall && W.fall, '#E57A1F', 'Fall migration')}</div>
+    <dl><dt>Seasons</dt><dd>${[W.txt.spring && `<b class="sp">Spring</b> ${esc(W.txt.spring)}`, W.txt.breeding && `<b class="ns">nesting</b> ${esc(W.txt.breeding)}`, W.txt.fall && `<b class="fa">fall</b> ${esc(W.txt.fall)}`].filter(Boolean).join(' · ')} <span class="mcsrc">(eBird)</span></dd>
+    <dt>Winters</dt><dd>${esc(p.win)}</dd><dt>Travels</dt><dd>About ${fmt(p.mi, 0)} miles ${p.from ? 'from ' + esc(p.from) : 'from mid-trail to its winter range'}</dd>
+    ${pk ? `<dt>On the A.T.</dt><dd>On ${fmt(pk[0], 0)}% of trail checklists at its peak, the week of ${esc(wkDate(pk[1]))}</dd>` : ''}</dl>
+    ${p.tags.length ? '<div class="mctags">' + p.tags.map(t => `<span${t.startsWith('BCC') ? ' class="w"' : ''}>${MIGTAG[t]}</span>`).join('') + '</div>' : ''}
+    <p class="mcnote">${esc(p.note)}</p><a class="mcmore" href="https://www.allaboutbirds.org/guide/${p.aab}/" target="_blank" rel="noopener">More about this bird ›</a></div>`; }
+function migCard(){ let c = $('#migcard'), b = $('#migcardbtn'); const on = S.q && S.q.id === 'mig' && migSp() && MIG.sp[MIGS.sp] && MIG.sp[MIGS.sp].st === 'done';
+  if (!on){ if (c) c.remove(); if (b) b.remove(); return; }
+  const host = isPhone() ? $('#strip') : $('#mapwrap'); if (!host) return;
+  if (!c){ c = document.createElement('aside'); c.id = 'migcard'; c.className = 'migcard'; c.setAttribute('aria-label', 'Bird profile'); }
+  if (!b){ b = document.createElement('button'); b.id = 'migcardbtn'; b.type = 'button'; b.className = 'migcardbtn'; b.textContent = 'Bird profile'; b.onclick = () => { migCardOn = true; try { store.set('migcard', true); } catch (e) {} migCard(); }; }
+  if (c.parentNode !== host) host.insertBefore(c, isPhone() ? host.firstChild : null); if (b.parentNode !== host) host.insertBefore(b, isPhone() ? host.firstChild : null);
+  c.classList.toggle('mob', isPhone()); b.classList.toggle('mob', isPhone());
+  if (c.dataset.k !== MIGS.sp + '|' + migSeason()){ c.innerHTML = migCardHTML(); c.dataset.k = MIGS.sp + '|' + migSeason(); const x = c.querySelector('.mcx'); if (x) x.onclick = () => { migCardOn = false; try { store.set('migcard', false); } catch (e) {} migCard(); }; }
+  c.hidden = !migCardOn; b.hidden = migCardOn; }
 QVIZ.mig = {title:'Migration calendar', note:'How often birders reported this species each week, by region, all years since 2010. Top bars: eBird’s spring migration (green), nesting season (gray, for birds that nest along the trail) and fall migration (orange) dates. Gray: too few checklists. Click a region for its weekly line.',
   html:(sl, cells) => migCal(sl, cells)};
 Q.push({id:'mig', th:'ebird', hue:HUE.mig, ramp:'mig', title:'When are birds migrating here?',
