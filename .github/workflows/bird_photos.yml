@@ -1,0 +1,35 @@
+# Downloads the federal (public domain / CC BY) bird photos in inputs/bird_photos.csv and saves them as
+# images/birds/<species-key>.webp for the bird profile cards. Press "Run workflow" on the Actions tab;
+# choose "redo" to replace photos that are already there.
+name: Bird profile photos
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'new = only missing photos; redo = replace all'
+        type: choice
+        options: [new, redo]
+        default: new
+
+permissions:
+  contents: write
+
+jobs:
+  photos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pillow
+      - run: python scripts/fetch_bird_photos.py ${{ inputs.mode }}
+      - name: Commit if changed
+        run: |
+          git config user.name  "bird-photos-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A images/birds
+          git diff --cached --quiet && exit 0
+          git commit -m "Update bird profile photos"
+          git push
