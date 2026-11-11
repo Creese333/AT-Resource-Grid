@@ -188,10 +188,32 @@ def area_predicate(levels):
     return {'type': 'or', 'predicates': polys}
 
 
+# eBird comes as a GBIF SQL download so it can carry eBird's checklist number (eventID, "S..." ) and start time (eventTime),
+# which the simple CSV format leaves out; only the columns the summaries use are requested
+EBIRD_COLS = ['gbifid', 'decimallatitude', 'decimallongitude', 'coordinateuncertaintyinmeters', 'eventdate', 'year', 'month', 'day',
+              'eventtime', 'eventid', 'recordedby', 'v_scientificname', 'species', 'specieskey', 'kingdom', 'phylum', '"class"']
+
+
+def sql_body(kind, levels, user):
+    box = ' OR '.join(f'(decimallatitude >= {s_:.4f} AND decimallatitude <= {n_:.4f} AND decimallongitude >= {w_:.4f} AND decimallongitude <= {e_:.4f})'
+                      for s_, n_, w_, e_ in area_rects(levels))
+    sql = (f"SELECT {', '.join(EBIRD_COLS)} FROM occurrence WHERE datasetkey = '{DATASETS[kind]}' AND hascoordinate = TRUE "
+           f"AND hasgeospatialissues = FALSE AND occurrencestatus = 'PRESENT' AND ({box})")
+    return {'creator': user, 'sendNotification': False, 'format': 'SQL_TSV_ZIP', 'sql': sql}
+
+
 def download(kind, levels):
     user, pwd = os.environ.get('GBIF_USER'), os.environ.get('GBIF_PWD')
     if not user or not pwd:
         sys.exit('GBIF_USER and GBIF_PWD are not set (repository secrets)')
+    key = None
+    if kind == 'ebird':
+        try:
+            key = gbif('/occurrence/download/request', json.dumps(sql_body(kind, levels, user)).encode(), f'{user}:{pwd}', 'POST').strip()
+            print(f'{kind}: GBIF SQL download (with eBird checklist numbers) {key} requested', flush=True)
+        except urllib.error.HTTPError as e:
+            print(f'{kind}: GBIF SQL download refused ({e.code} {e.read().decode(errors="replace")[:300]}); using the simple CSV, '
+                  'where checklists are rebuilt from observer, date and place', flush=True)
     body = {'creator': user, 'sendNotification': False, 'format': 'SIMPLE_CSV',
             'predicate': {'type': 'and', 'predicates': [
                 {'type': 'equals', 'key': 'DATASET_KEY', 'value': DATASETS[kind]},
@@ -199,8 +221,9 @@ def download(kind, levels):
                 {'type': 'equals', 'key': 'HAS_GEOSPATIAL_ISSUE', 'value': 'false'},
                 {'type': 'equals', 'key': 'OCCURRENCE_STATUS', 'value': 'PRESENT'},
                 area_predicate(levels)]}}
-    key = gbif('/occurrence/download/request', json.dumps(body).encode(), f'{user}:{pwd}', 'POST').strip()
-    print(f'{kind}: GBIF download {key} requested', flush=True)
+    if not key:
+        key = gbif('/occurrence/download/request', json.dumps(body).encode(), f'{user}:{pwd}', 'POST').strip()
+        print(f'{kind}: GBIF download {key} requested', flush=True)
     stop = time.time() + WAIT_HOURS * 3600
     while True:
         info = json.loads(gbif(f'/occurrence/download/{key}'))
@@ -222,12 +245,35 @@ def download(kind, levels):
     return path, {'key': key, 'doi': info.get('doi'), 'records': info.get('totalRecords'), 'created': info.get('created')}
 
 
+# SQL downloads name columns in lower case (and the verbatim name v_scientificname); these give them the simple CSV's names
+SQL_NAMES = {'gbifid': 'gbifID', 'decimallatitude': 'decimalLatitude', 'decimallongitude': 'decimalLongitude',
+             'coordinateuncertaintyinmeters': 'coordinateUncertaintyInMeters', 'eventdate': 'eventDate', 'eventtime': 'eventTime',
+             'eventid': 'eventID', 'recordedby': 'recordedBy', 'v_scientificname': 'verbatimScientificName', 'specieskey': 'speciesKey'}
+
+
+def iso_date(r):
+    d = (r.get('eventDate') or '').strip()
+    if d.isdigit() and len(d) > 8:                               # milliseconds since 1970
+        try:
+            return datetime.fromtimestamp(int(d) / 1000, timezone.utc).strftime('%Y-%m-%d')
+        except (ValueError, OverflowError):
+            d = ''
+    if len(d) >= 10 and d[4] == '-':
+        return d[:10]
+    y, m, dd = (r.get('year') or ''), (r.get('month') or ''), (r.get('day') or '')
+    return f'{int(y):04d}-{int(m):02d}-{int(dd):02d}' if y.isdigit() and m.isdigit() and dd.isdigit() else d
+
+
 def rows(zpath):
     z = zipfile.ZipFile(zpath)
-    name = next(n for n in z.namelist() if n.endswith('.csv'))
+    name = next(n for n in z.namelist() if n.endswith(('.csv', '.tsv', '.txt')))
     with z.open(name) as f:
         rd = csv.DictReader(io.TextIOWrapper(f, encoding='utf-8', errors='replace', newline=''), delimiter='\t', quoting=csv.QUOTE_NONE)
+        sqlish = rd.fieldnames and 'decimallatitude' in [c.strip('"') for c in rd.fieldnames]
         for r in rd:
+            if sqlish:
+                r = {SQL_NAMES.get(k.strip('"'), k.strip('"')): v for k, v in r.items()}
+                r['eventDate'] = iso_date(r)
             yield r
 
 
@@ -525,7 +571,10 @@ def summarize(kind, zpath, grids, names):
             sp = binomial(r.get('verbatimScientificName') or r.get('species'))
             if not sp or '/' in sp or ' sp.' in sp or ' x ' in sp.lower() or len(sp.split()) < 2:
                 sp = None
-            ukey = f'{who}|{d}|{la:.3f}|{lo:.3f}'     # checklist: observer, date and place
+            # checklist: eBird's own checklist number when the download has it, with shared copies of one outing (same date, start time
+            # and place, any observer) counted once; otherwise rebuilt from observer, date and place
+            t = (r.get('eventTime') or '').strip()[:5]; eid = (r.get('eventID') or '').strip()
+            ukey = f'{d}|{t}|{la:.3f}|{lo:.3f}' if t else (f'E{eid}' if eid else f'{who}|{d}|{la:.3f}|{lo:.3f}')
         else:
             sp = (r.get('species') or '').strip() or None
             ukey = f'{who}|{d}'                        # visit: observer and date
