@@ -743,6 +743,15 @@ body.hasplay #legend{bottom:58px}
   body.stackui #mapplay{height:36px;font-size:12.5px}
   .leaflet-container .leaflet-control-attribution{font-size:8.5px;max-width:52vw !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
+@media (min-width:861px){
+  .migcard{display:block !important;width:clamp(300px,21vw,400px);max-height:calc(100% - 96px);top:auto}
+  .migcard .mcph{flex:none;height:clamp(170px,14vw,260px)}
+  .migcard .mcph img.mcim{object-fit:contain}
+  #profile{width:clamp(350px,24vw,460px)}
+  #mapwrap:has(#profile.open) .migcard,#mapwrap:has(#profile.open) .migcardbtn{right:calc(clamp(350px,24vw,460px) + 22px)}
+  @media (min-width:1700px){ .migcard{font-size:14px} .migcard .mcnm{font-size:19px} #profile{font-size:15.5px} }
+}
+@media (max-width:860px){ body.stackui .migcard .mcph{flex:none;height:min(240px,34vh)} }
 </style>
 </head>
 <body>
@@ -4305,8 +4314,9 @@ document.addEventListener('click', e => { if (e.target.closest && e.target.close
 /* the "How to use" walkthrough: five stops, each pointing at one part of the screen; it changes nothing on the map */
 const HOWTO = [
   {t:'Pick a question', el:() => $('.qchange'), x:() => 'Everything here starts with a guiding question, such as where invasive plants are showing up or when birds migrate through. Open <b>All questions</b> to choose one. The map, numbers and charts all change to answer it.'},
-  {t:'Choose where', el:() => $('#section'), x:() => isPhone() ? 'The whole trail is shown to start. Pick a club section, region or state in the green <b>Whole trail</b> button at the top of the map, or search for a place, species, shelter or tract. The answer and results then cover just that area.'
-      : 'The whole trail is shown to start. Pick a club section, region or state in <b>Section of trail</b>, or search for a place, species, shelter or tract. The answer and results then cover just that area.'},
+  {t:'Search', el:() => $('#find'), x:() => 'Search for almost anything along the trail: a geographic feature such as a mountain, gap, river or town; a shelter, campsite, parking area or vista; a plant or animal; a historic resource; an A.T. tract number; or a trail mile. Pick a result and the map zooms there and opens that cell. A species shows everywhere it\u2019s been recorded.'},
+  {t:'Choose where', el:() => $('#section'), x:() => isPhone() ? 'The whole trail is shown to start. Pick a club section, region or state in the green <b>Whole trail</b> button at the top of the map to see just that area.'
+      : 'The whole trail is shown to start. Pick a club section, region or state in <b>Section of trail</b> to see just that area.'},
   {t:'Read the map', el:() => isPhone() ? $('.ptabs') : $('.qhead'), x:() => 'Darker cells mean more. Questions marked <b>\u25B6 Animated</b> change over time: press <b>\u25B6</b> at the bottom left of the map to play them. ' + (isPhone() ? 'Tap <b>Measures</b> to change what’s mapped, or <b>Results</b>, <b>Charts</b> or <b>Profile</b> for more. Tap the same button again to close it.' : '<b>Measures</b>, <b>Results</b> and the charts are in the panel on the left.')},
   {t:'Look closer at a cell', el:() => $('#map'), x:() => 'Tap any cell for what’s known there across every dataset, not only this question. You can see the details or download them as text, CSV or Excel. To compare several cells, use <b>Select area</b> or <b>Pick cells</b> under ' + (isPhone() ? '<b>Map ▾</b>.' : '<b>Map tools</b>.')},
   {t:'Take a guided tour', el:() => $('#howbtn'), x:() => 'Want an example? The <b>grassland tour</b> walks through 12 stops on where restoration matters most along the trail. Look for the <b>Tour</b> badge in the question list. This walkthrough is always under the <b>?</b> button at the top.'}];
