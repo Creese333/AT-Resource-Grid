@@ -594,20 +594,23 @@ aside{overflow-x:hidden}
 button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#1B2B42;color:#fff;font-size:19px;line-height:1;cursor:pointer}
 .qfilt{margin:4px 14px 6px 16px;padding:8px 11px;border-radius:9px;border:1px solid var(--line);background:#0F1C2E;color:#EEF3F8;font:inherit;font-size:15px}
 .qpick .qs{padding-bottom:16px}
-.qlab{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#7F93AA;margin:14px 0 2px;font-weight:600}
+.qlab{display:none !important;align-items:center;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#7F93AA;margin:14px 0 2px;font-weight:600}
 .qbody>.qlab:first-child{margin-top:10px}
 
 .anslegend{display:none}
 #ctlbtn,.ptabs{display:none}
 .qsec{display:contents}
-@media (min-width:861px){ .qsec>.blk.res{flex:1 1 auto;min-height:0;display:flex;flex-direction:column} }
+@media (min-width:861px){ .qsec>.blk.res{flex:1 0 auto;display:flex;flex-direction:column} }
 /* ---- phones: map and trail profile on top, buttons open one part of the panel below ---- */
 @media (max-width:860px){
   body.stackui{height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;padding:0}
   body.stackui header{order:0;flex:none;height:46px;padding:0 12px;gap:10px;flex-wrap:nowrap}
   body.stackui header h1{font-size:17px;white-space:nowrap;margin:0}
   body.stackui header .blaze{height:26px}
-  body.stackui #aboutbtn{font-size:13px;padding:4px 10px}
+  body.stackui #aboutbtn{font-size:13px;padding:4px 10px;white-space:nowrap}
+  #ctlbtn .cbs{display:none}
+  @media (max-width:380px){ body.stackui header h1{font-size:15px} body.stackui header{gap:7px;padding:0 8px} body.stackui #aboutbtn{font-size:12px;padding:4px 7px}
+    #ctlbtn .cbl{display:none} #ctlbtn .cbs{display:inline} body.stackui #section{width:calc(100vw - 128px) !important;max-width:calc(100vw - 128px) !important} body.stackui #ctls{right:50px !important} }
   body.stackui #mapwrap{order:1;flex:1 1 auto;min-height:150px;height:auto !important}
   body.stackui #strip{order:2;flex:none;padding:4px 12px 6px;display:none}
   body.stackui[data-pt=prof] #strip{display:block}
@@ -616,15 +619,18 @@ button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;
   body.stackui .striphead h2{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 2px}
   body.stackui .tour{order:3}
   body.stackui aside{order:4;flex:none;max-height:42vh;max-height:42dvh;overflow-y:auto;overscroll-behavior:contain;display:block;border-top:1px solid #0A131F}
-  body.stackui .secpick{position:fixed;top:54px;left:10px;right:128px;z-index:1150;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:6px;padding:0;background:none;border:0}
+  body.stackui .secpick{position:fixed;top:54px;left:10px;right:10px;z-index:1150;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px;padding:0;background:none;border:0;pointer-events:none}
+  body.stackui .secpick>*{pointer-events:auto}
   body.stackui .secpick label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-  body.stackui .secpick .find{order:1;flex:1 1 0;min-width:0}
-  body.stackui #find{width:100%;border-radius:12px;padding:8px 12px;background:rgba(20,34,53,.96);border:1px solid #33465F;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35)}
-  body.stackui #section{order:2;flex:none;width:auto;max-width:42vw;border-radius:999px;padding:5px 10px;background:#1f6b4a;border:1px solid #2f9a6a;color:#fff;font-size:14px}
-  body.stackui #ctls{top:8px;right:52px;left:auto;z-index:900;align-items:flex-end}
+  body.stackui .secpick .find{order:1;flex:1 1 100%;min-width:0}
+  body.stackui #find{width:100%;height:38px;font-size:14.5px;border-radius:10px;padding:0 12px;background:rgba(20,34,53,.96);border:1px solid #33465F;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+  body.stackui #section{order:2;flex:0 1 auto;width:auto;min-width:0;width:calc(100vw - 178px);max-width:calc(100vw - 178px);height:34px;border-radius:999px;padding:0 26px 0 10px;text-overflow:ellipsis;font-size:13px !important;background:#1f6b4a;border:1px solid #2f9a6a;color:#fff;font-size:14px}
+  body.stackui #ctls{top:52px;right:50px;left:auto;z-index:1140;align-items:flex-end}
+  body.stackui .leaflet-top.leaflet-right{top:52px;right:10px}
+  body.stackui .leaflet-top.leaflet-right .leaflet-control{margin:0}
+  body.stackui .leaflet-top.leaflet-right .leaflet-control a,body.stackui .leaflet-top.leaflet-right .leaflet-control button{width:34px;height:34px;line-height:34px}
   body.stackui #ctlrow1,body.stackui #ctlrow2{justify-content:flex-end}
-  body.stackui.ctlopen #ctls{background:rgba(14,26,42,.9);border-radius:12px;padding:6px;left:6px;right:6px}
-  body.stackui #ctlbtn{display:inline-flex;align-items:center;gap:7px;pointer-events:auto;height:31px;padding:0 11px;border-radius:999px;font:inherit;font-size:13.5px;color:#fff;background:rgba(20,34,53,.94);border:1px solid #33465F}
+  body.stackui #ctlbtn{display:inline-flex;align-items:center;gap:6px;pointer-events:auto;height:34px;padding:0 10px;border-radius:999px;font:inherit;font-size:13px;white-space:nowrap;color:#fff;background:rgba(20,34,53,.94);border:1px solid #33465F}
   body.stackui #ctlbtn i{width:0;height:0;border:4.5px solid transparent;border-top:5.5px solid #C2CEDB;border-bottom:0}
   body.stackui.ctlopen #ctlbtn i{transform:rotate(180deg)}
   body.stackui:not(.ctlopen) #ctlrow1,body.stackui:not(.ctlopen) #ctlrow2{display:none}
@@ -652,8 +658,51 @@ button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;
   body.stackui .anslegend .sub{color:#A8B8CA;font-size:12px;margin:4px 0 0}
   body.stackui .qpick{inset:0 !important;width:auto !important;box-shadow:none}
   body.stackui .migcard.mob{position:relative;margin-top:10px}
+  body.stackui #about{width:calc(100vw - 16px);max-width:none;margin:auto;padding:0}
+  body.stackui #about .dlg{padding:14px 14px 16px;max-height:86dvh;font-size:14px;line-height:1.45}
+  body.stackui #about .dlg h2{font-size:19px}body.stackui #about .dlg h3{font-size:15.5px;margin:12px 0 4px}
+  body.stackui #about .dlg table,body.stackui #about .dlg tbody,body.stackui #about .dlg tr,body.stackui #about .dlg td{display:block;width:auto}
+  body.stackui #about .dlg table{font-size:13px}
+  body.stackui #about .dlg tr:has(th){display:none}
+  body.stackui #about .dlg tr{padding:7px 0;border-bottom:1px solid var(--line)}
+  body.stackui #about .dlg td{border:0;padding:1px 0}
+  body.stackui #about .dlg td:first-child{font-weight:600;color:#fff}
+  body.stackui #about .dlg td:nth-child(3){color:#A8B8CA}
   /* the tour keeps its own layout: map on top, the stop below */
   body.stackui.touring aside,body.stackui.touring #strip{display:none}
+}
+#howbtn{width:34px;height:34px;border-radius:50%;font:inherit;font-size:17px;font-weight:700;color:#fff;background:transparent;border:1px solid rgba(255,255,255,.55);cursor:pointer;margin-right:8px}
+#howbtn:hover,#howbtn:focus-visible{background:rgba(255,255,255,.12)}
+.qstart{margin:2px 16px 8px;padding:8px 10px;border-radius:8px;background:#1B2B42;color:#DDE6F0;font-size:13.5px;line-height:1.45}
+.qstart b{color:#fff}.qhow,.qstart .qtlink{all:unset;cursor:pointer;color:#8FC8FF;text-decoration:underline;text-underline-offset:2px}
+#howto{position:fixed;z-index:2000;bottom:40px;width:min(380px,calc(100vw - 24px));background:rgba(16,28,46,.98);color:#EEF2F7;border-radius:12px;border-top:3px solid #F0C419;box-shadow:0 8px 28px rgba(0,0,0,.45);padding:12px 16px 12px;font-size:14px;line-height:1.5}
+#howto .hk{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+#howto h3{margin:2px 0 4px;font-size:17px}#howto p{margin:0 0 10px}
+#howto .hx{position:absolute;top:4px;right:4px;width:34px;height:34px;border:0;background:none;color:inherit;font-size:22px;cursor:pointer}
+#howto .hnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#howto .hdots{display:flex;gap:5px;margin-right:auto}#howto .hdots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.28)}#howto .hdots i.on{background:#fff}
+#howto .hnav button{font:inherit;font-size:14px;padding:6px 13px;border-radius:7px;border:1px solid rgba(255,255,255,.25);background:transparent;color:inherit;cursor:pointer}
+#howto .hnav button.pri{background:#E8EEF6;color:#14294A;border-color:#E8EEF6;font-weight:600}#howto .hnav button:disabled{opacity:.35;cursor:default}
+#howto .hnav .hgo{background:#3A1820;border-color:#6B2532;color:#fff;box-shadow:none;font-size:14px;padding:6px 13px;border-radius:7px}
+.howhl{outline:3px solid #F0C419 !important;outline-offset:2px;border-radius:8px}
+#map.howhl{outline-offset:-3px}
+@media (max-width:860px){ #howto{left:12px;right:12px;width:auto;top:104px;bottom:auto} #howbtn{width:30px;height:30px;font-size:15px;margin-right:4px} }
+/* animated questions: the badge, and Play on the map (bottom left; the legend moves up above it) */
+.qanim{flex:none;margin-left:auto;font-family:var(--sans,inherit);font-size:11.5px;font-weight:600;line-height:1;color:#0E1A2A;background:#9BE7B8;border-radius:999px;padding:4px 8px;white-space:nowrap}
+.qs button .qanim+.qtour{margin-left:6px}
+.qanimh{display:inline-block;margin:6px 0 0;font-size:12px}
+#mapplay{position:absolute;left:10px;bottom:10px;z-index:850;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px 0 6px;border-radius:999px;border:1px solid #2f9a6a;background:rgba(20,34,53,.95);color:#fff;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+#mapplay i{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#1f6b4a;font-style:normal;font-size:13px}
+#mapplay[hidden]{display:none}
+body.hasplay #legend{bottom:58px}
+.qquick{display:none}
+/* the map credit, smaller */
+.leaflet-container .leaflet-control-attribution{font-size:10px;line-height:1.25;max-width:min(420px,45%);padding:1px 5px;opacity:.85}
+@media (max-width:860px){
+  body.stackui .qquick{display:block;margin:6px 0 2px}
+  body.stackui .qquick select{width:100%;height:36px;font-size:14px;border-radius:8px;background:#0F1C2E;color:#EEF3F8;border:1px solid #2f9a6a;padding:0 8px}
+  body.stackui .qanimh{font-size:11px;margin:4px 0 0;padding:3px 7px}
+  body.stackui #mapplay{height:36px;font-size:12.5px}
+  .leaflet-container .leaflet-control-attribution{font-size:8.5px;max-width:52vw !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
 </style>
 </head>
@@ -4167,25 +4216,21 @@ function keepPlace(el, sels, fn){ const t0 = el && el.isConnected ? el.getBoundi
   if (Math.abs(d) >= 1){ const sc = scroller(nu); sc.scrollTop += d; } }
 /* a question or measure with its own choices (species, years, scale) opens the Selections block */
 const hasSel = () => PHQ() || (S.q.id === 'inv' && S.m.id === 'edrr') || (S.q.id === 'land' && S.m.id === 'acq');
-/* the one-line answer under the question: the migration share for the week, the restoration cells in the top class, or for the
-   other questions the first line of Results (moved up, not repeated) */
-function ansLine(lv, sumH){ const q = S.q, m = S.m, here = S.sec === 'all' ? 'Whole trail' : esc(secName()); let t = '', sub = '', used = '';
-  try {
-    if (q.id === 'mig' && typeof migSp === 'function'){ const s = migSp(), E = migE(lv), R = migR(lv);
-      if (s && E && R){ let e = 0, r = 0; const n = D.levels[lv].id.length;
-        for (let c = 0; c < n; c++){ if (!inSec(lv, c)) continue; for (let w = MIGS.wk - 1; w <= MIGS.wk + 1; w++){ if (w < 1 || w > 53) continue; e += E[c * 53 + w - 1]; r += R[c * 53 + w - 1]; } }
-        const who = S.sec === 'all' ? 'trail checklists' : 'checklists here';
-        t = e >= MIGBAND ? `<b>${fmt(100 * r / e, r / e < .1 ? 1 : 0)}%</b> of ${who} reported ${esc(s.common)}, ${esc(wkLabel(MIGS.wk))}` : `Too few checklists around ${esc(wkLabel(MIGS.wk))} to say how often ${esc(s.common)} was reported`;
-        sub = `${here} · that week and the week either side, all years since ${MIG.idx ? MIG.idx.from : 2010}`; } }
-    else if (q.id === 'rest' && (m.id === 'grass' || m.id === 'forest')){ const B = breaks(m, lv), lo = B.b.length ? B.b[B.b.length - 1] + 1 : B.min, L_ = D.levels[lv]; let n = 0, best = -1, bc = -1;
-      for (let c = 0; c < L_.id.length; c++){ if (!inSec(lv, c)) continue; const v = m.get(lv, c); if (v == null) continue; if (v >= lo) n++; if (v > best){ best = v; bc = c; } }
-      if (bc >= 0){ t = `<b>${fmt(n, 0)}</b> ${n === 1 ? 'cell scores' : 'cells score'} ${fmt(lo, 0)}–${fmt(best, 0)} for ${esc(m.label.toLowerCase())}, the top class on the map`; sub = `${here} · highest near mile ${fmt(L_.mi[bc], 0)}`; } }
-    else if (m.noun && m.kind !== 'cat' && !m.find){ const L_ = D.levels[lv]; let n = 0, tot = 0, best = 0, bc = -1;
-      for (let c = 0; c < L_.id.length; c++){ if (!inSec(lv, c)) continue; tot++; const v = m.get(lv, c); if (v == null || !(v > 0)) continue; n++; if (v > best){ best = v; bc = c; } }
-      if (tot){ t = `<b>${fmt(n, 0)}</b> of ${fmt(tot, 0)} cells have ${esc(m.label.charAt(0).toLowerCase() + m.label.slice(1))}`; sub = here + (bc >= 0 ? ` · up to ${fmt(best, 0)} ${esc(m.noun[best === 1 ? 0 : 1])} in one cell, near mile ${fmt(L_.mi[bc], 0)}` : ''); } }
-  } catch (x) { t = ''; }
-  if (!t){ const mm = (sumH || '').match(/<p class="statline">([\s\S]*?)<\/p>/); if (mm){ t = mm[1]; used = mm[0]; sub = ''; } }
-  return {h:t ? `<div class="qans"><p>${t}</p>${sub ? `<small>${sub}</small>` : ''}</div>` : '', used}; }
+/* questions with an animation (Play), in the list; and whether the one on screen has one now */
+const QANIM = new Set(['mig', 'phen', 'pest', 'inv', 'cult']);
+const PLAYQ = () => !S.m.find && (S.q.id === 'mig' || (typeof PHQ === 'function' && PHQ()));
+/* Play on the map, bottom left, for whatever animation is on screen; it presses the panel's own Play, so both stay in step */
+function mapPlay(){ let b = $('#mapplay'); const src = $('#migplay') || $('#phplay');
+  if (!b){ b = document.createElement('button'); b.type = 'button'; b.id = 'mapplay'; b.className = 'mapctl'; b.innerHTML = '<i aria-hidden="true">▶</i><span></span>';
+    b.onclick = () => { const r = $('#migplay') || $('#phplay'); if (r) r.click(); setTimeout(mapPlay, 60); }; if (window.L && L.DomEvent) L.DomEvent.disableClickPropagation(b); $('#mapwrap').append(b); }
+  const on = !!src && PLAYQ(); b.hidden = !on; document.body.classList.toggle('hasplay', on); if (!on) return;
+  const pl = /pause/i.test(src.textContent), lab = ($('#migwkl') || $('#phwkl') || {textContent:''}).textContent.split(' · ')[0];
+  const ic = pl ? '❚❚' : '▶'; if (b.firstChild.textContent !== ic) b.firstChild.textContent = ic; if (b.lastChild.textContent !== lab) b.lastChild.textContent = lab;
+  b.setAttribute('aria-label', (pl ? 'Pause' : 'Play') + ' the animation'); }
+if (window.MutationObserver) new MutationObserver(() => { clearTimeout(mapPlay.t); mapPlay.t = setTimeout(mapPlay, 30); }).observe($('#side'), {subtree:true, childList:true, characterData:true});
+/* phones: the species picker sits under the question title, so it can be changed without opening Measures */
+function quickPick(){ const q = $('#qquick'); if (!q) return; const sel = $('#side .qbody #migsp, #side .qbody #phsp, #side .qbody #pinvsel');
+  if (document.body.classList.contains('stackui') && sel) q.append(sel); }
 /* the map legend, repeated in Answer on phones (where the map legend sits small over the map) */
 function legCopy(){ const a = $('#anslegend'), b = $('#legbody'); if (a) a.innerHTML = b ? b.innerHTML : ''; }
 /* phones: the map and the trail profile on top, then the question and a row of buttons; a button opens its part below
@@ -4196,17 +4241,16 @@ function stackSync(){ const on = isPhone(), body = document.body, a = $('aside')
   if (on !== body.classList.contains('stackui')){ body.classList.toggle('stackui', on); if (!on) PTAB = '';
     if (pr){ if (on) a.append(pr); else $('#mapwrap').append(pr); }
     if (typeof mapGestures === 'function') mapGestures(); }
-  { const f = $('#find'); if (f){ if (!f.dataset.ph0) f.dataset.ph0 = f.placeholder; const ph = on ? 'Search places, species, tracts' : f.dataset.ph0; if (f.placeholder !== ph) f.placeholder = ph; } }
   if (on && S.side.qs) body.dataset.qpick = '1'; else delete body.dataset.qpick;
   { const qp = $('#qpick'); if (qp && !qp.hidden){ if (!on){ const r = a.getBoundingClientRect(); qp.style.top = r.top + 'px'; qp.style.left = r.left + 'px'; qp.style.width = r.width + 'px'; qp.style.bottom = '0px'; }
-      if (!qp.dataset.at){ qp.dataset.at = '1'; const cur = qp.querySelector('[aria-current="true"]'); if (cur) requestAnimationFrame(() => { qp.scrollTop = Math.max(0, cur.offsetTop - qp.clientHeight / 3); }); } } }
+    } }
   if (on){ const cellOn = !!(pr && pr.classList.contains('open')), has = {show:!!$('#side .qsec[data-sec="show"] .blk'), res:!!$('#side [data-blk="results"]'), charts:!!$('#side .qsec[data-sec="charts"] .blk, #side .qsec[data-sec="charts"] .migcard'), about:!!$('#side .qsec[data-sec="about"] .blk'), prof:!!$('#strip'), cell:cellOn};
     if (PTAB && !has[PTAB]) PTAB = '';
     document.querySelectorAll('button[data-ptab]').forEach(b => { b.hidden = !has[b.dataset.ptab]; b.setAttribute('aria-pressed', PTAB === b.dataset.ptab); });
     a.dataset.pt = PTAB; body.dataset.pt = PTAB; }
   clearTimeout(stackSync.t); stackSync.t = setTimeout(() => { if (typeof map !== 'undefined') map.invalidateSize(); if (on && typeof strip === 'function') strip(); }, 80); }
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button[data-ptab]'); if (b) ptabSet(b.dataset.ptab); });
-{ const c0 = $('#ctls'), cb = document.createElement('button'); cb.type = 'button'; cb.id = 'ctlbtn'; cb.className = 'mapctl'; cb.setAttribute('aria-expanded', 'false'); cb.innerHTML = '<span>Map</span><i aria-hidden="true"></i>'; cb.title = 'Map options: cell size, tools, basemap and layers';
+{ const c0 = $('#ctls'), cb = document.createElement('button'); cb.type = 'button'; cb.id = 'ctlbtn'; cb.className = 'mapctl'; cb.setAttribute('aria-expanded', 'false'); cb.innerHTML = '<span class="cbl">Map options</span><span class="cbs">Map</span><i aria-hidden="true"></i>'; cb.title = 'Map options: cell size, tools, basemap and layers';
   cb.onclick = () => { const o = !document.body.classList.contains('ctlopen'); document.body.classList.toggle('ctlopen', o); cb.setAttribute('aria-expanded', o); };
   if (c0) c0.prepend(cb);
   /* picking a cell opens Cell; closing it closes Cell */
@@ -4219,13 +4263,40 @@ document.addEventListener('input', e => { const f = e.target.closest && e.target
   [...nav.children].forEach(b => { if (b.classList.contains('qgrp')){ fin(); grp = b; any = false; return; } const ok = t ? b.textContent.toLowerCase().includes(t) : !b.dataset.folded; b.hidden = !ok; if (ok) any = true; }); fin(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.side.qs && $('#qpick') && !$('#qpick').hidden){ S.side.qs = false; store.set('side2', S.side); side(); const c = $('.qchange'); if (c) c.focus(); } });
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.qchange') && !S.side.qs) setTimeout(() => { const f = $('.qfilt'); if (f && !isPhone()) f.focus(); }, 30); });
+/* the "How to use" walkthrough: five stops, each pointing at one part of the screen; it changes nothing on the map */
+const HOWTO = [
+  {t:'Pick a question', el:() => $('.qchange'), x:() => 'Everything here starts with a guiding question, such as where invasive plants are showing up or when birds migrate through. Open <b>All questions</b> to choose one. The map, numbers and charts all change to answer it.'},
+  {t:'Choose where', el:() => $('#section'), x:() => isPhone() ? 'The whole trail is shown to start. Pick a club section, region or state in the green <b>Whole trail</b> button at the top of the map, or search for a place, species, shelter or tract. The answer and results then cover just that area.'
+      : 'The whole trail is shown to start. Pick a club section, region or state in <b>Section of trail</b>, or search for a place, species, shelter or tract. The answer and results then cover just that area.'},
+  {t:'Read the map', el:() => isPhone() ? $('.ptabs') : $('.qhead'), x:() => 'Darker cells mean more. Questions marked <b>\u25B6 Animated</b> change over time: press <b>\u25B6</b> at the bottom left of the map to play them. ' + (isPhone() ? 'Tap <b>Measures</b> to change what’s mapped, or <b>Results</b>, <b>Charts</b> or <b>Profile</b> for more. Tap the same button again to close it.' : '<b>Measures</b>, <b>Results</b> and the charts are in the panel on the left.')},
+  {t:'Look closer at a cell', el:() => $('#map'), x:() => 'Tap any cell for what’s known there across every dataset, not only this question. You can see the details or download them as text, CSV or Excel. To compare several cells, use <b>Select area</b> or <b>Pick cells</b> under ' + (isPhone() ? '<b>Map ▾</b>.' : '<b>Map tools</b>.')},
+  {t:'Take a guided tour', el:() => $('#howbtn'), x:() => 'Want an example? The <b>grassland tour</b> walks through 12 stops on where restoration matters most along the trail. Look for the <b>Tour</b> badge in the question list. This walkthrough is always under the <b>?</b> button at the top.'}];
+let HOWK = -1;
+function howHL(on){ document.querySelectorAll('.howhl').forEach(e => e.classList.remove('howhl')); if (on && HOWK >= 0){ const e = HOWTO[HOWK].el(); if (e) e.classList.add('howhl'); } }
+function howDraw(){ let d = $('#howto'); if (HOWK < 0){ if (d) d.remove(); howHL(false); return; }
+  if (!d){ d = document.createElement('div'); d.id = 'howto'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'How to use'); document.body.append(d); }
+  const st = HOWTO[HOWK], last = HOWK === HOWTO.length - 1;
+  d.innerHTML = `<div class="hk">How to use · ${HOWK + 1} of ${HOWTO.length}</div><button type="button" class="hx" data-howx="1" aria-label="Close">×</button><h3>${st.t}</h3><p>${st.x()}</p>` +
+    `<div class="hnav"><div class="hdots">${HOWTO.map((_, i) => `<i${i === HOWK ? ' class="on"' : ''}></i>`).join('')}</div>` + (last ? `<button type="button" class="qtour hgo" data-tour="grassland">Start the grassland tour</button><button type="button" class="pri" data-howx="1">Done</button>`
+      : `<button type="button" data-howb="1"${HOWK ? '' : ' disabled'}>Back</button><button type="button" class="pri" data-hown="1">Next</button>`) + '</div>';
+  if (!isPhone()){ const a = $('aside').getBoundingClientRect(); d.style.left = (a.right + 18) + 'px'; } else d.style.left = '';
+  howHL(true); const b = d.querySelector('.pri'); if (b) b.focus({preventScroll:true}); }
+function howStart(){ if (S.side.qs){ S.side.qs = false; store.set('side2', S.side); side(); } HOWK = 0; try { store.set('howseen', 1); } catch (e) {} howDraw(); }
+function howEnd(){ HOWK = -1; howDraw(); }
+document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-howto], [data-hown], [data-howb], [data-howx], #howto .hgo'); if (!t) return;
+  if (t.dataset.howto) howStart(); else if (t.dataset.hown){ HOWK = Math.min(HOWTO.length - 1, HOWK + 1); howDraw(); } else if (t.dataset.howb){ HOWK = Math.max(0, HOWK - 1); howDraw(); } else howEnd(); });
+document.addEventListener('keydown', e => { if (HOWK < 0) return; if (e.key === 'Escape') howEnd(); else if (e.key === 'ArrowRight' && !/input|select|textarea/i.test(e.target.tagName || '')){ HOWK = Math.min(HOWTO.length - 1, HOWK + 1); howDraw(); } else if (e.key === 'ArrowLeft' && !/input|select|textarea/i.test(e.target.tagName || '')){ HOWK = Math.max(0, HOWK - 1); howDraw(); } });
+{ const hc = $('header .hctl'), hb = document.createElement('button'); hb.type = 'button'; hb.id = 'howbtn'; hb.textContent = '?'; hb.title = 'How to use'; hb.setAttribute('aria-label', 'How to use'); hb.dataset.howto = '1'; if (hc) hc.insertBefore(hb, $('#aboutbtn'));
+  addEventListener('resize', () => { if (HOWK >= 0) howDraw(); });
+  /* once, on a first visit (not when a link opens a tour) */
+  setTimeout(() => { let seen = 0; try { seen = store.get('howseen', 0); } catch (e) {} if (!seen && !/tour=/.test(location.hash) && !(typeof TOUR !== 'undefined' && TOUR.id)) howStart(); }, 2200); }
 function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
-  const SUMH = S.m.find ? '' : summary(lv), ANS = S.m.find ? {h:'', used:''} : ansLine(lv, SUMH);
-  let h = `<section class="qhead" style="--hue:${q.hue}"><div class="qcrumb">${S.m.find ? 'Search' : esc(QGRP[q.id] || '')}</div><div class="qtitle"><h2>${S.m.find ? 'Search results' : esc(q.title)}</h2><button type="button" class="blktog qchange" data-blk="qs" aria-expanded="${!!S.side.qs}" aria-controls="qpick">Change<i aria-hidden="true"></i></button></div>` +
-    ANS.h + (typeof QTOUR !== 'undefined' && typeof TOURS !== 'undefined' && QTOUR[q.id] && !S.m.find && TOURS[QTOUR[q.id]] ? `<button type="button" class="qtour qtstart" data-tour="${QTOUR[q.id]}"><b>Take the ${esc(QTOUR[q.id])} tour</b> · ${TOURS[QTOUR[q.id]].steps.length} stops<span>Start</span></button>` : '') +
-    `<div class="qpick" id="qpick"${S.side.qs ? '' : ' hidden'}><div class="qph"><b>Choose a question</b><button type="button" class="blktog qpx" data-blk="qs" aria-label="Close the question list">×</button></div><input class="qfilt" type="search" placeholder="Filter questions…" aria-label="Filter questions" autocomplete="off">` +
-    `<nav class="qs" aria-label="Guiding questions">` + Q.filter(qVis).map((x, i, a) => { const g = QGRP[x.id], off = g && QGOFF.has(g), cur = x === q && !S.m.find; return (g && (!i || QGRP[a[i - 1].id] !== g) ? `<button type="button" class="qgrp" data-qg="${esc(g)}" aria-expanded="${!off}"><span>${esc(g)}</span><i aria-hidden="true"></i></button>` : '') + (`<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${cur}"${off && !cur ? ' hidden data-folded="1"' : ''}>${esc(x.title)}${typeof QTOUR !== 'undefined' && QTOUR[x.id] ? `<span class="qtour" role="button" tabindex="0" data-tour="${QTOUR[x.id]}" title="Take a guided tour"><svg class="qnew" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>Tour<span class="vh"> (new)</span></span>` : ''}</button>`); }).join('') + '</nav></div></section>' +
+  const SUMH = S.m.find ? '' : summary(lv), ANS = {h:'', used:''};
+  let h = `<section class="qhead" style="--hue:${q.hue}"><div class="qcrumb">${S.m.find ? 'Search' : 'Guiding question' + (QGRP[q.id] ? ' · ' + esc(QGRP[q.id]) : '')}</div><div class="qtitle"><h2>${S.m.find ? 'Search results' : esc(q.title)}</h2><button type="button" class="blktog qchange" data-blk="qs" aria-expanded="${!!S.side.qs}" aria-controls="qpick">All questions<i aria-hidden="true"></i></button></div>` +
+    (PLAYQ() ? '<span class="qanim qanimh">▶ Animated · press play on the map</span>' : '') + '<div class="qquick" id="qquick"></div>' + ANS.h + (typeof QTOUR !== 'undefined' && typeof TOURS !== 'undefined' && QTOUR[q.id] && !S.m.find && TOURS[QTOUR[q.id]] ? `<button type="button" class="qtour qtstart" data-tour="${QTOUR[q.id]}"><b>Take the ${esc(QTOUR[q.id])} tour</b> · ${TOURS[QTOUR[q.id]].steps.length} stops<span>Start</span></button>` : '') +
+    `<div class="qpick" id="qpick"${S.side.qs ? '' : ' hidden'}><div class="qph"><b>Choose a question</b><button type="button" class="blktog qpx" data-blk="qs" aria-label="Close the question list">×</button></div><input class="qfilt" type="search" placeholder="Filter questions…" aria-label="Filter questions" autocomplete="off"><p class="qstart"><b>Start here:</b> pick a question to see its answer on the map. Not sure where to begin? <button type="button" class="qhow" data-howto="1">Show me how</button> · or try the <button type="button" class="qtour qtlink" data-tour="grassland">grassland tour</button>.</p>` +
+    `<nav class="qs" aria-label="Guiding questions">` + Q.filter(qVis).map((x, i, a) => { const g = QGRP[x.id], off = g && QGOFF.has(g), cur = x === q && !S.m.find; return (g && (!i || QGRP[a[i - 1].id] !== g) ? `<button type="button" class="qgrp" data-qg="${esc(g)}" aria-expanded="${!off}"><span>${esc(g)}</span><i aria-hidden="true"></i></button>` : '') + (`<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${cur}"${off && !cur ? ' hidden data-folded="1"' : ''}>${esc(x.title)}${QANIM.has(x.id) ? '<span class="qanim" title="This question has an animation">▶ Animated</span>' : ''}${typeof QTOUR !== 'undefined' && QTOUR[x.id] ? `<span class="qtour" role="button" tabindex="0" data-tour="${QTOUR[x.id]}" title="Take a guided tour"><svg class="qnew" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>Tour<span class="vh"> (new)</span></span>` : ''}</button>`); }).join('') + '</nav></div></section>' +
     '<nav class="ptabs" aria-label="Open in the panel">' + [['show', 'Measures'], ['res', 'Results'], ['charts', 'Charts'], ['prof', 'Profile'], ['about', 'About'], ['cell', 'Cell']].map(([k, t]) => `<button type="button" data-ptab="${k}" aria-pressed="${PTAB === k}">${t}</button>`).join('') + '</nav>';
   if (S.m.find){ const fs = findSummary(lv); el.innerHTML = h + `<div class="qbody">${fs[0]}${blk('results', 'Results', fs[1], 'res')}</div>`; return; }
   const extBlk = q.id === 'hist' && !S.m.find ? `<section class="blk extblk">${histAdmBlock().replace('<span>Extent</span>', '<h2>Extent</h2>')}${histBlock()}</section>` : !EXTQ.includes(q.id) ? '' : `<section class="blk extblk"><div class="extsw" role="group" aria-label="Extent"><h2>Extent</h2><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${EXTNO.includes(q.id) ? ' disabled class="extna" title="The trail is measured along the trail itself, so the HUC10 watershed extent does not apply"' : S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
@@ -4238,7 +4309,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
   h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + '<div class="qsec" data-sec="show"><div class="qlab">Show</div>' + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map((m, k, a) => (m.grp && (!k || a[k - 1].grp !== m.grp) ? `</div><h4 class="mgrp">${esc(m.grp)}</h4><div class="chips" role="group" aria-label="${esc(m.grp)}">` : '') + `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
     '</div><div class="qsec" data-sec="res"><div class="qlab">Answer</div><div class="anslegend" id="anslegend" aria-hidden="true"></div>' + blk('results', 'Results', ANS.used ? SUMH.replace(ANS.used, '') : SUMH, 'res') + '</div><div class="qsec" data-sec="charts"><div class="qlab">More</div>' + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find && !CULTM() ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find && !['defrel', 'defrate'].includes(S.m.id) ? blk('tvw', 'Model weights', S.m.id === 'tfall' ? `<div id="tfwts">${tfWeightsHTML()}</div>` : `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div><div class="qsec" data-sec="about">' + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) + '</div></div>';
-  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire(); migWire(); legCopy(); stackSync();
+  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire(); migWire(); legCopy(); stackSync(); quickPick(); mapPlay();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
     const nu = k.top == null ? null : (k.sels || []).map(s => document.querySelector(s)).find(Boolean); if (nu){ const d = nu.getBoundingClientRect().top - k.top; if (Math.abs(d) >= 1) scroller(nu).scrollTop += d; } }); } }
@@ -5055,7 +5126,7 @@ function tourMobile(on){ document.body.classList.toggle('touring', !!on); if (on
 function tourSize(){ const H = window.visualViewport ? visualViewport.height : innerHeight, m = Math.max(260, Math.round(H * .62)); document.body.style.setProperty('--tmh', m + 'px'); $('#mapwrap').style.height = m + 'px'; document.body.style.setProperty('--tph', Math.max(190, Math.round(H - m)) + 'px'); }
 addEventListener('resize', () => { if (document.body.classList.contains('touring')) tourSize(); });
 function tourScroll(){ const w = $('#mapwrap'); if (!w) return; const y = w.getBoundingClientRect().top + scrollY; if (Math.abs(scrollY - y) > 2) scrollTo({top:y, behavior:'auto'}); }
-function tourStart(id){ if (S.side.qs){ S.side.qs = false; store.set('side2', S.side); } if (!TOURS[id]) return; if (typeof goatEvent === 'function') goatEvent('tour-' + id); if (TOUR.leg == null){ TOUR.leg = S.legend; S.legend = false; } TOUR.id = id; tourGo(0); }   /* the legend folds up while the tour panel is open */
+function tourStart(id){ if (HOWK >= 0) howEnd(); if (S.side.qs){ S.side.qs = false; store.set('side2', S.side); } if (!TOURS[id]) return; if (typeof goatEvent === 'function') goatEvent('tour-' + id); if (TOUR.leg == null){ TOUR.leg = S.legend; S.legend = false; } TOUR.id = id; tourGo(0); }   /* the legend folds up while the tour panel is open */
 function tourEnd(){ TOUR.id = null; const d = $('#tour'); if (d) d.remove(); if (document.body.classList.contains('touring')){ tourMobile(false); lockW = 0; lockMapHeight(); map.invalidateSize(); } if (tourSites){ tourSites.remove(); tourSites = null; } if (TOUR.leg != null){ S.legend = TOUR.leg; TOUR.leg = null; legend(); } try { const h = new URLSearchParams(location.hash.slice(1)); if (h.has('tour')){ h.delete('tour'); history.replaceState(null, '', '#' + h.toString()); } } catch (x) {} }
 document.addEventListener('keydown', e => { if (!TOUR.id || /input|select|textarea/i.test((e.target.tagName || ''))) return;
   if (e.key === 'ArrowRight') tourGo(TOUR.k + 1); else if (e.key === 'ArrowLeft') tourGo(TOUR.k - 1); else if (e.key === 'Escape') tourEnd(); });
