@@ -612,17 +612,17 @@ button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;
   @media (max-width:380px){ body.stackui header h1{font-size:15px} body.stackui header{gap:7px;padding:0 8px} body.stackui #aboutbtn{font-size:12px;padding:4px 7px}
     #ctlbtn .cbl{display:none} #ctlbtn .cbs{display:inline} body.stackui #section{width:calc(100vw - 128px) !important;max-width:calc(100vw - 128px) !important} body.stackui #ctls{right:50px !important} }
   body.stackui #mapwrap{order:1;flex:1 1 auto;min-height:150px;height:auto !important}
-  body.stackui #strip{order:2;flex:none;padding:4px 12px 6px;display:none}
+  body.stackui #strip{order:2;flex:none;padding:4px 12px 4px;display:none}
   body.stackui[data-pt=prof] #strip{display:block}
   body.stackui aside[data-pt=prof] .qbody{display:none}
   body.stackui #stripread{display:none}
   body.stackui .striphead h2{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 2px}
   body.stackui .tour{order:3}
-  body.stackui aside{order:4;flex:none;max-height:50vh;max-height:50dvh;overflow:hidden;display:flex;flex-direction:column;border-top:1px solid #0A131F}
+  body.stackui aside{order:4;flex:none;max-height:60vh;max-height:60dvh;overflow:hidden;display:flex;flex-direction:column;border-top:1px solid #0A131F}
   body.stackui #side{display:contents}
-  body.stackui .qhead{order:1;flex:none}
-  body.stackui .qbody{order:2;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:block}
-  body.stackui aside #profile{order:3;flex:1 1 auto;min-height:0;overflow-y:auto}
+  body.stackui .qbody{order:1;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:block;border-bottom:1px solid var(--line)}
+  body.stackui aside #profile{order:2;flex:1 1 auto;min-height:0;overflow-y:auto;border-bottom:1px solid var(--line)}
+  body.stackui .qhead{order:3;flex:none}
   body.stackui .ptabs{order:4;flex:none}
   body.stackui .secpick{position:fixed;top:54px;left:10px;right:10px;z-index:1150;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px;padding:0;background:none;border:0;pointer-events:none}
   body.stackui .secpick>*{pointer-events:auto}
@@ -688,7 +688,7 @@ button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;
 #howbtn:hover,#howbtn:focus-visible{background:rgba(255,255,255,.12)}
 .qstart{margin:2px 16px 8px;padding:8px 10px;border-radius:8px;background:#1B2B42;color:#DDE6F0;font-size:13.5px;line-height:1.45}
 .qstart b{color:#fff}.qhow,.qstart .qtlink{all:unset;cursor:pointer;color:#8FC8FF;text-decoration:underline;text-underline-offset:2px}
-#howto{position:fixed;z-index:2000;bottom:40px;width:min(380px,calc(100vw - 24px));background:rgba(16,28,46,.98);color:#EEF2F7;border-radius:12px;border-top:3px solid #F0C419;box-shadow:0 8px 28px rgba(0,0,0,.45);padding:12px 16px 12px;font-size:14px;line-height:1.5}
+#howto{position:fixed;z-index:2000;bottom:40px;width:min(380px,calc(100vw - 24px));background:rgba(16,28,46,.98);color:#EEF2F7;border-radius:12px;border:3px solid #F0C419;box-shadow:0 8px 28px rgba(0,0,0,.45);padding:12px 16px 12px;font-size:14px;line-height:1.5}
 #howto .hk{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
 #howto h3{margin:2px 0 4px;font-size:17px}#howto p{margin:0 0 10px}
 #howto .hx{position:absolute;top:4px;right:4px;width:34px;height:34px;border:0;background:none;color:inherit;font-size:22px;cursor:pointer}
@@ -5709,7 +5709,7 @@ function strip(){ const m = S.m, lv = stripLv = dispLevel(), L_ = D.levels[lv], 
   h += `<text class="end" x="${pl}" y="${H-4}">${wide ? 'Springer Mountain, Georgia' : 'Georgia'}</text><text class="end" x="${W-pr}" y="${H-4}" text-anchor="end">${wide ? 'Katahdin, Maine' : 'Maine'}</text>`;
   const endL = wide ? 215 : 70, endR = wide ? 135 : 55; /* room taken by the end labels */
   if (W > 620) [500,1000,1500].filter(mi => x(mi) - 32 > pl + endL && x(mi) + 32 < W - pr - endR).forEach(mi => { h += `<text x="${x(mi)}" y="${H-4}" text-anchor="middle">mile ${fmt(mi,0)}</text><line x1="${x(mi)}" x2="${x(mi)}" y1="${base}" y2="${base+4}" stroke="#71849B"/>`; });
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = h;
+  svg.setAttribute('viewBox', `0 0 ${W} ${document.body.classList.contains('stackui') ? 94 : H}`); svg.style.height = document.body.classList.contains('stackui') ? '94px' : ''; svg.innerHTML = h;
   svg._geo = {pl, pw, bw};
   $('#striptitle').textContent = `${m.label}, south to north (${LV[lv].name} cells)`;
   $('#stripread').textContent = 'Click to go there';
