@@ -757,6 +757,7 @@ body.hasplay #legend{bottom:58px}
   body.stackui #legtog span{max-width:none;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2}
   body.stackui #legend{max-width:68vw}
 }
+.qs [hidden],.qpick [hidden],.qgrp[hidden]{display:none !important}
 </style>
 </head>
 <body>
@@ -3850,7 +3851,7 @@ $('#cellsbtn').onclick = () => { S.cells = !S.cells; map.getPane('cells').style.
   b.setAttribute('aria-pressed', S.cells); b.querySelector('span').textContent = S.cells ? 'Cells on' : 'Cells off';
   if (shown){ if (S.cells) GROUP[shown].addTo(map); else { map.removeLayer(GROUP[shown]); tip.remove(); } } };
 
-function trailMid(){ if (!isPhone()) return; const L_ = D.levels.wheel; let c = 0, bd = 1e9; for (let i = 0; i < L_.id.length; i++){ const d = Math.abs(L_.mi[i] - 1150); if (d < bd){ bd = d; c = i; } } map.setView(L_.c[c], map.getZoom(), {animate:false}); }
+function trailMid(){ if (!isPhone()) return; const L_ = D.levels.wheel; let c = 0, bd = 1e9; for (let i = 0; i < L_.id.length; i++){ const d = Math.abs(L_.mi[i] - 1150); if (d < bd){ bd = d; c = i; } } map.setView(L_.c[c], map.getZoom(), {animate:false});   /* center it in the part of the map below the search and section rows */ const sp = $('.secpick'), mr = map.getContainer().getBoundingClientRect(); const top = sp ? Math.max(0, sp.getBoundingClientRect().bottom - mr.top) : 0; if (top) map.panBy([0, -top / 2], {animate:false}); }
 function fitSection(){ const lv = 'wheel', L_ = D.levels[lv], pts = [];
   for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) pts.push(L_.c[c]);
   if (pts.length){ map.fitBounds(L.latLngBounds(pts).pad(.08)); if (S.sec === 'all') trailMid(); } }
