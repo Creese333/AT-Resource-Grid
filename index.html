@@ -5800,7 +5800,11 @@ $('#aboutclose').onclick = () => $('#about').close();
 $('#about').addEventListener('click', e => { if (e.target === $('#about')) $('#about').close(); });
 
 /* ---------- start ---------- */
-map.fitBounds(L.latLngBounds(D.levels.wheel.c).pad(.03)); trailMid(); baseSync(); mapGestures();
+map.fitBounds(L.latLngBounds(D.levels.wheel.c).pad(.03)); trailMid(); baseSync();
+/* phones: the page settles (address bar, fonts, panel) after the first draw, so center again until the person moves the map */
+{ let moved = false; map.once('dragstart zoomstart', e => { if (e && e.originalEvent !== undefined) moved = true; }); map.getContainer().addEventListener('touchstart', () => { moved = true; }, {once:true, passive:true});
+  const again = () => { if (moved || !isPhone() || S.sec !== 'all' || S.cell != null || (typeof TOUR !== 'undefined' && TOUR.id)) return; map.invalidateSize({pan:false}); map.fitBounds(L.latLngBounds(D.levels.wheel.c).pad(.03), {animate:false}); trailMid(); };
+  [300, 900, 2000, 3500].forEach(t => setTimeout(again, t)); if (window.visualViewport) visualViewport.addEventListener('resize', () => setTimeout(again, 150)); } mapGestures();
 if (S.sec !== 'all') fitSection();
 /* ---------- quarterly iNaturalist and eBird summaries from inat_ebird.json ----------
    Built on GitHub from GBIF downloads (build_inat_ebird.py). When the file is there, its summaries replace the ones built into
