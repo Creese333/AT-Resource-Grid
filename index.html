@@ -571,6 +571,75 @@ header .blaze{width:14px;height:38px}
 .migcardbtn{position:absolute;right:12px;bottom:28px;z-index:440;border:1px solid #33465F;background:rgba(20,34,53,.95);color:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;cursor:pointer}
 .migcardbtn.mob{position:static;margin:0 0 10px}
 .migcard[hidden],.migcardbtn[hidden]{display:none}
+/* ---- question layout: Question, Show, Answer, More ---- */
+aside{position:relative}
+.qhead{padding:10px 14px 8px 15px;border-bottom:1px solid var(--line)}
+.qcrumb{font-size:12px;color:#93A8C0;letter-spacing:.01em}
+.qtitle{display:flex;align-items:center;gap:10px;margin-top:2px}
+.qtitle h2{flex:1;min-width:0;display:flex;align-items:center;gap:10px;margin:0;font-family:var(--cond);font-size:19px;line-height:1.25;color:#fff}
+.qtitle h2::before{content:'';flex:none;width:12px;height:33px;background:color-mix(in srgb,var(--hue) 88%,#fff);-webkit-mask:var(--blaze) center/100% 100% no-repeat;mask:var(--blaze) center/100% 100% no-repeat}
+aside{overflow-x:hidden}
+.qchange.blktog{flex:none;width:auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:13.5px;color:#E3EAF2;background:none;border:1px solid #4A5D77;border-radius:999px;padding:4px 11px;cursor:pointer;white-space:nowrap}
+.qchange i{width:0;height:0;border:4.5px solid transparent;border-top:5.5px solid #C2CEDB;border-bottom:0;margin-top:2px}
+.qchange:hover,.qchange:focus-visible{background:rgba(255,255,255,.08);outline:2px solid #fff;outline-offset:1px}
+.qans{margin:9px 0 2px;padding:9px 11px;border-radius:9px;background:#1B2B42;font-size:14px;line-height:1.4}
+.qans p{margin:0}.qans b{font-size:15.5px;color:#fff}.qans small{display:block;margin-top:3px;color:#A8B8CA;font-size:12px}
+.qans .statline{margin:0}
+.qtstart{display:flex !important;width:100%;align-items:center;gap:8px;margin:8px 0 2px;padding:8px 10px !important;border-radius:9px !important;background:#3A1820 !important;border:1px solid #6B2532 !important;color:#F3E3E6 !important;font-size:13px !important;font-weight:500 !important;letter-spacing:0 !important;text-align:left;box-shadow:none !important}
+.qtstart b{flex:1;font-weight:600;color:#fff}.qtstart span{background:#E8EEF6;color:#14294A;border-radius:7px;padding:4px 10px;font-weight:600}
+.qpick{position:absolute;inset:0;z-index:40;background:var(--panel);overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column}
+.qpick[hidden]{display:none}
+.qph{display:flex;align-items:center;gap:10px;padding:14px 14px 6px 16px}.qph b{flex:1;font-size:17px;color:#fff}
+button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#1B2B42;color:#fff;font-size:19px;line-height:1;cursor:pointer}
+.qfilt{margin:4px 14px 6px 16px;padding:8px 11px;border-radius:9px;border:1px solid var(--line);background:#0F1C2E;color:#EEF3F8;font:inherit;font-size:15px}
+.qpick .qs{padding-bottom:16px}
+.qlab{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#7F93AA;margin:14px 0 2px;font-weight:600}
+.qbody>.qlab:first-child{margin-top:10px}
+.vizmap{font:inherit;font-size:12.5px;letter-spacing:0;text-transform:none;color:#fff;background:#1f6b4a;border:1px solid #2f9a6a;border-radius:999px;padding:3px 10px;cursor:pointer}
+.anslegend{display:none}
+#sgrab,#smini,#ctlbtn{display:none}
+/* ---- phones: map first, controls in a panel that slides up ---- */
+@media (max-width:860px){
+  body.sheetui{height:100vh;height:100dvh;overflow:hidden;padding:0}
+  body.sheetui header{position:fixed;top:0;left:0;right:0;height:46px;padding:0 12px;gap:10px;flex-wrap:nowrap;z-index:1200}
+  body.sheetui header h1{font-size:17px;white-space:nowrap;margin:0}
+  body.sheetui header .blaze{height:26px}
+  body.sheetui #aboutbtn{font-size:13px;padding:4px 10px}
+  body.sheetui{--sh:46vh}
+  body.sheetui[data-sheet=mini]{--sh:86px}body.sheetui[data-sheet=peek]{--sh:46dvh}body.sheetui[data-sheet=half]{--sh:66dvh}body.sheetui[data-sheet=full]{--sh:calc(100dvh - 54px)}
+  body.sheetui #mapwrap{position:fixed;left:0;right:0;top:46px;bottom:calc(var(--sh) - 14px);height:auto !important;min-height:0;transition:bottom .25s ease}
+  body.sheetui .secpick{position:fixed;top:54px;left:10px;right:10px;z-index:1150;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px;padding:0;background:none;border:0}
+  body.sheetui .secpick label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  body.sheetui .secpick .find{order:1;flex:1 1 0;min-width:0}
+  body.sheetui #find{width:100%;border-radius:12px;padding:9px 12px;background:rgba(20,34,53,.96);border:1px solid #33465F;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+  body.sheetui #section{order:2;flex:none;width:auto;max-width:42vw;border-radius:999px;padding:5px 10px;background:#1f6b4a;border:1px solid #2f9a6a;color:#fff;font-size:14px}
+  body.sheetui #ctls{top:54px}
+  body.sheetui #ctlbtn{display:inline-flex;align-items:center;gap:7px;pointer-events:auto;height:31px;padding:0 11px;border-radius:999px;font:inherit;font-size:13.5px;color:#fff;background:rgba(20,34,53,.94);border:1px solid #33465F}
+  body.sheetui #ctlbtn i{width:0;height:0;border:4.5px solid transparent;border-top:5.5px solid #C2CEDB;border-bottom:0}
+  body.sheetui.ctlopen #ctlbtn i{transform:rotate(180deg)}
+  body.sheetui:not(.ctlopen) #ctlrow1,body.sheetui:not(.ctlopen) #ctlrow2{display:none}
+  body.sheetui .migcard.mob{position:relative}
+  body.sheetui #ctls{z-index:900}
+  body.sheetui #legend{max-height:calc(100% - 150px);overflow-y:auto}
+  body.sheetui[data-sheet=half]{--sh:60dvh}
+  body.sheetui aside{position:fixed;left:0;right:0;bottom:0;height:var(--sh);z-index:1100;overflow-y:auto;overscroll-behavior:contain;border-radius:16px 16px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.45);transition:height .25s ease;display:block}
+  body.sheetui #sgrab{display:block;position:sticky;top:0;z-index:45;padding:8px 0 6px;background:var(--panel);cursor:grab;touch-action:none}
+  body.sheetui #sgrab i{display:block;width:42px;height:5px;border-radius:3px;background:#5A6E88;margin:0 auto}
+  body.sheetui[data-sheet=mini] #smini{display:flex;align-items:center;gap:10px;padding:0 14px 10px;cursor:pointer}
+  body.sheetui[data-sheet=mini] #side,body.sheetui[data-sheet=mini] #strip{display:none}
+  #smini .smplay{width:38px;height:38px;flex:none;border-radius:50%;border:0;background:#1f6b4a;color:#fff;font-size:14px}
+  #smini .smt{flex:1;min-width:0}#smini b{display:block;font-size:15px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#smini span{display:block;font-size:12.5px;color:#A8B8CA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#smini>i{color:#A8B8CA;font-style:normal}
+  body.sheetui .qhead{padding-top:0}
+  body.sheetui .anslegend{display:block;margin:6px 0 4px;font-size:13px}
+  body.sheetui .anslegend .row{display:flex;align-items:center;gap:8px}body.sheetui .anslegend .row i{width:14px;height:14px;border-radius:3px;flex:none}
+  body.sheetui .anslegend .sub{color:#A8B8CA;font-size:12px;margin:4px 0 0}
+  body.sheetui[data-qpick] .qpick{position:fixed;inset:46px 0 0 0;z-index:1400}
+  body.sheetui #strip{border-top:1px solid var(--line);padding:10px 14px 18px}
+  body.sheetui #profile.open{position:fixed;left:0;right:0;bottom:0;top:auto;max-height:82dvh;z-index:1300;border-radius:16px 16px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.5);overflow-y:auto}
+  body.sheetui.touring aside{display:none}
+  body.sheetui.touring #mapwrap{bottom:var(--tph,38vh)}
+  body.sheetui .tour{position:fixed !important;left:0;right:0;bottom:0;height:var(--tph,38vh);z-index:1250;border-radius:16px 16px 0 0}
+}
 </style>
 </head>
 <body>
@@ -3048,7 +3117,7 @@ const MIGREG = [['NH · ME', 43.6, 90], ['CT · MA · VT', 41.6, 43.6], ['PA · 
 const migSp = () => MIG.idx && MIG.idx.species[MIGS.sp] || null;
 /* Spring, Nesting, Fall or Year; Nesting only for birds that nest along the trail */
 const migSeason = () => { const s = migSp(), m = MIGS.season === 'nest' && !migWins().breeding ? '' : MIGS.season; return m || (s && MIGDEF[s.story]) || 'spring'; };
-const MIGSEPH = {spring:'s', nest:'n', fall:'f'}, MIGSEN = {spring:'spring migration', nest:'nesting season', fall:'fall migration', year:'the weeks it is reported'};
+const MIGSEN = {spring:'spring migration', nest:'nesting season', fall:'fall migration', year:'the weeks it is reported'};
 const migWkOf = md => { const [m, d] = md.split('-').map(Number); return Math.floor((Date.UTC(2025, m - 1, d) - Date.UTC(2025, 0, 1)) / 6048e5) + 1; };
 const migMD = md => new Date(Date.UTC(2025, +md.slice(0, 2) - 1, +md.slice(3, 5))).toLocaleDateString('en-US', {month:'short', day:'numeric', timeZone:'UTC'});
 function migWins(){ const s = migSp(), ok = x => typeof x === 'string' && /^\d\d-\d\d\/\d\d-\d\d$/.test(x);
@@ -3283,7 +3352,7 @@ const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', 
 /* settings kept in this browser between visits (try/catch: private windows can refuse) */
 const store = {get(k, d){ try { const v = localStorage.getItem('atgrid_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v){ try { localStorage.setItem('atgrid_' + k, JSON.stringify(v)); } catch (e) {} }};
-Object.assign(S.side, store.get('side2', {})); store.get('qgroups', []).forEach(g => QGOFF.add(g)); { const lg = store.get('legend', null); if (lg != null) S.legend = lg; } S.secOpen = store.get('secs', {});
+Object.assign(S.side, store.get('side2', {})); S.side.qs = false;   /* the question list starts closed */ store.get('qgroups', []).forEach(g => QGOFF.add(g)); { const lg = store.get('legend', null); if (lg != null) S.legend = lg; } S.secOpen = store.get('secs', {});
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q') && qVis(x)); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
@@ -4039,17 +4108,17 @@ map.on('moveend zoomend', trailHi); trailHi();
    On a phone the map fills most of the screen, so a one-finger drag on it must scroll the page.
    Two fingers move and zoom the map. Taps still select cells. Wide screens are not affected. */
 const TOUCHDEV = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-function mapGestures(){ if (TOUCHDEV && VW() <= 860) map.dragging.disable(); else map.dragging.enable(); }
+function mapGestures(){ if (TOUCHDEV && VW() <= 860 && !document.body.classList.contains('sheetui')) map.dragging.disable(); else map.dragging.enable(); }
 { const mc = map.getContainer(), hint = $('#maphint'); let sx = 0, sy = 0, ht = null;
   const showHint = () => { hint.classList.add('on'); clearTimeout(ht); ht = setTimeout(() => hint.classList.remove('on'), 1600); };
-  const onTouch = e => { if (S.drawing){ if (e.cancelable) e.preventDefault(); return; } if (!(TOUCHDEV && VW() <= 860)) return;
+  const onTouch = e => { if (S.drawing){ if (e.cancelable) e.preventDefault(); return; } if (!(TOUCHDEV && VW() <= 860) || document.body.classList.contains('sheetui')) return;
     if (e.touches.length >= 2){ if (e.cancelable) e.preventDefault(); hint.classList.remove('on'); return; }
     if (e.type === 'touchstart'){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; return; }
     const dx = Math.abs(e.touches[0].clientX - sx), dy = Math.abs(e.touches[0].clientY - sy); if (dx > 18 && dx > dy * 1.3) showHint(); };
   mc.addEventListener('touchstart', onTouch, {passive:false}); mc.addEventListener('touchmove', onTouch, {passive:false}); }
 
 /* ---------- legend ---------- */
-function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3><button type="button" id="legtog" aria-expanded="${S.legend}" aria-controls="legbody"><span>${esc(m.label)}</span><i aria-hidden="true"></i></button></h3><div id="legbody"${S.legend ? '' : ' hidden'}>`;
+function legend(){ setTimeout(legCopy); const lv = dispLevel(), m = S.m; let h = `<h3><button type="button" id="legtog" aria-expanded="${S.legend}" aria-controls="legbody"><span>${esc(m.label)}</span><i aria-hidden="true"></i></button></h3><div id="legbody"${S.legend ? '' : ' hidden'}>`;
   if (m.kind === 'cat'){ const present = new Set(); const n = D.levels[lv].id.length;
     for (let c = 0; c < n; c++){ const v = m.get(lv, c); if (v != null) present.add(D.cats[m.f][v]); }
     if (m.many){ const cnt = new Map(); for (let c = 0; c < n; c++){ const v = m.get(lv, c); if (v != null && inSec(lv, c)) cnt.set(v, (cnt.get(v) || 0) + 1); }
@@ -4083,10 +4152,74 @@ function keepPlace(el, sels, fn){ const t0 = el && el.isConnected ? el.getBoundi
   if (Math.abs(d) >= 1){ const sc = scroller(nu); sc.scrollTop += d; } }
 /* a question or measure with its own choices (species, years, scale) opens the Selections block */
 const hasSel = () => PHQ() || (S.q.id === 'inv' && S.m.id === 'edrr') || (S.q.id === 'land' && S.m.id === 'acq');
+/* the one-line answer under the question: the migration share for the week, the restoration cells in the top class, or for the
+   other questions the first line of Results (moved up, not repeated) */
+function ansLine(lv, sumH){ const q = S.q, m = S.m, here = S.sec === 'all' ? 'Whole trail' : esc(secName()); let t = '', sub = '', used = '';
+  try {
+    if (q.id === 'mig' && typeof migSp === 'function'){ const s = migSp(), E = migE(lv), R = migR(lv);
+      if (s && E && R){ let e = 0, r = 0; const n = D.levels[lv].id.length;
+        for (let c = 0; c < n; c++){ if (!inSec(lv, c)) continue; for (let w = MIGS.wk - 1; w <= MIGS.wk + 1; w++){ if (w < 1 || w > 53) continue; e += E[c * 53 + w - 1]; r += R[c * 53 + w - 1]; } }
+        const who = S.sec === 'all' ? 'trail checklists' : 'checklists here';
+        t = e >= MIGBAND ? `<b>${fmt(100 * r / e, r / e < .1 ? 1 : 0)}%</b> of ${who} reported ${esc(s.common)}, ${esc(wkLabel(MIGS.wk))}` : `Too few checklists around ${esc(wkLabel(MIGS.wk))} to say how often ${esc(s.common)} was reported`;
+        sub = `${here} · that week and the week either side, all years since ${MIG.idx ? MIG.idx.from : 2010}`; } }
+    else if (q.id === 'rest' && (m.id === 'grass' || m.id === 'forest')){ const B = breaks(m, lv), lo = B.b.length ? B.b[B.b.length - 1] + 1 : B.min, L_ = D.levels[lv]; let n = 0, best = -1, bc = -1;
+      for (let c = 0; c < L_.id.length; c++){ if (!inSec(lv, c)) continue; const v = m.get(lv, c); if (v == null) continue; if (v >= lo) n++; if (v > best){ best = v; bc = c; } }
+      if (bc >= 0){ t = `<b>${fmt(n, 0)}</b> ${n === 1 ? 'cell scores' : 'cells score'} ${fmt(lo, 0)}–${fmt(best, 0)} for ${esc(m.label.toLowerCase())}, the top class on the map`; sub = `${here} · highest near mile ${fmt(L_.mi[bc], 0)}`; } }
+    else if (m.noun && m.kind !== 'cat' && !m.find){ const L_ = D.levels[lv]; let n = 0, tot = 0, best = 0, bc = -1;
+      for (let c = 0; c < L_.id.length; c++){ if (!inSec(lv, c)) continue; tot++; const v = m.get(lv, c); if (v == null || !(v > 0)) continue; n++; if (v > best){ best = v; bc = c; } }
+      if (tot){ t = `<b>${fmt(n, 0)}</b> of ${fmt(tot, 0)} cells have ${esc(m.label.charAt(0).toLowerCase() + m.label.slice(1))}`; sub = here + (bc >= 0 ? ` · up to ${fmt(best, 0)} ${esc(m.noun[best === 1 ? 0 : 1])} in one cell, near mile ${fmt(L_.mi[bc], 0)}` : ''); } }
+  } catch (x) { t = ''; }
+  if (!t){ const mm = (sumH || '').match(/<p class="statline">([\s\S]*?)<\/p>/); if (mm){ t = mm[1]; used = mm[0]; sub = ''; } }
+  return {h:t ? `<div class="qans"><p>${t}</p>${sub ? `<small>${sub}</small>` : ''}</div>` : '', used}; }
+/* the map legend, repeated in Answer on phones (where the map legend sits small over the map) */
+function legCopy(){ const a = $('#anslegend'), b = $('#legbody'); if (a) a.innerHTML = b ? b.innerHTML : ''; }
+/* phones: the panel's four heights; the bar shown at Mini; the trail profile moves into the panel */
+const SHEETS = ['mini', 'peek', 'half', 'full'];
+let sheetS = (() => { try { const v = store.get('sheet', 'peek'); return SHEETS.includes(v) ? v : 'peek'; } catch (e) { return 'peek'; } })();
+function sheetSet(s, keep){ sheetS = s; if (!keep) try { store.set('sheet', s); } catch (e) {} document.body.dataset.sheet = s; clearTimeout(sheetSet.t); sheetSet.t = setTimeout(() => { if (typeof map !== 'undefined') map.invalidateSize(); }, 280); }
+function sheetMini(){ const b = $('#smini'); if (!b) return; const q = S.q, wk = $('#migwkl') || $('#phwkl'), pl = $('#migplay') || $('#phplay');
+  const put = (el, t) => { if (el.textContent !== t) el.textContent = t; };
+  put(b.querySelector('b'), S.m.find ? 'Search results' : q.title);
+  put(b.querySelector('span'), [q.id === 'mig' && migSp() ? migSp().common : '', S.m.find ? '' : S.m.label, wk ? wk.textContent.split(' · ')[0] : '', S.sec === 'all' ? '' : secName()].filter(Boolean).join(' · '));
+  const p = b.querySelector('.smplay'); if (p.hidden !== !pl) p.hidden = !pl; if (pl) put(p, /pause/i.test(pl.textContent) ? '❚❚' : '▶'); }
+function vizMap(){ const t = $('#side [data-blk="viz"]'); if (!t) return; if (!S.side.viz){ S.side.viz = true; store.set('side2', S.side); side(); }
+  sheetSet('half'); setTimeout(() => { const b = $('#side [data-blk="viz"]'), a = $('aside'), g = $('#sgrab'); if (!b || !a) return; a.scrollTop += b.closest('.blk').getBoundingClientRect().top - a.getBoundingClientRect().top - (g ? g.offsetHeight : 0); }, 300); }
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.vizmap')) vizMap(); });
+function sheetSync(){ const on = isPhone(), body = document.body, a = $('aside'), st = $('#strip'); { const v = $('.vizmap'); if (v) v.hidden = !(on && $('#side [data-blk="viz"]')); }
+  if (on !== body.classList.contains('sheetui')){ body.classList.toggle('sheetui', on); if (on) sheetSet(sheetS, true); else delete body.dataset.sheet;
+    if (st){ if (on) a.append(st); else $('#mapwrap').after(st); }
+    if (typeof mapGestures === 'function') mapGestures(); setTimeout(() => { if (typeof map !== 'undefined') map.invalidateSize(); if (typeof strip === 'function') strip(); }, 60); }
+  { const f = $('#find'); if (f){ if (!f.dataset.ph0) f.dataset.ph0 = f.placeholder; const ph = on ? 'Search places, species, tracts' : f.dataset.ph0; if (f.placeholder !== ph) f.placeholder = ph; } }
+  if (on && S.side.qs) body.dataset.qpick = '1'; else delete body.dataset.qpick;
+  if (on) sheetMini(); }
+{ const a = document.querySelector('aside'), g = document.createElement('div'); g.id = 'sgrab'; g.setAttribute('role', 'button'); g.tabIndex = 0; g.setAttribute('aria-label', 'Resize the panel: Mini, Peek, Half or Full');
+  g.innerHTML = '<i></i>'; a.prepend(g);
+  const cb = document.createElement('button'); cb.type = 'button'; cb.id = 'ctlbtn'; cb.className = 'mapctl'; cb.setAttribute('aria-expanded', 'false'); cb.innerHTML = '<span>Map options</span><i aria-hidden="true"></i>';
+  cb.onclick = () => { const o = !document.body.classList.contains('ctlopen'); document.body.classList.toggle('ctlopen', o); cb.setAttribute('aria-expanded', o); };
+  { const c = $('#ctls'); if (c) c.prepend(cb); }
+  const mb = document.createElement('div'); mb.id = 'smini'; mb.innerHTML = '<button type="button" class="smplay" aria-label="Play or pause" hidden>▶</button><div class="smt"><b></b><span></span></div><i aria-hidden="true">⌃</i>'; g.after(mb);
+  mb.addEventListener('click', e => { const p = e.target.closest('.smplay'); if (p){ const r = $('#migplay') || $('#phplay'); if (r) r.click(); setTimeout(sheetMini, 60); return; } sheetSet('peek'); });
+  let y0 = null;
+  g.addEventListener('pointerdown', e => { y0 = e.clientY; try { g.setPointerCapture(e.pointerId); } catch (x) {} });
+  g.addEventListener('pointerup', e => { if (y0 == null) return; const d = y0 - e.clientY, i = SHEETS.indexOf(sheetS); y0 = null;
+    if (Math.abs(d) < 8) sheetSet(SHEETS[i === 3 ? 1 : i + 1]); else sheetSet(SHEETS[Math.max(0, Math.min(3, i + (d > 0 ? 1 : -1) * (Math.abs(d) > 160 ? 2 : 1)))]); });
+  g.addEventListener('keydown', e => { const i = SHEETS.indexOf(sheetS); if (e.key === 'ArrowUp'){ e.preventDefault(); sheetSet(SHEETS[Math.min(3, i + 1)]); } else if (e.key === 'ArrowDown'){ e.preventDefault(); sheetSet(SHEETS[Math.max(0, i - 1)]); } else if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); sheetSet(SHEETS[i === 3 ? 1 : i + 1]); } });
+  /* the Mini bar follows Play */
+  if (window.MutationObserver) new MutationObserver(() => { if (document.body.classList.contains('sheetui') && sheetS === 'mini') sheetMini(); }).observe($('#side'), {subtree:true, childList:true, characterData:true});
+  addEventListener('resize', () => { clearTimeout(sheetSync.t); sheetSync.t = setTimeout(sheetSync, 120); }); }
+/* the question list: type to filter (folded groups open while filtering); Escape closes it */
+document.addEventListener('input', e => { const f = e.target.closest && e.target.closest('.qfilt'); if (!f) return; const t = f.value.trim().toLowerCase(), nav = f.parentNode.querySelector('.qs'); if (!nav) return;
+  let grp = null, any = false; const fin = () => { if (grp) grp.hidden = !!t && !any; };
+  [...nav.children].forEach(b => { if (b.classList.contains('qgrp')){ fin(); grp = b; any = false; return; } const ok = t ? b.textContent.toLowerCase().includes(t) : !b.dataset.folded; b.hidden = !ok; if (ok) any = true; }); fin(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.side.qs && $('#qpick') && !$('#qpick').hidden){ S.side.qs = false; store.set('side2', S.side); side(); const c = $('.qchange'); if (c) c.focus(); } });
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.qchange') && !S.side.qs) setTimeout(() => { const f = $('.qfilt'); if (f && !isPhone()) f.focus(); }, 30); });
 function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
-  let h = `<section class="blk qsblk"><h2><button type="button" class="blktog" data-blk="qs" aria-expanded="${!!S.side.qs}"><span>Guiding Questions${S.side.qs ? '' : ` <small class="mgsum">${esc(q.title)}</small>`}</span><i aria-hidden="true"></i></button></h2>` +
-    `<nav class="qs" aria-label="Guiding questions"${S.side.qs ? '' : ' hidden'}>` + Q.filter(qVis).map((x, i, a) => { const g = QGRP[x.id], off = g && QGOFF.has(g), cur = x === q && !S.m.find; return (g && (!i || QGRP[a[i - 1].id] !== g) ? `<button type="button" class="qgrp" data-qg="${esc(g)}" aria-expanded="${!off}"><span>${esc(g)}</span><i aria-hidden="true"></i></button>` : '') + (off && !cur ? '' : `<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${cur}">${esc(x.title)}${typeof QTOUR !== 'undefined' && QTOUR[x.id] ? `<span class="qtour" role="button" tabindex="0" data-tour="${QTOUR[x.id]}" title="Take a guided tour"><svg class="qnew" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>Tour<span class="vh"> (new)</span></span>` : ''}</button>`); }).join('') + '</nav></section>';
+  const SUMH = S.m.find ? '' : summary(lv), ANS = S.m.find ? {h:'', used:''} : ansLine(lv, SUMH);
+  let h = `<section class="qhead" style="--hue:${q.hue}"><div class="qcrumb">${S.m.find ? 'Search' : esc(QGRP[q.id] || '')}</div><div class="qtitle"><h2>${S.m.find ? 'Search results' : esc(q.title)}</h2><button type="button" class="blktog qchange" data-blk="qs" aria-expanded="${!!S.side.qs}" aria-controls="qpick">Change<i aria-hidden="true"></i></button></div>` +
+    ANS.h + (typeof QTOUR !== 'undefined' && typeof TOURS !== 'undefined' && QTOUR[q.id] && !S.m.find && TOURS[QTOUR[q.id]] ? `<button type="button" class="qtour qtstart" data-tour="${QTOUR[q.id]}"><b>Take the ${esc(QTOUR[q.id])} tour</b> · ${TOURS[QTOUR[q.id]].steps.length} stops<span>Start</span></button>` : '') +
+    `<div class="qpick" id="qpick"${S.side.qs ? '' : ' hidden'}><div class="qph"><b>Choose a question</b><button type="button" class="blktog qpx" data-blk="qs" aria-label="Close the question list">×</button></div><input class="qfilt" type="search" placeholder="Filter questions…" aria-label="Filter questions" autocomplete="off">` +
+    `<nav class="qs" aria-label="Guiding questions">` + Q.filter(qVis).map((x, i, a) => { const g = QGRP[x.id], off = g && QGOFF.has(g), cur = x === q && !S.m.find; return (g && (!i || QGRP[a[i - 1].id] !== g) ? `<button type="button" class="qgrp" data-qg="${esc(g)}" aria-expanded="${!off}"><span>${esc(g)}</span><i aria-hidden="true"></i></button>` : '') + (`<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${cur}"${off && !cur ? ' hidden data-folded="1"' : ''}>${esc(x.title)}${typeof QTOUR !== 'undefined' && QTOUR[x.id] ? `<span class="qtour" role="button" tabindex="0" data-tour="${QTOUR[x.id]}" title="Take a guided tour"><svg class="qnew" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>Tour<span class="vh"> (new)</span></span>` : ''}</button>`); }).join('') + '</nav></div></section>';
   if (S.m.find){ const fs = findSummary(lv); el.innerHTML = h + `<div class="qbody">${fs[0]}${blk('results', 'Results', fs[1], 'res')}</div>`; return; }
   const extBlk = q.id === 'hist' && !S.m.find ? `<section class="blk extblk">${histAdmBlock().replace('<span>Extent</span>', '<h2>Extent</h2>')}${histBlock()}</section>` : !EXTQ.includes(q.id) ? '' : `<section class="blk extblk"><div class="extsw" role="group" aria-label="Extent"><h2>Extent</h2><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${EXTNO.includes(q.id) ? ' disabled class="extna" title="The trail is measured along the trail itself, so the HUC10 watershed extent does not apply"' : S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
     (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow once you zoom in. Trail miles are those of the nearest corridor cell.' + '</p>' : '') + '</section>';
@@ -4095,10 +4228,10 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
       (S.appa ? '<p class="extnote">Only NPS – APPA land counts: scores are scaled by the share of the cell’s corridor land that APPA administers. Cells without APPA land, or with too little to score, are left blank.</p>' : ''));
   const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'mig' ? migBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : '';
-  h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) +
+  h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + '<div class="qlab">Show</div>' + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map((m, k, a) => (m.grp && (!k || a[k - 1].grp !== m.grp) ? `</div><h4 class="mgrp">${esc(m.grp)}</h4><div class="chips" role="group" aria-label="${esc(m.grp)}">` : '') + `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
-    blk('results', 'Results', summary(lv), 'res') + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find && !CULTM() ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find && !['defrel', 'defrate'].includes(S.m.id) ? blk('tvw', 'Model weights', S.m.id === 'tfall' ? `<div id="tfwts">${tfWeightsHTML()}</div>` : `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div>';
-  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire(); migWire();
+    '<div class="qlab">Answer</div><div class="anslegend" id="anslegend" aria-hidden="true"></div>' + blk('results', 'Results', ANS.used ? SUMH.replace(ANS.used, '') : SUMH, 'res') + '<div class="qlab qlabmore">More<button type="button" class="vizmap" hidden>Chart with map</button></div>' + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find && !CULTM() ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find && !['defrel', 'defrate'].includes(S.m.id) ? blk('tvw', 'Model weights', S.m.id === 'tfall' ? `<div id="tfwts">${tfWeightsHTML()}</div>` : `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) + '</div>';
+  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire(); migWire(); legCopy(); sheetSync();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
     const nu = k.top == null ? null : (k.sels || []).map(s => document.querySelector(s)).find(Boolean); if (nu){ const d = nu.getBoundingClientRect().top - k.top; if (Math.abs(d) >= 1) scroller(nu).scrollTop += d; } }); } }
@@ -4154,7 +4287,7 @@ $('#side').addEventListener('click', e => { const b = e.target.closest('button')
   if (b.dataset.phrk){ S.ph.rk = b.dataset.phrk; side(); return; }
   if (b.dataset.selsum && SUMSEL && SUMSEL.cells.length){ selectMany(SUMSEL.lv, SUMSEL.cells.slice(), null, SUMSEL.label); return; }
   if (b.dataset.clearfind){ clearFind(); return; }
-  if (b.dataset.q){ const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q || S.m.find){ S.q = q; S.m = q.m[0]; if (typeof wxReset === 'function') wxReset(); S.secOpen = {}; if (hasSel()) S.side.sel = true; redraw(); } }
+  if (b.dataset.q){ const wasOpen = !!S.side.qs; S.side.qs = false; store.set('side2', S.side); const q = Q.find(x => x.id === b.dataset.q); if (q !== S.q || S.m.find){ S.q = q; S.m = q.m[0]; if (typeof wxReset === 'function') wxReset(); S.secOpen = {}; if (hasSel()) S.side.sel = true; redraw(); } else if (wasOpen) side(); }
   else if (b.dataset.m){ keepPlace(b, [`[data-m="${b.dataset.m}"]`], () => { const m0 = S.m; S.m = S.q.m.find(x => x.id === b.dataset.m); if (S.m !== m0 && typeof wxReset === 'function') wxReset(); if (S.m.th !== m0.th) S.secOpen = {}; if (hasSel()) S.side.sel = true; redraw(); }); }
   else if (b.dataset.cell) select(b.dataset.lv, +b.dataset.cell, true); });
 secSel.addEventListener('change', () => { S.sec = secSel.value; fitSection(); redraw(); });
@@ -4915,7 +5048,7 @@ function tourMobile(on){ document.body.classList.toggle('touring', !!on); if (on
 function tourSize(){ const H = window.visualViewport ? visualViewport.height : innerHeight, m = Math.max(260, Math.round(H * .62)); document.body.style.setProperty('--tmh', m + 'px'); $('#mapwrap').style.height = m + 'px'; document.body.style.setProperty('--tph', Math.max(190, Math.round(H - m)) + 'px'); }
 addEventListener('resize', () => { if (document.body.classList.contains('touring')) tourSize(); });
 function tourScroll(){ const w = $('#mapwrap'); if (!w) return; const y = w.getBoundingClientRect().top + scrollY; if (Math.abs(scrollY - y) > 2) scrollTo({top:y, behavior:'auto'}); }
-function tourStart(id){ if (!TOURS[id]) return; if (typeof goatEvent === 'function') goatEvent('tour-' + id); if (TOUR.leg == null){ TOUR.leg = S.legend; S.legend = false; } TOUR.id = id; tourGo(0); }   /* the legend folds up while the tour panel is open */
+function tourStart(id){ if (S.side.qs){ S.side.qs = false; store.set('side2', S.side); } if (!TOURS[id]) return; if (typeof goatEvent === 'function') goatEvent('tour-' + id); if (TOUR.leg == null){ TOUR.leg = S.legend; S.legend = false; } TOUR.id = id; tourGo(0); }   /* the legend folds up while the tour panel is open */
 function tourEnd(){ TOUR.id = null; const d = $('#tour'); if (d) d.remove(); if (document.body.classList.contains('touring')){ tourMobile(false); lockW = 0; lockMapHeight(); map.invalidateSize(); } if (tourSites){ tourSites.remove(); tourSites = null; } if (TOUR.leg != null){ S.legend = TOUR.leg; TOUR.leg = null; legend(); } try { const h = new URLSearchParams(location.hash.slice(1)); if (h.has('tour')){ h.delete('tour'); history.replaceState(null, '', '#' + h.toString()); } } catch (x) {} }
 document.addEventListener('keydown', e => { if (!TOUR.id || /input|select|textarea/i.test((e.target.tagName || ''))) return;
   if (e.key === 'ArrowRight') tourGo(TOUR.k + 1); else if (e.key === 'ArrowLeft') tourGo(TOUR.k - 1); else if (e.key === 'Escape') tourEnd(); });
@@ -5505,7 +5638,7 @@ function viewWindow(){ const w = $('#vwin'), svg = $('#stripsvg'); if (!w || !sv
 /* Phones: browsers resize the window as their address bar slides in and out while you scroll. The map's height is set once, in pixels,
    and only recalculated when the screen width changes (a rotation), so the map block stays the same size while scrolling. */
 let lockW = 0;
-function lockMapHeight(){ const mw = $('#mapwrap'); if (document.body.classList.contains('touring') && VW() <= 860) return; if (VW() > 860){ if (mw.style.height){ mw.style.height = ''; lockW = 0; map.invalidateSize(); } return; }
+function lockMapHeight(){ const mw = $('#mapwrap'); if (document.body.classList.contains('sheetui')){ if (mw.style.height) mw.style.height = ''; map.invalidateSize(); return; } if (document.body.classList.contains('touring') && VW() <= 860) return; if (VW() > 860){ if (mw.style.height){ mw.style.height = ''; lockW = 0; map.invalidateSize(); } return; }
   if (VW() === lockW) return; lockW = VW(); mw.style.height = Math.max(360, Math.round(VH() * .62)) + 'px'; map.invalidateSize(); }
 lockMapHeight();
 let rz, rzW = VW(); window.addEventListener('resize', () => { lockMapHeight(); clearTimeout(rz); rz = setTimeout(() => { const wChanged = VW() !== rzW; rzW = VW(); if (wChanged || VW() > 860){ strip(); map.invalidateSize(); } }, 150); });
