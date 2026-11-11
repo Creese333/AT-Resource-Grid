@@ -118,5 +118,29 @@
   "lic": "CC BY",
   "page": "https://www.inaturalist.org/photos/2100304",
   "src_in": "inat"
+ },
+ "catharus-ustulatus": {
+  "cr": "no rights reserved / iNaturalist",
+  "lic": "CC0",
+  "page": "https://www.inaturalist.org/photos/137845507",
+  "src_in": "inat"
+ },
+ "setophaga-tigrina": {
+  "cr": "no rights reserved / iNaturalist",
+  "lic": "CC0",
+  "page": "https://www.inaturalist.org/photos/18089935",
+  "src_in": "inat"
+ },
+ "buteo-platypterus": {
+  "cr": "Craig Hensley / iNaturalist",
+  "lic": "CC BY",
+  "page": "https://www.inaturalist.org/photos/515312737",
+  "src_in": "inat"
+ },
+ "leiothlypis-peregrina": {
+  "cr": "froggymum / iNaturalist",
+  "lic": "CC BY",
+  "page": "https://www.inaturalist.org/photos/757754676",
+  "src_in": "inat"
  }
 }
