@@ -710,7 +710,7 @@ button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;
   /* the tour keeps its own layout: map on top, the stop below */
   body.stackui.touring aside,body.stackui.touring #strip{display:none}
 }
-#howbtn{display:inline-flex;align-items:center;justify-content:center;padding:3px 0 0;line-height:1;flex:none;width:34px;height:34px;border-radius:50%;font:inherit;font-size:17px;font-weight:700;color:#fff;background:transparent;border:1px solid rgba(255,255,255,.55);cursor:pointer;margin-right:8px}
+#howbtn{display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:0;flex:none;width:34px;height:34px;border-radius:50%;font:inherit;font-size:17px;font-weight:700;color:#fff;background:transparent;border:1px solid rgba(255,255,255,.55);cursor:pointer;margin-right:8px}
 #howbtn:hover,#howbtn:focus-visible{background:rgba(255,255,255,.12)}
 .qstart{margin:2px 16px 8px;padding:8px 10px;border-radius:8px;background:#1B2B42;color:#DDE6F0;font-size:13.5px;line-height:1.45}
 .qstart b{color:#fff}.qhow,.qstart .qtlink{all:unset;cursor:pointer;color:#8FC8FF;text-decoration:underline;text-underline-offset:2px}
@@ -4359,7 +4359,7 @@ function howEnd(){ HOWK = -1; howDraw(); }
 document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-howto], [data-hown], [data-howb], [data-howx], #howto .hgo'); if (!t) return;
   if (t.dataset.howto) howStart(); else if (t.dataset.hown){ HOWK = Math.min(HOWTO.length - 1, HOWK + 1); howDraw(); } else if (t.dataset.howb){ HOWK = Math.max(0, HOWK - 1); howDraw(); } else howEnd(); });
 document.addEventListener('keydown', e => { if (HOWK < 0) return; if (e.key === 'Escape') howEnd(); else if (e.key === 'ArrowRight' && !/input|select|textarea/i.test(e.target.tagName || '')){ HOWK = Math.min(HOWTO.length - 1, HOWK + 1); howDraw(); } else if (e.key === 'ArrowLeft' && !/input|select|textarea/i.test(e.target.tagName || '')){ HOWK = Math.max(0, HOWK - 1); howDraw(); } });
-{ const hc = $('header .hctl'), hb = document.createElement('button'); hb.type = 'button'; hb.id = 'howbtn'; hb.textContent = '?'; hb.title = 'How to use'; hb.setAttribute('aria-label', 'How to use'); hb.dataset.howto = '1'; if (hc) hc.insertBefore(hb, $('#aboutbtn'));
+{ const hc = $('header .hctl'), hb = document.createElement('button'); hb.type = 'button'; hb.id = 'howbtn'; hb.innerHTML = '<svg viewBox="0 1.3 24 24" width="17" height="17" aria-hidden="true"><path d="M8.6 8.4a3.5 3.5 0 0 1 6.8 1.1c0 2.3-3.4 2.9-3.4 5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="18.9" r="1.6" fill="currentColor"/></svg>'; hb.title = 'How to use'; hb.setAttribute('aria-label', 'How to use'); hb.dataset.howto = '1'; if (hc) hc.insertBefore(hb, $('#aboutbtn'));
   addEventListener('resize', () => { if (HOWK >= 0) howDraw(); });
   /* once, on a first visit (not when a link opens a tour) */
   setTimeout(() => { let seen = 0; try { seen = store.get('howseen', 0); } catch (e) {} if (!seen && !/tour=/.test(location.hash) && !(typeof TOUR !== 'undefined' && TOUR.id)) howStart(); }, 2200); }
