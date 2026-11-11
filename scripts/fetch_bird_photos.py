@@ -4,8 +4,9 @@ Also writes images/birds/credits.json (photographer, license, source page) for t
 
 download_from can be:
   a direct image link (federal photos)   -> uses the credit and license columns
-  inat                                   -> the species' iNaturalist featured photo, or its next featured photo, that is CC BY, CC0 or
-                                            public domain; if none is, its most-faved openly licensed research-grade observation photo
+  inat                                   -> the first openly licensed (CC BY, CC0, public domain) photo among the species' iNaturalist
+                                            featured photos, then its most-faved research-grade photos of adult birds
+  inat#2, inat#3 ...                     -> the 2nd, 3rd ... choice, if the first is a poor picture
   inat:<photo id>                        -> that iNaturalist photo (it must be CC BY, CC0 or public domain)
   blank                                  -> no photo (the card shows "Photo wanted")
 Existing photos are kept unless the workflow is run with "redo"."""
@@ -25,34 +26,41 @@ def get(url, raw=False):
     b = urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60).read()
     return b if raw else json.loads(b)
 
-def who(p):
+def who(p, o=None):
     a = p.get('attribution') or ''
     m = re.match(r'\(c\)\s*([^,]+),', a)
-    return (m.group(1) if m else a.split(',')[0]).strip() or 'iNaturalist user'
+    if m:
+        return m.group(1).strip()
+    u = (o or {}).get('user') or {}
+    return (u.get('name') or u.get('login') or '').strip()
 
-def inat_pick(sci, pid):
+def inat_pick(sci, pid, n):
+    """the n-th (1 = best) openly licensed photo: the species' featured photos first, then the most-faved
+    research-grade photos of adult birds"""
     if pid:
         p = get(f'https://api.inaturalist.org/v1/photos/{pid}')['results'][0]
         if p.get('license_code') not in OPEN:
             raise ValueError(f'photo {pid} is {p.get("license_code")}, not CC BY/CC0')
-        return p
+        return p, None
     t = get('https://api.inaturalist.org/v1/taxa?' + urllib.parse.urlencode({'q': sci, 'rank': 'species', 'per_page': 5}))['results']
     t = next((x for x in t if x['name'].lower() == sci.lower()), t[0] if t else None)
     if not t:
         raise ValueError('species not found on iNaturalist')
     full = get(f'https://api.inaturalist.org/v1/taxa/{t["id"]}')['results'][0]
-    cands = ([full['default_photo']] if full.get('default_photo') else []) + [tp['photo'] for tp in full.get('taxon_photos', [])]
-    for p in cands:
-        if p.get('license_code') in OPEN:
-            return p
-    # none of its featured photos is openly licensed: take the most-faved research-grade observation photo that is
-    obs = get('https://api.inaturalist.org/v1/observations?' + urllib.parse.urlencode({
-        'taxon_id': t['id'], 'photo_license': 'cc-by,cc0', 'quality_grade': 'research', 'order_by': 'votes', 'order': 'desc', 'per_page': 30}))['results']
-    for o in obs:
-        for p in o.get('photos', []):
-            if p.get('license_code') in OPEN:
-                return p
-    raise ValueError('no CC BY / CC0 photo found on iNaturalist')
+    cands = [(p, None) for p in ([full['default_photo']] if full.get('default_photo') else []) + [tp['photo'] for tp in full.get('taxon_photos', [])]
+             if p.get('license_code') in OPEN]
+    if len(cands) < n:
+        obs = get('https://api.inaturalist.org/v1/observations?' + urllib.parse.urlencode({
+            'taxon_id': t['id'], 'photo_license': 'cc-by,cc0', 'quality_grade': 'research', 'term_id': 1, 'term_value_id': 2,
+            'order_by': 'votes', 'order': 'desc', 'per_page': 30}))['results']
+        seen = {p['id'] for p, _ in cands}
+        for o in obs:
+            for p in o.get('photos', [])[:1]:                    # an observation's first photo is usually its best
+                if p.get('license_code') in OPEN and p['id'] not in seen:
+                    cands.append((p, o)); seen.add(p['id'])
+    if len(cands) < n:
+        raise ValueError(f'only {len(cands)} CC BY / CC0 photos found on iNaturalist')
+    return cands[n - 1]
 
 def save(img_bytes, dst):
     im = Image.open(io.BytesIO(img_bytes)).convert('RGB')
@@ -71,9 +79,11 @@ for r in csv.DictReader(open('inputs/bird_photos.csv', newline='', encoding='utf
         continue
     try:
         if src.startswith('inat'):
-            p = inat_pick(r['species_sci'], src.split(':', 1)[1] if ':' in src else '')
+            n = int(src.split('#', 1)[1]) if '#' in src else 1
+            p, o = inat_pick(r['species_sci'], src.split(':', 1)[1] if ':' in src else '', n)
             save(get(p['url'].replace('/square.', '/large.'), raw=True), dst)
-            credits[key] = {'cr': f'{who(p)} / iNaturalist', 'lic': OPEN[p['license_code']],
+            nm = who(p, o)
+            credits[key] = {'cr': f'{nm} / iNaturalist' if nm else 'iNaturalist', 'lic': OPEN[p['license_code']],
                             'page': f'https://www.inaturalist.org/photos/{p["id"]}', 'src_in': src}
         else:
             save(get(src, raw=True), dst)
