@@ -3850,9 +3850,10 @@ $('#cellsbtn').onclick = () => { S.cells = !S.cells; map.getPane('cells').style.
   b.setAttribute('aria-pressed', S.cells); b.querySelector('span').textContent = S.cells ? 'Cells on' : 'Cells off';
   if (shown){ if (S.cells) GROUP[shown].addTo(map); else { map.removeLayer(GROUP[shown]); tip.remove(); } } };
 
+function trailMid(){ if (!isPhone()) return; const L_ = D.levels.wheel; let c = 0, bd = 1e9; for (let i = 0; i < L_.id.length; i++){ const d = Math.abs(L_.mi[i] - 1150); if (d < bd){ bd = d; c = i; } } map.setView(L_.c[c], map.getZoom(), {animate:false}); }
 function fitSection(){ const lv = 'wheel', L_ = D.levels[lv], pts = [];
   for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) pts.push(L_.c[c]);
-  if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(.08)); }
+  if (pts.length){ map.fitBounds(L.latLngBounds(pts).pad(.08)); if (S.sec === 'all') trailMid(); } }
 
 /* ---------- live layers from the NPS Appalachian Trail ArcGIS services ----------
    These load in the visitor's browser, only when switched on. If a service is unreachable the layer reports it and the rest of the page is unaffected. */
@@ -4312,9 +4313,17 @@ document.addEventListener('click', e => { const b = e.target.closest && e.target
     if (o && PTAB !== 'cell'){ PTAB = 'cell'; stackSync(); } else if (!o && PTAB === 'cell'){ PTAB = ''; stackSync(); } }).observe(pr, {attributes:true, attributeFilter:['class']});
   addEventListener('resize', () => { clearTimeout(stackSync.r); stackSync.r = setTimeout(stackSync, 120); }); }
 /* the question list: type to filter (folded groups open while filtering); Escape closes it */
-document.addEventListener('input', e => { const f = e.target.closest && e.target.closest('.qfilt'); if (!f) return; const t = f.value.trim().toLowerCase(), nav = f.parentNode.querySelector('.qs'); if (!nav) return;
+/* the filter text survives the panel redrawing (the map moving, the phone keyboard opening), and matches each question's
+   title, group and description */
+let QFILT = '';
+let QFT = 0;
+function qFilter(){ const f = $('.qfilt'); if (!f) return; if (f.value !== QFILT) f.value = QFILT; if (document.activeElement !== f && Date.now() - QFT < 4000 && !f.closest('[hidden]')){ f.focus({preventScroll:true}); try { f.setSelectionRange(QFILT.length, QFILT.length); } catch (x) {} } const t = QFILT.trim().toLowerCase(), nav = f.parentNode.querySelector('.qs'); if (!nav) return;
   let grp = null, any = false; const fin = () => { if (grp) grp.hidden = !!t && !any; };
-  [...nav.children].forEach(b => { if (b.classList.contains('qgrp')){ fin(); grp = b; any = false; return; } const ok = t ? b.textContent.toLowerCase().includes(t) : !b.dataset.folded; b.hidden = !ok; if (ok) any = true; }); fin(); });
+  [...nav.children].forEach(b => { if (b.classList.contains('qgrp')){ fin(); grp = b; any = false; return; }
+    const q = Q.find(x => x.id === b.dataset.q), hay = (b.textContent + ' ' + (q ? (QGRP[q.id] || '') + ' ' + (q.use || '') : '')).toLowerCase();
+    const ok = t ? t.split(/\s+/).every(w => hay.includes(w)) : !b.dataset.folded; b.hidden = !ok; if (ok) any = true; }); fin(); }
+['input', 'keyup', 'search', 'change'].forEach(ev => document.addEventListener(ev, e => { const f = e.target.closest && e.target.closest('.qfilt'); if (!f) return; QFILT = f.value; QFT = Date.now(); qFilter(); }));
+document.addEventListener('click', e => { if (e.target.closest && (e.target.closest('.qpick [data-q]') || e.target.closest('.qpx'))){ QFILT = ''; QFT = 0; } }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.side.qs && $('#qpick') && !$('#qpick').hidden){ S.side.qs = false; store.set('side2', S.side); side(); const c = $('.qchange'); if (c) c.focus(); } });
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.qchange') && !S.side.qs) setTimeout(() => { const f = $('.qfilt'); if (f && !isPhone()) f.focus(); }, 30); });
 /* the "How to use" walkthrough: five stops, each pointing at one part of the screen; it changes nothing on the map */
@@ -4368,7 +4377,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
   h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + '<div class="qsec" data-sec="show"><div class="qlab">Show</div>' + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map((m, k, a) => (m.grp && (!k || a[k - 1].grp !== m.grp) ? `</div><h4 class="mgrp">${esc(m.grp)}</h4><div class="chips" role="group" aria-label="${esc(m.grp)}">` : '') + `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
     '</div><div class="qsec" data-sec="res"><div class="qlab">Answer</div><div class="anslegend" id="anslegend" aria-hidden="true"></div>' + blk('results', 'Results', ANS.used ? SUMH.replace(ANS.used, '') : SUMH, 'res') + '</div><div class="qsec" data-sec="charts"><div class="qlab">More</div>' + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find && !CULTM() ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find && !['defrel', 'defrate'].includes(S.m.id) ? blk('tvw', 'Model weights', S.m.id === 'tfall' ? `<div id="tfwts">${tfWeightsHTML()}</div>` : `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div><div class="qsec" data-sec="about">' + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) + '</div></div>';
-  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire(); migWire(); legCopy(); stackSync(); quickPick(); mapPlay();
+  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire(); migWire(); legCopy(); stackSync(); quickPick(); mapPlay(); qFilter();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
     const nu = k.top == null ? null : (k.sels || []).map(s => document.querySelector(s)).find(Boolean); if (nu){ const d = nu.getBoundingClientRect().top - k.top; if (Math.abs(d) >= 1) scroller(nu).scrollTop += d; } }); } }
@@ -5791,7 +5800,7 @@ $('#aboutclose').onclick = () => $('#about').close();
 $('#about').addEventListener('click', e => { if (e.target === $('#about')) $('#about').close(); });
 
 /* ---------- start ---------- */
-map.fitBounds(L.latLngBounds(D.levels.wheel.c).pad(.03)); baseSync(); mapGestures();
+map.fitBounds(L.latLngBounds(D.levels.wheel.c).pad(.03)); trailMid(); baseSync(); mapGestures();
 if (S.sec !== 'all') fitSection();
 /* ---------- quarterly iNaturalist and eBird summaries from inat_ebird.json ----------
    Built on GitHub from GBIF downloads (build_inat_ebird.py). When the file is there, its summaries replace the ones built into
