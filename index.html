@@ -587,7 +587,8 @@ aside{overflow-x:hidden}
 .qans .statline{margin:0}
 .qtstart{display:flex !important;width:100%;align-items:center;gap:8px;margin:8px 0 2px;padding:8px 10px !important;border-radius:9px !important;background:#3A1820 !important;border:1px solid #6B2532 !important;color:#F3E3E6 !important;font-size:13px !important;font-weight:500 !important;letter-spacing:0 !important;text-align:left;box-shadow:none !important}
 .qtstart b{flex:1;font-weight:600;color:#fff}.qtstart span{background:#E8EEF6;color:#14294A;border-radius:7px;padding:4px 10px;font-weight:600}
-.qpick{position:absolute;inset:0;z-index:40;background:var(--panel);overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column}
+.qpick{position:fixed;z-index:1400;background:var(--panel);overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;box-shadow:8px 0 24px rgba(0,0,0,.35)}
+.qph,.qfilt{position:sticky;z-index:2}.qph{top:0;background:var(--panel)}.qfilt{top:54px}
 .qpick[hidden]{display:none}
 .qph{display:flex;align-items:center;gap:10px;padding:14px 14px 6px 16px}.qph b{flex:1;font-size:17px;color:#fff}
 button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#1B2B42;color:#fff;font-size:19px;line-height:1;cursor:pointer}
@@ -595,50 +596,64 @@ button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;
 .qpick .qs{padding-bottom:16px}
 .qlab{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#7F93AA;margin:14px 0 2px;font-weight:600}
 .qbody>.qlab:first-child{margin-top:10px}
-.vizmap{font:inherit;font-size:12.5px;letter-spacing:0;text-transform:none;color:#fff;background:#1f6b4a;border:1px solid #2f9a6a;border-radius:999px;padding:3px 10px;cursor:pointer}
+
 .anslegend{display:none}
-#sgrab,#smini,#ctlbtn{display:none}
-/* ---- phones: map first, controls in a panel that slides up ---- */
+#ctlbtn,.ptabs{display:none}
+.qsec{display:contents}
+@media (min-width:861px){ .qsec>.blk.res{flex:1 1 auto;min-height:0;display:flex;flex-direction:column} }
+/* ---- phones: map and trail profile on top, buttons open one part of the panel below ---- */
 @media (max-width:860px){
-  body.sheetui{height:100vh;height:100dvh;overflow:hidden;padding:0}
-  body.sheetui header{position:fixed;top:0;left:0;right:0;height:46px;padding:0 12px;gap:10px;flex-wrap:nowrap;z-index:1200}
-  body.sheetui header h1{font-size:17px;white-space:nowrap;margin:0}
-  body.sheetui header .blaze{height:26px}
-  body.sheetui #aboutbtn{font-size:13px;padding:4px 10px}
-  body.sheetui{--sh:46vh}
-  body.sheetui[data-sheet=mini]{--sh:86px}body.sheetui[data-sheet=peek]{--sh:46dvh}body.sheetui[data-sheet=half]{--sh:66dvh}body.sheetui[data-sheet=full]{--sh:calc(100dvh - 54px)}
-  body.sheetui #mapwrap{position:fixed;left:0;right:0;top:46px;bottom:calc(var(--sh) - 14px);height:auto !important;min-height:0;transition:bottom .25s ease}
-  body.sheetui .secpick{position:fixed;top:54px;left:10px;right:10px;z-index:1150;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px;padding:0;background:none;border:0}
-  body.sheetui .secpick label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-  body.sheetui .secpick .find{order:1;flex:1 1 0;min-width:0}
-  body.sheetui #find{width:100%;border-radius:12px;padding:9px 12px;background:rgba(20,34,53,.96);border:1px solid #33465F;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35)}
-  body.sheetui #section{order:2;flex:none;width:auto;max-width:42vw;border-radius:999px;padding:5px 10px;background:#1f6b4a;border:1px solid #2f9a6a;color:#fff;font-size:14px}
-  body.sheetui #ctls{top:54px}
-  body.sheetui #ctlbtn{display:inline-flex;align-items:center;gap:7px;pointer-events:auto;height:31px;padding:0 11px;border-radius:999px;font:inherit;font-size:13.5px;color:#fff;background:rgba(20,34,53,.94);border:1px solid #33465F}
-  body.sheetui #ctlbtn i{width:0;height:0;border:4.5px solid transparent;border-top:5.5px solid #C2CEDB;border-bottom:0}
-  body.sheetui.ctlopen #ctlbtn i{transform:rotate(180deg)}
-  body.sheetui:not(.ctlopen) #ctlrow1,body.sheetui:not(.ctlopen) #ctlrow2{display:none}
-  body.sheetui .migcard.mob{position:relative}
-  body.sheetui #ctls{z-index:900}
-  body.sheetui #legend{max-height:calc(100% - 150px);overflow-y:auto}
-  body.sheetui[data-sheet=half]{--sh:60dvh}
-  body.sheetui aside{position:fixed;left:0;right:0;bottom:0;height:var(--sh);z-index:1100;overflow-y:auto;overscroll-behavior:contain;border-radius:16px 16px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.45);transition:height .25s ease;display:block}
-  body.sheetui #sgrab{display:block;position:sticky;top:0;z-index:45;padding:8px 0 6px;background:var(--panel);cursor:grab;touch-action:none}
-  body.sheetui #sgrab i{display:block;width:42px;height:5px;border-radius:3px;background:#5A6E88;margin:0 auto}
-  body.sheetui[data-sheet=mini] #smini{display:flex;align-items:center;gap:10px;padding:0 14px 10px;cursor:pointer}
-  body.sheetui[data-sheet=mini] #side,body.sheetui[data-sheet=mini] #strip{display:none}
-  #smini .smplay{width:38px;height:38px;flex:none;border-radius:50%;border:0;background:#1f6b4a;color:#fff;font-size:14px}
-  #smini .smt{flex:1;min-width:0}#smini b{display:block;font-size:15px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#smini span{display:block;font-size:12.5px;color:#A8B8CA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#smini>i{color:#A8B8CA;font-style:normal}
-  body.sheetui .qhead{padding-top:0}
-  body.sheetui .anslegend{display:block;margin:6px 0 4px;font-size:13px}
-  body.sheetui .anslegend .row{display:flex;align-items:center;gap:8px}body.sheetui .anslegend .row i{width:14px;height:14px;border-radius:3px;flex:none}
-  body.sheetui .anslegend .sub{color:#A8B8CA;font-size:12px;margin:4px 0 0}
-  body.sheetui[data-qpick] .qpick{position:fixed;inset:46px 0 0 0;z-index:1400}
-  body.sheetui #strip{border-top:1px solid var(--line);padding:10px 14px 18px}
-  body.sheetui #profile.open{position:fixed;left:0;right:0;bottom:0;top:auto;max-height:82dvh;z-index:1300;border-radius:16px 16px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.5);overflow-y:auto}
-  body.sheetui.touring aside{display:none}
-  body.sheetui.touring #mapwrap{bottom:var(--tph,38vh)}
-  body.sheetui .tour{position:fixed !important;left:0;right:0;bottom:0;height:var(--tph,38vh);z-index:1250;border-radius:16px 16px 0 0}
+  body.stackui{height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;padding:0}
+  body.stackui header{order:0;flex:none;height:46px;padding:0 12px;gap:10px;flex-wrap:nowrap}
+  body.stackui header h1{font-size:17px;white-space:nowrap;margin:0}
+  body.stackui header .blaze{height:26px}
+  body.stackui #aboutbtn{font-size:13px;padding:4px 10px}
+  body.stackui #mapwrap{order:1;flex:1 1 auto;min-height:150px;height:auto !important}
+  body.stackui #strip{order:2;flex:none;padding:4px 12px 6px;display:none}
+  body.stackui[data-pt=prof] #strip{display:block}
+  body.stackui aside[data-pt=prof] .qbody{display:none}
+  body.stackui #stripread{display:none}
+  body.stackui .striphead h2{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 2px}
+  body.stackui .tour{order:3}
+  body.stackui aside{order:4;flex:none;max-height:42vh;max-height:42dvh;overflow-y:auto;overscroll-behavior:contain;display:block;border-top:1px solid #0A131F}
+  body.stackui .secpick{position:fixed;top:54px;left:10px;right:128px;z-index:1150;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:6px;padding:0;background:none;border:0}
+  body.stackui .secpick label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  body.stackui .secpick .find{order:1;flex:1 1 0;min-width:0}
+  body.stackui #find{width:100%;border-radius:12px;padding:8px 12px;background:rgba(20,34,53,.96);border:1px solid #33465F;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+  body.stackui #section{order:2;flex:none;width:auto;max-width:42vw;border-radius:999px;padding:5px 10px;background:#1f6b4a;border:1px solid #2f9a6a;color:#fff;font-size:14px}
+  body.stackui #ctls{top:8px;right:52px;left:auto;z-index:900;align-items:flex-end}
+  body.stackui #ctlrow1,body.stackui #ctlrow2{justify-content:flex-end}
+  body.stackui.ctlopen #ctls{background:rgba(14,26,42,.9);border-radius:12px;padding:6px;left:6px;right:6px}
+  body.stackui #ctlbtn{display:inline-flex;align-items:center;gap:7px;pointer-events:auto;height:31px;padding:0 11px;border-radius:999px;font:inherit;font-size:13.5px;color:#fff;background:rgba(20,34,53,.94);border:1px solid #33465F}
+  body.stackui #ctlbtn i{width:0;height:0;border:4.5px solid transparent;border-top:5.5px solid #C2CEDB;border-bottom:0}
+  body.stackui.ctlopen #ctlbtn i{transform:rotate(180deg)}
+  body.stackui:not(.ctlopen) #ctlrow1,body.stackui:not(.ctlopen) #ctlrow2{display:none}
+  body.stackui #legend{max-height:calc(100% - 70px);overflow-y:auto;padding:5px 9px}
+  body.stackui #legtog{font-size:12.5px}body.stackui #legtog span{max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.stackui .qhead{background:var(--panel);padding:6px 12px 0}
+  body.stackui .qcrumb{display:none}
+  body.stackui .qtitle h2{font-size:16px}
+  body.stackui .qtitle h2::before{width:10px;height:27px}
+  body.stackui .qans,body.stackui .qtstart{display:none !important}
+  body.stackui aside[data-pt=res] .qans{display:block !important}
+  body.stackui aside[data-pt=""] .qtstart,body.stackui aside[data-pt=about] .qtstart{display:flex !important}
+  body.stackui .ptabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:29;background:var(--panel);padding:7px 10px 8px;border-bottom:1px solid var(--line)}
+  body.stackui .ptabs button{flex:1 1 auto;min-width:0;font:inherit;font-size:12.5px;font-weight:600;color:#DDE6F0;background:#1B2B42;border:1px solid #33465F;border-radius:8px;padding:7px 4px;white-space:nowrap;cursor:pointer}
+  body.stackui .ptabs button[aria-pressed=true]{background:#1f6b4a;border-color:#fff;color:#fff}
+  body.stackui .ptabs button[hidden]{display:none}
+  body.stackui .qlab{display:none}
+  body.stackui aside[data-pt=""] .qbody,body.stackui aside:not([data-pt]) .qbody{display:none}
+  body.stackui aside[data-pt=show] .qsec:not([data-sec=show]),body.stackui aside[data-pt=res] .qsec:not([data-sec=res]),body.stackui aside[data-pt=charts] .qsec:not([data-sec=charts]),body.stackui aside[data-pt=about] .qsec:not([data-sec=about]){display:none}
+  body.stackui aside[data-pt=cell] .qbody{display:none}
+  body.stackui #profile{display:none}
+  body.stackui aside[data-pt=cell] #profile.open{display:block;position:static;border:0;box-shadow:none}
+  body.stackui .anslegend{display:block;margin:6px 0 4px;font-size:13px}
+  body.stackui .anslegend .row{display:flex;align-items:center;gap:8px}body.stackui .anslegend .row i{width:14px;height:14px;border-radius:3px;flex:none}
+  body.stackui .anslegend .sub{color:#A8B8CA;font-size:12px;margin:4px 0 0}
+  body.stackui .qpick{inset:0 !important;width:auto !important;box-shadow:none}
+  body.stackui .migcard.mob{position:relative;margin-top:10px}
+  /* the tour keeps its own layout: map on top, the stop below */
+  body.stackui.touring aside,body.stackui.touring #strip{display:none}
 }
 </style>
 </head>
@@ -3319,10 +3334,10 @@ function migCardHTML(){ const k = MIGS.sp, s = migSp(), p = MIGPRO[k]; if (!s ||
     <p class="mcnote">${esc(p.note)}</p><a class="mcmore" href="https://www.allaboutbirds.org/guide/${p.aab}/" target="_blank" rel="noopener">More about this bird ›</a></div>`; }
 function migCard(){ let c = $('#migcard'), b = $('#migcardbtn'); const on = S.q && S.q.id === 'mig' && migSp() && MIG.sp[MIGS.sp] && MIG.sp[MIGS.sp].st === 'done';
   if (!on){ if (c) c.remove(); if (b) b.remove(); return; }
-  const host = isPhone() ? $('#strip') : $('#mapwrap'); if (!host) return;
+  const host = isPhone() ? $('#side .qsec[data-sec=charts]') : $('#mapwrap'); if (!host) return;
   if (!c){ c = document.createElement('aside'); c.id = 'migcard'; c.className = 'migcard'; c.setAttribute('aria-label', 'Bird profile'); }
   if (!b){ b = document.createElement('button'); b.id = 'migcardbtn'; b.type = 'button'; b.className = 'migcardbtn'; b.textContent = 'Bird profile'; b.onclick = () => { migCardOn = true; try { store.set('migcard', true); } catch (e) {} migCard(); }; }
-  if (c.parentNode !== host) host.insertBefore(c, isPhone() ? host.firstChild : null); if (b.parentNode !== host) host.insertBefore(b, isPhone() ? host.firstChild : null);
+  if (c.parentNode !== host) host.insertBefore(c, null); if (b.parentNode !== host) host.insertBefore(b, null);
   c.classList.toggle('mob', isPhone()); b.classList.toggle('mob', isPhone());
   if (c.dataset.k !== MIGS.sp + '|' + migSeason()){ c.innerHTML = migCardHTML(); c.dataset.k = MIGS.sp + '|' + migSeason(); const x = c.querySelector('.mcx'); if (x) x.onclick = () => { migCardOn = false; try { store.set('migcard', false); } catch (e) {} migCard(); }; }
   c.hidden = !migCardOn; b.hidden = migCardOn; }
@@ -4108,10 +4123,10 @@ map.on('moveend zoomend', trailHi); trailHi();
    On a phone the map fills most of the screen, so a one-finger drag on it must scroll the page.
    Two fingers move and zoom the map. Taps still select cells. Wide screens are not affected. */
 const TOUCHDEV = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-function mapGestures(){ if (TOUCHDEV && VW() <= 860 && !document.body.classList.contains('sheetui')) map.dragging.disable(); else map.dragging.enable(); }
+function mapGestures(){ if (TOUCHDEV && VW() <= 860 && !document.body.classList.contains('stackui')) map.dragging.disable(); else map.dragging.enable(); }
 { const mc = map.getContainer(), hint = $('#maphint'); let sx = 0, sy = 0, ht = null;
   const showHint = () => { hint.classList.add('on'); clearTimeout(ht); ht = setTimeout(() => hint.classList.remove('on'), 1600); };
-  const onTouch = e => { if (S.drawing){ if (e.cancelable) e.preventDefault(); return; } if (!(TOUCHDEV && VW() <= 860) || document.body.classList.contains('sheetui')) return;
+  const onTouch = e => { if (S.drawing){ if (e.cancelable) e.preventDefault(); return; } if (!(TOUCHDEV && VW() <= 860) || document.body.classList.contains('stackui')) return;
     if (e.touches.length >= 2){ if (e.cancelable) e.preventDefault(); hint.classList.remove('on'); return; }
     if (e.type === 'touchstart'){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; return; }
     const dx = Math.abs(e.touches[0].clientX - sx), dy = Math.abs(e.touches[0].clientY - sy); if (dx > 18 && dx > dy * 1.3) showHint(); };
@@ -4173,40 +4188,31 @@ function ansLine(lv, sumH){ const q = S.q, m = S.m, here = S.sec === 'all' ? 'Wh
   return {h:t ? `<div class="qans"><p>${t}</p>${sub ? `<small>${sub}</small>` : ''}</div>` : '', used}; }
 /* the map legend, repeated in Answer on phones (where the map legend sits small over the map) */
 function legCopy(){ const a = $('#anslegend'), b = $('#legbody'); if (a) a.innerHTML = b ? b.innerHTML : ''; }
-/* phones: the panel's four heights; the bar shown at Mini; the trail profile moves into the panel */
-const SHEETS = ['mini', 'peek', 'half', 'full'];
-let sheetS = (() => { try { const v = store.get('sheet', 'peek'); return SHEETS.includes(v) ? v : 'peek'; } catch (e) { return 'peek'; } })();
-function sheetSet(s, keep){ sheetS = s; if (!keep) try { store.set('sheet', s); } catch (e) {} document.body.dataset.sheet = s; clearTimeout(sheetSet.t); sheetSet.t = setTimeout(() => { if (typeof map !== 'undefined') map.invalidateSize(); }, 280); }
-function sheetMini(){ const b = $('#smini'); if (!b) return; const q = S.q, wk = $('#migwkl') || $('#phwkl'), pl = $('#migplay') || $('#phplay');
-  const put = (el, t) => { if (el.textContent !== t) el.textContent = t; };
-  put(b.querySelector('b'), S.m.find ? 'Search results' : q.title);
-  put(b.querySelector('span'), [q.id === 'mig' && migSp() ? migSp().common : '', S.m.find ? '' : S.m.label, wk ? wk.textContent.split(' · ')[0] : '', S.sec === 'all' ? '' : secName()].filter(Boolean).join(' · '));
-  const p = b.querySelector('.smplay'); if (p.hidden !== !pl) p.hidden = !pl; if (pl) put(p, /pause/i.test(pl.textContent) ? '❚❚' : '▶'); }
-function vizMap(){ const t = $('#side [data-blk="viz"]'); if (!t) return; if (!S.side.viz){ S.side.viz = true; store.set('side2', S.side); side(); }
-  sheetSet('half'); setTimeout(() => { const b = $('#side [data-blk="viz"]'), a = $('aside'), g = $('#sgrab'); if (!b || !a) return; a.scrollTop += b.closest('.blk').getBoundingClientRect().top - a.getBoundingClientRect().top - (g ? g.offsetHeight : 0); }, 300); }
-document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.vizmap')) vizMap(); });
-function sheetSync(){ const on = isPhone(), body = document.body, a = $('aside'), st = $('#strip'); { const v = $('.vizmap'); if (v) v.hidden = !(on && $('#side [data-blk="viz"]')); }
-  if (on !== body.classList.contains('sheetui')){ body.classList.toggle('sheetui', on); if (on) sheetSet(sheetS, true); else delete body.dataset.sheet;
-    if (st){ if (on) a.append(st); else $('#mapwrap').after(st); }
-    if (typeof mapGestures === 'function') mapGestures(); setTimeout(() => { if (typeof map !== 'undefined') map.invalidateSize(); if (typeof strip === 'function') strip(); }, 60); }
+/* phones: the map and the trail profile on top, then the question and a row of buttons; a button opens its part below
+   (Measures, Results, Charts, About, or Cell for a picked cell) and the map gets smaller to make room; the same button closes it */
+let PTAB = '';
+function ptabSet(k){ PTAB = PTAB === k ? '' : k; stackSync(); const a = $('aside'); if (a) a.scrollTop = 0; }
+function stackSync(){ const on = isPhone(), body = document.body, a = $('aside'), pr = $('#profile');
+  if (on !== body.classList.contains('stackui')){ body.classList.toggle('stackui', on); if (!on) PTAB = '';
+    if (pr){ if (on) a.append(pr); else $('#mapwrap').append(pr); }
+    if (typeof mapGestures === 'function') mapGestures(); }
   { const f = $('#find'); if (f){ if (!f.dataset.ph0) f.dataset.ph0 = f.placeholder; const ph = on ? 'Search places, species, tracts' : f.dataset.ph0; if (f.placeholder !== ph) f.placeholder = ph; } }
   if (on && S.side.qs) body.dataset.qpick = '1'; else delete body.dataset.qpick;
-  if (on) sheetMini(); }
-{ const a = document.querySelector('aside'), g = document.createElement('div'); g.id = 'sgrab'; g.setAttribute('role', 'button'); g.tabIndex = 0; g.setAttribute('aria-label', 'Resize the panel: Mini, Peek, Half or Full');
-  g.innerHTML = '<i></i>'; a.prepend(g);
-  const cb = document.createElement('button'); cb.type = 'button'; cb.id = 'ctlbtn'; cb.className = 'mapctl'; cb.setAttribute('aria-expanded', 'false'); cb.innerHTML = '<span>Map options</span><i aria-hidden="true"></i>';
+  { const qp = $('#qpick'); if (qp && !qp.hidden){ if (!on){ const r = a.getBoundingClientRect(); qp.style.top = r.top + 'px'; qp.style.left = r.left + 'px'; qp.style.width = r.width + 'px'; qp.style.bottom = '0px'; }
+      if (!qp.dataset.at){ qp.dataset.at = '1'; const cur = qp.querySelector('[aria-current="true"]'); if (cur) requestAnimationFrame(() => { qp.scrollTop = Math.max(0, cur.offsetTop - qp.clientHeight / 3); }); } } }
+  if (on){ const cellOn = !!(pr && pr.classList.contains('open')), has = {show:!!$('#side .qsec[data-sec="show"] .blk'), res:!!$('#side [data-blk="results"]'), charts:!!$('#side .qsec[data-sec="charts"] .blk, #side .qsec[data-sec="charts"] .migcard'), about:!!$('#side .qsec[data-sec="about"] .blk'), prof:!!$('#strip'), cell:cellOn};
+    if (PTAB && !has[PTAB]) PTAB = '';
+    document.querySelectorAll('button[data-ptab]').forEach(b => { b.hidden = !has[b.dataset.ptab]; b.setAttribute('aria-pressed', PTAB === b.dataset.ptab); });
+    a.dataset.pt = PTAB; body.dataset.pt = PTAB; }
+  clearTimeout(stackSync.t); stackSync.t = setTimeout(() => { if (typeof map !== 'undefined') map.invalidateSize(); if (on && typeof strip === 'function') strip(); }, 80); }
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button[data-ptab]'); if (b) ptabSet(b.dataset.ptab); });
+{ const c0 = $('#ctls'), cb = document.createElement('button'); cb.type = 'button'; cb.id = 'ctlbtn'; cb.className = 'mapctl'; cb.setAttribute('aria-expanded', 'false'); cb.innerHTML = '<span>Map</span><i aria-hidden="true"></i>'; cb.title = 'Map options: cell size, tools, basemap and layers';
   cb.onclick = () => { const o = !document.body.classList.contains('ctlopen'); document.body.classList.toggle('ctlopen', o); cb.setAttribute('aria-expanded', o); };
-  { const c = $('#ctls'); if (c) c.prepend(cb); }
-  const mb = document.createElement('div'); mb.id = 'smini'; mb.innerHTML = '<button type="button" class="smplay" aria-label="Play or pause" hidden>▶</button><div class="smt"><b></b><span></span></div><i aria-hidden="true">⌃</i>'; g.after(mb);
-  mb.addEventListener('click', e => { const p = e.target.closest('.smplay'); if (p){ const r = $('#migplay') || $('#phplay'); if (r) r.click(); setTimeout(sheetMini, 60); return; } sheetSet('peek'); });
-  let y0 = null;
-  g.addEventListener('pointerdown', e => { y0 = e.clientY; try { g.setPointerCapture(e.pointerId); } catch (x) {} });
-  g.addEventListener('pointerup', e => { if (y0 == null) return; const d = y0 - e.clientY, i = SHEETS.indexOf(sheetS); y0 = null;
-    if (Math.abs(d) < 8) sheetSet(SHEETS[i === 3 ? 1 : i + 1]); else sheetSet(SHEETS[Math.max(0, Math.min(3, i + (d > 0 ? 1 : -1) * (Math.abs(d) > 160 ? 2 : 1)))]); });
-  g.addEventListener('keydown', e => { const i = SHEETS.indexOf(sheetS); if (e.key === 'ArrowUp'){ e.preventDefault(); sheetSet(SHEETS[Math.min(3, i + 1)]); } else if (e.key === 'ArrowDown'){ e.preventDefault(); sheetSet(SHEETS[Math.max(0, i - 1)]); } else if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); sheetSet(SHEETS[i === 3 ? 1 : i + 1]); } });
-  /* the Mini bar follows Play */
-  if (window.MutationObserver) new MutationObserver(() => { if (document.body.classList.contains('sheetui') && sheetS === 'mini') sheetMini(); }).observe($('#side'), {subtree:true, childList:true, characterData:true});
-  addEventListener('resize', () => { clearTimeout(sheetSync.t); sheetSync.t = setTimeout(sheetSync, 120); }); }
+  if (c0) c0.prepend(cb);
+  /* picking a cell opens Cell; closing it closes Cell */
+  const pr = $('#profile'); if (pr && window.MutationObserver) new MutationObserver(() => { if (!document.body.classList.contains('stackui')) return; const o = pr.classList.contains('open');
+    if (o && PTAB !== 'cell'){ PTAB = 'cell'; stackSync(); } else if (!o && PTAB === 'cell'){ PTAB = ''; stackSync(); } }).observe(pr, {attributes:true, attributeFilter:['class']});
+  addEventListener('resize', () => { clearTimeout(stackSync.r); stackSync.r = setTimeout(stackSync, 120); }); }
 /* the question list: type to filter (folded groups open while filtering); Escape closes it */
 document.addEventListener('input', e => { const f = e.target.closest && e.target.closest('.qfilt'); if (!f) return; const t = f.value.trim().toLowerCase(), nav = f.parentNode.querySelector('.qs'); if (!nav) return;
   let grp = null, any = false; const fin = () => { if (grp) grp.hidden = !!t && !any; };
@@ -4219,7 +4225,8 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
   let h = `<section class="qhead" style="--hue:${q.hue}"><div class="qcrumb">${S.m.find ? 'Search' : esc(QGRP[q.id] || '')}</div><div class="qtitle"><h2>${S.m.find ? 'Search results' : esc(q.title)}</h2><button type="button" class="blktog qchange" data-blk="qs" aria-expanded="${!!S.side.qs}" aria-controls="qpick">Change<i aria-hidden="true"></i></button></div>` +
     ANS.h + (typeof QTOUR !== 'undefined' && typeof TOURS !== 'undefined' && QTOUR[q.id] && !S.m.find && TOURS[QTOUR[q.id]] ? `<button type="button" class="qtour qtstart" data-tour="${QTOUR[q.id]}"><b>Take the ${esc(QTOUR[q.id])} tour</b> · ${TOURS[QTOUR[q.id]].steps.length} stops<span>Start</span></button>` : '') +
     `<div class="qpick" id="qpick"${S.side.qs ? '' : ' hidden'}><div class="qph"><b>Choose a question</b><button type="button" class="blktog qpx" data-blk="qs" aria-label="Close the question list">×</button></div><input class="qfilt" type="search" placeholder="Filter questions…" aria-label="Filter questions" autocomplete="off">` +
-    `<nav class="qs" aria-label="Guiding questions">` + Q.filter(qVis).map((x, i, a) => { const g = QGRP[x.id], off = g && QGOFF.has(g), cur = x === q && !S.m.find; return (g && (!i || QGRP[a[i - 1].id] !== g) ? `<button type="button" class="qgrp" data-qg="${esc(g)}" aria-expanded="${!off}"><span>${esc(g)}</span><i aria-hidden="true"></i></button>` : '') + (`<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${cur}"${off && !cur ? ' hidden data-folded="1"' : ''}>${esc(x.title)}${typeof QTOUR !== 'undefined' && QTOUR[x.id] ? `<span class="qtour" role="button" tabindex="0" data-tour="${QTOUR[x.id]}" title="Take a guided tour"><svg class="qnew" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>Tour<span class="vh"> (new)</span></span>` : ''}</button>`); }).join('') + '</nav></div></section>';
+    `<nav class="qs" aria-label="Guiding questions">` + Q.filter(qVis).map((x, i, a) => { const g = QGRP[x.id], off = g && QGOFF.has(g), cur = x === q && !S.m.find; return (g && (!i || QGRP[a[i - 1].id] !== g) ? `<button type="button" class="qgrp" data-qg="${esc(g)}" aria-expanded="${!off}"><span>${esc(g)}</span><i aria-hidden="true"></i></button>` : '') + (`<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${cur}"${off && !cur ? ' hidden data-folded="1"' : ''}>${esc(x.title)}${typeof QTOUR !== 'undefined' && QTOUR[x.id] ? `<span class="qtour" role="button" tabindex="0" data-tour="${QTOUR[x.id]}" title="Take a guided tour"><svg class="qnew" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>Tour<span class="vh"> (new)</span></span>` : ''}</button>`); }).join('') + '</nav></div></section>' +
+    '<nav class="ptabs" aria-label="Open in the panel">' + [['show', 'Measures'], ['res', 'Results'], ['charts', 'Charts'], ['prof', 'Profile'], ['about', 'About'], ['cell', 'Cell']].map(([k, t]) => `<button type="button" data-ptab="${k}" aria-pressed="${PTAB === k}">${t}</button>`).join('') + '</nav>';
   if (S.m.find){ const fs = findSummary(lv); el.innerHTML = h + `<div class="qbody">${fs[0]}${blk('results', 'Results', fs[1], 'res')}</div>`; return; }
   const extBlk = q.id === 'hist' && !S.m.find ? `<section class="blk extblk">${histAdmBlock().replace('<span>Extent</span>', '<h2>Extent</h2>')}${histBlock()}</section>` : !EXTQ.includes(q.id) ? '' : `<section class="blk extblk"><div class="extsw" role="group" aria-label="Extent"><h2>Extent</h2><button type="button" data-ext="corr" aria-pressed="${S.ext === 'corr'}">A.T. corridor</button><button type="button" data-ext="huc" aria-pressed="${S.ext === 'huc'}"${EXTNO.includes(q.id) ? ' disabled class="extna" title="The trail is measured along the trail itself, so the HUC10 watershed extent does not apply"' : S.extMsg && !EXT.huc && !/could not/.test(S.extMsg) ? ' disabled' : ''}>HUC10 watershed</button></div>` +
     (S.extMsg ? `<p class="extnote" role="status">${esc(S.extMsg)}</p>` : S.ext === 'huc' ? '<p class="extnote">Every grid cell in the HUC10 watersheds around the trail. Corridor cells are outlined in yellow once you zoom in. Trail miles are those of the nearest corridor cell.' + '</p>' : '') + '</section>';
@@ -4228,10 +4235,10 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
       (S.appa ? '<p class="extnote">Only NPS – APPA land counts: scores are scaled by the share of the cell’s corridor land that APPA administers. Cells without APPA land, or with too little to score, are left blank.</p>' : ''));
   const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'mig' ? migBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : '';
-  h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + '<div class="qlab">Show</div>' + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') +
+  h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + '<div class="qsec" data-sec="show"><div class="qlab">Show</div>' + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map((m, k, a) => (m.grp && (!k || a[k - 1].grp !== m.grp) ? `</div><h4 class="mgrp">${esc(m.grp)}</h4><div class="chips" role="group" aria-label="${esc(m.grp)}">` : '') + `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
-    '<div class="qlab">Answer</div><div class="anslegend" id="anslegend" aria-hidden="true"></div>' + blk('results', 'Results', ANS.used ? SUMH.replace(ANS.used, '') : SUMH, 'res') + '<div class="qlab qlabmore">More<button type="button" class="vizmap" hidden>Chart with map</button></div>' + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find && !CULTM() ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find && !['defrel', 'defrate'].includes(S.m.id) ? blk('tvw', 'Model weights', S.m.id === 'tfall' ? `<div id="tfwts">${tfWeightsHTML()}</div>` : `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) + '</div>';
-  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire(); migWire(); legCopy(); sheetSync();
+    '</div><div class="qsec" data-sec="res"><div class="qlab">Answer</div><div class="anslegend" id="anslegend" aria-hidden="true"></div>' + blk('results', 'Results', ANS.used ? SUMH.replace(ANS.used, '') : SUMH, 'res') + '</div><div class="qsec" data-sec="charts"><div class="qlab">More</div>' + (PHQ() && !S.m.find ? phVizBlk() : '') + (q.id === 'cult' && !S.m.find && !CULTM() ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find && !['defrel', 'defrate'].includes(S.m.id) ? blk('tvw', 'Model weights', S.m.id === 'tfall' ? `<div id="tfwts">${tfWeightsHTML()}</div>` : `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div><div class="qsec" data-sec="about">' + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) + '</div></div>';
+  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire(); migWire(); legCopy(); stackSync();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
     const nu = k.top == null ? null : (k.sels || []).map(s => document.querySelector(s)).find(Boolean); if (nu){ const d = nu.getBoundingClientRect().top - k.top; if (Math.abs(d) >= 1) scroller(nu).scrollTop += d; } }); } }
@@ -4487,7 +4494,7 @@ function clearSel(){ S.cell = null; S.box = null; boxRect.remove(); pin.remove()
 /* Phones only: the cell details sit in the page under the graph, as a short summary that expands in place.
    Wide screens keep the popup inside the map and never get the peek/full classes. */
 const isPhone = () => VW() <= 860;
-function placeProfile(){ const p = $('#profile'), phone = isPhone();
+function placeProfile(){ const p = $('#profile'), phone = isPhone(); if (document.body.classList.contains('stackui')){ const a = $('aside'); if (p.parentNode !== a) a.append(p); return; }
   if (phone && p.parentNode !== document.body) $('#strip').after(p);
   else if (!phone && p.parentNode !== $('#mapwrap')) $('#mapwrap').appendChild(p); }
 function sheet(state){ const p = $('#profile'), hb = $('#phandle'); p.classList.toggle('peek', state === 'peek'); p.classList.toggle('full', state === 'full'); visCheck();
@@ -5638,7 +5645,7 @@ function viewWindow(){ const w = $('#vwin'), svg = $('#stripsvg'); if (!w || !sv
 /* Phones: browsers resize the window as their address bar slides in and out while you scroll. The map's height is set once, in pixels,
    and only recalculated when the screen width changes (a rotation), so the map block stays the same size while scrolling. */
 let lockW = 0;
-function lockMapHeight(){ const mw = $('#mapwrap'); if (document.body.classList.contains('sheetui')){ if (mw.style.height) mw.style.height = ''; map.invalidateSize(); return; } if (document.body.classList.contains('touring') && VW() <= 860) return; if (VW() > 860){ if (mw.style.height){ mw.style.height = ''; lockW = 0; map.invalidateSize(); } return; }
+function lockMapHeight(){ const mw = $('#mapwrap'); if (document.body.classList.contains('stackui')){ if (mw.style.height) mw.style.height = ''; map.invalidateSize(); return; } if (document.body.classList.contains('touring') && VW() <= 860) return; if (VW() > 860){ if (mw.style.height){ mw.style.height = ''; lockW = 0; map.invalidateSize(); } return; }
   if (VW() === lockW) return; lockW = VW(); mw.style.height = Math.max(360, Math.round(VH() * .62)) + 'px'; map.invalidateSize(); }
 lockMapHeight();
 let rz, rzW = VW(); window.addEventListener('resize', () => { lockMapHeight(); clearTimeout(rz); rz = setTimeout(() => { const wChanged = VW() !== rzW; rzW = VW(); if (wChanged || VW() > 860){ strip(); map.invalidateSize(); } }, 150); });
