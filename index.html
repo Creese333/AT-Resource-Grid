@@ -555,7 +555,6 @@ header .blaze{width:14px;height:38px}
 @media (max-width:640px){.tour{padding:12px 14px 10px;font-size:14.5px}}
 .migcal{display:block;width:100%;height:auto;margin:4px 0 2px}.migcal .mct{font-size:9px;fill:#A8B8CA}.migcal .mrl{font-size:10.5px;fill:#DDE6F0}
 .migrow{cursor:pointer}.migrow:hover .mrl,.migrow.on .mrl{fill:#fff;font-weight:600}.migrow:focus-visible{outline:2px solid var(--blaze)}
-.migmk{list-style:none;margin:4px 0 2px;padding:0;font-size:12.5px;color:var(--muted)}.migmk b{color:#E3EAF2;font-weight:600;margin-right:4px}
 </style>
 </head>
 <body>
@@ -2742,7 +2741,7 @@ function qVizHTML(){ const d0 = QVIZ[S.q.id]; if (!d0) return ''; const d = d0.p
   let g = `<div id="qvizc"><h4 class="phh">${esc(d.title)}, ${esc(where)}</h4>`;
   if (th && D.themes[th] && !D.themes[th][sl] && S.q.id !== 'hist' && S.q.id !== 'tvul') return g + `<p class="none">Not summarized for this cell size.</p></div>`;
   if (d.html){ let x = ''; try { x = d.html(sl, cells) || ''; } catch (e) { x = ''; }
-    return g + (x || `<p class="none">No data for ${esc(where)}${S.q.id === 'wx' && !D.themes.wx[sl] ? ' yet: the weather summaries (weather.json) have not been built' : ''}.</p>`) + (x ? (['rest', 'tvul'].includes(S.q.id) ? `<details class="vzabout"${store.get('vzabout', false) ? ' open' : ''}><summary>About the chart</summary><p class="phnote">${esc(d.note)}${where === 'the map view' ? ' Zoom or pan to change it, or select cells.' : ''}</p></details>` : `<p class="phnote">${esc(d.note)}${where === 'the map view' ? ' Zoom or pan to change it, or select cells.' : ''}</p>`) : '') + '</div>'; }
+    return g + (x || `<p class="none">No data for ${esc(where)}${S.q.id === 'wx' && !D.themes.wx[sl] ? ' yet: the weather summaries (weather.json) have not been built' : ''}.</p>`) + (x ? (['rest', 'tvul', 'mig'].includes(S.q.id) ? `<details class="vzabout"${store.get('vzabout', false) ? ' open' : ''}><summary>About the chart</summary><p class="phnote">${esc(d.note)}${where === 'the map view' ? ' Zoom or pan to change it, or select cells.' : ''}</p></details>` : `<p class="phnote">${esc(d.note)}${where === 'the map view' ? ' Zoom or pan to change it, or select cells.' : ''}</p>`) : '') + '</div>'; }
   if (S.q.id === 'hist' && (!HIST || HIST.st !== 'done')) return g + `<p class="none">${HIST && HIST.st === 'error' ? 'The historic resources could not be loaded. Try again later.' : 'Loading the historic resources…'}</p></div>`;
   let rows = []; try { rows = d.fn(sl, cells) || []; } catch (e) { rows = []; }
   if (!rows.length) return g + `<p class="none">No data for ${esc(where)}.</p></div>`;
@@ -3125,7 +3124,7 @@ function migCal(lv, cells){ const E = migE(lv), R = migR(lv); if (!E || !R || !c
   cells.forEach(c => { const la = L_.c[c][0], o = rows[MIGREG.findIndex(r => la >= r[1] && la < r[2])]; if (!o) return; for (let w = 0; w < 53; w++){ o.e[w] += E[c * 53 + w]; o.r[w] += R[c * 53 + w]; } });
   const rs = rows.filter(o => o.e.some(x => x >= MIGBAND)); if (!rs.length) return '';
   const [a, b] = migRange(), W = 340, lw = 76, cw = (W - lw - 2) / 52, rh = 19, top = 26, H = top + rs.length * rh, Wn = migWins();
-  rs.forEach(o => { o.sh = Array.from({length:52}, (_, w) => o.e[w] >= MIGBAND ? 100 * o.r[w] / o.e[w] : null); o.mk = migMarks(o.sh); });
+  rs.forEach(o => { o.sh = Array.from({length:52}, (_, w) => o.e[w] >= MIGBAND ? 100 * o.r[w] / o.e[w] : null); });
   let g = `<svg class="migcal" viewBox="0 0 ${W} ${H + 2}" role="img" aria-label="Migration calendar by region">`;
   'JFMAMJJASOND'.split('').forEach((t, i) => { g += `<text x="${lw + Math.round((new Date(2021, i, 1) - new Date(2021, 0, 1)) / 6048e5) * cw}" y="10" class="mct">${t}</text>`; });
   /* eBird's recognized migration windows for the species, above the regions */
@@ -3135,10 +3134,8 @@ function migCal(lv, cells){ const E = migE(lv), R = migR(lv); if (!E || !R || !c
   rs.forEach((o, j) => { const y = top + j * rh;
     g += `<g class="migrow${MIGS.band === o.i ? ' on' : ''}" data-migband="${o.i}" tabindex="0" role="button" aria-label="${esc(o.n)}: show its weekly line"><text x="${lw - 5}" y="${y + rh / 2 + 4}" text-anchor="end" class="mrl">${esc(o.n)}</text><rect x="${lw}" y="${y + 1}" width="${(52 * cw).toFixed(1)}" height="${rh - 2}" fill="none" stroke="#2E405A" stroke-width="1"/>`;
     o.sh.forEach((v, w) => { if (v === 0) return; if (v == null){ g += `<rect x="${(lw + w * cw).toFixed(1)}" y="${y + 1}" width="${(cw + .3).toFixed(1)}" height="${rh - 2}" fill="#3A4C66"><title>${esc(o.n)}, week of ${esc(wkDate(w + 1))}: fewer than ${MIGBAND} checklists</title></rect>`; return; } g += `<rect x="${(lw + w * cw).toFixed(1)}" y="${y + 1}" width="${(cw + .3).toFixed(1)}" height="${rh - 2}" fill="${migCol(v, w >= 26)}"><title>${esc(o.n)}, week of ${esc(wkDate(w + 1))}: ${fmt(v, v < 10 ? 1 : 0)}% of ${fmt(o.e[w], 0)} checklists</title></rect>`; });
-    o.mk.forEach(k => { g += `<rect x="${(lw + (k.w - 1) * cw).toFixed(1)}" y="${y + rh - 5}" width="${cw.toFixed(1)}" height="4" fill="#D62839"><title>${k.fall ? 'Fall peak' : 'Arrives about'} ${esc(wkDate(k.w))}</title></rect>`; });
     g += '</g>'; });
   g += `<rect x="${(lw + (MIGS.wk - 1) * cw).toFixed(1)}" y="${top - 1}" width="${cw.toFixed(1)}" height="${rs.length * rh + 2}" fill="none" stroke="#FFFFFF" stroke-width="1.2"/></svg>`;
-  g += '<ul class="migmk">' + rs.map(o => `<li><b>${esc(o.n)}</b> ${o.mk.length ? o.mk.map(k => k.fall ? `fall peak ${esc(wkDate(k.w))} · ${fmt(k.pk, 0)}%` : `arrives about ${esc(wkDate(k.w))} · spring peak ${fmt(k.pk, 0)}%`).join('; ') : migSeason() === 'fall' ? 'no fall rise in reports' : 'too few reports'}</li>`).join('') + '</ul>';
   const sel = rs.find(o => o.i === MIGS.band);
   if (sel){ const lh = 96, mx = Math.max(5, ...sel.sh.filter(v => v != null)), X = w => lw + (w - .5) * cw, Y = v => 8 + (lh - 22) * (1 - v / mx);
     /* line pieces, broken where a week has too few checklists and at July, lime before and orange after */
@@ -3152,7 +3149,7 @@ function migCal(lv, cells){ const E = migE(lv), R = migR(lv); if (!E || !R || !c
   return g; }
 document.addEventListener('click', e => { const r = e.target.closest('[data-migband]'); if (!r) return; const i = +r.dataset.migband; MIGS.band = MIGS.band === i ? -1 : i; qVizRefresh(); });
 document.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const r = e.target.closest && e.target.closest('[data-migband]'); if (!r) return; e.preventDefault(); r.click(); });
-QVIZ.mig = {title:'Migration calendar', note:'Share of eBird checklists in each region, Georgia to Maine, that reported the species each week, all years since 2010 pooled. Red mark: in spring, the first week it reaches half its spring peak; in fall, a peak where reports rise again on the trail; Year shows both. Bars above the regions: eBird Status and Trends spring (green) and fall (orange) migration dates for the species across its whole range. Green: January to June; orange: July to December. Clear: none reported; gray: fewer than 30 checklists that week. The outlined week is the one on the map. Click a region for its weekly line.',
+QVIZ.mig = {title:'Migration calendar', note:'How often birders reported this species each week, by region, all years since 2010. Top bars: eBird’s spring (green) and fall (orange) migration dates. Gray: too few checklists. Click a region for its weekly line.',
   html:(sl, cells) => migCal(sl, cells)};
 Q.push({id:'mig', th:'ebird', hue:HUE.mig, ramp:'mig', title:'When are migrating birds here?',
   use:'When 24 migratory birds arrive, pass through and leave along the trail, from eBird checklists since 2010, updated each January. Migration, week by week opens first: each cell shows the share of checklists in the three weeks around the date that reported the species, so Play shows birds moving up the trail in spring and down it in fall. Peak week maps the week each cell reports the species most. Visualizations add a migration calendar by region, Georgia to Maine. Share of checklists, not counts, so busy trailheads don’t outweigh quiet ridges; a missing cell means too few checklists that week, not absence.',
