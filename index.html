@@ -640,7 +640,13 @@ button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;
   body.stackui.ctlopen #ctlbtn i{transform:rotate(180deg)}
   body.stackui:not(.ctlopen) #ctlrow1,body.stackui:not(.ctlopen) #ctlrow2{display:none}
   body.stackui #legend{max-height:calc(100% - 112px);overflow-y:auto;overscroll-behavior:contain;padding:5px 9px;z-index:1145}
-  body.stackui.hasplay #legend{max-height:calc(100% - 162px)}
+  body.stackui #legend{left:auto;right:8px;bottom:22px;max-width:62vw}
+  body.stackui.hasplay #legend{bottom:22px;max-height:calc(100% - 112px)}
+  body.stackui .qsec[data-sec=charts] svg{max-height:180px;width:100%}
+  body.stackui .qsec[data-sec=charts] canvas{max-height:180px}
+  body.stackui .qquick .extsw{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:nowrap}
+  body.stackui .qquick .extsw h2{font-size:12.5px;margin:0 2px 0 0;color:#A8B8CA;font-weight:600}
+  body.stackui .qquick .extsw button{flex:1 1 0;font-size:12.5px;padding:5px 6px;border-radius:999px}
   body.stackui #legend h3{position:sticky;top:-5px;z-index:2;background:inherit;margin:-5px -9px 0;padding:5px 9px}
   body.stackui #legtog{font-size:12.5px}body.stackui #legtog span{max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   body.stackui .qhead{background:var(--panel);padding:6px 12px 0}
@@ -690,8 +696,7 @@ button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;
 #howto .hnav button{font:inherit;font-size:14px;padding:6px 13px;border-radius:7px;border:1px solid rgba(255,255,255,.25);background:transparent;color:inherit;cursor:pointer}
 #howto .hnav button.pri{background:#E8EEF6;color:#14294A;border-color:#E8EEF6;font-weight:600}#howto .hnav button:disabled{opacity:.35;cursor:default}
 #howto .hnav .hgo{background:#3A1820;border-color:#6B2532;color:#fff;box-shadow:none;font-size:14px;padding:6px 13px;border-radius:7px}
-.howhl{outline:3px solid #F0C419 !important;outline-offset:2px;border-radius:8px}
-#map.howhl{outline-offset:-3px}
+.howhl{outline:3px solid #F0C419 !important;outline-offset:-3px;border-radius:10px}
 @media (max-width:860px){ #howto{left:12px;right:12px;width:auto;top:52px;bottom:auto} #howbtn{width:30px;height:30px;font-size:15px;margin-right:4px} }
 /* animated questions: the badge, and Play on the map (bottom left; the legend moves up above it) */
 .qanim{flex:none;margin-left:auto;font-family:var(--sans,inherit);font-size:11.5px;font-weight:600;line-height:1;color:#0E1A2A;background:#9BE7B8;border-radius:999px;padding:4px 8px;white-space:nowrap}
@@ -700,6 +705,7 @@ button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;
 #mapplay{position:absolute;left:10px;bottom:10px;z-index:850;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px 0 6px;border-radius:999px;border:1px solid #2f9a6a;background:rgba(20,34,53,.95);color:#fff;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.35)}
 #mapplay i{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#1f6b4a;font-style:normal;font-size:13px}
 #mapplay[hidden]{display:none}
+#mapplay.nolab{padding:0 5px}#mapplay.nolab span{display:none}
 body.hasplay #legend{bottom:58px}
 .qquick{display:none}
 /* the map credit, smaller */
@@ -4232,12 +4238,12 @@ function mapPlay(){ let b = $('#mapplay'); const src = $('#migplay') || $('#phpl
     b.onclick = () => { const r = $('#migplay') || $('#phplay'); if (r) r.click(); setTimeout(mapPlay, 60); }; if (window.L && L.DomEvent) L.DomEvent.disableClickPropagation(b); $('#mapwrap').append(b); }
   const on = !!src && PLAYQ(); b.hidden = !on; document.body.classList.toggle('hasplay', on); if (!on) return;
   const pl = /pause/i.test(src.textContent), lab = ($('#migwkl') || $('#phwkl') || {textContent:''}).textContent.split(' · ')[0];
-  const ic = pl ? '❚❚' : '▶'; if (b.firstChild.textContent !== ic) b.firstChild.textContent = ic; if (b.lastChild.textContent !== lab) b.lastChild.textContent = lab;
+  const ic = pl ? '❚❚' : '▶'; if (b.firstChild.textContent !== ic) b.firstChild.textContent = ic; if (b.lastChild.textContent !== lab) b.lastChild.textContent = lab; b.classList.toggle('nolab', !lab);
   b.setAttribute('aria-label', (pl ? 'Pause' : 'Play') + ' the animation'); }
 if (window.MutationObserver) new MutationObserver(() => { clearTimeout(mapPlay.t); mapPlay.t = setTimeout(mapPlay, 30); }).observe($('#side'), {subtree:true, childList:true, characterData:true});
 /* phones: the species picker sits under the question title, so it can be changed without opening Measures */
-function quickPick(){ const q = $('#qquick'); if (!q) return; const sel = $('#side .qbody #migsp, #side .qbody #phsp, #side .qbody #pinvsel');
-  if (document.body.classList.contains('stackui') && sel) q.append(sel); }
+function quickPick(){ const q = $('#qquick'); if (!q || !document.body.classList.contains('stackui')) return; const sel = $('#side .qbody #migsp, #side .qbody #phsp, #side .qbody #pinvsel'), ex = $('#side .qbody .extblk .extsw');
+  if (sel) q.append(sel); if (ex) q.append(ex); }
 /* the map legend, repeated in Answer on phones (where the map legend sits small over the map) */
 function legCopy(){ const a = $('#anslegend'), b = $('#legbody'); if (a) a.innerHTML = b ? b.innerHTML : ''; }
 /* phones: the map and the trail profile on top, then the question and a row of buttons; a button opens its part below
