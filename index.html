@@ -758,6 +758,8 @@ body.hasplay #legend{bottom:58px}
   body.stackui #legend{max-width:68vw}
 }
 .qs [hidden],.qpick [hidden],.qgrp[hidden]{display:none !important}
+/* desktop: Results sits just above About this data, after the measures and charts */
+@media (min-width:861px){ .qsec[data-sec=res]>*{order:2} .qsec[data-sec=about]>*{order:3} }
 </style>
 </head>
 <body>
@@ -3470,8 +3472,8 @@ const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', 
 /* settings kept in this browser between visits (try/catch: private windows can refuse) */
 const store = {get(k, d){ try { const v = localStorage.getItem('atgrid_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v){ try { localStorage.setItem('atgrid_' + k, JSON.stringify(v)); } catch (e) {} }};
-Object.assign(S.side, store.get('side2', {})); S.side.qs = false; S.side.results = false;   /* the question list and Results start closed */
-if (VW() <= 860){ S.side.results = true; S.side.about = true; }   /* phones: inside their buttons, Results and About this data start open */ store.get('qgroups', []).forEach(g => QGOFF.add(g)); { const lg = store.get('legend', null); if (lg != null) S.legend = lg; } S.secOpen = store.get('secs', {});
+Object.assign(S.side, store.get('side2', {})); S.side.qs = false; S.side.results = true;   /* the question list starts closed; Results starts open */
+if (VW() <= 860) S.side.about = true;   /* phones: inside its button, About this data starts open */ store.get('qgroups', []).forEach(g => QGOFF.add(g)); { const lg = store.get('legend', null); if (lg != null) S.legend = lg; } S.secOpen = store.get('secs', {});
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q') && qVis(x)); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
   if (['auto','hex','cog','wheel'].includes(h.get('size'))) S.level = h.get('size');
