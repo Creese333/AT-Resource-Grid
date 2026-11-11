@@ -3005,7 +3005,7 @@ const wfScore = (lv, c) => wfParts(lv, c)[0];
 { const iq = Q.find(q => q.id === 'inv'); if (iq){ const k = iq.m.findIndex(m => m.id === 'edrr'); if (k > 0) iq.m.unshift(iq.m.splice(k, 1)[0]); } }
 let JERRY = false;
 if (JERRY) document.body.classList.add('jerry');
-/* ---------- When are migrating birds here? ----------
+/* ---------- When are birds migrating here? ----------
    data/birds/index.json lists the species (inputs/bird_migration_species.csv); each species file holds its eBird records as
    [day of year, year, lat, lon], one per checklist; effort.json holds the checklists in each corridor square mile by year and week.
    Values are the share of a cell's checklists that reported the species, so busy trailheads do not outweigh quiet ridges. */
@@ -3016,10 +3016,11 @@ const MIG = {st:'', idx:null, eff:null, sp:{}}, MIGIX = new WeakMap(), MIGE = ne
 const MIGS = {sp:'hylocichla-mustelina', season:'', wk:15, band:-1, auto:true};
 let migTimer = null;
 /* the weeks the slider and Play cover, and the season each story group opens on */
-/* eBird Status and Trends (2023) migration dates for each species across its whole range, spring and fall, as 'MM-DD/MM-DD'; blank where
+/* eBird Status and Trends (2023) season dates for each species across its whole range: spring migration, fall migration and breeding
+   ('MM-DD/MM-DD'), and whether it nests along the trail (1 = show its nesting bar); blank where
    eBird's expert review did not publish one. data/birds/index.json carries the same dates from the species list once the eBird run
    has them, and those win; these are the fallback. Without a window: spring March–June, fall August–November. */
-const MIGEB = {'Catharus bicknelli':['05-10/05-24', ''], 'Setophaga striata':['04-12/06-07', '08-09/12-06'], 'Catharus ustulatus':['03-15/06-07', '07-19/11-08'], 'Contopus cooperi':['03-22/06-14', '07-26/11-08'], 'Leiothlypis peregrina':['03-22/05-31', '08-02/11-29'], 'Setophaga tigrina':['03-22/05-31', '08-02/11-08'], 'Setophaga castanea':['03-29/06-07', '08-02/11-29'], 'Buteo platypterus':['02-22/06-07', '08-02/11-22'], 'Pandion haliaetus':['02-15/05-17', '08-02/12-20'], 'Chordeiles minor':['03-22/06-14', '07-26/11-15'], 'Dolichonyx oryzivorus':['04-19/05-31', '08-02/11-08'], 'Tyrannus tyrannus':['03-01/05-31', '08-09/11-29'], 'Setophaga discolor':['03-22/05-24', '07-12/11-08'], 'Hylocichla mustelina':['03-08/05-24', '08-02/11-15'], 'Setophaga cerulea':['03-08/05-10', '07-26/10-18'], 'Cardellina canadensis':['03-22/06-07', '08-02/11-22'], 'Antrostomus vociferus':['02-08/05-17', ''], 'Coccyzus erythropthalmus':['03-15/06-07', '08-09/11-01'], 'Accipiter striatus':['03-15/05-24', '08-30/11-29'], 'Falco sparverius':['02-22/05-10', '08-09/11-08'], 'Falco columbarius':['03-08/05-24', '08-02/11-29'], 'Falco peregrinus':['02-22/05-31', '07-26/11-15'], 'Circus hudsonius':['02-22/05-31', '07-12/12-06'], 'Aquila chrysaetos':['02-08/05-31', '08-30/11-29']};
+const MIGEB = {'Catharus bicknelli':['05-10/05-24', '', '05-31/07-26', 1], 'Setophaga striata':['04-12/06-07', '08-09/12-06', '06-14/08-02', 1], 'Catharus ustulatus':['03-15/06-07', '07-19/11-08', '06-14/07-12', 1], 'Contopus cooperi':['03-22/06-14', '07-26/11-08', '06-21/07-19', 1], 'Leiothlypis peregrina':['03-22/05-31', '08-02/11-29', '06-07/07-12', 0], 'Setophaga tigrina':['03-22/05-31', '08-02/11-08', '06-07/07-05', 0], 'Setophaga castanea':['03-29/06-07', '08-02/11-29', '06-14/07-12', 0], 'Buteo platypterus':['02-22/06-07', '08-02/11-22', '06-14/07-26', 1], 'Pandion haliaetus':['02-15/05-17', '08-02/12-20', '05-24/07-26', 1], 'Chordeiles minor':['03-22/06-14', '07-26/11-15', '06-21/07-19', 1], 'Accipiter striatus':['03-15/05-24', '08-30/11-29', '05-31/08-09', 1], 'Falco sparverius':['02-22/05-10', '08-09/11-08', '05-17/08-02', 1], 'Falco columbarius':['03-08/05-24', '08-02/11-29', '05-31/07-26', 0], 'Falco peregrinus':['02-22/05-31', '07-26/11-15', '06-07/07-19', 1], 'Circus hudsonius':['02-22/05-31', '07-12/12-06', '06-07/07-05', 1], 'Aquila chrysaetos':['02-08/05-31', '08-30/11-29', '06-07/08-23', 0], 'Dolichonyx oryzivorus':['04-19/05-31', '08-02/11-08', '06-07/07-26', 1], 'Tyrannus tyrannus':['03-01/05-31', '08-09/11-29', '06-07/08-02', 1], 'Setophaga discolor':['03-22/05-24', '07-12/11-08', '05-31/07-05', 1], 'Hylocichla mustelina':['03-08/05-24', '08-02/11-15', '05-31/07-26', 1], 'Setophaga cerulea':['03-08/05-10', '07-26/10-18', '05-17/07-19', 1], 'Cardellina canadensis':['03-22/06-07', '08-02/11-22', '06-14/07-26', 1], 'Antrostomus vociferus':['02-08/05-17', '', '05-24/07-26', 1], 'Coccyzus erythropthalmus':['03-15/06-07', '08-09/11-01', '06-14/08-02', 1]};
 const MIGDEF = {'Fall flights':'fall', 'Passing through':'fall'};
 const MIGNOTE = {'High-peak breeders':'These birds nest on the high peaks in spruce-fir, so they show up mainly in the highest cells and arrive later than birds lower down. Blackpoll warblers and Swainson’s thrushes also pass through the whole trail in May and September.',
   'Passing through':'These birds nest north of the trail and are seen here only on the way through.',
@@ -3030,9 +3031,10 @@ const migSeason = () => { const s = migSp(); return MIGS.season || (s && MIGDEF[
 const migWkOf = md => { const [m, d] = md.split('-').map(Number); return Math.floor((Date.UTC(2025, m - 1, d) - Date.UTC(2025, 0, 1)) / 6048e5) + 1; };
 const migMD = md => new Date(Date.UTC(2025, +md.slice(0, 2) - 1, +md.slice(3, 5))).toLocaleDateString('en-US', {month:'short', day:'numeric', timeZone:'UTC'});
 function migWins(){ const s = migSp(), ok = x => typeof x === 'string' && /^\d\d-\d\d\/\d\d-\d\d$/.test(x);
-  const w = s && (ok(s.spring) || ok(s.fall)) ? [s.spring, s.fall] : s && MIGEB[s.sci] || ['', ''];
+  const w = s && (ok(s.spring) || ok(s.fall) || ok(s.breeding)) ? [s.spring, s.fall, s.breeding, s.nests ? 1 : 0] : s && MIGEB[s.sci] || ['', '', '', 0];
+  const br = w[3] && ok(w[2]) ? w[2].split('/') : null;
   const sp = ok(w[0]) ? w[0].split('/') : null, fa = ok(w[1]) ? w[1].split('/') : null;
-  return {spring:sp ? sp.map(migWkOf) : [10, 26], fall:fa ? fa.map(migWkOf) : [31, 47], txt:{spring:sp && sp.map(migMD).join(' – '), fall:fa && fa.map(migMD).join(' – ')}, md:{spring:sp, fall:fa}}; }
+  return {spring:sp ? sp.map(migWkOf) : [10, 26], fall:fa ? fa.map(migWkOf) : [31, 47], breeding:br ? br.map(migWkOf) : null, txt:{spring:sp && sp.map(migMD).join(' – '), fall:fa && fa.map(migMD).join(' – '), breeding:br && br.map(migMD).join(' – ')}, md:{spring:sp, fall:fa}}; }
 /* spring runs from the start of eBird's window to the end of June, so birds settling on the trail after the range-wide window still show */
 const migRange = () => { const ss = migSeason(), W = migWins(); return ss === 'year' ? [W.spring[0], W.fall[1]] : ss === 'spring' ? [W.spring[0], Math.max(W.spring[1], 26)] : W.fall; };
 const migKey = (lv, id) => lv === 'hex' ? id : id.split('-').slice(0, lv === 'cog' ? 4 : 3).join('-');
@@ -3132,8 +3134,8 @@ function migCal(lv, cells){ const E = migE(lv), R = migR(lv); if (!E || !R || !c
   'JFMAMJJASOND'.split('').forEach((t, i) => { g += `<text x="${lw + Math.round((new Date(2021, i, 1) - new Date(2021, 0, 1)) / 6048e5) * cw}" y="10" class="mct">${t}</text>`; });
   /* eBird's recognized migration windows for the species, above the regions */
   g += `<text x="${lw - 5}" y="21" text-anchor="end" class="mct">eBird</text>`;
-  [['spring', '#A3D82B'], ['fall', '#E57A1F']].forEach(([k, c]) => { if (!Wn.txt[k]) return; const [w0, w1] = Wn[k];
-    g += `<rect x="${(lw + (w0 - 1) * cw).toFixed(1)}" y="15" width="${((w1 - w0 + 1) * cw).toFixed(1)}" height="6" rx="2" fill="${c}"><title>eBird ${k} migration: ${esc(Wn.txt[k])}</title></rect>`; });
+  [['spring', '#A3D82B', 'spring migration'], ['breeding', '#8796AB', 'nesting season'], ['fall', '#E57A1F', 'fall migration']].forEach(([k, c, t]) => { if (!Wn.txt[k]) return; const [w0, w1] = Wn[k];
+    g += `<rect x="${(lw + (w0 - 1) * cw).toFixed(1)}" y="15" width="${((w1 - w0 + 1) * cw).toFixed(1)}" height="6" rx="2" fill="${c}"><title>eBird ${t}: ${esc(Wn.txt[k])}</title></rect>`; });
   rs.forEach((o, j) => { const y = top + j * rh;
     g += `<g class="migrow${MIGS.band === o.i ? ' on' : ''}" data-migband="${o.i}" tabindex="0" role="button" aria-label="${esc(o.n)}: show its weekly line"><text x="${lw - 5}" y="${y + rh / 2 + 4}" text-anchor="end" class="mrl">${esc(o.n)}</text><rect x="${lw}" y="${y + 1}" width="${(52 * cw).toFixed(1)}" height="${rh - 2}" fill="none" stroke="#2E405A" stroke-width="1"/>`;
     o.sh.forEach((v, w) => { if (v === 0) return; if (v == null){ g += `<rect x="${(lw + w * cw).toFixed(1)}" y="${y + 1}" width="${(cw + .3).toFixed(1)}" height="${rh - 2}" fill="#3A4C66"><title>${esc(o.n)}, week of ${esc(wkDate(w + 1))}: fewer than ${MIGBAND} checklists</title></rect>`; return; } g += `<rect x="${(lw + w * cw).toFixed(1)}" y="${y + 1}" width="${(cw + .3).toFixed(1)}" height="${rh - 2}" fill="${migCol(v, w >= 26)}"><title>${esc(o.n)}, week of ${esc(wkDate(w + 1))}: ${fmt(v, v < 10 ? 1 : 0)}% of ${fmt(o.e[w], 0)} checklists</title></rect>`; });
@@ -3152,9 +3154,9 @@ function migCal(lv, cells){ const E = migE(lv), R = migR(lv); if (!E || !R || !c
   return g; }
 document.addEventListener('click', e => { const r = e.target.closest('[data-migband]'); if (!r) return; const i = +r.dataset.migband; MIGS.band = MIGS.band === i ? -1 : i; qVizRefresh(); });
 document.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const r = e.target.closest && e.target.closest('[data-migband]'); if (!r) return; e.preventDefault(); r.click(); });
-QVIZ.mig = {title:'Migration calendar', note:'How often birders reported this species each week, by region, all years since 2010. Top bars: eBird’s spring (green) and fall (orange) migration dates. Gray: too few checklists. Click a region for its weekly line.',
+QVIZ.mig = {title:'Migration calendar', note:'How often birders reported this species each week, by region, all years since 2010. Top bars: eBird’s spring migration (green), nesting season (gray, for birds that nest along the trail) and fall migration (orange) dates. Gray: too few checklists. Click a region for its weekly line.',
   html:(sl, cells) => migCal(sl, cells)};
-Q.push({id:'mig', th:'ebird', hue:HUE.mig, ramp:'mig', title:'When are migrating birds here?',
+Q.push({id:'mig', th:'ebird', hue:HUE.mig, ramp:'mig', title:'When are birds migrating here?',
   use:'When 24 migratory birds arrive, pass through and leave along the trail, from eBird checklists since 2010, updated each January. Migration, week by week opens first: each cell shows the share of checklists in the three weeks around the date that reported the species, so Play shows birds moving up the trail in spring and down it in fall. Peak week maps the week each cell reports the species most. Visualizations add a migration calendar by region, Georgia to Maine. Share of checklists, not counts, so busy trailheads don’t outweigh quiet ridges; a missing cell means too few checklists that week, not absence.',
   m:[{id:'migwk', label:'Migration, week by week', unit:'%', d:1, fn:(lv, c) => migShare(lv, c, MIGS.wk), colorFn:migCol, legendFn:migLegShare, stripTop:() => 30, zeroClear:1, nullHide:1,
       showFn:v => v === 0 ? 'none reported these weeks' : `${fmt(v, v < 10 ? 1 : 0)}% of checklists`, none:`Not drawn: fewer than ${MIGMIN} checklists in these weeks`},
