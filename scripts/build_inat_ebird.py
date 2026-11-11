@@ -32,8 +32,9 @@ its previous summaries are kept and the rest of the build goes on.
      and the checklists in each corridor square mile by year and week (data/birds/effort.json), the effort that turns records into
      "how often birders reported it". data/birds/index.json lists the species. Adding or removing a row in the CSV is enough;
      the next eBird run writes the new species and drops the files of species no longer listed. The summaries above are unchanged.
-     The list's SPRING_MIGRATION and FALL_MIGRATION columns (eBird Status and Trends season dates, 'MM-DD/MM-DD') go into index.json
-     as each species' spring and fall, which set the dashboard's season ranges.
+     The list's SPRING_MIGRATION, BREEDING and FALL_MIGRATION columns (eBird Status and Trends season dates, 'MM-DD/MM-DD') and
+     NESTS_ON_TRAIL (yes/no) go into index.json as each species' spring, breeding, fall and nests, which set the dashboard's season
+     ranges and the bars on its migration calendar.
 Standard library only.
 """
 import base64, csv, gzip, hashlib, io, json, math, os, re, sys, time, urllib.parse, urllib.request, zipfile
@@ -341,10 +342,13 @@ def load_migration():
         if not sci:
             continue
         k = migr_key(sci); info[k] = {'sci': sci, 'common': (r.get('COMMON_NAME') or '').strip(), 'story': (r.get('STORY') or '').strip()}
-        for col, key in (('SPRING_MIGRATION', 'spring'), ('FALL_MIGRATION', 'fall')):   # eBird Status and Trends migration dates, 'MM-DD/MM-DD'
+        for col, key in (('SPRING_MIGRATION', 'spring'), ('BREEDING', 'breeding'), ('FALL_MIGRATION', 'fall')):   # eBird Status and Trends season dates, 'MM-DD/MM-DD'
             v = (r.get(col) or '').strip()
             if re.fullmatch(r'\d\d-\d\d/\d\d-\d\d', v):
                 info[k][key] = v
+        n = (r.get('NESTS_ON_TRAIL') or '').strip().lower()
+        if n in ('yes', 'no'):
+            info[k]['nests'] = n == 'yes'                       # whether the species nests along the trail (shows the nesting bar)
         for x in [sci] + (r.get('ALT_SCI_NAMES') or '').split(';'):
             if x.strip():
                 spp[norm(x)] = k
