@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1C3B5A">
 <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="A.T. Grid">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>A.T. Resource Grid</title>
 <meta name="description" content="Land, vegetation, wildlife records and review priorities for the Appalachian Trail corridor, summarized on one nested grid.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -787,6 +787,9 @@ body.hasplay #legend{bottom:58px}
   body.stackui #layerspanel{left:auto;right:-1px;max-width:calc(100vw - 24px)}
   body.stackui .qtitle:active{background:rgba(255,255,255,.08)}
 }
+body.stackui{height:var(--apph,100dvh) !important}
+body.stackui header{height:calc(46px + env(safe-area-inset-top, 0px)) !important;padding-top:env(safe-area-inset-top, 0px) !important}
+body.stackui header,body.stackui .ptabs{padding-left:max(8px, env(safe-area-inset-left, 0px)) !important;padding-right:max(8px, env(safe-area-inset-right, 0px)) !important}
 </style>
 </head>
 <body>
@@ -3880,7 +3883,7 @@ $('#cellsbtn').onclick = () => { S.cells = !S.cells; map.getPane('cells').style.
   b.setAttribute('aria-pressed', S.cells); b.querySelector('span').textContent = S.cells ? 'Cells on' : 'Cells off';
   if (shown){ if (S.cells) GROUP[shown].addTo(map); else { map.removeLayer(GROUP[shown]); tip.remove(); } } };
 
-function trailMid(){ if (!isPhone()) return; /* phones: the whole trail fits below the search rows and above the legend button, with Katahdin   (the northern end) right under the locate button */   const L_ = D.levels.wheel, mc = map.getContainer(), mr = mc.getBoundingClientRect(), sp = $('.secpick'), lb = $('#legtog'), loc = $('.leaflet-top.leaflet-right .leaflet-control');   const top = (sp ? sp.getBoundingClientRect().bottom - mr.top : 90) + 34, bot = lb ? Math.max(40, mr.bottom - lb.getBoundingClientRect().top + 12) : 60;   const lx = loc ? loc.getBoundingClientRect().left + loc.getBoundingClientRect().width / 2 - mr.left : mr.width - 28;   let n = 0; for (let i = 1; i < L_.id.length; i++) if (L_.mi[i] > L_.mi[n]) n = i;   map.fitBounds(L.latLngBounds(L_.c), {paddingTopLeft:[22, top], paddingBottomRight:[Math.max(10, mr.width - lx), bot], animate:false});   const p = map.latLngToContainerPoint(L_.c[n]); map.panBy([p.x - lx, p.y - top], {animate:false}); }
+function trailMid(){ if (!isPhone()) return; /* phones: the whole trail fits below the search rows and above the legend button, with Katahdin   (the northern end) right under the locate button */   const L_ = D.levels.wheel, mc = map.getContainer(), mr = mc.getBoundingClientRect(), sp = $('.secpick'), lb = $('#legtog'), loc = $('.leaflet-top.leaflet-right .leaflet-control');   const top = (sp ? sp.getBoundingClientRect().bottom - mr.top : 90) + 34, bot = lb ? Math.max(40, mr.bottom - lb.getBoundingClientRect().top + 12) : 60;   const lx = loc ? loc.getBoundingClientRect().left + loc.getBoundingClientRect().width / 2 - mr.left : mr.width - 28;   let n = 0; for (let i = 1; i < L_.id.length; i++) if (L_.mi[i] > L_.mi[n]) n = i;   /* work out the view first and move the map once, only when it is not already there, so the basemap is not dropped and reloaded */   const cz = map._getBoundsCenterZoom(L.latLngBounds(L_.c), {paddingTopLeft:L.point(22, top), paddingBottomRight:L.point(Math.max(10, mr.width - lx), bot)}), z = cz.zoom;   const sz = map.getSize(), cp = map.project(L_.c[n], z).subtract(L.point(lx, top)).add(sz.divideBy(2)), ctr = map.unproject(cp, z);   if (map._loaded && Math.abs(map.getZoom() - z) < 1e-6 && map.project(map.getCenter(), z).distanceTo(cp) < 3) return;   map.setView(ctr, z, {animate:false}); }
 function fitSection(){ const lv = 'wheel', L_ = D.levels[lv], pts = [];
   for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) pts.push(L_.c[c]);
   if (pts.length){ map.fitBounds(L.latLngBounds(pts).pad(.08)); if (S.sec === 'all') trailMid(); } }
@@ -4329,6 +4332,8 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/^(l
 { let ip = null; const ib = $('#installbtn'); addEventListener('beforeinstallprompt', e => { e.preventDefault(); ip = e; if (ib) ib.hidden = false; });
   addEventListener('appinstalled', () => { ip = null; if (ib) ib.hidden = true; });
   if (ib) ib.onclick = async () => { if (!ip) return; ip.prompt(); try { await ip.userChoice; } catch (e) {} ip = null; ib.hidden = true; }; }
+/* the real visible height, for the phone layout (100vh and 100dvh are wrong in an installed app on iPhone) */
+{ const apph = () => document.documentElement.style.setProperty('--apph', innerHeight + 'px'); apph(); addEventListener('resize', apph); addEventListener('orientationchange', () => setTimeout(apph, 300)); }
 function stackSync(){ const on = isPhone(), body = document.body, a = $('aside'), pr = $('#profile');
   if (on !== body.classList.contains('stackui')){ body.classList.toggle('stackui', on); if (!on) PTAB = '';
     if (pr){ if (on) a.append(pr); else $('#mapwrap').append(pr); }
@@ -5839,10 +5844,10 @@ $('#aboutclose').onclick = () => $('#about').close();
 $('#about').addEventListener('click', e => { if (e.target === $('#about')) $('#about').close(); });
 
 /* ---------- start ---------- */
-map.fitBounds(L.latLngBounds(D.levels.wheel.c).pad(.03)); trailMid(); baseSync();
+if (isPhone()) trailMid(); else map.fitBounds(L.latLngBounds(D.levels.wheel.c).pad(.03)); baseSync();
 /* phones: the page settles (address bar, fonts, panel) after the first draw, so center again until the person moves the map */
 { let moved = false; map.once('dragstart zoomstart', e => { if (e && e.originalEvent !== undefined) moved = true; }); map.getContainer().addEventListener('touchstart', () => { moved = true; }, {once:true, passive:true});
-  const again = () => { if (moved || !isPhone() || S.sec !== 'all' || S.cell != null || (typeof TOUR !== 'undefined' && TOUR.id)) return; map.invalidateSize({pan:false}); map.fitBounds(L.latLngBounds(D.levels.wheel.c).pad(.03), {animate:false}); trailMid(); };
+  const again = () => { if (moved || !isPhone() || S.sec !== 'all' || S.cell != null || (typeof TOUR !== 'undefined' && TOUR.id)) return; map.invalidateSize({pan:false}); trailMid(); };
   [300, 900, 2000, 3500].forEach(t => setTimeout(again, t)); if (window.visualViewport) visualViewport.addEventListener('resize', () => setTimeout(again, 150)); } mapGestures();
 if (S.sec !== 'all') fitSection();
 /* ---------- quarterly iNaturalist and eBird summaries from inat_ebird.json ----------
