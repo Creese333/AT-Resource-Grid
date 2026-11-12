@@ -198,16 +198,18 @@ def sql_body(kind, levels, user):
     box = ' OR '.join(f'(decimallatitude >= {s_:.4f} AND decimallatitude <= {n_:.4f} AND decimallongitude >= {w_:.4f} AND decimallongitude <= {e_:.4f})'
                       for s_, n_, w_, e_ in area_rects(levels))
     sql = (f"SELECT {', '.join(EBIRD_COLS)} FROM occurrence WHERE datasetkey = '{DATASETS[kind]}' AND hascoordinate = TRUE "
-           f"AND hasgeospatialissues = FALSE AND occurrencestatus = 'PRESENT' AND ({box})")
+           f"AND ({box})")
+    # no geospatial-issue or occurrence-status test here: in the SQL table those columns are empty for eBird records,
+    # so testing them returned nothing (a run on 2026-11-12 got 0 records); eBird on GBIF holds only birds reported present
     return {'creator': user, 'sendNotification': False, 'format': 'SQL_TSV_ZIP', 'sql': sql}
 
 
-def download(kind, levels):
+def download(kind, levels, sql=True):
     user, pwd = os.environ.get('GBIF_USER'), os.environ.get('GBIF_PWD')
     if not user or not pwd:
         sys.exit('GBIF_USER and GBIF_PWD are not set (repository secrets)')
     key = None
-    if kind == 'ebird':
+    if kind == 'ebird' and sql:
         try:
             key = gbif('/occurrence/download/request', json.dumps(sql_body(kind, levels, user)).encode(), f'{user}:{pwd}', 'POST').strip()
             print(f'{kind}: GBIF SQL download (with eBird checklist numbers) {key} requested', flush=True)
@@ -234,6 +236,11 @@ def download(kind, levels):
             sys.exit(f'{kind}: GBIF download {key} {st or "timed out"}')
         print(f'   {st}, {info.get("totalRecords") or "?"} records so far; checking again in 2 minutes', flush=True)
         time.sleep(120)
+    if not info.get('totalRecords'):
+        if kind == 'ebird' and sql:
+            print(f'{kind}: the GBIF SQL download came back with 0 records; trying the simple CSV instead', flush=True)
+            return download(kind, levels, sql=False)
+        sys.exit(f'{kind}: GBIF download {key} came back with 0 records; nothing was changed')
     path = os.path.join(CACHE, f'{kind}_{key}.zip')
     with urllib.request.urlopen(urllib.request.Request(info['downloadLink'], headers={'User-Agent': 'AT-Resource-Grid'}), timeout=600) as r, open(path, 'wb') as f:
         while True:
@@ -639,6 +646,8 @@ def summarize(kind, zpath, grids, names):
         if n_all % 500000 == 0:
             print(f'   {kind}: {n_all:,} rows read, {n_in["corr"]:,} in corridor cells, {n_in.get("huc", 0):,} in HUC10 cells ({time.time() - t0:.0f} s)', flush=True)
     print(f'{kind}: {n_all:,} rows, {n_in["corr"]:,} in corridor cells, {n_in.get("huc", 0):,} in HUC10 cells', flush=True)
+    if not n_in['corr']:   # never write empty summaries over good ones
+        sys.exit(f'{kind}: no records fell in the corridor cells; stopping before anything is written, so the dashboard keeps its current data')
     # every species gets a common name: dashboard and lookup names first, then GBIF's English vernacular names (cached)
     have = lambda x: names.get(norm(x)) or (common or {}).get(norm(x)) or (inv.get(norm(x), (0, 0, ''))[2] if inv else '') or PESTS.get(x)
     missing = sorted({sp for g in cells for lv in cells[g] for c in cells[g][lv].values() for sp in c['spp'] if not have(sp)})
