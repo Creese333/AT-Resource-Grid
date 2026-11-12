@@ -1,0 +1,21 @@
+name: Restore eBird data (before the empty run of Nov 12, 2026)
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Put back the 29 files the empty eBird run replaced
+        run: |
+          BAD=758d511b68b6363b730d65d155212a779de038c3
+          git checkout "$BAD^" -- $(git show --name-only --format= "$BAD")
+          git config user.name  "inat-ebird-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git diff --cached --quiet && { echo "Nothing to restore"; exit 0; }
+          git commit -m "Restore eBird data from before the empty run of 2026-11-12"
+          git push
