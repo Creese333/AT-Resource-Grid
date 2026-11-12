@@ -1418,7 +1418,10 @@ function phIdxAdd(ix){ let n = 0; const P = Object.entries(ix.species).filter(([
       if (s){ if (s.group !== g){ s.group = g; n++; } if (e.common) s.common = e.common; }
       else { PHSP.push({common:e.common || e.sci, sci:e.sci, key, group:g, kind:'spread', cand:false, set:'pinv', pest:true}); n++; } } }
   if (n && S.q.id === 'inv') side(); }
-function phCntDone(){ if (S.q.id === 'inv' && S.m.id === 'edrr' && $('#pinvsel')) side(); if (SPREADQ()){ const sp = S.ph.pick ? phSp() : (phListShown()[0] || phSp()); if (sp.key !== S.ph.sp){ S.ph.sp = sp.key; phLoad(sp); } BRK.clear(); redraw(); } }
+/* the species each animated question opens on, until the user picks one */
+const PHDEF = {inv:'berberis-thunbergii', pest:'lycorma-delicatula'};
+function phDef(){ const k = PHDEF[S.q.id]; return k ? phListShown().find(s => s.key === k) || null : null; }
+function phCntDone(){ if (S.q.id === 'inv' && S.m.id === 'edrr' && $('#pinvsel')) side(); if (SPREADQ()){ const sp = S.ph.pick ? phSp() : (phDef() || phListShown()[0] || phSp()); if (sp.key !== S.ph.sp){ S.ph.sp = sp.key; phLoad(sp); } BRK.clear(); redraw(); } }
 function phPestCounts(){ if (phCntRun) return; phCntRun = true;
   phIdx().then(ix => { const sx = ix && ix.species, ps = PHSP.filter(s => s.pest);
     if (sx){ const miss = []; ps.forEach(s => { if (sx[s.key] && sx[s.key].cnt != null) PHCNT[s.key] = sx[s.key].cnt; else miss.push(s); }); phCntDone(); if (miss.length) phPestCountsLive(miss, true); }
@@ -1429,7 +1432,7 @@ function phPestCountsLive(list, fresh){ list = list || PHSP.filter(s => s.pest);
         const r = await fetch('https://api.inaturalist.org/v1/observations?' + (ATiNat.config.project ? 'project_id=' + encodeURIComponent(ATiNat.config.project) + '&' : '') + 'quality_grade=research&per_page=0&taxon_id=' + t);
         if (r.ok) PHCNT[sp.key] = (await r.json()).total_results || 0; } catch (e) {} }
     if (!fresh) try { localStorage.setItem(k, JSON.stringify({at:Date.now(), c:PHCNT})); } catch (e) {}
-    if (SPREADQ()){ const sp = S.ph.pick ? phSp() : (phListShown()[0] || phSp()); if (sp.key !== S.ph.sp){ S.ph.sp = sp.key; phLoad(sp); } BRK.clear(); redraw(); } })(); }
+    if (SPREADQ()){ const sp = S.ph.pick ? phSp() : (phDef() || phListShown()[0] || phSp()); if (sp.key !== S.ph.sp){ S.ph.sp = sp.key; phLoad(sp); } BRK.clear(); redraw(); } })(); }
 const phShown = sp => !sp.pest || sp.set === 'pinv' ? true : PHCNT[sp.key] == null ? !sp.cand : PHCNT[sp.key] >= PHPESTMIN;
 const phListShown = () => { const L = phList().filter(phShown); return SPREADQ() ? L.sort((a, b) => (PHCNT[b.key] || 0) - (PHCNT[a.key] || 0)) : L; };
 /* each question keeps its own species */
@@ -3277,7 +3280,7 @@ RAMP.migf = ['#E97610','#EB670E','#C8650E','#C9580C','#A7490A'];  /* fall migrat
 RAMP.mign = ['#FCDD8C','#FBCF4D','#F9BE00','#D6A200','#B28700'];  /* nesting season: yellow */
 const MIGSC = '#05D16D', MIGNC = '#F9BE00', MIGFC = '#EB670E';  /* the eBird season bars and the weekly line */
 const MIG = {st:'', idx:null, eff:null, sp:{}}, MIGIX = new WeakMap(), MIGE = new WeakMap(), MIGR = new WeakMap();
-const MIGS = {sp:'hylocichla-mustelina', season:'', wk:15, band:-1, auto:true};
+const MIGS = {sp:'leiothlypis-peregrina', season:'', wk:15, band:-1, auto:true};
 let migTimer = null;
 /* the weeks the slider and Play cover, and the season each story group opens on */
 /* eBird Status and Trends (2023) season dates for each species across its whole range: spring migration, fall migration and breeding
@@ -3508,6 +3511,8 @@ Q.push({id:'mig', th:'ebird', hue:HUE.mig, ramp:'mig', title:'When are birds mig
   use:'When 24 migratory birds arrive, pass through and leave along the trail, from eBird checklists since 2010, updated each January. Migration, week by week opens first: each cell shows the share of checklists in the three weeks around the date that reported the species, so Play shows birds moving up the trail in spring and down it in fall. Peak week maps the week each cell reports the species most. Visualizations add a migration calendar by region, Georgia to Maine. Share of checklists, not counts, so busy trailheads don’t outweigh quiet ridges; a missing cell means too few checklists that week, not absence.',
   m:[{id:'migwk', label:'Migration, week by week', unit:'%', d:1, fn:(lv, c) => migShare(lv, c, MIGS.wk), colorFn:migCol, legendFn:migLegShare, stripTop:() => 30, zeroClear:1, nullHide:1,
       showFn:v => v === 0 ? 'none reported these weeks' : `${fmt(v, v < 10 ? 1 : 0)}% of checklists`, none:`Not drawn: fewer than ${MIGMIN} checklists in these weeks`}]});
+/* invasive plants open on the year-by-year animation (Japanese barberry until another species is picked) */
+{ const q = Q.find(x => x.id === 'inv'), i = q ? q.m.findIndex(m => m.pinv) : -1; if (i > 0) q.m.unshift(q.m.splice(i, 1)[0]); }
 const QGRP = {rest:'Priorities', tvul:'Priorities', pri:'Priorities', inv:'Threats', pest:'Threats', pinv:'Threats', veg:'Plants and wildlife', bird:'Plants and wildlife', mig:'Plants and wildlife',
   phen:'Plants and wildlife', rec:'Plants and wildlife', geo:'Land, water and climate', soil:'Land, water and climate', wet:'Land, water and climate', wx:'Land, water and climate',
   hist:'Cultural resources', cult:'Cultural resources', feat:'Stewardship', eff:'Plants and wildlife', land:'Stewardship'};
@@ -4428,7 +4433,9 @@ document.addEventListener('keydown', e => { if (HOWK < 0) return; if (e.key === 
   addEventListener('resize', () => { if (HOWK >= 0) howDraw(); });
   /* once, on a first visit (not when a link opens a tour) */
   setTimeout(() => { let seen = 0; try { seen = store.get('howseen', 0); } catch (e) {} if (!seen && !/tour=/.test(location.hash) && !(typeof TOUR !== 'undefined' && TOUR.id)) howStart(); }, 2200); }
-function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
+const EXTHUCQ = new Set(['inv', 'pest']);   /* questions that open on the HUC10 watershed cells */
+function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
+  if (S.lastQ !== q.id){ S.lastQ = q.id; if (EXTHUCQ.has(q.id)){ if (S.ext !== 'huc'){ S.extAuto = true; setTimeout(() => setExt('huc'), 0); } } else if (S.extAuto){ S.extAuto = false; if (S.ext === 'huc') setTimeout(() => setExt('corr'), 0); } } el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
   const SUMH = S.m.find ? '' : summary(lv), ANS = {h:'', used:''};
   let h = `<section class="qhead" style="--hue:${q.hue}"><div class="qcrumb">${S.m.find ? 'Search' : 'Guiding question' + (QGRP[q.id] ? ' · ' + esc(QGRP[q.id]) : '')}</div><div class="qtitle"><h2>${S.m.find ? 'Search results' : esc(q.title)}</h2><button type="button" class="blktog qchange" data-blk="qs" aria-expanded="${!!S.side.qs}" aria-controls="qpick">All questions<i aria-hidden="true"></i></button></div>` +
@@ -4491,7 +4498,7 @@ function summary(lv){ SUMSEL = null; const m = S.m, L_ = D.levels[lv], n = L_.id
   rows.slice(0, 50).forEach(r => { const e = eff(r[0]); h += cellItem(lv, r[0], `<span class="val${e ? ' two' : ''}">${m.showFn && m.th === 'wx' ? m.showFn(r[1]) : fmt(r[1], m.d) + (m.unit === '%' ? '%' : '')}</span>${e}`); });
   return h + '</ol></div>'; }
 $('#side').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.ext){ S.hadm = null; setExt(b.dataset.ext); return; }
+  if (b.dataset.ext){ S.hadm = null; S.extAuto = false; setExt(b.dataset.ext); return; }
   if (b.dataset.herb){ S.herb = b.dataset.herb === 'on'; BRK.clear(); redraw(); return; }
   if (b.dataset.lands){ S.appa = b.dataset.lands === 'appa'; BRK.clear(); redraw(); return; }
   if (b.dataset.hadm){ S.hadm = b.dataset.hadm; S.histHucFail = false; for (const k in HAGG) delete HAGG[k]; BRK.clear(); const want = histScale() === 'huc' ? 'huc' : 'corr';
