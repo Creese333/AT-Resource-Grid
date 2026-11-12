@@ -816,6 +816,22 @@ body.stackui .tour .dots{gap:4px;min-width:0;flex-wrap:wrap}
 body.stackui .tour .dots i{width:6px;height:6px}
 @media (max-width:370px){ body.stackui.touring #mapwrap{min-height:170px} body.stackui.touring .tour{max-height:66%;font-size:14px !important;line-height:1.38} body.stackui .tour .tph img{height:80px !important} body.stackui .tour .tnav button{padding:8px 13px !important;font-size:14.5px !important} body.stackui .tour .dots{gap:3px} body.stackui .tour .dots i{width:5px;height:5px} }
 body.stackui .tour .tnav button{flex:none;width:76px;box-sizing:border-box;text-align:center;font-size:14px !important;padding:6px 0 !important;border-radius:8px}
+
+/* laptops: a smaller, denser cell panel */
+@media (max-width:1700px), (max-height:950px){
+  body:not(.stackui) #profile{width:clamp(290px,21vw,360px);font-size:13.5px}
+  body:not(.stackui) #mapwrap:has(#profile.open) #ctls{right:calc(clamp(290px,21vw,360px) + 15px)}
+  body:not(.stackui) #mapwrap:has(#profile.open) .migcard,body:not(.stackui) #mapwrap:has(#profile.open) .migcardbtn{right:calc(clamp(290px,21vw,360px) + 22px)}
+  body:not(.stackui) #profile .phead h2{font-size:17px}
+  body:not(.stackui) #profile .phead{padding-top:10px;padding-bottom:8px}
+  body:not(.stackui) #profile .pbody{padding:0 10px 10px}
+  body:not(.stackui) #profile .sec{margin-top:6px}
+  body:not(.stackui) #profile .sec > h3{font-size:14.5px;padding:5px 10px 6px}
+  body:not(.stackui) #profile .sec > h3 .sectog{font-size:14.5px}
+  body:not(.stackui) #profile .scales button{font-size:12.5px;padding:3px 8px}
+  body:not(.stackui) #profile .pnav{gap:4px}
+  body:not(.stackui) #profile .pnav button{font-size:12px;padding:3px 6px;white-space:nowrap}
+}
 </style>
 </head>
 <body>
@@ -3533,7 +3549,7 @@ const S = {ph:{sp:PHSP[0].key, wk:20, yr:0}, q:Q[0], m:Q[0].m[0], level:'auto', 
 /* settings kept in this browser between visits (try/catch: private windows can refuse) */
 const store = {get(k, d){ try { const v = localStorage.getItem('atgrid_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v){ try { localStorage.setItem('atgrid_' + k, JSON.stringify(v)); } catch (e) {} }};
-Object.assign(S.side, store.get('side2', {})); S.side.qs = false; S.side.results = true;   /* the question list starts closed; Results starts open */
+Object.assign(S.side, store.get('side2', {})); S.side.qs = false; S.side.results = true; S.side.viz = true;   /* the question list starts closed; Results and Visualizations start open */
 if (VW() <= 860) S.side.about = true;   /* phones: inside its button, About this data starts open */ store.get('qgroups', []).forEach(g => QGOFF.add(g)); { const lg = store.get('legend', null); if (lg != null) S.legend = lg; } S.secOpen = store.get('secs', {});
 function readHash(){ const h = new URLSearchParams(location.hash.slice(1));
   const q = Q.find(x => x.id === h.get('q') && qVis(x)); if (q){ S.q = q; S.m = q.m.find(x => x.id === h.get('m')) || q.m[0]; }
