@@ -773,6 +773,8 @@ body.hasplay #legend{bottom:58px}
   body.stackui .qtitle h2::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:13px;color:#C4D1DF;font-family:system-ui,sans-serif}
   body.stackui .qtitle:has(.qchange[aria-expanded=true]) h2::after{content:'▴'}
   body.stackui .qtitle .qchange.blktog{position:absolute;inset:0;width:auto;height:auto;opacity:0;border:0;padding:0;margin:0;z-index:2}
+  #ctls:has(#layerspanel:not([hidden])){z-index:1150}
+  body.stackui #layerspanel{left:auto;right:-1px;max-width:calc(100vw - 24px)}
   body.stackui .qtitle:active{background:rgba(255,255,255,.08)}
 }
 </style>
@@ -3251,7 +3253,7 @@ const MIGNOTE = {'High-peak breeders':'These birds nest on the high peaks in spr
 const MIGREG = [['NH · ME', 43.6, 90], ['CT · MA · VT', 41.6, 43.6], ['PA · NJ · NY', 39.72, 41.6], ['VA · WV · MD', 37.3, 39.72], ['GA · NC · TN', -90, 37.3]];
 const migSp = () => MIG.idx && MIG.idx.species[MIGS.sp] || null;
 /* Spring, Nesting, Fall or Year; Nesting only for birds that nest along the trail */
-const migSeason = () => { const s = migSp(), m = MIGS.season === 'nest' && !migWins().breeding ? '' : MIGS.season; return m || (s && MIGDEF[s.story]) || 'spring'; };
+const migSeason = () => { const s = migSp(), m = MIGS.season === 'nest' && !migWins().breeding ? '' : MIGS.season; return m || 'year'; };
 const MIGSEN = {spring:'spring migration', nest:'nesting season', fall:'fall migration', year:'the weeks it is reported'};
 const migWkOf = md => { const [m, d] = md.split('-').map(Number); return Math.floor((Date.UTC(2025, m - 1, d) - Date.UTC(2025, 0, 1)) / 6048e5) + 1; };
 const migMD = md => new Date(Date.UTC(2025, +md.slice(0, 2) - 1, +md.slice(3, 5))).toLocaleDateString('en-US', {month:'short', day:'numeric', timeZone:'UTC'});
@@ -3876,7 +3878,7 @@ function fitSection(){ const lv = 'wheel', L_ = D.levels[lv], pts = [];
 /* ---------- live layers from the NPS Appalachian Trail ArcGIS services ----------
    These load in the visitor's browser, only when switched on. If a service is unreachable the layer reports it and the rest of the page is unaffected. */
 const SVC = 'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/';
-map.createPane('lands').style.zIndex = 405;
+map.createPane('lands').style.zIndex = 411;   /* administrative areas draw over the grid cells, under the trail */
 map.createPane('feat').style.zIndex = 440;
 const landsR = L.svg({pane:'lands', padding:.3}), featR = L.svg({pane:'feat', padding:.3});
 const LANDKEY = [['FEDERAL LAND - NPS - APPA FEE','NPS, A.T. fee land','rgb(0,77,168)'],['FEDERAL LAND - NPS - APPA EASEMENT','NPS, A.T. easement','rgb(145,135,245)'],['FEDERAL LAND - NPS - APPA ROW EASEMENT','NPS, A.T. right-of-way easement','rgb(190,210,255)'],
@@ -4290,14 +4292,14 @@ function keepPlace(el, sels, fn){ const t0 = el && el.isConnected ? el.getBoundi
 /* a question or measure with its own choices (species, years, scale) opens the Selections block */
 const hasSel = () => PHQ() || (S.q.id === 'inv' && S.m.id === 'edrr') || (S.q.id === 'land' && S.m.id === 'acq');
 /* questions with an animation (Play), in the list; and whether the one on screen has one now */
-const QANIM = new Set(['mig', 'phen', 'pest', 'inv', 'cult']);
-const PLAYQ = () => !S.m.find && (S.q.id === 'mig' || (typeof PHQ === 'function' && PHQ()));
+const QANIM = new Set(['mig', 'phen', 'pest', 'inv', 'cult', 'land']);
+const PLAYQ = () => !S.m.find && (S.q.id === 'mig' || (S.q.id === 'land' && S.m.id === 'acq') || (typeof PHQ === 'function' && PHQ()));
 /* Play on the map, bottom left, for whatever animation is on screen; it presses the panel's own Play, so both stay in step */
-function mapPlay(){ let b = $('#mapplay'); const src = $('#migplay') || $('#phplay');
+function mapPlay(){ let b = $('#mapplay'); const src = $('#migplay') || $('#phplay') || $('[data-acqplay]');
   if (!b){ b = document.createElement('button'); b.type = 'button'; b.id = 'mapplay'; b.className = 'mapctl'; b.innerHTML = '<i aria-hidden="true">▶</i><span></span>';
-    b.onclick = () => { const r = $('#migplay') || $('#phplay'); if (r) r.click(); setTimeout(mapPlay, 60); }; if (window.L && L.DomEvent) L.DomEvent.disableClickPropagation(b); $('#mapwrap').append(b); }
+    b.onclick = () => { const r = $('#migplay') || $('#phplay') || $('[data-acqplay]'); if (r) r.click(); setTimeout(mapPlay, 60); }; if (window.L && L.DomEvent) L.DomEvent.disableClickPropagation(b); $('#mapwrap').append(b); }
   const on = !!src && PLAYQ(); b.hidden = !on; document.body.classList.toggle('hasplay', on); if (!on) return;
-  const pl = /pause/i.test(src.textContent), lab = ($('#migwkl') || $('#phwkl') || {textContent:''}).textContent.split(' · ')[0];
+  const pl = /pause/i.test(src.textContent), lab = ($('#migwkl') || $('#phwkl') || $('#acqyl') || {textContent:''}).textContent.split(' · ')[0];
   const ic = pl ? '❚❚' : '▶'; if (b.firstChild.textContent !== ic) b.firstChild.textContent = ic; if (b.lastChild.textContent !== lab) b.lastChild.textContent = lab; b.classList.toggle('nolab', !lab);
   b.setAttribute('aria-label', (pl ? 'Pause' : 'Play') + ' the animation'); }
 if (window.MutationObserver) new MutationObserver(() => { clearTimeout(mapPlay.t); mapPlay.t = setTimeout(mapPlay, 30); }).observe($('#side'), {subtree:true, childList:true, characterData:true});
@@ -4310,6 +4312,8 @@ function legCopy(){ const a = $('#anslegend'), b = $('#legbody'); if (a) a.inner
    (Measures, Results, Charts, About, or Cell for a picked cell) and the map gets smaller to make room; the same button closes it */
 let PTAB = '';
 function ptabSet(k){ PTAB = PTAB === k ? '' : k; stackSync(); const q = $('#side .qbody'); if (q) q.scrollTop = 0; }
+/* phones: the Map layers list stops at the bottom of the map, so it never runs over the question line */
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#layerstog')) setTimeout(() => { const pn = $('#layerspanel'); if (!pn || pn.hidden) return; if (!document.body.classList.contains('stackui')){ pn.style.maxHeight = ''; return; } pn.style.maxHeight = Math.max(160, $('#mapwrap').getBoundingClientRect().bottom - pn.getBoundingClientRect().top - 8) + 'px'; }, 0); });
 function stackSync(){ const on = isPhone(), body = document.body, a = $('aside'), pr = $('#profile');
   if (on !== body.classList.contains('stackui')){ body.classList.toggle('stackui', on); if (!on) PTAB = '';
     if (pr){ if (on) a.append(pr); else $('#mapwrap').append(pr); }
@@ -4382,7 +4386,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q; el.style.minH
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
   const SUMH = S.m.find ? '' : summary(lv), ANS = {h:'', used:''};
   let h = `<section class="qhead" style="--hue:${q.hue}"><div class="qcrumb">${S.m.find ? 'Search' : 'Guiding question' + (QGRP[q.id] ? ' · ' + esc(QGRP[q.id]) : '')}</div><div class="qtitle"><h2>${S.m.find ? 'Search results' : esc(q.title)}</h2><button type="button" class="blktog qchange" data-blk="qs" aria-expanded="${!!S.side.qs}" aria-controls="qpick">All questions<i aria-hidden="true"></i></button></div>` +
-    (PLAYQ() ? '<span class="qanim qanimh">▶ Animated · press play on the map</span>' : '') + '<div class="qquick" id="qquick"></div>' + ANS.h + (typeof QTOUR !== 'undefined' && typeof TOURS !== 'undefined' && QTOUR[q.id] && !S.m.find && TOURS[QTOUR[q.id]] ? `<button type="button" class="qtour qtstart" data-tour="${QTOUR[q.id]}"><b>Take the ${esc(QTOUR[q.id])} tour</b> · ${TOURS[QTOUR[q.id]].steps.length} stops<span>Start</span></button>` : '') +
+    (PLAYQ() ? '<span class="qanim qanimh">▶ Animated · press play on the map</span>' : q.id === 'land' && !S.m.find ? '<span class="qanim qanimh">▶ Animated · pick Land protected over time, then press play on the map</span>' : '') + '<div class="qquick" id="qquick"></div>' + ANS.h + (typeof QTOUR !== 'undefined' && typeof TOURS !== 'undefined' && QTOUR[q.id] && !S.m.find && TOURS[QTOUR[q.id]] ? `<button type="button" class="qtour qtstart" data-tour="${QTOUR[q.id]}"><b>Take the ${esc(QTOUR[q.id])} tour</b> · ${TOURS[QTOUR[q.id]].steps.length} stops<span>Start</span></button>` : '') +
     `<div class="qpick" id="qpick"${S.side.qs ? '' : ' hidden'}><div class="qph"><b>Choose a question</b><button type="button" class="blktog qpx" data-blk="qs" aria-label="Close the question list">×</button></div><input class="qfilt" type="search" placeholder="Filter questions…" aria-label="Filter questions" autocomplete="off"><p class="qstart"><b>Start here:</b> pick a question to see its answer on the map. Not sure where to begin? <button type="button" class="qhow" data-howto="1">Show me how</button> · or try the <button type="button" class="qtour qtlink" data-tour="grassland">grassland tour</button>.</p>` +
     `<nav class="qs" aria-label="Guiding questions">` + Q.filter(qVis).map((x, i, a) => { const g = QGRP[x.id], off = g && QGOFF.has(g), cur = x === q && !S.m.find; return (g && (!i || QGRP[a[i - 1].id] !== g) ? `<button type="button" class="qgrp" data-qg="${esc(g)}" aria-expanded="${!off}"><span>${esc(g)}</span><i aria-hidden="true"></i></button>` : '') + (`<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${cur}"${off && !cur ? ' hidden data-folded="1"' : ''}>${esc(x.title)}${QANIM.has(x.id) ? '<span class="qanim" title="This question has an animation">▶ Animated</span>' : ''}${typeof QTOUR !== 'undefined' && QTOUR[x.id] ? `<span class="qtour" role="button" tabindex="0" data-tour="${QTOUR[x.id]}" title="Take a guided tour"><svg class="qnew" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>Tour<span class="vh"> (new)</span></span>` : ''}</button>`); }).join('') + '</nav></div></section>' +
     '<nav class="ptabs" aria-label="Open in the panel">' + [['show', 'Measures'], ['res', 'Results'], ['charts', 'Charts'], ['prof', 'Profile'], ['about', 'About'], ['cell', 'Cell']].map(([k, t]) => `<button type="button" data-ptab="${k}" aria-pressed="${PTAB === k}">${t}</button>`).join('') + '</nav>';
