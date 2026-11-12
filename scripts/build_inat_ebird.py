@@ -190,7 +190,7 @@ def area_predicate(levels):
 
 # eBird comes as a GBIF SQL download so it can carry eBird's checklist number (eventID, "S..." ) and start time (eventTime),
 # which the simple CSV format leaves out; only the columns the summaries use are requested
-EBIRD_COLS = ['gbifid', 'decimallatitude', 'decimallongitude', 'coordinateuncertaintyinmeters', 'eventdate', 'year', 'month', 'day',
+EBIRD_COLS = ['gbifid', 'decimallatitude', 'decimallongitude', 'coordinateuncertaintyinmeters', 'eventdate', '"year"', '"month"', '"day"',
               'eventtime', 'eventid', 'recordedby', 'v_scientificname', 'species', 'specieskey', 'kingdom', 'phylum', '"class"']
 
 
