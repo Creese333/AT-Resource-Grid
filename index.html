@@ -669,7 +669,8 @@ button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;
   body.stackui .anslegend{display:none !important}
   body.stackui .anslegend .row{display:flex;align-items:center;gap:8px}body.stackui .anslegend .row i{width:14px;height:14px;border-radius:3px;flex:none}
   body.stackui .anslegend .sub{color:#A8B8CA;font-size:12px;margin:4px 0 0}
-  body.stackui .qpick{inset:0 !important;width:auto !important;box-shadow:none}
+  body.stackui .qpick{left:0 !important;right:0 !important;width:auto !important;border-radius:16px 16px 0 0;box-shadow:0 -8px 26px rgba(0,0,0,.5);animation:qpup .22s ease-out}
+  @keyframes qpup{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
   body.stackui .migcard.mob{position:relative;inset:auto;margin-top:12px}
   body.stackui #about{width:calc(100vw - 16px);max-width:none;margin:auto;padding:0}
   body.stackui #about .dlg{padding:14px 14px 16px;max-height:86dvh;font-size:14px;line-height:1.45}
@@ -766,6 +767,14 @@ body.hasplay #legend{bottom:58px}
 .qchange.blktog{color:#fff !important;border-color:#fff !important}
 .qchange i{border-top-color:#fff !important}
 .qchange.blktog:hover,.qchange.blktog:focus-visible{background:rgba(255,255,255,.12)}
+/* phones: the question line is the button that opens the list (the list slides up over the lower map) */
+@media (max-width:860px){
+  body.stackui .qtitle{position:relative;border:1px solid #fff;border-radius:10px;padding:5px 30px 5px 8px;margin:2px 0 4px;cursor:pointer}
+  body.stackui .qtitle h2::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:13px;color:#C4D1DF;font-family:system-ui,sans-serif}
+  body.stackui .qtitle:has(.qchange[aria-expanded=true]) h2::after{content:'▴'}
+  body.stackui .qtitle .qchange.blktog{position:absolute;inset:0;width:auto;height:auto;opacity:0;border:0;padding:0;margin:0;z-index:2}
+  body.stackui .qtitle:active{background:rgba(255,255,255,.08)}
+}
 </style>
 </head>
 <body>
@@ -3859,7 +3868,7 @@ $('#cellsbtn').onclick = () => { S.cells = !S.cells; map.getPane('cells').style.
   b.setAttribute('aria-pressed', S.cells); b.querySelector('span').textContent = S.cells ? 'Cells on' : 'Cells off';
   if (shown){ if (S.cells) GROUP[shown].addTo(map); else { map.removeLayer(GROUP[shown]); tip.remove(); } } };
 
-function trailMid(){ if (!isPhone()) return; const L_ = D.levels.wheel; let c = 0, bd = 1e9; for (let i = 0; i < L_.id.length; i++){ const d = Math.abs(L_.mi[i] - 1150); if (d < bd){ bd = d; c = i; } } map.setView(L_.c[c], map.getZoom(), {animate:false});   /* center it in the part of the map below the search and section rows */ const sp = $('.secpick'), mr = map.getContainer().getBoundingClientRect(); const top = sp ? Math.max(0, sp.getBoundingClientRect().bottom - mr.top) : 0; if (top) map.panBy([0, -top / 2], {animate:false}); }
+function trailMid(){ if (!isPhone()) return; /* phones: the whole trail fits below the search rows and above the legend button, with Katahdin   (the northern end) right under the locate button */   const L_ = D.levels.wheel, mc = map.getContainer(), mr = mc.getBoundingClientRect(), sp = $('.secpick'), lb = $('#legtog'), loc = $('.leaflet-top.leaflet-right .leaflet-control');   const top = (sp ? sp.getBoundingClientRect().bottom - mr.top : 90) + 34, bot = lb ? Math.max(40, mr.bottom - lb.getBoundingClientRect().top + 12) : 60;   const lx = loc ? loc.getBoundingClientRect().left + loc.getBoundingClientRect().width / 2 - mr.left : mr.width - 28;   let n = 0; for (let i = 1; i < L_.id.length; i++) if (L_.mi[i] > L_.mi[n]) n = i;   map.fitBounds(L.latLngBounds(L_.c), {paddingTopLeft:[22, top], paddingBottomRight:[Math.max(10, mr.width - lx), bot], animate:false});   const p = map.latLngToContainerPoint(L_.c[n]); map.panBy([p.x - lx, p.y - top], {animate:false}); }
 function fitSection(){ const lv = 'wheel', L_ = D.levels[lv], pts = [];
   for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) pts.push(L_.c[c]);
   if (pts.length){ map.fitBounds(L.latLngBounds(pts).pad(.08)); if (S.sec === 'all') trailMid(); } }
@@ -4308,6 +4317,8 @@ function stackSync(){ const on = isPhone(), body = document.body, a = $('aside')
   if (on && S.side.qs) body.dataset.qpick = '1'; else delete body.dataset.qpick;
   { const qp = $('#qpick'); if (qp && !qp.hidden){ if (!on){ const r = a.getBoundingClientRect(), z = parseFloat(getComputedStyle(a).zoom) || 1; qp.style.top = (r.top / z) + 'px'; qp.style.left = (r.left / z) + 'px'; qp.style.width = (r.width / z) + 'px'; qp.style.bottom = '0px'; }
     } }
+  { const qp = $('#qpick'); if (on && qp && !qp.hidden){ const ar = a.getBoundingClientRect(), mr = $('#mapwrap').getBoundingClientRect();
+      qp.style.bottom = Math.max(0, innerHeight - ar.top) + 'px'; qp.style.top = Math.max(mr.top + 8, ar.top - Math.max(260, mr.height * .78)) + 'px'; } }
   if (on){ const cellOn = !!(pr && pr.classList.contains('open')), has = {show:!!$('#side .qsec[data-sec="show"] .blk'), res:!!$('#side [data-blk="results"]'), charts:!!$('#side .qsec[data-sec="charts"] .blk, #side .qsec[data-sec="charts"] .migcard'), about:!!$('#side .qsec[data-sec="about"] .blk'), prof:!!$('#strip'), cell:cellOn};
     if (PTAB && !has[PTAB]) PTAB = '';
     document.querySelectorAll('button[data-ptab]').forEach(b => { b.hidden = !has[b.dataset.ptab]; b.setAttribute('aria-pressed', PTAB === b.dataset.ptab); });
@@ -4337,7 +4348,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.side.qs 
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.qchange') && !S.side.qs) setTimeout(() => { const f = $('.qfilt'); if (f && !isPhone()) f.focus(); }, 30); });
 /* the "How to use" walkthrough: five stops, each pointing at one part of the screen; it changes nothing on the map */
 const HOWTO = [
-  {t:'Pick a question', el:() => $('.qchange'), x:() => 'Everything here starts with a guiding question, such as where invasive plants are showing up or when birds migrate through. Open <b>All questions</b> to choose one. The map, numbers and charts all change to answer it.'},
+  {t:'Pick a question', el:() => isPhone() ? $('.qtitle') : $('.qchange'), x:() => 'Everything here starts with a guiding question, such as where invasive plants are showing up or when birds migrate through. Open <b>All questions</b> to choose one. The map, numbers and charts all change to answer it.'},
   {t:'Search', el:() => $('#find'), x:() => 'Search for almost anything along the trail: a geographic feature such as a mountain, gap, river or town; a shelter, campsite, parking area or vista; a plant or animal; a historic resource; an A.T. tract number; or a trail mile. Pick a result and the map zooms there and opens that cell. A species shows everywhere it\u2019s been recorded.'},
   {t:'Choose where', el:() => $('#section'), x:() => isPhone() ? 'The whole trail is shown to start. Pick a club section, region or state in the green <b>Whole trail</b> button at the top of the map to see just that area.'
       : 'The whole trail is shown to start. Pick a club section, region or state in <b>Section of trail</b> to see just that area.'},
