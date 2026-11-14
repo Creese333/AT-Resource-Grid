@@ -832,6 +832,8 @@ body.stackui .tour .tnav button{flex:none;width:76px;box-sizing:border-box;text-
   body:not(.stackui) #profile .pnav{gap:4px}
   body:not(.stackui) #profile .pnav button{font-size:12px;padding:3px 6px;white-space:nowrap}
 }
+.legcite{font-size:11.5px;opacity:.85;margin-top:4px}.legcite a{color:inherit;text-decoration:underline dotted}
+body:not(.stackui) #legend{max-height:calc(100% - 96px);overflow-y:auto;overscroll-behavior:contain}
 </style>
 </head>
 <body>
@@ -3184,7 +3186,7 @@ const Q = [
   m:[{id:'score', label:'Vulnerability score', int:1, brkP:[.4,.7,.85,.95], fn:(lv,c)=>tvScore(lv,c), none:'No trail here', note:'0 to 100: points from each factor, scaled to 100 over the factors with data. Higher means more likely to erode, rut or wash out.'},
      {id:'grade', label:'Average trail grade', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_GRADE'), th:'slope', f:'TS_GRADE', unit:'%', d:0, none:'No trail here', note:'Average grade along the trail, from USGS 3DEP elevation every 10 m, smoothed over 30 m.'},
      {id:'g10', label:'Trail over 10% grade', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_G10'), th:'slope', f:'TS_G10', unit:'%', d:0, zero:1, zeroText:'None', none:'No trail here', note:'Share of the trail steeper than 10%, where soil loss rises sharply.'},
-     {id:'tsr', label:'Sustainability rating', kind:'cat', f:'TSR', fn:(lv,c) => tsrCell(lv, c), hideFn:() => !SEGS || S.ext !== 'corr', none:'No trail here', note:'Each 500-foot trail segment is rated from its average grade and how directly it climbs the slope: Good (3–10% grade, angled across the slope), Neutral (flat, 0–2%, prone to mud and widening), Poor or Very poor (steeper, or climbing close to straight up). A cell is Very poor when a quarter or more of its trail is Very poor, and Poor when a quarter or more is Poor or Very poor; otherwise it is Neutral where more of the trail is flat than Good, and Good elsewhere. Zoom in to see each segment in the same colors.'},
+     {id:'tsr', label:'Sustainability rating (TSA)', kind:'cat', cite:'Trail sustainability rating and trail slope alignment (TSA): Marion, J.L., and Wimpey, J., 2017, Assessing the influence of sustainable trail design and maintenance on soil loss. Journal of Environmental Management 189: 46–57.', citeUrl:'https://doi.org/10.1016/j.jenvman.2016.11.074', f:'TSR', fn:(lv,c) => tsrCell(lv, c), hideFn:() => !SEGS || S.ext !== 'corr', none:'No trail here', note:'Each 500-foot trail segment is rated from its average grade and how directly it climbs the slope: Good (3–10% grade, angled across the slope), Neutral (flat, 0–2%, prone to mud and widening), Poor or Very poor (steeper, or climbing close to straight up). A cell is Very poor when a quarter or more of its trail is Very poor, and Poor when a quarter or more is Poor or Very poor; otherwise it is Neutral where more of the trail is flat than Good, and Good elsewhere. Zoom in to see each segment in the same colors.'},
      {id:'fall', label:'Trail on the fall line', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_FALL'), th:'slope', f:'TS_FALL', unit:'%', d:0, zero:1, zeroText:'None', none:'No trail here', note:'Share of the trail running nearly straight up and down the slope (on the fall line) on ground steeper than 5%: water runs down the tread instead of off it.'}]},
  {id:'wx', th:'wx', hue:HUE.wx, ramp:'wx', title:'What climate shapes the trail here?',
   use:'Climate normals and damaging weather from authoritative sources: PRISM 1991–2020 normals (Oregon State University, the official climate data of the U.S. Department of Agriculture) for precipitation and temperature; NOAA nClimGrid-Daily for the frost-free season and heavy-rain days; NOAA Atlas 14 for the 25-year storm; and the NOAA Storm Events Database for damaging wind and winter storms since 1996. Wind comes from gridMET, a research dataset. Use it to plan work seasons, size drainage for big storms, and see where storms most often damage the trail. Play the months or years under Visualizations.',
@@ -4341,6 +4343,7 @@ function legend(){ setTimeout(legCopy); const lv = dispLevel(), m = S.m; let h =
   h += m.nullHide && !m.find ? `<p class="sub">${esc(m.none)}</p>` : `<div class="row"><i class="hollow"></i><span>${m.find ? 'Not recorded' : (m.none || 'No data for this measure')}</span></div>`;
   if (m.find) h += `<p class="sub">${m.find.complete ? 'A blank cell means no record there. It does not mean the species is absent.' : 'Partial results. Only each cell\'s ten most-recorded iNaturalist species can be searched, so a blank cell is not an absence.'}</p>`;
   if (m.note) h += `<p class="sub">${esc(m.note)}</p>`;
+  if (m.cite) h += `<p class="sub legcite">${m.citeUrl ? `<a href="${m.citeUrl}" target="_blank" rel="noopener">${esc(m.cite)}</a>` : esc(m.cite)}</p>`;
   if (S.ext === 'huc' && S.cells) h += '<div class="row"><i class="corrkey"></i><span>A.T. corridor cells (outlined when zoomed in)</span></div>';
   h += `<p class="sub">Per ${LV[lv].name} cell${S.ext === 'huc' ? ', HUC10 watershed' : ''}</p>`;
   if (m.find) h += '<button type="button" id="findclear" class="lbtn">Clear search</button>';
