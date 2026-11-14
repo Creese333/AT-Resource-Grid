@@ -1295,6 +1295,8 @@ CATCOL.GEO_NEWEST = [['2010 or later','#38495B'],['1990 to 2009','#6E8296'],['19
 CATCOL.VIS_PEAK = [['January','#3E5C8A'],['February','#5175A8'],['March','#6FA8A0'],['April','#7DBF5E'],['May','#A8CF45'],['June','#E3D33B'],['July','#F2B233'],['August','#EE8F2E'],['September','#D9662B'],['October','#B8472E'],['November','#8C4A5E'],['December','#4B4F7A']];
 D.cats.VIS_PEAK = CATCOL.VIS_PEAK.map(e => e[0]);
 CATCOL.WX_WETM = [['January','#2F4B7C'],['February','#46669A'],['March','#6E8FBF'],['April','#3E8E7E'],['May','#6BAA75'],['June','#A3C17A'],['July','#D9B44A'],['August','#C98A3E'],['September','#B5653A'],['October','#8E4B5A'],['November','#9C7AA8'],['December','#5E5A8C']]; D.cats.WX_WETM = CATCOL.WX_WETM.map(e => e[0]);
+/* trail sustainability rating, the same four colors as the trail segments */
+CATCOL.TSR = [['Good','#3FA672'],['Neutral (flat)','#A7B3C2'],['Poor','#E39A3B'],['Very poor','#C8323C']]; D.cats.TSR = CATCOL.TSR.map(e => e[0]);
 const CATMAP = {}; for (const k in CATCOL){ CATMAP[k] = new Map(CATCOL[k].map(e => [e[0], e])); }
 /* Blue Ridge color scheme */
 const HUE = {lands:'#3B82F6', veg:'#3FA796', inat:'#F57C1F', live:'#8FD3B6', ebird:'#1E7FC6', nrpz:'#9B6BC8', eff:'#B03A73', soil:'#7A4A24', feat:'#2F7A3B', wet:'#1FA9C9', rest:'#821225', phen:'#F0C419', hist:'#A08C5B', pest:'#C0502E', pinv:'#D9661A', cult:'#5E8C31', geo:'#6B7F94', wx:'#4A7FB5', tvul:'#6A4FB3', mig:'#05D16D'};
@@ -2959,6 +2961,9 @@ const SEGWETC = '#3DF5C8';
 const TSR = [{t:'Good', c:'#3FA672'}, {t:'Neutral (flat)', c:'#A7B3C2'}, {t:'Poor', c:'#E39A3B'}, {t:'Very poor', c:'#C8323C'}];
 const tsrOf = i => { const s = SEGS.segs, g = s.gavg[i], a = s.align[i]; if (g == null || a == null) return -1; const gr = Math.round(g);
   return gr <= 2 ? 1 : gr <= 10 ? (a > 30 ? 0 : 2) : gr <= 20 ? (a > 30 ? 2 : 3) : 3; };
+/* a cell's sustainability rating: the rating of most of its 500-foot trail segments (a tie goes to the poorer rating) */
+const tsrMix = (lv, c) => { const cnt = [0, 0, 0, 0]; let n = 0; if (SEGS) segsIn(lv, c).forEach(i => { const k = tsrOf(i); if (k >= 0){ cnt[k]++; n++; } }); return {cnt, n}; };
+const tsrCell = (lv, c) => { if (!SEGS || S.ext !== 'corr') return null; const {cnt, n} = tsrMix(lv, c); if (!n) return null; let best = -1; [0, 1, 2, 3].forEach(k => { if (best < 0 || cnt[k] >= cnt[best]) best = cnt[k] ? k : best; }); return best < 0 ? null : best; };
 let segMode = (() => { try { return localStorage.getItem('atgrid_segmode') === 'tsr' ? 'tsr' : 'risk'; } catch (x) { return 'risk'; } })();
 /* the segments in a cell: hex ids are the segment's grid id; a cog or wheel id is its leading part */
 const segsIn = (lv, c) => { const s = SEGS.segs; if (!s.byCell) s.byCell = {}; let m = s.byCell[lv];
@@ -2967,7 +2972,7 @@ const segsIn = (lv, c) => { const s = SEGS.segs; if (!s.byCell) s.byCell = {}; l
 function segVisible(){ return !!(SEGS && segOn && S.q && S.q.id === 'tvul' && S.m && S.m.id !== 'tfall' && S.ext === 'corr' && map.getZoom() >= SEGZ); }
 function segDraw(){ if (!SEGS){ return; } if (!SEGL){ if (!map.getPane('segs')){ const sp = map.createPane('segs'); sp.style.zIndex = 430; sp.style.pointerEvents = 'none'; } SEGL = L.layerGroup().addTo(map); SEGL.r = L.canvas({pane:'segs', padding:.3}); }
   if (!segVisible()){ if (SEGL.getLayers().length) SEGL.clearLayers(); segKey = ''; return; }   /* turning the box off clears the segments right away */
-  const b = map.getBounds().pad(.15), s = SEGS.segs, key = [b.toBBoxString(), map.getZoom() | 0, segMode].join('|'); if (key === segKey) return; segKey = key; SEGL.clearLayers();
+  const b = map.getBounds().pad(.15), s = SEGS.segs, key = [b.toBBoxString(), map.getZoom() | 0, segMode, S.m.id === 'tsr'].join('|'); if (key === segKey) return; segKey = key; SEGL.clearLayers();
   const R = RAMP.tvul, s_ = b.getSouth(), n_ = b.getNorth(), w_ = b.getWest(), e_ = b.getEast(), wt = map.getZoom() >= 14 ? 6 : 4.5;
   const vis = [];
   for (let i = 0; i < s.n; i++){ const o = 4 * i; if (s.bb[o + 2] < s_ || s.bb[o] > n_ || s.bb[o + 3] < w_ || s.bb[o + 1] > e_) continue;
@@ -2975,7 +2980,7 @@ function segDraw(){ if (!SEGS){ return; } if (!SEGL){ if (!map.getPane('segs')){
   /* all the dark casing first, then the colors, with round ends, so neighboring segments join without notches or slivers */
   vis.forEach(([i, pts]) => L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:'#0B1320', weight:wt + 3, opacity:.9, lineCap:'round', lineJoin:'round', interactive:false}).addTo(SEGL));
   for (const [i, pts] of vis){ const k = segCls(s.risk[i]);
-    const ln = L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:segMode === 'tsr' ? (tsrOf(i) < 0 ? '#8A96A8' : TSR[tsrOf(i)].c) : k < 0 ? '#8A96A8' : R[k], weight:wt, opacity:1, lineCap:'round', lineJoin:'round', interactive:false}); ln._si = i; ln.addTo(SEGL);
+    const ln = L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:(segMode === 'tsr' || S.m.id === 'tsr') ? (tsrOf(i) < 0 ? '#8A96A8' : TSR[tsrOf(i)].c) : k < 0 ? '#8A96A8' : R[k], weight:wt, opacity:1, lineCap:'round', lineJoin:'round', interactive:false}); ln._si = i; ln.addTo(SEGL);
     if (segWet(i)) L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:SEGWETC, weight:Math.max(2.5, wt - 1.5), opacity:1, dashArray:'4 6', lineCap:'round', interactive:false}).addTo(SEGL); } }
 /* the segment layer lets clicks through to the cells under it; a click within a few pixels of a drawn segment opens the segment instead */
 function segHit(ll){ if (!SEGL || !segKey || !segVisible()) return false; const pt = map.latLngToLayerPoint(ll); let best = null;
@@ -3178,6 +3183,7 @@ const Q = [
   m:[{id:'score', label:'Vulnerability score', int:1, brkP:[.4,.7,.85,.95], fn:(lv,c)=>tvScore(lv,c), none:'No trail here', note:'0 to 100: points from each factor, scaled to 100 over the factors with data. Higher means more likely to erode, rut or wash out.'},
      {id:'grade', label:'Average trail grade', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_GRADE'), th:'slope', f:'TS_GRADE', unit:'%', d:0, none:'No trail here', note:'Average grade along the trail, from USGS 3DEP elevation every 10 m, smoothed over 30 m.'},
      {id:'g10', label:'Trail over 10% grade', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_G10'), th:'slope', f:'TS_G10', unit:'%', d:0, zero:1, zeroText:'None', none:'No trail here', note:'Share of the trail steeper than 10%, where soil loss rises sharply.'},
+     {id:'tsr', label:'Sustainability rating', kind:'cat', f:'TSR', fn:(lv,c) => tsrCell(lv, c), hideFn:() => !SEGS || S.ext !== 'corr', none:'No trail here', note:'The rating that covers most of the trail in the cell, from each 500-foot segment’s average grade and how directly it climbs the slope: Good (3–10% grade, angled across the slope), Neutral (flat, 0–2%, prone to mud and widening), Poor or Very poor (steeper, or climbing close to straight up). A tie goes to the poorer rating. Zoom in to see each segment in the same colors.'},
      {id:'fall', label:'Trail on the fall line', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_FALL'), th:'slope', f:'TS_FALL', unit:'%', d:0, zero:1, zeroText:'None', none:'No trail here', note:'Share of the trail running nearly straight up and down the slope (on the fall line) on ground steeper than 5%: water runs down the tread instead of off it.'}]},
  {id:'wx', th:'wx', hue:HUE.wx, ramp:'wx', title:'What climate shapes the trail here?',
   use:'Climate normals and damaging weather from authoritative sources: PRISM 1991–2020 normals (Oregon State University, the official climate data of the U.S. Department of Agriculture) for precipitation and temperature; NOAA nClimGrid-Daily for the frost-free season and heavy-rain days; NOAA Atlas 14 for the 25-year storm; and the NOAA Storm Events Database for damaging wind and winter storms since 1996. Wind comes from gridMET, a research dataset. Use it to plan work seasons, size drainage for big storms, and see where storms most often damage the trail. Play the months or years under Visualizations.',
@@ -4451,6 +4457,7 @@ document.addEventListener('keydown', e => { if (HOWK < 0) return; if (e.key === 
   setTimeout(() => { let seen = 0; try { seen = store.get('howseen', 0); } catch (e) {} if (!seen && !/tour=/.test(location.hash) && !(typeof TOUR !== 'undefined' && TOUR.id)) howStart(); }, 2200); }
 const EXTHUCQ = new Set(['inv', 'pest']);   /* questions that open on the HUC10 watershed cells */
 function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
+  if (S.m && S.m.id === 'tsr' && q.id === 'tvul' && segMode !== 'tsr') segMode = 'tsr';   /* the rating measure shows the segments in its colors */
   if (S.lastQ !== q.id){ S.lastQ = q.id; if (EXTHUCQ.has(q.id)){ if (S.ext !== 'huc'){ S.extAuto = true; setTimeout(() => setExt('huc'), 0); } } else if (S.extAuto){ S.extAuto = false; if (S.ext === 'huc') setTimeout(() => setExt('corr'), 0); } } el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
   const SUMH = S.m.find ? '' : summary(lv), ANS = {h:'', used:''};
