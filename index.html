@@ -2973,9 +2973,11 @@ const segsIn = (lv, c) => { const s = SEGS.segs; if (!s.byCell) s.byCell = {}; l
   if (!m){ m = s.byCell[lv] = new Map(); for (let i = 0; i < s.n; i++){ const g = s.grid[i]; if (!g) continue; const p = g.split('-'), id = lv === 'hex' ? g : lv === 'cog' ? p.slice(0, 4).join('-') : p.slice(0, 3).join('-'); if (!m.has(id)) m.set(id, []); m.get(id).push(i); } }
   return m.get(D.levels[lv].id[c]) || []; };
 function segVisible(){ return !!(SEGS && segOn && S.q && S.q.id === 'tvul' && S.m && S.m.id !== 'tfall' && S.ext === 'corr' && map.getZoom() >= SEGZ); }
-function segDraw(){ if (!SEGS){ return; } if (!SEGL){ if (!map.getPane('segs')){ const sp = map.createPane('segs'); sp.style.zIndex = 430; sp.style.pointerEvents = 'none'; } SEGL = L.layerGroup().addTo(map); SEGL.r = L.canvas({pane:'segs', padding:.3}); }
+/* choosing the rating measure switches the segments to the rating colors; the Erosion risk button still switches them back */
+let segLastM = null; function segSync(){ const k = (S.q && S.q.id) + ':' + (S.m && S.m.id); if (k !== segLastM){ segLastM = k; if (k === 'tvul:tsr') segMode = 'tsr'; } }
+function segDraw(){ segSync(); if (!SEGS){ return; } if (!SEGL){ if (!map.getPane('segs')){ const sp = map.createPane('segs'); sp.style.zIndex = 430; sp.style.pointerEvents = 'none'; } SEGL = L.layerGroup().addTo(map); SEGL.r = L.canvas({pane:'segs', padding:.3}); }
   if (!segVisible()){ if (SEGL.getLayers().length) SEGL.clearLayers(); segKey = ''; return; }   /* turning the box off clears the segments right away */
-  const b = map.getBounds().pad(.15), s = SEGS.segs, key = [b.toBBoxString(), map.getZoom() | 0, segMode, S.m.id === 'tsr'].join('|'); if (key === segKey) return; segKey = key; SEGL.clearLayers();
+  const b = map.getBounds().pad(.15), s = SEGS.segs, key = [b.toBBoxString(), map.getZoom() | 0, segMode].join('|'); if (key === segKey) return; segKey = key; SEGL.clearLayers();
   const R = RAMP.tvul, s_ = b.getSouth(), n_ = b.getNorth(), w_ = b.getWest(), e_ = b.getEast(), wt = map.getZoom() >= 14 ? 6 : 4.5;
   const vis = [];
   for (let i = 0; i < s.n; i++){ const o = 4 * i; if (s.bb[o + 2] < s_ || s.bb[o] > n_ || s.bb[o + 3] < w_ || s.bb[o + 1] > e_) continue;
@@ -2983,7 +2985,7 @@ function segDraw(){ if (!SEGS){ return; } if (!SEGL){ if (!map.getPane('segs')){
   /* all the dark casing first, then the colors, with round ends, so neighboring segments join without notches or slivers */
   vis.forEach(([i, pts]) => L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:'#0B1320', weight:wt + 3, opacity:.9, lineCap:'round', lineJoin:'round', interactive:false}).addTo(SEGL));
   for (const [i, pts] of vis){ const k = segCls(s.risk[i]);
-    const ln = L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:(segMode === 'tsr' || S.m.id === 'tsr') ? (tsrOf(i) < 0 ? '#8A96A8' : TSR[tsrOf(i)].c) : k < 0 ? '#8A96A8' : R[k], weight:wt, opacity:1, lineCap:'round', lineJoin:'round', interactive:false}); ln._si = i; ln.addTo(SEGL);
+    const ln = L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:segMode === 'tsr' ? (tsrOf(i) < 0 ? '#8A96A8' : TSR[tsrOf(i)].c) : k < 0 ? '#8A96A8' : R[k], weight:wt, opacity:1, lineCap:'round', lineJoin:'round', interactive:false}); ln._si = i; ln.addTo(SEGL);
     if (segWet(i)) L.polyline(pts, {renderer:SEGL.r, pane:'segs', color:SEGWETC, weight:Math.max(2.5, wt - 1.5), opacity:1, dashArray:'4 6', lineCap:'round', interactive:false}).addTo(SEGL); } }
 /* the segment layer lets clicks through to the cells under it; a click within a few pixels of a drawn segment opens the segment instead */
 function segHit(ll){ if (!SEGL || !segKey || !segVisible()) return false; const pt = map.latLngToLayerPoint(ll); let best = null;
@@ -3538,6 +3540,8 @@ Q.push({id:'mig', th:'ebird', hue:HUE.mig, ramp:'mig', title:'When are birds mig
       showFn:v => v === 0 ? 'none reported these weeks' : `${fmt(v, v < 10 ? 1 : 0)}% of checklists`, none:`Not drawn: fewer than ${MIGMIN} checklists in these weeks`}]});
 /* invasive plants open on the year-by-year animation (Japanese barberry until another species is picked) */
 { const q = Q.find(x => x.id === 'inv'), i = q ? q.m.findIndex(m => m.pinv) : -1; if (i > 0) q.m.unshift(q.m.splice(i, 1)[0]); }
+/* "Where is the trail most at risk?" opens on the sustainability rating (TSA) */
+{ const q = Q.find(x => x.id === 'tvul'), i = q ? q.m.findIndex(m => m.id === 'tsr') : -1; if (i > 0) q.m.unshift(q.m.splice(i, 1)[0]); }
 const QGRP = {rest:'Priorities', tvul:'Priorities', pri:'Priorities', inv:'Threats', pest:'Threats', pinv:'Threats', veg:'Plants and wildlife', bird:'Plants and wildlife', mig:'Plants and wildlife',
   phen:'Plants and wildlife', rec:'Plants and wildlife', geo:'Land, water and climate', soil:'Land, water and climate', wet:'Land, water and climate', wx:'Land, water and climate',
   hist:'Cultural resources', cult:'Cultural resources', feat:'Stewardship', eff:'Plants and wildlife', land:'Stewardship'};
@@ -3886,7 +3890,7 @@ map.on('zoomend', () => { trailStyle(); if (S.level === 'auto' && dispLevel() !=
 map.on('moveend', viewWindow);
 map.on('moveend zoomend', () => segDraw());
 { const r0 = redraw; redraw = function(){ r0(); segDraw(); }; }
-{ const l0 = legend; legend = function(){ l0(); const e = $('#legend'); if (!e || !SEGS || !S.q || S.q.id !== 'tvul' || S.m.id === 'tfall' || S.ext !== 'corr') return;
+{ const l0 = legend; legend = function(){ l0(); segSync(); const e = $('#legend'); if (!e || !SEGS || !S.q || S.q.id !== 'tvul' || S.m.id === 'tfall' || S.ext !== 'corr') return;
     const R = RAMP.tvul, lab = ['under 40', '40 to 60', '60 to 80', '80 to 90', '90 and over'];
     const d = document.createElement('div'); d.className = 'segleg';
     d.innerHTML = `<label><input type="checkbox" id="segtog"${segOn ? ' checked' : ''}> Trail segments, about 500 feet each${map.getZoom() < SEGZ ? ' <span class="sub">(zoom in to see)</span>' : ''}</label><div class="segmode"><button type="button" data-m="risk"${segMode === 'risk' ? ' class="on"' : ''}>Erosion risk</button><button type="button" data-m="tsr"${segMode === 'tsr' ? ' class="on"' : ''}>Sustainability rating</button></div>` + (segMode === 'tsr' ? TSR.map(x => `<div class="row"><i class="ln" style="background:${x.c}"></i><span>${x.t}</span></div>`).join('') + '<div class="sub" style="margin:2px 0 4px">From trail grade and how directly the trail climbs</div>' : lab.map((t, k) => `<div class="row"><i class="ln" style="background:${R[k]}"></i><span>${t}</span></div>`).join('')) + `<div class="row"><i class="ln" style="background:repeating-linear-gradient(90deg,${SEGWETC} 0 4px,transparent 4px 8px)"></i><span>Low, flat trail (often wet)</span></div>`;
@@ -4461,7 +4465,7 @@ document.addEventListener('keydown', e => { if (HOWK < 0) return; if (e.key === 
   setTimeout(() => { let seen = 0; try { seen = store.get('howseen', 0); } catch (e) {} if (!seen && !/tour=/.test(location.hash) && !(typeof TOUR !== 'undefined' && TOUR.id)) howStart(); }, 2200); }
 const EXTHUCQ = new Set(['inv', 'pest']);   /* questions that open on the HUC10 watershed cells */
 function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
-  if (S.m && S.m.id === 'tsr' && q.id === 'tvul' && segMode !== 'tsr') segMode = 'tsr';   /* the rating measure shows the segments in its colors */
+  segSync();
   if (S.lastQ !== q.id){ S.lastQ = q.id; if (EXTHUCQ.has(q.id)){ if (S.ext !== 'huc'){ S.extAuto = true; setTimeout(() => setExt('huc'), 0); } } else if (S.extAuto){ S.extAuto = false; if (S.ext === 'huc') setTimeout(() => setExt('corr'), 0); } } el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
   const SUMH = S.m.find ? '' : summary(lv), ANS = {h:'', used:''};
