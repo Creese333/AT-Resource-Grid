@@ -1102,7 +1102,7 @@ if (!D.themes.geo) D.themes.geo = {};
 if (!D.themes.vis) D.themes.vis = {};
 if (!D.themes.wx) D.themes.wx = {};
 if (!D.themes.nrpz) D.themes.nrpz = {};
-if (!D.themes.slope) D.themes.slope = {}; if (!D.themes.fhr) D.themes.fhr = {}; if (!D.themes.topo) D.themes.topo = {}; if (!D.themes.defic) D.themes.defic = {}; if (!D.themes.seg) D.themes.seg = {};
+if (!D.themes.slope) D.themes.slope = {}; if (!D.themes.fhr) D.themes.fhr = {}; if (!D.themes.topo) D.themes.topo = {}; if (!D.themes.defic) D.themes.defic = {}; if (!D.themes.seg) D.themes.seg = {}; for (const th of ['dist','gedi','lsp','dym']) if (!D.themes[th]) D.themes[th] = {};
 /* geologic maps and bedrock units shared by both extents: GEOT = {maps:[[id, name, year, scale, type, gis, reference, url, notes]],
    units:[[name, label, age, lithology class, age class, major lithologies, carbonate, mafic, state]], meta} */
 let GEOT = null;
@@ -1826,9 +1826,9 @@ fetch('data/topo_exposure.json', {cache:'no-cache'}).then(r => r.ok ? r.json() :
 function fhrApply(){ const j = FHR; if (!j || j.done || S.ext !== 'corr') return; j.done = true; D.themes.fhr = thConv(j, 'fhr', D.levels); extIndex(); }
 fetch('data/forest_risk.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ FHR = j; if (S.ext === 'corr'){ fhrApply(); redraw(); } } }).catch(() => {});
 const qVizOn = q => !!QVIZ[q.id] && !(q.id === 'land' && S.m.id === 'acq') && (q.id !== 'pest' || !!(S.m && S.m.fhr));
-function qVizHTML(){ const d0 = QVIZ[S.q.id]; if (!d0) return ''; const d = d0.pick ? Object.assign({}, d0, d0.pick(S.m.id)) : d0, lv = dispLevel(), th = S.q.th; const [sl, cells, where] = geoScope(lv);
+function qVizHTML(){ const d0 = QVIZ[S.q.id]; if (!d0) return ''; const d = d0.pick ? Object.assign({}, d0, d0.pick(S.m.id)) : d0, lv = dispLevel(), th = d.th || S.q.th; const [sl, cells, where] = geoScope(lv);
   let g = `<div id="qvizc"><h4 class="phh">${esc(d.title)}, ${esc(where)}</h4>`;
-  if (th && D.themes[th] && !D.themes[th][sl] && S.q.id !== 'hist' && S.q.id !== 'tvul') return g + `<p class="none">Not summarized for this cell size.</p></div>`;
+  if (th && D.themes[th] && !D.themes[th][sl] && S.q.id !== 'hist' && S.q.id !== 'tvul') return g + `<p class="none">${!Object.keys(D.themes[th]).length && typeof nasaNot === 'function' && NASAF.some(x => x[0] === th) ? nasaNot(th) + '.' : 'Not summarized for this cell size.'}</p></div>`;
   if (d.html){ let x = ''; try { x = d.html(sl, cells) || ''; } catch (e) { x = ''; }
     return g + (x || `<p class="none">No data for ${esc(where)}${S.q.id === 'wx' && !D.themes.wx[sl] ? ' yet: the weather summaries (weather.json) have not been built' : ''}.</p>`) + (x ? (['rest', 'tvul', 'mig'].includes(S.q.id) ? `<details class="vzabout"${store.get('vzabout', false) ? ' open' : ''}><summary>About the chart</summary><p class="phnote">${esc(d.note)}${where === 'the map view' ? ' Zoom or pan to change it, or select cells.' : ''}</p></details>` : `<p class="phnote">${esc(d.note)}${where === 'the map view' ? ' Zoom or pan to change it, or select cells.' : ''}</p>`) : '') + '</div>'; }
   if (S.q.id === 'hist' && (!HIST || HIST.st !== 'done')) return g + `<p class="none">${HIST && HIST.st === 'error' ? 'The historic resources could not be loaded. Try again later.' : 'Loading the historic resources…'}</p></div>`;
@@ -1990,7 +1990,7 @@ const Q = [
      {id:'tsr', label:'Sustainability rating (TSA)', kind:'cat', cite:'Trail sustainability rating and trail slope alignment (TSA): Marion, J.L., and Wimpey, J., 2017, Assessing the influence of sustainable trail design and maintenance on soil loss. Journal of Environmental Management 189: 46–57.', citeUrl:'https://doi.org/10.1016/j.jenvman.2016.11.074', f:'TSR', fn:(lv,c) => tsrCell(lv, c), hideFn:() => !SEGS || S.ext !== 'corr', none:'No trail here', note:'Each 500-foot trail segment is rated from its average grade and how directly it climbs the slope: Good (3–10% grade, angled across the slope), Neutral (flat, 0–2%, prone to mud and widening), Poor or Very poor (steeper, or climbing close to straight up). A cell is Very poor when a quarter or more of its trail is Very poor, and Poor when a quarter or more is Poor or Very poor; otherwise it is Neutral where more of the trail is flat than Good, and Good elsewhere. Zoom in to see each segment in the same colors.'},
      {id:'fall', label:'Trail on the fall line', hideFn:() => !tvSlopeOn(), stripTop:lv => tvTop(lv, 'TS_FALL'), th:'slope', f:'TS_FALL', unit:'%', d:0, zero:1, zeroText:'None', none:'No trail here', note:'Share of the trail running nearly straight up and down the slope (on the fall line) on ground steeper than 5%: water runs down the tread instead of off it.'}]},
  {id:'wx', th:'wx', hue:HUE.wx, ramp:'wx', title:'What climate shapes the trail here?',
-  use:'Climate normals and damaging weather from authoritative sources: PRISM 1991–2020 normals (Oregon State University, the official climate data of the U.S. Department of Agriculture) for precipitation and temperature; NOAA nClimGrid-Daily for the frost-free season and heavy-rain days; NOAA Atlas 14 for the 25-year storm; and the NOAA Storm Events Database for damaging wind and winter storms since 1996. Wind comes from gridMET, a research dataset. Use it to plan work seasons, size drainage for big storms, and see where storms most often damage the trail. Play the months or years under Visualizations.',
+  use:'Climate normals and damaging weather from authoritative sources: PRISM 1991–2020 normals (Oregon State University, the official climate data of the U.S. Department of Agriculture) for precipitation and temperature; NOAA nClimGrid-Daily for the frost-free season and heavy-rain days; NOAA Atlas 14 for the 25-year storm; and the NOAA Storm Events Database for damaging wind and winter storms since 1996. Wind comes from gridMET, a research dataset. Change since 1980 compares 1981–2000 with the latest 20 years, from Daymet (1 km daily, ORNL DAAC). Use it to plan work seasons, size drainage for big storms, and see where storms most often damage the trail. Play the months or years under Visualizations.',
   m:[wxM({id:'ppt', wxKey:'WX_PPT', wxRamp:'wet', wxFloor:1, wxAnim:'mon', wxMonF:'WX_PPT_M', showFn:wxIn, d:1, fn:(lv,c)=>S.wxMon != null ? wxMonVal(lv,c,'WX_PPT_M') : val('wx','WX_PPT',lv,c),
        get label(){ return S.wxMon != null ? 'Precipitation in ' + MONTHS_LONG[S.wxMon] : 'Annual precipitation'; },
        note:'Average rain and melted snow, 1991–2020 (PRISM 30-year normals, 800 m). Play the months under Visualizations to see the year go by.'}),
@@ -2340,12 +2340,200 @@ Q.push({id:'mig', th:'ebird', hue:HUE.mig, ramp:'mig', title:'When are birds mig
 { const q = Q.find(x => x.id === 'inv'), i = q ? q.m.findIndex(m => m.pinv) : -1; if (i > 0) q.m.unshift(q.m.splice(i, 1)[0]); }
 /* "Where is the trail most at risk?" opens on the sustainability rating (TSA) */
 { const q = Q.find(x => x.id === 'tvul'), i = q ? q.m.findIndex(m => m.id === 'tsr') : -1; if (i > 0) q.m.unshift(q.m.splice(i, 1)[0]); }
-const QGRP = {rest:'Priorities', tvul:'Priorities', pri:'Priorities', inv:'Threats', pest:'Threats', pinv:'Threats', veg:'Plants and wildlife', bird:'Plants and wildlife', mig:'Plants and wildlife',
+/* ---------- NASA Earthdata layers: canopy loss (OPERA), forest height and biomass (GEDI), green-up and leaf-off (MODIS), climate change since 1980 (Daymet) ----------
+   Built on GitHub (build_canopy_loss.py, build_forest_structure.py, build_green_up.py, build_climate_change.py): cells matched by grid ID */
+HUE.fcond = '#2C6E6A';
+RAMP.fcond = ['#F7E9D4','#EDC28F','#DB8F55','#B85A2C','#7A2E14'];
+RAMP.tall = ['#E4EFD9','#B7D79A','#7FB765','#46903F','#1E5E2A'];
+RAMP.doy = ['#1E6B3A','#5E9E4F','#B4CF7A','#E6D58E','#C9974E'];
+const DIVRAMP = ['#2F64A0','#9DBCE0','#ECE7D8','#F3B37E','#B13B2C'];
+const NASAF = [['dist','canopy_loss','Canopy loss'],['gedi','forest_structure','Forest height and biomass'],['lsp','green_up','Green-up and leaf-off'],['dym','climate_change','Climate change since 1980']];
+const NASA = {}, NASAMETA = {};
+NASAF.forEach(([th, f]) => fetch('data/' + f + '.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ NASA[th] = j; NASAMETA[th] = j.meta || {}; if (S.ext === 'corr'){ nasaApply(); BRK.clear(); redraw(); if (typeof side === 'function') side(); } } }).catch(() => {}));
+function nasaApply(){ let any = false; for (const th in NASA){ const j = NASA[th]; if (j.done || S.ext !== 'corr') continue; j.done = true; D.themes[th] = thConv(j, th, D.levels); any = true; } if (any) extIndex(); }
+const nasaHas = th => !!(D.themes[th] && Object.keys(D.themes[th]).length);
+const nasaNot = th => { const e = NASAF.find(x => x[0] === th); return `Not built yet: added after the "${e ? e[2] : ''}" workflow runs`; };
+/* a value as stored, where -1 is a real number (changes can be -1), not "no data" */
+function rawv(th, f, lv, c){ const t = D.themes[th] && D.themes[th][lv]; if (!t) return null; const R = ROW[th] && ROW[th][lv], r = R ? R[c] : -1; if (!(r >= 0)) return null; const a = t.f[f]; if (!a) return null; const x = a[r]; return x == null ? null : x; }
+const MON3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const dlMonName = m => m == null ? '' : `${MON3[m % 12]} ${2021 + Math.floor(m / 12)}`;
+const doyName = d => { if (d == null) return '–'; const t = new Date(Date.UTC(2023, 0, 1) + (Math.round(d) - 1) * 864e5); return `${MON3[t.getUTCMonth()]} ${t.getUTCDate()}`; };
+const ftOf = m => m * 3.28084, tpaOf = mgha => mgha * 0.44609;
+const sgn = (v, d) => (v > 0 ? '+' : v < 0 ? '−' : '') + fmt(Math.abs(v), d);
+
+/* canopy loss: the whole record, or through the month shown while Play runs (S.dlMon) */
+const dlM = (lv, c) => val('dist','DL_M',lv,c);
+function dlCum(lv, c, upto){ const a = dlM(lv, c); if (!a) return 0; let s = 0; for (let i = 0; i < a.length; i += 2) if (a[i] <= upto) s += a[i + 1] / 10; return s; }
+function dlRange(){ const m = NASAMETA.dist || {}; return m.m0 != null && m.m1 != null ? [m.m0, m.m1] : null; }
+const dlSince = () => { const r = dlRange(); return r ? dlMonName(r[0]) : ''; };
+/* classes from the whole record, kept while Play runs, so the map fills in */
+function dlBrk(f, lv){ const key = 'dl' + f + lv + S.ext; if (BRK.has(key)) return BRK.get(key); const n = D.levels[lv].id.length, a = [];
+  for (let c = 0; c < n; c++){ const v = val('dist', f, lv, c); if (v != null && v > 0) a.push(v); } a.sort((x, y) => x - y);
+  const q = p => a[Math.min(a.length - 1, Math.floor(p * a.length))], d = f === 'DL_PCT' ? 2 : 0;
+  let b = a.length ? [.5, .75, .9, .97].map(p => +niceNum(q(p)).toFixed(d)) : []; b = b.filter((v, i) => v > 0 && (i === 0 || v > b[i - 1]));
+  const out = {b, cols:b.length ? Array.from({length:b.length + 1}, (_, i) => RAMP.fcond[Math.round(i * 4 / b.length)]) : [RAMP.fcond[3]]}; BRK.set(key, out); return out; }
+function dlCol(f, v, lv){ if (v == null) return null; if (v === 0) return ZERO; const B = dlBrk(f, lv); let i = 0; while (i < B.b.length && v > B.b[i]) i++; return B.cols[i]; }
+function dlLegend(f, lv, sh){ if (!nasaHas('dist')) return ''; const B = dlBrk(f, lv);
+  let h = `<div class="row"><i style="background:${ZERO}"></i><span>None detected</span></div>`;
+  B.cols.forEach((col, i) => { const t = !B.b.length ? 'Some loss' : i === 0 ? `up to ${sh(B.b[0])}` : i === B.cols.length - 1 ? `over ${sh(B.b[i - 1])}` : `${sh(B.b[i - 1])} to ${sh(B.b[i])}`; h += `<div class="row"><i style="background:${col}"></i><span>${t}</span></div>`; });
+  return h + `<p class="sub">${S.dlMon != null ? `Loss first detected from ${dlSince()} through ${dlMonName(S.dlMon)}.` : dlRange() ? `Loss first detected ${dlSince()} to ${dlMonName(dlRange()[1])}.` : ''}</p>`; }
+const dlPctShow = v => v > 0 && v < .1 ? 'under 0.1%' : fmt(v, v < 1 ? 2 : 1) + '%', dlAcShow = v => v > 0 && v < 1 ? 'under 1 acre' : fmt(v, v < 10 ? 1 : 0) + ' acres';
+
+/* changes: two hues around "about the same", with classes in even steps from the data */
+function divBrk(m, lv){ const key = 'dv' + m.q.id + m.id + lv + S.ext; if (BRK.has(key)) return BRK.get(key); const n = D.levels[lv].id.length, a = [];
+  for (let c = 0; c < n; c++){ const v = m.get(lv, c); if (v != null) a.push(Math.abs(v)); } a.sort((x, y) => x - y);
+  const q90 = a.length ? a[Math.floor(.9 * (a.length - 1))] : 0, st = niceNum(q90 / 2) || m.divMin || 1; const out = {st}; BRK.set(key, out); return out; }
+function divCol(m, v, lv){ if (v == null) return null; const t = divBrk(m, lv).st, k = v < -1.5 * t ? 0 : v < -.5 * t ? 1 : v <= .5 * t ? 2 : v <= 1.5 * t ? 3 : 4; return DIVRAMP[k]; }
+function divLegend(m, lv){ if (!nasaHas(m.th)) return ''; const t = divBrk(m, lv).st, sh = v => m.divShow(v), w = m.divWords;
+  const W = x => x[0].toUpperCase() + x.slice(1);
+  return [[0, `${W(w[0])}: ${sh(1.5 * t)} or more`], [1, `${W(w[0])}: ${sh(.5 * t)} to ${sh(1.5 * t)}`], [2, `About the same (within ${sh(.5 * t)})`], [3, `${W(w[1])}: ${sh(.5 * t)} to ${sh(1.5 * t)}`], [4, `${W(w[1])}: ${sh(1.5 * t)} or more`]]
+    .map(([k, s]) => `<div class="row"><i style="background:${DIVRAMP[k]}"></i><span>${s}</span></div>`).join(''); }
+function divM(o){ o.colorFn = function(v, lv){ return divCol(this, v, lv); }; o.legendFn = function(lv){ return divLegend(this, lv); };
+  o.stripH = v => Math.max(.001, Math.abs(v)); o.stripTop = function(lv){ return 2.5 * divBrk(this, lv).st; }; return o; }
+/* measures on a scale that does not start at zero (dates, heights): the strip's bars start at lo */
+function floorM(o, lo){ o.stripH = v => Math.max(.001, v - lo); return o; }
+
+/* the question */
+const FCCITE = {dist:['OPERA Land Surface Disturbance Alert, Version 1 (NASA JPL OPERA, LP DAAC); tree cover from ESA WorldCover 2021', ''],
+  gedi:['GEDI L3 Gridded Land Surface Metrics V2 and L4B Gridded Aboveground Biomass V2.1 (Dubayah et al., ORNL DAAC)', 'https://doi.org/10.3334/ORNLDAAC/1952'],
+  lsp:['MODIS Land Cover Dynamics, MCD12Q2 Version 6.1 (Friedl, Gray and Sulla-Menashe, LP DAAC)', 'https://doi.org/10.5067/MODIS/MCD12Q2.061'],
+  dym:['Daymet Version 4 R1, daily 1 km (Thornton et al., ORNL DAAC)', 'https://doi.org/10.3334/ORNLDAAC/2129']};
+/* a measure from one of these files: its source under the legend, "not built yet" until the file is there, and the legend in its own units
+   (getters such as label and note stay live, so the object is filled in place) */
+function nasaM(th, o){ o.th = th; o.cite = FCCITE[th][0]; if (FCCITE[th][1]) o.citeUrl = FCCITE[th][1];
+  if (!Object.getOwnPropertyDescriptor(o, 'none')) Object.defineProperty(o, 'none', {get(){ return nasaHas(th) ? (o.noneText || 'No data for this cell') : nasaNot(th); }, configurable:true, enumerable:true});
+  if (!o.legendFn) o.legendFn = function(lv){ return showLegend(this, lv); };
+  return o; }
+function showLegend(m, lv){ if (!nasaHas(m.th)) return ''; const B = breaks(m, lv), sh = m.showFn || (v => fmt(v, m.d)); if (!B.n) return '';
+  let h = m.zero ? `<div class="row"><i style="background:${ZERO}"></i><span>${esc(m.zeroText || 'None')}</span></div>` : '';
+  B.cols.forEach((col, i) => { const hi = i < B.b.length ? B.b[i] : B.max, t = !B.b.length ? (B.min === B.max ? sh(B.min) : `${sh(B.min)} to ${sh(B.max)}`) : i === 0 ? `up to ${sh(hi)}` : i === B.cols.length - 1 ? `over ${sh(B.b[i - 1])}` : `${sh(B.b[i - 1])} to ${sh(hi)}`;
+    h += `<div class="row"><i style="background:${col}"></i><span>${esc(t)}</span></div>`; });
+  return h; }
+Q.push({id:'fcond', th:'dist', hue:HUE.fcond, ramp:'fcond', title:'What shape is the forest in?',
+  use:'Forest condition from NASA satellites. Canopy loss: confirmed loss of vegetation on tree-covered 30 m pixels, from the OPERA Land Surface Disturbance Alert (Landsat and Sentinel-2, every 2 to 4 days), by the month it was first seen; it catches blowdowns, defoliation, die-off, fire and clearing, and Play steps through the months. Forest height and biomass: GEDI lidar from the International Space Station, 2019 to 2023, in 1 km squares; GEDI samples strips of ground, so some cells hold too few samples to show. Green-up and leaf-off: the yearly dates leaves come out and drop, from MODIS since 2001, and how they have shifted. Use it to spot fresh damage worth a field check, compare forest structure along the trail, and follow the growing season. Satellite measures, not stand surveys.',
+  m:[nasaM('dist', {id:'loss', dlAnim:1, d:2, fn:(lv,c) => { const fa = val('dist','DL_FAC',lv,c); if (!fa) return null; if (S.dlMon == null) return val('dist','DL_PCT',lv,c); return Math.min(100, 100 * dlCum(lv, c, S.dlMon) / fa); },
+       get label(){ return S.dlMon != null ? `Canopy loss through ${dlMonName(S.dlMon)}` : 'Canopy loss, share of forest'; }, showFn:dlPctShow, zeroText:'None detected', noneText:'No forest assessed',
+       colorFn:(v, lv) => dlCol('DL_PCT', v, lv), legendFn:lv => dlLegend('DL_PCT', lv, dlPctShow), stripTop:lv => { const B = dlBrk('DL_PCT', lv); return B.b.length ? B.b[B.b.length - 1] : 1; },
+       note:'Share of the cell’s tree cover with confirmed loss of vegetation, by the month loss was first seen. Partial loss (thinning, defoliation) counts as well as full loss; a pixel that loses canopy twice counts twice. Press Play to step through the months.'}),
+     nasaM('dist', {id:'lossac', dlAnim:1, d:0, fn:(lv,c) => { const fa = val('dist','DL_FAC',lv,c); if (!fa) return null; return S.dlMon == null ? val('dist','DL_AC',lv,c) : dlCum(lv, c, S.dlMon); },
+       get label(){ return S.dlMon != null ? `Canopy loss through ${dlMonName(S.dlMon)}, acres` : 'Canopy loss, acres'; }, showFn:dlAcShow, zeroText:'None detected', noneText:'No forest assessed',
+       colorFn:(v, lv) => dlCol('DL_AC', v, lv), legendFn:lv => dlLegend('DL_AC', lv, dlAcShow), stripTop:lv => { const B = dlBrk('DL_AC', lv); return B.b.length ? B.b[B.b.length - 1] : 1; },
+       note:'Acres of tree cover with confirmed loss of vegetation. Large cells hold more forest, so compare cells of one size.'}),
+     nasaM('dist', {id:'lossnew', label:'Latest canopy loss', f:'DL_LAST', ramp:RAMP.fcond, d:0, showFn:dlMonName, noneText:'None detected',
+       note:'The latest month with at least half an acre of new canopy loss in the cell. Recent months are darkest: fresh damage worth a look.'}),
+     floorM(nasaM('gedi', {id:'height', grp:'Forest height and biomass (GEDI lidar)', label:'Canopy height', fn:(lv,c) => { const v = val('gedi','FS_H',lv,c); return v == null ? null : ftOf(v); }, ramp:RAMP.tall, d:0,
+       showFn:v => fmt(Math.round(v), 0) + ' ft', noneText:'Too few GEDI samples', note:'Average height of the top of the canopy, from GEDI lidar footprints, April 2019 to March 2023, over all land in the cell (fields and towns lower it). Cells with fewer than 20 footprints are left blank.'}), 0),
+     nasaM('gedi', {id:'agb', grp:'Forest height and biomass (GEDI lidar)', label:'Aboveground biomass', fn:(lv,c) => { const v = val('gedi','FS_AGB',lv,c); return v == null ? null : tpaOf(v); }, ramp:RAMP.tall, d:0,
+       showFn:v => fmt(Math.round(v), 0) + ' tons/acre', noneText:'Too few GEDI samples', note:'Dry weight of live trees and shrubs above ground, in short tons per acre, from GEDI lidar, April 2019 to March 2023 (1 Mg/ha is 0.45 tons/acre). A guide to stored carbon (about half the weight). Cells with fewer than 20 footprints are left blank.'}),
+     nasaM('gedi', {id:'shots', grp:'Forest height and biomass (GEDI lidar)', label:'GEDI samples', f:'FS_HN', int:1, zero:1, zeroText:'None', noun:['footprint','footprints'],
+       note:'GEDI lidar footprints (25 m across) in the cell, 2019 to 2023. GEDI samples strips of ground along its orbit, so some cells get few. Fewer than 20: height and biomass are not shown.'}),
+     floorM(nasaM('lsp', {id:'gu', grp:'Green-up and leaf-off (MODIS)', label:'Green-up date', f:'LSP_GU', ramp:RAMP.doy, d:0, showFn:doyName,
+       get note(){ const m = NASAMETA.lsp || {}; return `The day leaves come out: the average date the vegetation index starts its spring rise, ${m.last ? m.last[0] + '–' + m.last[1] : 'the latest five years'} (MODIS, 500 m). Earlier is darker green.`; }}), 60),
+     floorM(nasaM('lsp', {id:'do', grp:'Green-up and leaf-off (MODIS)', label:'Leaf-off date', f:'LSP_DO', ramp:RAMP.doy, d:0, showFn:doyName,
+       get note(){ const m = NASAMETA.lsp || {}; return `The day the canopy is bare: the average date the vegetation index falls back to its winter level, ${m.last ? m.last[0] + '–' + m.last[1] : 'the latest five years'} (MODIS, 500 m).`; }}), 240),
+     floorM(nasaM('lsp', {id:'gs', grp:'Green-up and leaf-off (MODIS)', label:'Growing season', f:'LSP_GS', ramp:RAMP.tall, d:0, showFn:v => fmt(Math.round(v), 0) + ' days',
+       note:'Days from green-up to leaf-off, averaged over the latest five years (MODIS).'}), 100),
+     divM(nasaM('lsp', {id:'gud', grp:'Green-up and leaf-off (MODIS)', label:'Green-up shift since 2001', fn:(lv,c) => rawv('lsp','LSP_GUD',lv,c), d:1, divShow:v => fmt(Math.abs(v), 1) + ' days', divWords:['earlier','later'],
+       showFn:v => Math.abs(v) < .05 ? 'no change' : `${fmt(Math.abs(v), 1)} days ${v < 0 ? 'earlier' : 'later'}`,
+       get note(){ const m = NASAMETA.lsp || {}; return `Average green-up date in ${m.last ? m.last[0] + '–' + m.last[1] : 'the latest five years'} compared with 2001–2005 (MODIS). Blue: earlier spring; red: later. Five-year averages smooth single odd years but not every swing.`; }}))]});
+QVIZ.fcond = {title:'Canopy loss by month', get note(){ return 'Acres of tree cover with confirmed loss, by the month it was first seen (OPERA Land Surface Disturbance Alert). Tap a month to show the loss through then on the map.'; },
+  html:(lv, cells) => dlChart(lv, cells), fn:() => []};
+QVIZ.fcond.pick = id => {
+  if (['height','agb','shots'].includes(id)) return {th:'gedi', title:id === 'agb' ? 'Biomass by state' : 'Canopy height by state', note:'Averages of the cells with 20 or more GEDI footprints, by state.' + VSTNOTE, html:null, fn(lv, cells){
+    const f = id === 'agb' ? 'FS_AGB' : 'FS_H', cv = id === 'agb' ? tpaOf : ftOf, s = VST.map(() => 0), n = VST.map(() => 0);
+    cells.forEach(c => { const st = vStOf(lv, c), v = val('gedi', f, lv, c); if (st < 0 || v == null) return; s[st] += cv(v); n[st]++; });
+    return VST.map((v, i) => [v[1], HUE.fcond, n[i] ? s[i] / n[i] : 0, n[i] ? (id === 'agb' ? `${fmt(s[i] / n[i], 0)} tons/acre` : `${fmt(s[i] / n[i], 0)} ft`) : '', `${v[1]}: ${n[i] ? fmt(s[i] / n[i], 0) : '–'} over ${nCells(n[i])}`]).filter((x, i) => n[i] > 0); }};
+  if (['gu','do','gs','gud'].includes(id)) return {th:'lsp', title:'Green-up by year', note:'Average green-up date of the cells, each year since 2001 (MODIS). The A.T. corridor cells only.', html:(lv, cells) => guChart(lv, cells), fn:() => []};
+  return null; };
+function dlChart(lv, cells){ const r = dlRange(); if (!r || !nasaHas('dist')) return '';
+  const s = new Map(); for (let m = r[0]; m <= r[1]; m++) s.set(m, 0); let n = 0;
+  cells.forEach(c => { const a = dlM(lv, c); if (val('dist','DL_FAC',lv,c)) n++; if (!a) return; for (let i = 0; i < a.length; i += 2) if (s.has(a[i])) s.set(a[i], s.get(a[i]) + a[i + 1] / 10); });
+  if (!n) return ''; const Y = [...s], mx = Math.max(...Y.map(e => e[1]), .1), W = 272, H = 130, pl = 30, pr = 6, top = 8, base = 108, pw = W - pl - pr, bw = pw / Y.length, f = v => v.toFixed(1);
+  const st = niceNum(mx / 3) || .1; let h = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Canopy loss by month">`;
+  for (let v = 0; v <= mx + 1e-9; v += st){ const y = base - (base - top) * v / mx; h += `<line x1="${pl}" x2="${W - pr}" y1="${f(y)}" y2="${f(y)}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 4}" y="${f(y + 3)}" text-anchor="end" font-size="9" fill="#9FB2C8">${fmt(v, st >= 1 ? 0 : 1)}</text>`; }
+  Y.forEach(([m, v], i) => { const on = S.dlMon === m, hh = (base - top) * v / mx; h += `<g data-dlm="${m}" style="cursor:pointer"><rect x="${f(pl + i * bw)}" y="${top}" width="${f(bw)}" height="${base - top}" fill="transparent"/><rect x="${f(pl + i * bw + .4)}" y="${f(base - hh)}" width="${f(Math.max(.8, bw - .8))}" height="${f(hh)}" fill="${on ? '#FFFFFF' : RAMP.fcond[3]}"/><title>${dlMonName(m)}: ${fmt(v, v < 10 ? 1 : 0)} acres. Tap to show the loss through this month</title></g>`;
+    if (m % 12 === 0) h += `<text x="${f(pl + (i + .5) * bw)}" y="${base + 12}" text-anchor="${i >= Y.length - 3 ? 'end' : 'middle'}" font-size="9" fill="#C9D4E2">${2021 + m / 12}</text>`; });
+  const tot = Y.reduce((a, e) => a + e[1], 0), big = Y.slice().sort((a, b) => b[1] - a[1])[0];
+  return h + `</svg><p class="phstat">${fmt(tot, tot < 10 ? 1 : 0)} acres in ${nCells(n)} from ${dlMonName(r[0])} to ${dlMonName(r[1])}; the most in ${dlMonName(big[0])} (${fmt(big[1], big[1] < 10 ? 1 : 0)} acres).</p>`; }
+function guChart(lv, cells){ const m = NASAMETA.lsp || {}, ys = m.years; if (!ys || !nasaHas('lsp')) return '';
+  const s = ys.map(() => 0), k = ys.map(() => 0); cells.forEach(c => { const a = val('lsp','LSP_GU_Y',lv,c); if (!a) return; a.forEach((v, i) => { if (v != null){ s[i] += v; k[i]++; } }); });
+  const Y = ys.map((y, i) => [y, k[i] ? s[i] / k[i] : null]).filter(e => e[1] != null); if (Y.length < 3) return '';
+  const lo = Math.floor(Math.min(...Y.map(e => e[1])) / 5) * 5 - 5, hi = Math.ceil(Math.max(...Y.map(e => e[1])) / 5) * 5 + 5, W = 272, H = 130, pl = 40, pr = 6, top = 8, base = 108, pw = W - pl - pr, f = v => v.toFixed(1);
+  const X = y => pl + pw * (y - ys[0]) / Math.max(1, ys[ys.length - 1] - ys[0]), Yp = v => base - (base - top) * (v - lo) / (hi - lo);
+  let h = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Green-up date by year">`;
+  for (let v = lo; v <= hi; v += 10) h += `<line x1="${pl}" x2="${W - pr}" y1="${f(Yp(v))}" y2="${f(Yp(v))}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 4}" y="${f(Yp(v) + 3)}" text-anchor="end" font-size="9" fill="#9FB2C8">${doyName(v)}</text>`;
+  h += `<polyline fill="none" stroke="${RAMP.doy[1]}" stroke-width="1.8" points="${Y.map(([y, v]) => f(X(y)) + ',' + f(Yp(v))).join(' ')}"/>`;
+  Y.forEach(([y, v]) => { h += `<circle cx="${f(X(y))}" cy="${f(Yp(v))}" r="2.2" fill="${RAMP.doy[2]}"><title>${y}: ${doyName(v)}</title></circle>`; if (y % 5 === 0) h += `<text x="${f(X(y))}" y="${base + 12}" text-anchor="middle" font-size="9" fill="#C9D4E2">${y}</text>`; });
+  const a5 = Y.slice(0, 5), b5 = Y.slice(-5), av = a => a.reduce((s, e) => s + e[1], 0) / a.length, d = av(b5) - av(a5);
+  return h + `</svg><p class="phstat">Green-up averaged ${doyName(av(b5))} in ${b5[0][0]}–${b5[b5.length - 1][0]}, ${Math.abs(d) < .5 ? 'about the same as' : fmt(Math.abs(d), 1) + ' days ' + (d < 0 ? 'earlier than' : 'later than')} ${a5[0][0]}–${a5[a5.length - 1][0]}.</p>`; }
+
+/* Play for canopy loss: steps through the months, then shows the whole record */
+let dlTimer = null;
+const dlAnimOn = () => S.q.id === 'fcond' && !!S.m.dlAnim && !S.m.find && !!dlRange();
+function dlBlock(){ const r = dlRange(); if (!r) return `<p class="phstat">${nasaHas('dist') ? '' : nasaNot('dist') + '.'}</p>`; const m = S.dlMon == null ? r[1] : S.dlMon;
+  return `<div class="acqctl"><button type="button" class="phplay" data-dlplay="1" aria-pressed="${!!dlTimer}">${dlTimer ? 'Pause' : 'Play'}</button>` +
+    `<label class="acqyr"><span id="dlml">${S.dlMon == null ? 'All months' : 'Through ' + dlMonName(m)}</span><input type="range" id="dlmo" min="${r[0]}" max="${r[1]}" step="1" value="${m}" aria-label="Month"></label></div>` +
+    `<p class="phstat" role="status">Confirmed canopy loss, ${dlMonName(r[0])} to ${dlMonName(r[1])}, by the month it was first seen.</p>`; }
+function dlFrame(full){ const l = $('#dlml'), r = $('#dlmo'), v = $('#qviz'), R = dlRange(); if (l) l.textContent = S.dlMon == null ? 'All months' : 'Through ' + dlMonName(S.dlMon); if (r && R) r.value = S.dlMon == null ? R[1] : S.dlMon;
+  if (v && S.q.id === 'fcond' && !['height','agb','shots','gu','do','gs','gud'].includes(S.m.id)) v.innerHTML = qVizHTML();
+  restyle(); strip(); legend(); if (full) side(); }
+function dlPlay(on){ if (dlTimer){ clearInterval(dlTimer); dlTimer = null; } const R = dlRange();
+  if (on && R){ if (S.dlMon == null || S.dlMon >= R[1]) S.dlMon = R[0] - 1;
+    dlTimer = setInterval(() => { if (!dlAnimOn()){ clearInterval(dlTimer); dlTimer = null; return; }
+      if (S.dlMon >= R[1]){ dlPlay(false); S.dlMon = null; dlFrame(); return; } S.dlMon++; dlFrame(); }, 450); }
+  const b = document.querySelector('[data-dlplay]'); if (b){ b.textContent = dlTimer ? 'Pause' : 'Play'; b.setAttribute('aria-pressed', String(!!dlTimer)); }
+  if (!on) dlFrame(true); }
+document.addEventListener('click', e => { if (e.target.closest('[data-dlplay]')) dlPlay(!dlTimer);
+  else { const t = e.target.closest('[data-dlm]'); if (t && S.q.id === 'fcond'){ if (dlTimer) dlPlay(false); const m = +t.dataset.dlm; S.dlMon = S.dlMon === m ? null : m; dlFrame(true); } } });
+document.addEventListener('input', e => { if (e.target.id === 'dlmo'){ if (dlTimer){ clearInterval(dlTimer); dlTimer = null; } const R = dlRange(); S.dlMon = R && +e.target.value >= R[1] ? null : +e.target.value; dlFrame(); } });
+document.addEventListener('change', e => { if (e.target.id === 'dlmo') side(); });
+
+/* climate change since 1980, under "What climate shapes the trail here?" */
+{ const wq = Q.find(q => q.id === 'wx'); if (wq){ const per = () => { const m = NASAMETA.dym || {}; return m.late ? `${m.early[0]}–${m.early[1]} to ${m.late[0]}–${m.late[1]}` : '1981–2000 to the latest 20 years'; }, G = 'Change since 1980 (Daymet)';
+  const dF = v => fmt(Math.abs(v), 1) + '°F', dD = v => fmt(Math.abs(v), 1) + ' days', dI = v => fmt(Math.abs(v), 2) + ' in';
+  wq.m = wq.m.concat([
+    divM(nasaM('dym', {id:'dtmin1', grp:G, label:'Change in January low', fn:(lv,c) => rawv('dym','DM_TMIN1_D',lv,c), d:1, divShow:dF, divWords:['cooler','warmer'], showFn:v => `${sgn(v, 1)}°F`,
+      get note(){ return `Average January low, ${per()} (Daymet, 1 km). Red: warmer winter nights.`; }})),
+    divM(nasaM('dym', {id:'dtmax7', grp:G, label:'Change in July high', fn:(lv,c) => rawv('dym','DM_TMAX7_D',lv,c), d:1, divShow:dF, divWords:['cooler','warmer'], showFn:v => `${sgn(v, 1)}°F`,
+      get note(){ return `Average July high, ${per()} (Daymet).`; }})),
+    divM(nasaM('dym', {id:'dheavy', grp:G, label:'Change in heavy-rain days', fn:(lv,c) => rawv('dym','DM_HEAVY_D',lv,c), d:1, divShow:dD, divWords:['fewer','more'], showFn:v => `${sgn(v, 1)} days a year`,
+      get note(){ return `Days a year with 1 inch or more of precipitation, ${per()} (Daymet). Heavy rain drives trail erosion and washouts.`; }})),
+    divM(nasaM('dym', {id:'dfrost', grp:G, label:'Change in frost-free season', fn:(lv,c) => rawv('dym','DM_FROST_D',lv,c), d:0, divShow:dD, divWords:['shorter','longer'], showFn:v => `${sgn(v, 0)} days`,
+      get note(){ return `Days between the last spring and first fall low of 32°F or colder, ${per()} (Daymet).`; }})),
+    divM(nasaM('dym', {id:'dswe', grp:G, label:'Change in April snowpack', fn:(lv,c) => rawv('dym','DM_SWE_D',lv,c), d:2, divShow:dI, divWords:['less','more'], showFn:v => `${sgn(v, 2)} in of water`,
+      get note(){ return `Snow water on the ground on 1 April, ${per()} (Daymet, modeled). Blue: less snow.`; }}))]); } }
+{ const pk = QVIZ.wx.pick; QVIZ.wx.pick = id => { if (!/^d(tmin1|tmax7|heavy|frost|swe)$/.test(id)) return pk(id); const m = S.q.m.find(x => x.id === id);
+  return {th:'dym', title:m.label + ' by state', note:'Average change of the cells in each state.' + VSTNOTE, html:null, fn(lv, cells){ const s = VST.map(() => 0), n = VST.map(() => 0);
+    cells.forEach(c => { const st = vStOf(lv, c), v = m.get(lv, c); if (st < 0 || v == null) return; s[st] += v; n[st]++; });
+    return VST.map((v, i) => [v[1], divCol(m, n[i] ? s[i] / n[i] : 0, lv), n[i] ? Math.abs(s[i] / n[i]) : 0, n[i] ? m.showFn(s[i] / n[i]) : '', `${v[1]}: ${n[i] ? m.showFn(s[i] / n[i]) : '–'} over ${nCells(n[i])}`]).filter((x, i) => n[i] > 0); }}; }; }
+
+/* the cell details */
+function fcBox(lv, cells){ const ci = cells.filter(c => has('dist', lv, c) || has('gedi', lv, c) || has('lsp', lv, c)); if (!ci.length) return '';
+  const sum = (th, f) => ci.reduce((s, c) => s + (val(th, f, lv, c) || 0), 0), mean = (th, f, raw) => { const a = ci.map(c => raw ? rawv(th, f, lv, c) : val(th, f, lv, c)).filter(x => x != null); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : null; };
+  const fa = sum('dist','DL_FAC'), ac = sum('dist','DL_AC'), last = Math.max(-1, ...ci.map(c => { const v = val('dist','DL_LAST',lv,c); return v == null ? -1 : v; })), h = mean('gedi','FS_H'), b = mean('gedi','FS_AGB'), gu = mean('lsp','LSP_GU'), lo = mean('lsp','LSP_DO'), sh = mean('lsp','LSP_GUD', true);
+  const R = dlRange(); let o = `<div class="sec" style="--hue:${HUE.fcond}"><h3>Forest condition</h3><div class="facts">`;
+  if (fa >= 1) o += `<div><b>${dlPctShow(Math.min(100, 100 * ac / fa))}</b>of the forest with canopy loss${R ? ' since ' + dlMonName(R[0]) : ''}</div><div><b>${fmt(ac, ac < 10 ? 1 : 0)}</b>acres of loss${last >= 0 ? ', latest ' + dlMonName(last) : ''}</div>`;
+  if (h != null) o += `<div><b>${fmt(Math.round(ftOf(h)), 0)} ft</b>average canopy height</div>`;
+  if (b != null) o += `<div><b>${fmt(Math.round(tpaOf(b)), 0)}</b>tons/acre of biomass</div>`;
+  if (gu != null) o += `<div><b>${doyName(gu)}</b>green-up${sh != null && Math.abs(sh) >= .5 ? `, ${fmt(Math.abs(sh), 1)} days ${sh < 0 ? 'earlier' : 'later'} than 2001–05` : ''}</div>`;
+  if (lo != null) o += `<div><b>${doyName(lo)}</b>leaf-off</div>`;
+  return o + `</div><p class="none" style="font-size:13.5px;margin-top:8px">NASA satellite measures: OPERA disturbance alerts (canopy loss, 30 m), GEDI lidar (height and biomass, 1 km) and MODIS (green-up, 500 m). Screens for a field visit, not stand surveys.</p></div>`; }
+const fcSection = (lv, c) => fcBox(lv, [c]);
+function dymBox(lv, cells){ const ci = cells.filter(c => has('dym', lv, c)); if (!ci.length) return ''; const m = NASAMETA.dym || {};
+  const mean = f => { const a = ci.map(c => rawv('dym', f, lv, c)).filter(x => x != null); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : null; };
+  const row = (lab, f, fn) => { const e = mean(f + '_E'), l = mean(f + '_L'); return e == null || l == null ? '' : `<div><b>${fn(e)} → ${fn(l)}</b>${lab}</div>`; };
+  return `<div class="sec" style="--hue:${HUE.wx}"><h3>Climate change since 1980</h3><div class="facts">` +
+    row('January low', 'DM_TMIN1', v => fmt(Math.round(v), 0) + '°F') + row('July high', 'DM_TMAX7', v => fmt(Math.round(v), 0) + '°F') + row('heavy-rain days a year', 'DM_HEAVY', v => fmt(v, 1)) +
+    row('frost-free days', 'DM_FROST', v => fmt(Math.round(v), 0)) + row('inches of snow water on 1 April', 'DM_SWE', v => fmt(v, 1)) +
+    `</div><p class="none" style="font-size:13.5px;margin-top:8px">${m.late ? `${m.early[0]}–${m.early[1]} averages, then ${m.late[0]}–${m.late[1]}` : 'Early and recent 20-year averages'}, from Daymet (1 km daily, ORNL DAAC).</p></div>`; }
+const dymSection = (lv, c) => dymBox(lv, [c]);
+
+const QGRP = {rest:'Priorities', tvul:'Priorities', pri:'Priorities', inv:'Threats', pest:'Threats', fcond:'Threats', pinv:'Threats', veg:'Plants and wildlife', bird:'Plants and wildlife', mig:'Plants and wildlife',
   phen:'Plants and wildlife', rec:'Plants and wildlife', geo:'Land, water and climate', soil:'Land, water and climate', wet:'Land, water and climate', wx:'Land, water and climate',
   hist:'Cultural resources', cult:'Cultural resources', feat:'Stewardship', eff:'Plants and wildlife', land:'Stewardship'};
 const QGOFF = new Set();   // folded question groups (filled from this browser's settings below)
 const qVis = x => x.id !== 'pri' || JERRY;
-{ const ord = ['rest','tvul','pri','feat','land','inv','pest','pinv','veg','bird','mig','phen','rec','eff','geo','soil','wet','wx','hist','cult']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','tvul','pri','feat','land','inv','pest','fcond','pinv','veg','bird','mig','phen','rec','eff','geo','soil','wet','wx','hist','cult']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
@@ -2614,6 +2802,7 @@ function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
   if (typeof TOPO !== 'undefined' && TOPO && !TOPO.done && S.ext === 'corr') topoApply();
   if (typeof DEFIC !== 'undefined' && DEFIC && !DEFIC.done && S.ext === 'corr') deficApply();
   if (typeof SEGS !== 'undefined' && SEGS && !SEGS.done && S.ext === 'corr') segApply();
+  if (typeof nasaApply === 'function' && S.ext === 'corr') nasaApply();
   const lv = dispLevel();
   if (shown !== lv){ if (shown) map.removeLayer(GROUP[shown]); group(lv); shown = lv; restyle(); if (S.cells) GROUP[lv].addTo(map); }
   else restyle();
@@ -2629,7 +2818,7 @@ function redraw(){ draw(); strip(); writeHash(); }
    for soils and wetlands only. Those cells are in soils_wetlands_huc10.json beside this page and load the first time they are asked for.
    Switching swaps the grid and the soils data under the page, so the map, rankings, strip, selection and export all follow.
    Choosing another question, or searching for a species, switches back to the corridor. */
-const EXTFILE = 'data/soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest','pinv','cult','geo','wx','tvul'];
+const EXTFILE = 'data/soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest','fcond','pinv','cult','geo','wx','tvul'];
 const SOILCATS = ['VULN_DOM','SOIL_SERIES','SOIL_TEXTURE','SOIL_ORDER','SOIL_DRAIN','SOIL_HSG','SOIL_FARM','SOIL_ECOSITE','SOIL_MAPUNIT','WET_DOM','WET_LDOM'];
 let extLoading = null;
 function extSnapshot(){ const cats = {}; SOILCATS.forEach(k => { if (D.cats[k]) cats[k] = D.cats[k]; });
@@ -2643,10 +2832,11 @@ function extLoad(){ if (EXT.huc) return Promise.resolve(); if (extLoading) retur
       fetch(GEOHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(g => { if (g && g.themes) { geoTables(g); H.themes.geo = geoConv(g, H.levels); } }).catch(() => {}),
       fetch(WXHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(w => { if (w && w.themes){ if (w.meta && !WXMETA.storms_info) WXMETA = w.meta; H.themes.wx = thConv(w, 'wx', H.levels); } }).catch(() => {}),
       fetch(FHRHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(t => { if (t && t.themes) H.themes.fhr = thConv(t, 'fhr', H.levels); }).catch(() => {}),
+      ...NASAF.map(([th, f]) => fetch('data/' + f + '_huc10.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(t => { if (t && t.themes){ H.themes[th] = thConv(t, th, H.levels); if (!NASAMETA[th]) NASAMETA[th] = t.meta || {}; } }).catch(() => {})),
       fetch(TSLHUC, {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(t => { if (t && t.themes) H.themes.slope = thConv(t, 'slope', H.levels); }).catch(() => {})]).then(() => { EXT.huc = H; }); });
   extLoading.catch(() => {}).then(() => { extLoading = null; });
   return extLoading; }
-function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.geo) D.themes.geo = {}; if (!D.themes.vis) D.themes.vis = {}; if (!D.themes.wx) D.themes.wx = {}; if (!D.themes.slope) D.themes.slope = {}; if (!D.themes.fhr) D.themes.fhr = {}; if (!D.themes.topo) D.themes.topo = {}; if (!D.themes.defic) D.themes.defic = {}; if (!D.themes.seg) D.themes.seg = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
+function extIndex(){ for (const th in ROW) delete ROW[th]; if (!D.themes.edd) D.themes.edd = {}; if (!D.themes.geo) D.themes.geo = {}; if (!D.themes.vis) D.themes.vis = {}; if (!D.themes.wx) D.themes.wx = {}; if (!D.themes.slope) D.themes.slope = {}; if (!D.themes.fhr) D.themes.fhr = {}; if (!D.themes.topo) D.themes.topo = {}; if (!D.themes.defic) D.themes.defic = {}; if (!D.themes.seg) D.themes.seg = {}; for (const th of ['dist','gedi','lsp','dym']) if (!D.themes[th]) D.themes[th] = {}; if (!D.themes.hist || !D.themes.hist.wheel) D.themes.hist = HISTTH();
   for (const th in D.themes){ ROW[th] = {}; for (const lv in D.themes[th]){ const a = new Int32Array(D.levels[lv].id.length).fill(-1); D.themes[th][lv].ix.forEach((c,k) => a[c] = k); ROW[th][lv] = a; } }
   for (const lv in D.levels){ const m = new Map(); D.levels[lv].id.forEach((id,i) => m.set(id,i)); IDX[lv] = m; }
   BRK.clear(); for (const k in COVER) delete COVER[k]; for (const k in RINGS) delete RINGS[k]; }
@@ -3180,14 +3370,14 @@ function keepPlace(el, sels, fn){ const t0 = el && el.isConnected ? el.getBoundi
 /* a question or measure with its own choices (species, years, scale) opens the Selections block */
 const hasSel = () => PHQ() || (S.q.id === 'inv' && S.m.id === 'edrr') || (S.q.id === 'land' && S.m.id === 'acq');
 /* questions with an animation (Play), in the list; and whether the one on screen has one now */
-const QANIM = new Set(['mig', 'phen', 'pest', 'inv', 'cult', 'land']);
-const PLAYQ = () => !S.m.find && (S.q.id === 'mig' || (S.q.id === 'land' && S.m.id === 'acq') || (typeof PHQ === 'function' && PHQ()));
+const QANIM = new Set(['mig', 'phen', 'pest', 'inv', 'cult', 'land', 'fcond']);
+const PLAYQ = () => !S.m.find && (S.q.id === 'mig' || (S.q.id === 'land' && S.m.id === 'acq') || (typeof PHQ === 'function' && PHQ()) || (typeof dlAnimOn === 'function' && dlAnimOn()));
 /* Play on the map, bottom left, for whatever animation is on screen; it presses the panel's own Play, so both stay in step */
-function mapPlay(){ let b = $('#mapplay'); const src = $('#migplay') || $('#phplay') || $('[data-acqplay]');
+function mapPlay(){ let b = $('#mapplay'); const src = $('#migplay') || $('#phplay') || $('[data-acqplay]') || $('[data-dlplay]');
   if (!b){ b = document.createElement('button'); b.type = 'button'; b.id = 'mapplay'; b.className = 'mapctl'; b.innerHTML = '<i aria-hidden="true">▶</i><span></span>';
-    b.onclick = () => { const r = $('#migplay') || $('#phplay') || $('[data-acqplay]'); if (r) r.click(); setTimeout(mapPlay, 60); }; if (window.L && L.DomEvent) L.DomEvent.disableClickPropagation(b); $('#mapwrap').append(b); }
+    b.onclick = () => { const r = $('#migplay') || $('#phplay') || $('[data-acqplay]') || $('[data-dlplay]'); if (r) r.click(); setTimeout(mapPlay, 60); }; if (window.L && L.DomEvent) L.DomEvent.disableClickPropagation(b); $('#mapwrap').append(b); }
   const on = !!src && PLAYQ(); b.hidden = !on; document.body.classList.toggle('hasplay', on); if (!on) return;
-  const pl = /pause/i.test(src.textContent), lab = ($('#migwkl') || $('#phwkl') || $('#acqyl') || {textContent:''}).textContent.split(' · ')[0];
+  const pl = /pause/i.test(src.textContent), lab = ($('#migwkl') || $('#phwkl') || $('#acqyl') || $('#dlml') || {textContent:''}).textContent.split(' · ')[0];
   const ic = pl ? '❚❚' : '▶'; if (b.firstChild.textContent !== ic) b.firstChild.textContent = ic; if (b.lastChild.textContent !== lab) b.lastChild.textContent = lab; b.classList.toggle('nolab', !lab);
   b.setAttribute('aria-label', (pl ? 'Pause' : 'Play') + ' the animation'); }
 if (window.MutationObserver) new MutationObserver(() => { clearTimeout(mapPlay.t); mapPlay.t = setTimeout(mapPlay, 30); }).observe($('#side'), {subtree:true, childList:true, characterData:true});
@@ -3314,7 +3504,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
     (S.herb ? '<p class="extnote">Cells are marked down by up to 10 points for the share of their A.T. lands in wetland, where herbicide use may be limited.</p>' : '') +
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
       (S.appa ? '<p class="extnote">Only NPS – APPA land counts: scores are scaled by the share of the cell’s corridor land that APPA administers. Cells without APPA land, or with too little to score, are left blank.</p>' : ''));
-  const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'mig' ? migBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : '';
+  const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'mig' ? migBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : q.id === 'fcond' && S.m.dlAnim ? dlBlock() : '';
   h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + '<div class="qsec" data-sec="show">' + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map((m, k, a) => (m.grp && (!k || a[k - 1].grp !== m.grp) ? `</div><h4 class="mgrp">${esc(m.grp)}</h4><div class="chips" role="group" aria-label="${esc(m.grp)}">` : '') + `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
     '</div><div class="qsec" data-sec="res">' + blk('results', 'Results', ANS.used ? SUMH.replace(ANS.used, '') : SUMH, 'res') + '</div><div class="qsec" data-sec="charts">' + (PHQ() && !S.m.find ? phVizBlk(qVizOn(q) ? `<div id="qviz">${qVizHTML()}</div>` : '') : '') + (q.id === 'cult' && !S.m.find && !CULTM() ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find && !['defrel', 'defrate'].includes(S.m.id) ? blk('tvw', 'Model weights', S.m.id === 'tfall' ? `<div id="tfwts">${tfWeightsHTML()}</div>` : `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find && !PHQ() ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div><div class="qsec" data-sec="about">' + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) + '</div></div>';
@@ -3610,7 +3800,7 @@ function profile(){ setTimeout(cultVizRefresh); if (S.box) return profileBox(); 
   let b = '';
   if (S.ext === 'huc'){ const note = S.q.id === 'hist' ? `${inCorr(lv, c) ? 'This cell is in the A.T. corridor grid.' : 'Outside the A.T. corridor grid, in the HUC10 shell.'} Switch the extent to A.T. corridor to see the corridor's other layers.`
       : (inCorr(lv, c) ? 'This cell is in the A.T. corridor grid. ' : 'Outside the A.T. corridor grid, in the HUC10 shell. ') + HUCONLY;
-    b = recSection(lv, c) + invSection(lv, c) + cultSection(lv, c) + birdSection(lv, c) + visSection(lv, c) + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c)) + geoSection(lv, c) + tvSection(lv, c) + wxSection(lv, c) + fhrSection(lv, c) + histSection(lv, c) + phSection(lv, c);
+    b = recSection(lv, c) + invSection(lv, c) + cultSection(lv, c) + birdSection(lv, c) + visSection(lv, c) + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c)) + geoSection(lv, c) + tvSection(lv, c) + wxSection(lv, c) + dymSection(lv, c) + fhrSection(lv, c) + fcSection(lv, c) + histSection(lv, c) + phSection(lv, c);
     finishProfile(`<p class="none" style="font-size:13.5px;margin:0 0 10px">${note}</p>` + b); inatLive([ring(lv, c)], L_.id[c]); return; }
   profileCorr(lv, c, false); }
 /* run fn with the A.T. corridor cells and layers in place (while the HUC10 extent is on), then put the watershed cells back.
@@ -3656,7 +3846,7 @@ function profileCorr(lv, c, fromHuc){ const L_ = D.levels[lv], par = parentOf(lv
   } else b += `<p class="none">No rare species priority zone ${viaParent ? 'in the surrounding 7 sq mi cell' : 'in this cell'}.</p>`;
   b += '</div>'; if (!JERRY) b = b.slice(0, jStart);
   b += S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c);
-  b += geoSection(lv, c) + tvSection(lv, c) + wxSection(lv, c) + fhrSection(lv, c);
+  b += geoSection(lv, c) + tvSection(lv, c) + wxSection(lv, c) + dymSection(lv, c) + fhrSection(lv, c) + fcSection(lv, c);
   b += featSection(lv, c);
   b += histSection(lv, c);
   b += phSection(lv, c);
@@ -4211,6 +4401,12 @@ function exportData(){ const lv = S.box ? S.box.lv : S.cellLv, cells = S.box ? S
       trail_miles_measured:n('slope','TS_MI'), trail_grade_avg_pct:n('slope','TS_GRADE'), trail_over_10pct_grade_pct:n('slope','TS_G10'), trail_over_20pct_grade_pct:n('slope','TS_G20'),
       trail_side_slope_avg_pct:n('slope','TS_SIDE'), trail_slope_alignment_avg_deg:n('slope','TS_SAA'), trail_fall_line_pct:n('slope','TS_FALL'),
       forest_pest_risk_pct_of_treed:n('fhr','FHR_PCT'), forest_pest_risk_acres:n('fhr','FHR_AC'), forest_pest_risk_treed_acres:n('fhr','FHR_TAC'),
+      canopy_loss_pct_of_forest:n('dist','DL_PCT'), canopy_loss_acres:n('dist','DL_AC'), canopy_loss_forest_acres_assessed:n('dist','DL_FAC'), canopy_loss_latest_month:v('dist','DL_LAST',c) != null ? dlMonName(v('dist','DL_LAST',c)) : '',
+      canopy_height_ft_gedi:v('gedi','FS_H',c) != null ? Math.round(ftOf(v('gedi','FS_H',c))) : '', biomass_tons_per_acre_gedi:v('gedi','FS_AGB',c) != null ? Math.round(tpaOf(v('gedi','FS_AGB',c))) : '', gedi_footprints:n('gedi','FS_HN'),
+      green_up_date:v('lsp','LSP_GU',c) != null ? doyName(v('lsp','LSP_GU',c)) : '', leaf_off_date:v('lsp','LSP_DO',c) != null ? doyName(v('lsp','LSP_DO',c)) : '', growing_season_days:n('lsp','LSP_GS'),
+      green_up_shift_days_since_2001_05:(x => x == null ? '' : x)(rawv('lsp','LSP_GUD',lv,c)),
+      change_january_low_f:(x => x == null ? '' : x)(rawv('dym','DM_TMIN1_D',lv,c)), change_july_high_f:(x => x == null ? '' : x)(rawv('dym','DM_TMAX7_D',lv,c)), change_heavy_rain_days:(x => x == null ? '' : x)(rawv('dym','DM_HEAVY_D',lv,c)),
+      change_frost_free_days:(x => x == null ? '' : x)(rawv('dym','DM_FROST_D',lv,c)), change_april_snowpack_in:(x => x == null ? '' : x)(rawv('dym','DM_SWE_D',lv,c)),
       wx_precip_in_per_year:n('wx','WX_PPT'), wx_wettest_month:v('wx','WX_WETM',c) != null ? MONTHS_LONG[v('wx','WX_WETM',c)] : '', wx_mean_temp_f:n('wx','WX_TMEAN'), wx_july_high_f:n('wx','WX_TMAX7'), wx_january_low_f:n('wx','WX_TMIN1'),
       wx_frost_free_days:n('wx','WX_FROSTFREE'), wx_heavy_rain_days_per_year:n('wx','WX_HEAVY'), wx_25yr_24hr_storm_in:n('wx','WX_P25'), wx_wind_mph_gridmet:n('wx','WX_WIND'), wx_windy_days_per_year_gridmet:n('wx','WX_WINDY'),
       wx_damaging_wind_events:n('wx','WX_EV_WIND'), wx_winter_storm_events:n('wx','WX_EV_WINTER'), wx_storm_event_years:wxYears() ? wxYears().join('-') : '',
@@ -4465,7 +4661,7 @@ function profileBox(){ const lv = S.box.lv, cells = S.box.cells, L_ = D.levels[l
     b += '</div>'; }
 
   b += S.q.id === 'wet' ? wetBox(lv, cells) + soilBox(lv, cells) : soilBox(lv, cells) + wetBox(lv, cells);
-  b += geoBox(lv, cells) + tvBox(lv, cells) + tfBox(lv, cells) + wxBox(lv, cells) + fhrBox(lv, cells) + visBox(lv, cells);
+  b += geoBox(lv, cells) + tvBox(lv, cells) + tfBox(lv, cells) + wxBox(lv, cells) + dymBox(lv, cells) + fhrBox(lv, cells) + fcBox(lv, cells) + visBox(lv, cells);
   if (!huc){ b += featBox(lv, cells); b = S.q.id === 'rest' ? restBox(lv, cells) + b : b + restBox(lv, cells); }
 
   // land administrators
