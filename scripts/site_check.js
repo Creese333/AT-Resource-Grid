@@ -83,7 +83,10 @@ const server = http.createServer((q, r) => { const f = path.join(ROOT, decodeURI
         const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 64) if (d[i]) n++; return n; }).catch(() => 0);
       let drawn = 0; for (let t = 0; t < 24 && drawn < 20; t++){ await p.waitForTimeout(500); drawn = await count(); }
       /* "land" opens on land protected over time, which loads live from the NPS map service: an outage there only warns */
-      if (errs.length) fail(`${name}, question "${q}": ${errs[0]}`); else if (drawn < 20) (LIVEQ.has(q) ? m => warn(m + ' (a live map service may be down; not blocking)') : fail)(`${name}, question "${q}": the map drew nothing`);
+      /* a layer whose data file has not been built yet (a new workflow that has not run) says so in its legend: that only warns */
+      const unbuilt = drawn < 20 && await p.evaluate(() => /Not built yet/.test((document.querySelector('#legend') || {}).textContent || '')).catch(() => false);
+      if (errs.length) fail(`${name}, question "${q}": ${errs[0]}`);
+      else if (drawn < 20) (LIVEQ.has(q) ? m => warn(m + ' (a live map service may be down; not blocking)') : unbuilt ? m => warn(m + ' (its data has not been built yet; not blocking)') : fail)(`${name}, question "${q}": the map drew nothing`);
     }
     ok(`${name}: ${qs.length} questions loaded`); await cx.close();
   }
