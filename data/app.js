@@ -2764,7 +2764,7 @@ document.getElementById('map').addEventListener('click', e => { if (e.target.clo
 let shown = null;
 function autoLevel(){ const z = map.getZoom(); return z >= 10.5 ? 'hex' : z >= 8.5 ? 'cog' : 'wheel'; }
 function dispLevel(){ let lv = S.level === 'auto' ? autoLevel() : S.level;
-  if (!D.themes[S.m.th][lv]) lv = 'cog'; return lv; }
+  if (!D.themes[S.m.th][lv] && Object.keys(D.themes[S.m.th]).length) lv = 'cog'; return lv; }   /* a layer not built yet keeps the chosen size */
 /* Cell fill thins out as you zoom in: full strength up to zoom 9, down to 40% opacity (60% transparent) at the closest zoom. */
 const FADE_FROM = 9, FADE_TO = 15, FILL_FAR = .86, FILL_NEAR = .4;
 function zoomFade(){ const k = Math.max(0, Math.min(1, (map.getZoom() - FADE_FROM) / (FADE_TO - FADE_FROM))); return (FILL_FAR - k * (FILL_FAR - FILL_NEAR)) / FILL_FAR; }
@@ -3400,8 +3400,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/^(l
 /* the real visible height, for the phone layout (100vh and 100dvh are wrong in an installed app on iPhone) */
 { const typing = () => { const a = document.activeElement; return !!a && /^(INPUT|TEXTAREA)$/.test(a.tagName); };
   /* the height is not taken while the keyboard is up, so the layout does not keep the keyboard's shorter screen after it closes */
-  const apph = () => { if (typing()) return; const v = window.visualViewport;
-    document.documentElement.style.setProperty('--apph', Math.max(innerHeight, document.documentElement.clientHeight, v ? Math.round(v.height) : 0) + 'px'); };
+  const apph = () => { if (!typing()) document.documentElement.style.setProperty('--apph', innerHeight + 'px'); };
   apph(); addEventListener('resize', apph); addEventListener('orientationchange', () => setTimeout(apph, 300));
   /* the map controls are placed from where the header and map sit; lay them out again whenever those move */
   let fireT = 0; const relayout = () => { clearTimeout(fireT); fireT = setTimeout(() => dispatchEvent(new Event('resize')), 40); };
