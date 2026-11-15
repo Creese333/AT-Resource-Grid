@@ -421,7 +421,7 @@ def migr_save(levels, info):
     for (hx, y, wk), u in sorted(MIGR['eff'].items()):
         eff[ids[hx]] += [y, wk, len(u)]
     jsave({'built': built, 'from': MIGR_FROM, 'week': 'week 1 = days 1-7 of the year, week 53 = days 365-366',
-           'note': 'eBird checklists (observer, date and place) per 1 sq mi corridor cell', 'cells': eff}, os.path.join(MIGR_DIR, 'effort.json'))
+           'note': 'eBird checklists (start time and place, or the eBird checklist number) per 1 sq mi corridor cell', 'cells': eff}, os.path.join(MIGR_DIR, 'effort.json'))
     jsave({'built': built, 'from': MIGR_FROM, 'ebird': info, 'species': idx,
            'pts': '[day of year, year, latitude, longitude], one per checklist'}, os.path.join(MIGR_DIR, 'index.json'))
     for f in os.listdir(MIGR_DIR):
