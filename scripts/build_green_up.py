@@ -42,7 +42,9 @@ def read_hdf(path):
     from pyhdf.SD import SD, SDC
     f = SD(path, SDC.READ)
     def get(name):
-        a = f.select(name).get(); return a[0] if a.ndim == 3 else a      # first vegetation cycle
+        a = f.select(name).get()                                       # first vegetation cycle: the cycle axis is first or last
+        if a.ndim == 3: a = a[0] if a.shape[0] <= 2 else a[..., 0]
+        return a
     out = {k: get(k).astype('int32') for k in ('Greenup', 'Dormancy', 'QA_Overall')}
     f.end(); return out
 
