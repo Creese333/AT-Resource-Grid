@@ -896,6 +896,19 @@ body.stackui.ctlopen #toolsbody{flex-wrap:nowrap}
 #base.bsdock{min-height:35px !important}
 body.stackui #base.bsdock{min-height:34px !important}
 body.stackui #base.bsdock span{display:none !important}
+
+/* phone header: a slightly larger title on the left, ? and About the data together on the right */
+@media (max-width:760px){
+  header .hctl{margin-left:auto !important;gap:8px !important}
+  header h1{font-size:19px !important;line-height:1.2 !important;white-space:nowrap}
+  header{padding-right:10px !important}
+}
+@media (max-width:360px){
+  header h1{font-size:15px !important}
+  #aboutbtn{font-size:11.5px !important}
+  header .hctl{gap:6px !important}
+  #aboutbtn{padding-left:7px !important;padding-right:7px !important}
+}
 </style>
 </head>
 <body>
