@@ -834,6 +834,23 @@ body.stackui .tour .tnav button{flex:none;width:76px;box-sizing:border-box;text-
 }
 .legcite{font-size:11.5px;opacity:.85;margin-top:4px}.legcite a{color:inherit;text-decoration:underline dotted}
 body:not(.stackui) #legend{max-height:calc(100% - 96px);overflow-y:auto;overscroll-behavior:contain}
+
+/* Map layers in its own spot */
+#layers.laydock{position:absolute !important;z-index:1146;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.35);padding:3px}
+#layers.laydock #layerstog{min-height:28px}
+#layers.laydock #layerspanel{left:auto;right:-1px}
+#layers.laydock:has(#layerspanel:not([hidden])){z-index:1160}
+body.stackui #layers.laydock{border-radius:999px;padding:0 4px;display:flex;align-items:center;background:#0F1C2E;border-color:#3A4E68}
+body.stackui #layers.laydock #layerstog{font-size:13px;color:#fff;padding:0 8px;height:100%}
+body.stackui #layers.laydock #layerspanel{position:fixed;top:auto;left:10px;right:10px;width:auto;max-width:none}
+body.stackui.touring #layers.laydock{display:none !important}
+
+body.stackui #ctlbtn .cbl{display:none !important}
+body.stackui #ctlbtn .cbs{display:inline !important}
+body.stackui #ctlbtn{padding:0 9px !important;gap:5px !important}
+body.stackui #layers.laydock #layerstog,body.stackui #layers.laydock #layerstog:hover{background:none !important;padding:0 6px !important}
+body.stackui #section{padding:0 22px 0 10px !important;background-position:right 6px center}
+@media (max-width:360px){ body.stackui #ctlbtn{padding:0 7px !important;font-size:12px !important} body.stackui #layers.laydock{padding:0 2px} body.stackui #layers.laydock #layerstog{font-size:12px !important;padding:0 5px !important;gap:5px} body.stackui #section{font-size:12.5px !important;padding:0 20px 0 9px !important} }
 </style>
 </head>
 <body>
@@ -4251,7 +4268,7 @@ async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZo
     if (!l.loaded){ liveStatus(l, 'Loading…'); const [f] = await Promise.all([arcQuery(l.url, {outFields:'*', geometryPrecision:6}), arcMeta(l)]); if (my !== l.req) return; liveDraw(l, f); l.loaded = true; liveStatus(l, fmt(f.length, 0) + ' along the trail'); }
   } catch (e){ if (my === l.req) liveStatus(l, 'Could not load this layer just now'); } }
 function liveToggle(l, on){ l.on = on; if (on){ l.group.addTo(map); liveLoad(l); if (l.type === 'pt' && l.loaded) liveDraw(l); } else { map.removeLayer(l.group); l.req++; liveStatus(l, ''); } labelSync(); layersUI(); writeHash(); }
-function layersUI(){ const n = LIVE.filter(l => l.on).length; $('#layerstog span').innerHTML = 'Map layers' + (n ? ` <b>${n}</b>` : '');
+function layersUI(){ const n = LIVE.filter(l => l.on).length; $('#layerstog span').innerHTML = (document.body.classList.contains('stackui') ? 'Layers' : 'Map layers') + (n ? ` <b>${n}</b>` : '');
   const lk = $('#landkey'); if (lk) lk.hidden = !LIVE.find(l => l.id === 'lands').on; }
 $('#layerspanel').innerHTML = `<label><input type="checkbox" id="stlines"${stOn ? ' checked' : ''}><i class="ln" style="background:#C4A57C;justify-self:center"></i><span>State lines</span><span class="st"></span></label>` + LIVE.map(l => `<label><input type="checkbox" data-live="${l.id}">${l.type === 'pt' ? glyphHTML(l, 18) : `<i class="${l.type === 'poly' ? 'sq' : 'ln'}" style="background:${l.color};justify-self:center"></i>`}<span>${l.name}</span><span class="st" data-st="${l.id}"></span></label>` +
   (l.id === 'lands' ? `<div class="lk" id="landkey" hidden>${LANDKEY.map(k => `<div><i style="background:${k[2]}"></i><span>${k[1]}</span></div>`).join('')}</div>` : '')).join('') +
@@ -4410,7 +4427,7 @@ function stackSync(){ const on = isPhone(), body = document.body, a = $('aside')
     a.dataset.pt = PTAB; body.dataset.pt = PTAB; }
   clearTimeout(stackSync.t); stackSync.t = setTimeout(() => { if (typeof map !== 'undefined') map.invalidateSize(); if (on && typeof strip === 'function') strip(); }, 80); }
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button[data-ptab]'); if (b) ptabSet(b.dataset.ptab); });
-{ const c0 = $('#ctls'), cb = document.createElement('button'); cb.type = 'button'; cb.id = 'ctlbtn'; cb.className = 'mapctl'; cb.setAttribute('aria-expanded', 'false'); cb.innerHTML = '<span class="cbl">Map options</span><span class="cbs">Map</span><i aria-hidden="true"></i>'; cb.title = 'Map options: cell size, tools, basemap and layers';
+{ const c0 = $('#ctls'), cb = document.createElement('button'); cb.type = 'button'; cb.id = 'ctlbtn'; cb.className = 'mapctl'; cb.setAttribute('aria-expanded', 'false'); cb.innerHTML = '<span class="cbl">Map options</span><span class="cbs">Options</span><i aria-hidden="true"></i>'; cb.title = 'Map options: cell size, tools, basemap and layers';
   cb.onclick = () => { const o = !document.body.classList.contains('ctlopen'); document.body.classList.toggle('ctlopen', o); cb.setAttribute('aria-expanded', o); };
   if (c0) c0.prepend(cb);
   /* picking a cell opens Cell; closing it closes Cell */
@@ -5974,6 +5991,28 @@ if (S.pendingLayers) S.pendingLayers.forEach(id => { const l = LIVE.find(x => x.
 if (S.pendingFind){ const e = findIndex().get(S.pendingFind); if (e) setFind(e, false); }
 if (S.cell != null) select(S.cellLv, S.cell, true);
 if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) setExt('huc');
+
+/* Map layers gets its own spot: under the locate button on desktop; on phones in the top row, between Map options and locate,
+   with the section picker narrowed so the row fits on one line */
+{ const ly = $('#layers'), wrap = $('#mapwrap');
+  if (ly && wrap){ wrap.appendChild(ly); ly.classList.add('laydock');
+    const place = () => { const loc = document.querySelector('.leaflet-top.leaflet-right .leaflet-control'); if (!loc) return;
+      const w = wrap.getBoundingClientRect(), r = loc.getBoundingClientRect(), phone = document.body.classList.contains('stackui'), c = $('#ctls'), sec = $('#section');
+      if (typeof layersUI === 'function') layersUI();
+      if (phone){ ly.style.top = (r.top - w.top) + 'px'; ly.style.right = (w.right - r.left + 6) + 'px'; ly.style.height = r.height + 'px';
+        const cr = w.right - r.left + 6 + ly.offsetWidth + 6; if (c) c.style.setProperty('right', cr + 'px', 'important');
+        if (sec && c){ const sw = Math.max(70, Math.round(c.getBoundingClientRect().left - sec.getBoundingClientRect().left - 6)); sec.style.setProperty('width', sw + 'px', 'important'); sec.style.setProperty('max-width', sw + 'px', 'important'); } }
+      else { const pf = $('#profile'), po = pf && pf.classList.contains('open') && pf.offsetParent ? pf.getBoundingClientRect() : null;
+        if (po && po.left < r.right){ ly.style.top = (po.top - w.top) + 'px'; ly.style.right = (w.right - po.left + 8) + 'px'; }
+        else { ly.style.top = (r.bottom - w.top + 8) + 'px'; ly.style.right = (w.right - r.right) + 'px'; }
+        ly.style.height = '';
+        if (c) c.style.removeProperty('right'); if (sec){ sec.style.removeProperty('width'); sec.style.removeProperty('max-width'); } } };
+    window.layersPlace = place;
+    ly.addEventListener('click', e => { if (!e.target.closest('#layerstog')) return; const pn = $('#layerspanel'); if (document.body.classList.contains('stackui')) pn.style.top = Math.round(ly.getBoundingClientRect().bottom + 6) + 'px'; else pn.style.top = ''; });
+    addEventListener('resize', () => setTimeout(place, 60)); addEventListener('load', () => setTimeout(place, 50)); setTimeout(place, 0); setTimeout(place, 600);
+    const pr = $('#profile'); if (pr) new MutationObserver(() => setTimeout(place, 30)).observe(pr, {attributes:true, attributeFilter:['class']});
+    new MutationObserver(() => setTimeout(place, 30)).observe(document.body, {attributes:true, attributeFilter:['class']});
+    document.addEventListener('click', e => { const p = $('#layerspanel'); if (p && !p.hidden && !e.target.closest('#layers')){ p.hidden = true; $('#layerstog').setAttribute('aria-expanded', 'false'); } }); } }
 })();
 </script>
 </body>
