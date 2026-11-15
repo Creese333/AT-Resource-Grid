@@ -1,0 +1,60 @@
+# Checks the A.T. Resource Grid and publishes it only if every check passes.
+# If a check fails, nothing is published and the last good version stays on grid.trailassessment.org;
+# the failed run (Actions tab) lists what went wrong.
+# Runs when anything is uploaded to main, after each data workflow finishes, and by hand.
+# One-time setup: Settings > Pages > Build and deployment > Source: "GitHub Actions".
+name: Check and publish site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  workflow_run:            # data workflows commit with the built-in token, which does not trigger "push"
+    workflows: ["Bird profile photos", "Forest health risk", "Geology", "Historic resources", "iNaturalist, eBird and EDDMapS",
+                "Phenology and forest pests", "Place names", "Topographic exposure", "Trail slope", "Weather"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install the test browser
+        run: |
+          npm install --no-save --no-package-lock playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Check the site
+        run: node scripts/site_check.js .
+      - name: Gather the files the website serves
+        run: |
+          mkdir _site
+          for f in index.html manifest.webmanifest sw.js CNAME data images; do [ -e "$f" ] && cp -r "$f" _site/; done
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  publish:
+    needs: check
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
