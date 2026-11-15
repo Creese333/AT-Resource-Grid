@@ -851,6 +851,18 @@ body.stackui #ctlbtn{padding:0 9px !important;gap:5px !important}
 body.stackui #layers.laydock #layerstog,body.stackui #layers.laydock #layerstog:hover{background:none !important;padding:0 6px !important}
 body.stackui #section{padding:0 22px 0 10px !important;background-position:right 6px center}
 @media (max-width:360px){ body.stackui #ctlbtn{padding:0 7px !important;font-size:12px !important} body.stackui #layers.laydock{padding:0 2px} body.stackui #layers.laydock #layerstog{font-size:12px !important;padding:0 5px !important;gap:5px} body.stackui #section{font-size:12.5px !important;padding:0 20px 0 9px !important} }
+
+/* cell size column */
+#levels.lvdock{position:absolute !important;z-index:1135;flex-direction:column;align-items:stretch;gap:2px;padding:3px;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+#levels.lvdock .lvh{font-size:11px;color:var(--muted);text-align:center;padding:1px 4px 2px;white-space:nowrap}
+#levels.lvdock button{text-align:center;padding:2px 8px;line-height:20px}
+body:not(.stackui) #legend{max-height:calc(100% - var(--levb, 96px)) !important}
+body.stackui #levels.lvdock{width:52px;padding:2px;background:#0F1C2Ee6;border-color:#3A4E68;border-radius:8px}
+body.stackui #levels.lvdock .u{display:none}
+body.stackui #levels.lvdock .lvh{font-size:10px;padding:2px 0}
+body.stackui #levels.lvdock button{font-size:13px;padding:3px 0;line-height:18px}
+body.stackui.touring #levels.lvdock,body.touring #levels.lvdock{display:none !important}
+body.stackui.ctlopen #levels.lvdock{visibility:hidden}
 </style>
 </head>
 <body>
@@ -3946,7 +3958,7 @@ $('#jerrybtn').addEventListener('click', jerryAsk);
 { let k = null; try { k = sessionStorage.getItem('jerrykey'); } catch (e) {} if (k) nrpzUnlock(k).then(z => nrpzOpen(z, false)).catch(() => { try { sessionStorage.removeItem('jerrykey'); } catch (e) {} }); }
 { let ct; map.on('moveend', () => { clearTimeout(ct); ct = setTimeout(cultVizRefresh, 150); }); }
 
-$('#levels').innerHTML = [['auto','Auto'],['wheel','49 sq mi'],['cog','7 sq mi'],['hex','1 sq mi']].map(x => `<button type="button" data-lv="${x[0]}">${x[1]}</button>`).join('');
+$('#levels').innerHTML = '<span class="lvh">Cell size</span>' + [['auto','Auto',''],['wheel','49',' sq mi'],['cog','7',' sq mi'],['hex','1',' sq mi']].map(x => `<button type="button" data-lv="${x[0]}">${x[1]}<span class="u">${x[2]}</span></button>`).join('');
 $('#levels').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.level = b.dataset.lv; redraw(); });
 const mbLogo = L.control({position:'bottomright'});
 mbLogo.onAdd = () => { const a = L.DomUtil.create('a', 'mblogo'); a.href = 'https://www.mapbox.com/'; a.target = '_blank'; a.rel = 'noopener'; a.setAttribute('aria-label', 'Mapbox homepage'); return a; };
@@ -4059,7 +4071,7 @@ function liveDraw(l, feats){ l.group.clearLayers();
 /* Keep a popup or the pinned value label clear of everything that sits on top of the map: the cell-size, Map tools, basemap and Map layers controls,
    the zoom buttons, an open layers list, the legend, and the details panel. The map is nudged just far enough to clear them. */
 function keepClear(el){ if (!el || !el.getBoundingClientRect) return; const m = $('#map').getBoundingClientRect(), r = el.getBoundingClientRect(); if (!r.width) return;
-  const obs = []; document.querySelectorAll('#ctlrow1 > *, #ctlrow2 > .mapctl, #note, .leaflet-control-zoom, #legend, #layerspanel, #profile.open').forEach(o => { if (o.hidden || o.offsetParent === null || (o.id === 'profile' && isPhone())) return; const q = o.getBoundingClientRect(); if (q.width && q.height && q.bottom > m.top && q.top < m.bottom) obs.push(q); });
+  const obs = []; document.querySelectorAll('#ctlrow1 > *, #ctlrow2 > .mapctl, #note, .leaflet-control-zoom, #levels, #layers, #legend, #layerspanel, #profile.open').forEach(o => { if (o.hidden || o.offsetParent === null || (o.id === 'profile' && isPhone())) return; const q = o.getBoundingClientRect(); if (q.width && q.height && q.bottom > m.top && q.top < m.bottom) obs.push(q); });
   const g = 8; let sx = 0, sy = 0;
   const fits = (dx, dy) => r.left + dx >= m.left + 4 && r.right + dx <= m.right - 4 && r.top + dy >= m.top + 4 && r.bottom + dy <= m.bottom - 4;
   const clash = (dx, dy) => obs.find(q => r.left + dx < q.right + g && r.right + dx > q.left - g && r.top + dy < q.bottom + g && r.bottom + dy > q.top - g);
@@ -5313,7 +5325,7 @@ function photoBox(p){ let o = $('#phbox'); if (o) o.remove(); o = document.creat
   o.onclick = e => { if (e.target === o || e.target.tagName === 'BUTTON') close(); }; document.addEventListener('keydown', esc1, true); document.body.appendChild(o); o.querySelector('button').focus(); }
 /* the tour panel sits at the left of the map, level with the Guiding Questions and below the map controls; the controls' drop-downs (basemap, map layers) open over it */
 function tourPlace(){ const d = $('#tour'), w = $('#mapwrap'); if (!d || !w || isPhone()) return; const top0 = w.getBoundingClientRect().top; let b = 0;
-  ['#ctlrow1', '#ctlrow2', '.leaflet-control-zoom'].forEach(sel => { const e = document.querySelector(sel); if (!e || e.offsetParent === null) return;
+  ['#ctlrow1', '#ctlrow2', '.leaflet-control-zoom', '#levels'].forEach(sel => { const e = document.querySelector(sel); if (!e || e.offsetParent === null) return;
     const kids = sel[0] === '#' ? [...e.children] : [e]; kids.forEach(k => { if (k.offsetParent === null || k.id === 'layerspanel') return; const r = k.getBoundingClientRect(); if (r.height) b = Math.max(b, r.bottom); }); });
   /* beside the side panel, the panel's top lines up with the start of the Guiding Questions (where the panel turns dark blue) */
   const g = document.querySelector('.qsblk'), gr = g && g.offsetParent !== null ? g.getBoundingClientRect() : null, wr = w.getBoundingClientRect();
@@ -6012,7 +6024,7 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
     const place = () => { const loc = document.querySelector('.leaflet-top.leaflet-right .leaflet-control'); if (!loc) return;
       const w = wrap.getBoundingClientRect(), r = loc.getBoundingClientRect(), phone = document.body.classList.contains('stackui'), c = $('#ctls'), sec = $('#section');
       if (typeof layersUI === 'function') layersUI();
-      ctlAcross(phone);
+      ctlAcross(phone); if (window.lvPlace) lvPlace();
       if (phone && document.body.classList.contains('ctlopen')) return;   /* Options open: leave the row as it is */
       if (phone){ ly.style.top = (r.top - w.top) + 'px'; ly.style.right = (w.right - r.left + 6) + 'px'; ly.style.height = r.height + 'px';
         const cr = w.right - r.left + 6 + ly.offsetWidth + 6; if (c) c.style.setProperty('right', cr + 'px', 'important');
@@ -6029,6 +6041,14 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
       rows.forEach(r => { if (r.hidden || !r.textContent.trim() && !r.children.length) return; r.style.setProperty('position', 'absolute', 'important'); r.style.setProperty('left', (w.left + 10 - cr.left) + 'px', 'important'); r.style.setProperty('width', (w.width - 20) + 'px', 'important');
         r.style.setProperty('top', y + 'px', 'important'); r.style.setProperty('justify-content', 'flex-start', 'important'); r.style.setProperty('flex-wrap', 'wrap', 'important'); if (r.offsetHeight) y += r.offsetHeight + 6; }); }
     { const r1 = $('#ctlrow1'); let h1 = 0; if (r1 && window.ResizeObserver) new ResizeObserver(() => { if (r1.offsetHeight !== h1){ h1 = r1.offsetHeight; ctlAcross(document.body.classList.contains('stackui')); } }).observe(r1); }
+    /* cell size: a short column on the map's left edge, under the zoom buttons (phones: under the top row) */
+    const lvEl = $('#levels'); if (lvEl){ wrap.appendChild(lvEl); lvEl.classList.add('lvdock'); }
+    const lvPlace = () => { if (!lvEl) return; const w = wrap.getBoundingClientRect(), z = document.querySelector('.leaflet-control-zoom'), zr = z && z.offsetParent ? z.getBoundingClientRect() : null;
+      let top, left; if (zr && zr.height){ top = zr.bottom - w.top + 8; left = zr.left - w.left; }
+      else { const sec = $('#section'), sr = sec && sec.offsetParent ? sec.getBoundingClientRect() : null; top = (sr ? sr.bottom - w.top : 50) + 8; left = 10; }
+      lvEl.style.top = Math.round(top) + 'px'; lvEl.style.left = Math.round(left) + 'px';
+      document.documentElement.style.setProperty('--levb', Math.round(top + lvEl.offsetHeight + 18) + 'px'); };
+    window.lvPlace = lvPlace; addEventListener('resize', () => setTimeout(lvPlace, 70)); setTimeout(lvPlace, 0); setTimeout(lvPlace, 700);
     window.layersPlace = place;
     ly.addEventListener('click', e => { if (!e.target.closest('#layerstog')) return; const pn = $('#layerspanel'); if (document.body.classList.contains('stackui')) pn.style.top = Math.round(ly.getBoundingClientRect().bottom + 6) + 'px'; else pn.style.top = ''; });
     addEventListener('resize', () => setTimeout(place, 60)); addEventListener('load', () => setTimeout(place, 50)); setTimeout(place, 0); setTimeout(place, 600);
