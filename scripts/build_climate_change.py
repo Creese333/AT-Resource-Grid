@@ -37,10 +37,16 @@ NCLOCK = threading.Lock()                  # the netCDF library is not safe to c
 
 
 def session():
-    """a plain session; the Earthdata login is added if the service asks for one"""
-    import requests
-    s = requests.Session(); s.headers['User-Agent'] = 'AT-Resource-Grid (github.com/Creese333/AT-Resource-Grid)'
-    return s
+    """an Earthdata session (it follows the NASA sign-in when the service asks for it); a plain one if there is no login"""
+    try:
+        from nasa_common import login
+        S = login().get_requests_https_session()
+        log('signed in to Earthdata')
+    except BaseException as ex:
+        import requests
+        log(f'no Earthdata session ({str(ex)[:80]}); trying without'); S = requests.Session()
+    S.headers['User-Agent'] = 'AT-Resource-Grid (github.com/Creese333/AT-Resource-Grid)'
+    return S
 
 
 def sign_in(S):
@@ -60,6 +66,7 @@ def get(S, var, year, box, t0, t1, tries=5):
             if r.status_code == 400 and q['accept'] == 'netcdf4': q['accept'] = 'netcdf'; continue   # older servers: plain netCDF
             if r.status_code == 401 and sign_in(S): continue                                         # the service asks for the Earthdata login
             if r.status_code in (400, 401, 403, 404): raise RuntimeError(f'{r.status_code} for {r.url[:160]}')
+            if r.status_code == 200: raise RuntimeError(f'not a netCDF file from {r.url[:120]}: {r.text[:120]!r}')
         except RuntimeError: raise
         except Exception: pass
         time.sleep(5 * (k + 1))
@@ -79,12 +86,14 @@ def open_nc(b, var):
 
 
 def latest_year(S):
-    for y in range(date.today().year - 1, date.today().year - 5, -1):
+    """the latest year with daily files: asks each year, newest first, for one day of a small box"""
+    tiny = (-77.8, 39.3, -77.7, 39.4)
+    for y in range(date.today().year - 1, date.today().year - 6, -1):
         try:
-            r = S.get(NCSS.format(var='prcp', year=y) + '/dataset.xml', timeout=60)
-            if r.status_code == 200: return y
-        except Exception: pass
-    raise SystemExit('Could not find the latest Daymet year on the ORNL DAAC THREDDS service.')
+            get(S, 'prcp', y, tiny, f'{y}-12-01T12:00:00Z', f'{y}-12-01T12:00:00Z', tries=2); log(f'Daymet has {y}'); return y
+        except Exception as ex:
+            log(f'  {y}: {str(ex)[:200]}')
+    raise SystemExit('Could not read Daymet from the ORNL DAAC THREDDS service (see the lines above).')
 
 
 def boxes(fp):
