@@ -37,14 +37,20 @@ NCLOCK = threading.Lock()                  # the netCDF library is not safe to c
 
 
 def session():
-    """an Earthdata session (it follows the NASA sign-in when the service asks for it); a plain one if there is no login"""
+    """an Earthdata session: the Daymet service sends requests through the NASA sign-in (urs.earthdata.nasa.gov)"""
+    import requests
     try:
         from nasa_common import login
-        S = login().get_requests_https_session()
-        log('signed in to Earthdata')
+        S = login().get_requests_https_session(); log('signed in to Earthdata (earthaccess)')
     except BaseException as ex:
-        import requests
-        log(f'no Earthdata session ({str(ex)[:80]}); trying without'); S = requests.Session()
+        log(f'earthaccess not used ({str(ex)[:80]}); using the token directly')
+        class KeepAuth(requests.Session):
+            """keeps the Earthdata token when the service sends the request on to the NASA sign-in and back"""
+            def rebuild_auth(self, prepared, response):
+                host = requests.utils.urlparse(prepared.url).hostname or ''
+                if host.endswith('earthdata.nasa.gov') or host.endswith('ornl.gov') or host.endswith('nasa.gov'): return
+                return super().rebuild_auth(prepared, response)
+        S = KeepAuth(); sign_in(S)
     S.headers['User-Agent'] = 'AT-Resource-Grid (github.com/Creese333/AT-Resource-Grid)'
     return S
 
