@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1C3B5A">
+<style>html{background:#142235}</style>
 <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -936,6 +937,7 @@ body.stackui #find::placeholder{font-size:14px !important}
 </style>
 </head>
 <body>
+<div id="splash" style="position:fixed;inset:0;z-index:99999;background:#142235;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#EEF3F8;font:600 19px system-ui,-apple-system,sans-serif;transition:opacity .25s"><img src="images/icon-192.png" alt="" width="72" height="72" style="border-radius:16px"><div>A.T. Resource Grid</div><div style="font-weight:400;font-size:13px;color:#9FB2C7">Loading…</div></div>
 <header>
   <span class="blaze" aria-hidden="true"></span>
   <h1>A.T. Resource Grid</h1>
@@ -6182,6 +6184,15 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
   const offBase = () => { const off = !navigator.onLine; BASEDEF.forEach(b => { const l = b[2]; if (!(l instanceof ImgLayer)) return; if (!l._o) l._o = {n:l.options.naipFrom, m:l.options.maxNativeZoom};
       l.options.naipFrom = off ? 99 : l._o.n; l.options.maxNativeZoom = off ? 14 : l._o.m; if (map.hasLayer(l)) l.redraw(); }); };
   addEventListener('online', offBase); addEventListener('offline', offBase); if (!navigator.onLine) offBase(); }
+
+/* the loading screen goes once the map is drawn */
+{ const sp = document.getElementById('splash'); const go = () => { if (!sp || sp.dataset.gone) return; sp.dataset.gone = 1; sp.style.opacity = 0; setTimeout(() => sp.remove(), 300); };
+  requestAnimationFrame(() => requestAnimationFrame(go)); setTimeout(go, 4000); }
+/* a newer version was found in the background: offer a reload */
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (!e.data || e.data.type !== 'updated' || $('#updtoast')) return;
+  const t = document.createElement('button'); t.id = 'updtoast'; t.type = 'button'; t.textContent = 'Updated · tap to reload';
+  t.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:3000;background:#F0C419;color:#142235;border:0;border-radius:999px;padding:9px 16px;font:inherit;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.5)';
+  t.onclick = () => location.reload(); document.body.appendChild(t); setTimeout(() => t.remove(), 15000); });
 })();
 </script>
 </body>
