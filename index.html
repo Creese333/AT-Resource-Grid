@@ -480,9 +480,8 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 #phtick{position:absolute;top:120px;left:10px;z-index:800;pointer-events:none;background:rgba(20,34,53,.88);border:1px solid #F0C419;border-radius:7px;padding:3px 10px 4px;text-align:left;color:#fff;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none}
 #phtick b{display:block;font-size:22px;line-height:1.05;color:#FFE014;font-variant-numeric:tabular-nums;letter-spacing:.3px}
 #phtick span{font-size:12px;color:#E3EAF2}
-@media (max-width:700px){#phtick{padding:2px 8px 3px;border-radius:6px}#phtick b{font-size:16px}#phtick span{font-size:10.5px}}
 #phtick{padding:5px 14px 6px}#phtick b{font-size:30px}#phtick span{font-size:14.5px}
-@media (max-width:700px){#phtick{padding:3px 10px 4px}#phtick b{font-size:21px}#phtick span{font-size:12px}}
+@media (max-width:700px){#phtick{padding:3px 10px 4px;border-radius:6px}#phtick b{font-size:21px}#phtick span{font-size:12px}}
 .phh{font-size:13.5px;color:#fff;margin:10px 0 2px;font-weight:600}
 .phch{display:block;margin:2px 0}
 .tvw{display:grid;gap:6px;margin:4px 0 6px}.tvw label{display:grid;grid-template-columns:minmax(0,1fr) minmax(90px,42%) 26px;align-items:center;gap:8px;font-size:13.5px}
@@ -616,10 +615,8 @@ aside{overflow-x:hidden}
 button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#1B2B42;color:#fff;font-size:19px;line-height:1;cursor:pointer}
 .qfilt{margin:4px 14px 6px 16px;padding:8px 11px;border-radius:9px;border:1px solid var(--line);background:#0F1C2E;color:#EEF3F8;font:inherit;font-size:15px}
 .qpick .qs{padding-bottom:16px}
-.qlab{display:none !important;align-items:center;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#7F93AA;margin:14px 0 2px;font-weight:600}
-.qbody>.qlab:first-child{margin-top:10px}
 
-.anslegend{display:none}
+
 #ctlbtn,.ptabs{display:none}
 .qsec{display:contents}
 
@@ -684,15 +681,11 @@ button.qpx.blktog{display:inline-flex;align-items:center;justify-content:center;
   body.stackui .ptabs button{flex:1 1 auto;min-width:0;font:inherit;font-size:12.5px;font-weight:600;color:#DDE6F0;background:#1B2B42;border:1px solid #33465F;border-radius:8px;padding:7px 4px;white-space:nowrap;cursor:pointer}
   body.stackui .ptabs button[aria-pressed=true]{background:#1f6b4a;border-color:#fff;color:#fff}
   body.stackui .ptabs button[hidden]{display:none}
-  body.stackui .qlab{display:none}
   body.stackui aside[data-pt=""] .qbody,body.stackui aside:not([data-pt]) .qbody{display:none}
   body.stackui aside[data-pt=show] .qsec:not([data-sec=show]),body.stackui aside[data-pt=res] .qsec:not([data-sec=res]),body.stackui aside[data-pt=charts] .qsec:not([data-sec=charts]),body.stackui aside[data-pt=about] .qsec:not([data-sec=about]){display:none}
   body.stackui aside[data-pt=cell] .qbody{display:none}
   body.stackui #profile{display:none}
   body.stackui aside[data-pt=cell] #profile.open{display:block;position:static;border:0;box-shadow:none}
-  body.stackui .anslegend{display:none !important}
-  body.stackui .anslegend .row{display:flex;align-items:center;gap:8px}body.stackui .anslegend .row i{width:14px;height:14px;border-radius:3px;flex:none}
-  body.stackui .anslegend .sub{color:#A8B8CA;font-size:12px;margin:4px 0 0}
   body.stackui .qpick{left:0 !important;right:0 !important;width:auto !important;border-radius:16px 16px 0 0;box-shadow:0 -8px 26px rgba(0,0,0,.5);animation:qpup .22s ease-out}
   @keyframes qpup{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
   body.stackui .migcard.mob{position:relative;inset:auto;margin-top:12px}
@@ -804,7 +797,6 @@ body.hasplay #legend{bottom:58px}
 body.stackui{height:var(--apph,100dvh) !important}
 body.stackui header{height:calc(46px + env(safe-area-inset-top, 0px)) !important;padding-top:env(safe-area-inset-top, 0px) !important}
 body.stackui header,body.stackui .ptabs{padding-left:max(8px, env(safe-area-inset-left, 0px)) !important;padding-right:max(8px, env(safe-area-inset-right, 0px)) !important}
-body.stackui .qquick select{height:44px !important;font-size:16px !important;border-radius:9px !important;padding:0 10px !important}
 body.stackui .qquick .extsw h2{font-size:14px !important}
 body.stackui .qquick .extsw button{font-size:14.5px !important;padding:7px 8px !important}
 body.stackui .ptabs button{font-size:15px !important;padding:11px 4px !important;border-radius:9px !important}
@@ -912,7 +904,7 @@ body.stackui #base.bsdock{min-height:34px !important}
 body.stackui #base.bsdock span{display:none !important}
 
 /* phone header: a slightly larger title on the left, ? and About the data together on the right */
-@media (max-width:760px){
+@media (max-width:860px){
   header .hctl{margin-left:auto !important;gap:8px !important}
   header h1{font-size:19px !important;line-height:1.2 !important;white-space:nowrap}
   header{padding-right:10px !important}
@@ -925,7 +917,7 @@ body.stackui #base.bsdock span{display:none !important}
 }
 
 /* phones: the protected-data sign-in opens on its own line under the header, inside the screen */
-@media (max-width:760px){
+@media (max-width:860px){
   header #jerrylock{position:fixed;z-index:2000;top:calc(52px + env(safe-area-inset-top, 0px));left:8px;right:8px;box-sizing:border-box;margin:0 !important;padding:10px 12px;background:var(--panel);border:1px solid #F0C419;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.6)}
   header #jerrylock input{flex:1 1 140px !important;min-width:0}
   .hctl #jerrybtn{width:32px !important;height:32px !important}
@@ -936,7 +928,7 @@ body.stackui #base.bsdock span{display:none !important}
 /* phones: typing fields at 16px so iPhones don't zoom the page when they're tapped (the hint text stays smaller) */
 body.stackui #find{font-size:16px !important}
 body.stackui #find::placeholder{font-size:14px !important}
-@media (max-width:760px){ #jerrylock input{font-size:16px !important} }
+@media (max-width:860px){ #jerrylock input{font-size:16px !important} }
 
 #offline{margin-top:18px;padding-top:12px;border-top:1px solid var(--line)}
 #offline h3{margin:0 0 6px}
@@ -1775,7 +1767,7 @@ function phDots(){ const on = PHQ() && !SPREADQ() && S.m.id === 'wave' && !S.m.f
   PHDOTS.n = now.length; }
 function phTick(){ phDots(); let t = document.getElementById('phtick'); const acq = S.q.id === 'land' && S.m.id === 'acq' && !!ACQ && ACQ.st === 'done' && S.ext === 'corr', vis = S.q.id === 'eff' && S.m.id === 'od' && !!S.visYr && !S.m.find, wxt = wxAnimOn() && (S.m.wxAnim === 'mon' ? S.wxMon != null : !!S.wxYr), on = acq || vis || wxt || PHQ() && S.m.yr && !S.m.find && phAgg(dispLevel());
   if (!t){ if (!on) return; t = document.createElement('div'); t.id = 'phtick'; t.setAttribute('aria-live', 'off'); document.getElementById('map').appendChild(t); }
-  if (!on){ t.style.display = 'none'; return; }
+  if (!on){ t.style.display = 'none'; phTickPos(); return; }
   t.classList.toggle('acqtick', !!acq);
   if (wxt){ const lv = dispLevel(), L_ = D.levels[lv], m = S.m; let n = 0, s = 0, k = 0;
     for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)){ const v = m.get(lv, c); if (v == null) continue; k++; s += v; if (v > 0) n++; }
@@ -1798,8 +1790,15 @@ function phTick(){ phDots(); let t = document.getElementById('phtick'); const ac
   if (S.m.id === 'wave' && PHDOTS && phDotKey) small += ` · ${fmt(PHDOTS.n || 0, 0)} ${PHDOTS.n === 1 ? 'record' : 'records'} this week`;
   t.innerHTML = `<b>${big}</b><span>${small}</span>`; t.style.display = 'block'; phTickPos(); }
 /* top left of the map, just below the map controls (which wrap to more rows on a phone or when Map tools opens) */
-function phTickPos(){ const t = document.getElementById('phtick'), c = document.getElementById('ctls'), m = document.getElementById('map'); if (!t || !m) return;
-  const top = c ? c.getBoundingClientRect().bottom - m.getBoundingClientRect().top + 8 : 10; t.style.top = Math.max(10, Math.round(top)) + 'px'; }
+/* the ticker sits 8 px under the lowest of the map's top controls (the tool rows and the Cells / Basemap row), lined up with their left edge */
+function phTickPos(){ const t = document.getElementById('phtick'), m = document.getElementById('map'); if (!t || !m) return; const mr = m.getBoundingClientRect();
+  const on = ['ctls', 'lvbar'].map(id => document.getElementById(id)).filter(e => e && e.offsetParent && getComputedStyle(e).visibility !== 'hidden').map(e => e.getBoundingClientRect()).filter(r => r.height);
+  const bot = on.length ? Math.max(...on.map(r => r.bottom)) : mr.top + 2, lb = document.getElementById('lvbar'), left = lb && lb.offsetParent ? lb.getBoundingClientRect().left - mr.left : 10;
+  t.style.top = Math.max(10, Math.round(bot - mr.top + 8)) + 'px'; t.style.left = Math.max(8, Math.round(left)) + 'px';
+  /* desktop: the legend stops 10 px below whichever is lower, the Cells / Basemap row or a showing ticker */
+  const w = document.getElementById('mapwrap'); if (!w) return; const wr = w.getBoundingClientRect(), shown = t.style.display !== 'none' && t.offsetHeight;
+  const low = Math.max(...on.map(r => r.bottom), shown ? t.getBoundingClientRect().bottom : 0), L = document.getElementById('legend');
+  if (L && !document.body.classList.contains('stackui') && low > wr.top) L.style.setProperty('max-height', Math.max(120, Math.round(L.getBoundingClientRect().bottom - low - 10)) + 'px', 'important'); }
 addEventListener('resize', () => { if (PHQ()) phTickPos(); });
 if (window.ResizeObserver && document.getElementById('ctls')) new ResizeObserver(() => { if (PHQ()) phTickPos(); }).observe(document.getElementById('ctls'));
 function phStatus(){ const sp = phSp(), st = PHD[sp.key];
@@ -3436,7 +3435,6 @@ let migTimer = null;
    eBird's expert review did not publish one. data/birds/index.json carries the same dates from the species list once the eBird run
    has them, and those win; these are the fallback. Without a window: spring March–June, fall August–November. */
 const MIGEB = {'Catharus bicknelli':['05-10/05-24', '', '05-31/07-26', 1], 'Setophaga striata':['04-12/06-07', '08-09/12-06', '06-14/08-02', 1], 'Catharus ustulatus':['03-15/06-07', '07-19/11-08', '06-14/07-12', 1], 'Contopus cooperi':['03-22/06-14', '07-26/11-08', '06-21/07-19', 1], 'Leiothlypis peregrina':['03-22/05-31', '08-02/11-29', '06-07/07-12', 0], 'Setophaga tigrina':['03-22/05-31', '08-02/11-08', '06-07/07-05', 0], 'Setophaga castanea':['03-29/06-07', '08-02/11-29', '06-14/07-12', 0], 'Buteo platypterus':['02-22/06-07', '08-02/11-22', '06-14/07-26', 1], 'Pandion haliaetus':['02-15/05-17', '08-02/12-20', '05-24/07-26', 1], 'Chordeiles minor':['03-22/06-14', '07-26/11-15', '06-21/07-19', 1], 'Accipiter striatus':['03-15/05-24', '08-30/11-29', '05-31/08-09', 1], 'Falco sparverius':['02-22/05-10', '08-09/11-08', '05-17/08-02', 1], 'Falco columbarius':['03-08/05-24', '08-02/11-29', '05-31/07-26', 0], 'Falco peregrinus':['02-22/05-31', '07-26/11-15', '06-07/07-19', 1], 'Circus hudsonius':['02-22/05-31', '07-12/12-06', '06-07/07-05', 1], 'Aquila chrysaetos':['02-08/05-31', '08-30/11-29', '06-07/08-23', 0], 'Dolichonyx oryzivorus':['04-19/05-31', '08-02/11-08', '06-07/07-26', 1], 'Tyrannus tyrannus':['03-01/05-31', '08-09/11-29', '06-07/08-02', 1], 'Setophaga discolor':['03-22/05-24', '07-12/11-08', '05-31/07-05', 1], 'Hylocichla mustelina':['03-08/05-24', '08-02/11-15', '05-31/07-26', 1], 'Setophaga cerulea':['03-08/05-10', '07-26/10-18', '05-17/07-19', 1], 'Cardellina canadensis':['03-22/06-07', '08-02/11-22', '06-14/07-26', 1], 'Antrostomus vociferus':['02-08/05-17', '', '05-24/07-26', 1], 'Coccyzus erythropthalmus':['03-15/06-07', '08-09/11-01', '06-14/08-02', 1]};
-const MIGDEF = {'Fall flights':'fall', 'Passing through':'fall'};
 const MIGNOTE = {'High-peak breeders':'These birds nest on the high peaks in spruce-fir, so they show up mainly in the highest cells and arrive later than birds lower down. Blackpoll warblers and Swainson’s thrushes also pass through the whole trail in May and September.',
   'Passing through':'These birds nest north of the trail and are seen here only on the way through.',
   'Fall flights':'Hawk watch sites on the trail report far more hawks, eagles, falcons and nighthawks than the ridges between them, so a few cells stand out.'};
@@ -3656,7 +3654,7 @@ function migCard(){ let c = $('#migcard'), b = $('#migcardbtn'); const on = S.q 
 QVIZ.mig = {title:'Migration calendar', note:'How often birders reported this species each week, by region, all years since 2010. Colors follow eBird’s dates for this species: spring migration (green), nesting season (yellow, for birds that nest along the trail) and fall migration (orange); the bars on top show those dates. Gray: too few checklists. Click a region for its weekly line.',
   html:(sl, cells) => migCal(sl, cells)};
 Q.push({id:'mig', th:'ebird', hue:HUE.mig, ramp:'mig', title:'When are birds migrating here?',
-  use:'When 24 migratory birds arrive, pass through and leave along the trail, from eBird checklists since 2010, updated each January. Migration, week by week opens first: each cell shows the share of checklists in the three weeks around the date that reported the species, so Play shows birds moving up the trail in spring and down it in fall. Peak week maps the week each cell reports the species most. Visualizations add a migration calendar by region, Georgia to Maine. Share of checklists, not counts, so busy trailheads don’t outweigh quiet ridges; a missing cell means too few checklists that week, not absence.',
+  use:'When 24 migratory birds arrive, pass through and leave along the trail, from eBird checklists since 2010, updated each January. Migration, week by week: each cell shows the share of checklists in the three weeks around the date that reported the species, so Play shows birds moving up the trail in spring and down it in fall. Visualizations add a migration calendar by region, Georgia to Maine. Share of checklists, not counts, so busy trailheads don’t outweigh quiet ridges; a missing cell means too few checklists that week, not absence.',
   m:[{id:'migwk', label:'Migration, week by week', unit:'%', d:1, fn:(lv, c) => migShare(lv, c, MIGS.wk), colorFn:migCol, legendFn:migLegShare, stripTop:() => 30, zeroClear:1, nullHide:1,
       showFn:v => v === 0 ? 'none reported these weeks' : `${fmt(v, v < 10 ? 1 : 0)}% of checklists`, none:`Not drawn: fewer than ${MIGMIN} checklists in these weeks`}]});
 /* invasive plants open on the year-by-year animation (Japanese barberry until another species is picked) */
@@ -4467,7 +4465,7 @@ function mapGestures(){ if (TOUCHDEV && VW() <= 860 && !document.body.classList.
   mc.addEventListener('touchstart', onTouch, {passive:false}); mc.addEventListener('touchmove', onTouch, {passive:false}); }
 
 /* ---------- legend ---------- */
-function legend(){ setTimeout(legCopy); const lv = dispLevel(), m = S.m; let h = `<h3><button type="button" id="legtog" aria-expanded="${S.legend}" aria-controls="legbody"><span>${esc(m.label)}</span><i aria-hidden="true"></i></button></h3><div id="legbody"${S.legend ? '' : ' hidden'}>`;
+function legend(){ const lv = dispLevel(), m = S.m; let h = `<h3><button type="button" id="legtog" aria-expanded="${S.legend}" aria-controls="legbody"><span>${esc(m.label)}</span><i aria-hidden="true"></i></button></h3><div id="legbody"${S.legend ? '' : ' hidden'}>`;
   if (m.kind === 'cat'){ const present = new Set(); const n = D.levels[lv].id.length;
     for (let c = 0; c < n; c++){ const v = m.get(lv, c); if (v != null) present.add(D.cats[m.f][v]); }
     if (m.many){ const cnt = new Map(); for (let c = 0; c < n; c++){ const v = m.get(lv, c); if (v != null && inSec(lv, c)) cnt.set(v, (cnt.get(v) || 0) + 1); }
@@ -4518,7 +4516,7 @@ if (window.MutationObserver) new MutationObserver(() => { clearTimeout(mapPlay.t
 function quickPick(){ const q = $('#qquick'); if (!q || !document.body.classList.contains('stackui')) return; const sel = $('#side .qbody #migsp, #side .qbody #phsp, #side .qbody #pinvsel'), ex = $('#side .qbody .extblk .extsw');
   if (sel) q.append(sel); if (ex) q.append(ex); }
 /* the map legend, repeated in Answer on phones (where the map legend sits small over the map) */
-function legCopy(){ const a = $('#anslegend'), b = $('#legbody'); if (a) a.innerHTML = b ? b.innerHTML : ''; }
+
 /* phones: the map and the trail profile on top, then the question and a row of buttons; a button opens its part below
    (Measures, Results, Charts, About, or Cell for a picked cell) and the map gets smaller to make room; the same button closes it */
 let PTAB = '';
@@ -4547,7 +4545,7 @@ function stackSync(){ const on = isPhone(), body = document.body, a = $('aside')
     a.dataset.pt = PTAB; body.dataset.pt = PTAB; }
   clearTimeout(stackSync.t); stackSync.t = setTimeout(() => { if (typeof map !== 'undefined') map.invalidateSize(); if (on && typeof strip === 'function') strip(); }, 80); }
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button[data-ptab]'); if (b) ptabSet(b.dataset.ptab); });
-{ const c0 = $('#ctls'), cb = document.createElement('button'); cb.type = 'button'; cb.id = 'ctlbtn'; cb.className = 'mapctl'; cb.setAttribute('aria-expanded', 'false'); cb.innerHTML = '<span class="cbl">Map tools</span><span class="cbs">Map tools</span><i aria-hidden="true"></i>'; cb.title = 'Map options: cell size, tools, basemap and layers';
+{ const c0 = $('#ctls'), cb = document.createElement('button'); cb.type = 'button'; cb.id = 'ctlbtn'; cb.className = 'mapctl'; cb.setAttribute('aria-expanded', 'false'); cb.innerHTML = '<span class="cbl">Map tools</span><span class="cbs">Map tools</span><i aria-hidden="true"></i>'; cb.title = 'Map tools: cells on, select area, pick cells';
   cb.onclick = () => { const o = !document.body.classList.contains('ctlopen'); document.body.classList.toggle('ctlopen', o); cb.setAttribute('aria-expanded', o); };
   if (c0) c0.prepend(cb);
   /* picking a cell opens Cell; closing it closes Cell */
@@ -4619,10 +4617,10 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
     (q.id !== 'rest' ? '' : `<div class="extsw" role="group" aria-label="Lands"><span>Lands</span><button type="button" data-lands="all" aria-pressed="${!S.appa}">All but private</button><button type="button" data-lands="appa" aria-pressed="${!!S.appa}">APPA only</button></div>` +
       (S.appa ? '<p class="extnote">Only NPS – APPA land counts: scores are scaled by the share of the cell’s corridor land that APPA administers. Cells without APPA land, or with too little to score, are left blank.</p>' : ''));
   const selHTML = S.m.find ? '' : PHQ() ? phBlock() : q.id === 'mig' ? migBlock() : q.id === 'inv' && S.m.id === 'edrr' ? pinvPick() : q.id === 'land' && S.m.id === 'acq' ? acqBlock() : '';
-  h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + '<div class="qsec" data-sec="show"><div class="qlab">Show</div>' + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') +
+  h += `<div class="qbody${(PHQ() || q.id === 'land' && S.m.id === 'acq' || q.id === 'cult' || q.id === 'geo' || qVizOn(q)) && !S.m.find ? ' hasviz' : ''}" style="--hue:${q.hue}">` + '<div class="qsec" data-sec="show">' + extBlk + (herbBlk ? blk('mgmt', `Management filters <small class="mgsum">Herbicide ${S.herb ? 'on' : 'off'} · ${S.appa ? 'APPA only' : 'All but private'}</small>`, herbBlk) : '') +
     blk('measures', 'Measures', '<div class="chips" role="group" aria-label="Measure">' + q.m.filter(m => !m.pinv && (!m.hideFn || !m.hideFn())).map((m, k, a) => (m.grp && (!k || a[k - 1].grp !== m.grp) ? `</div><h4 class="mgrp">${esc(m.grp)}</h4><div class="chips" role="group" aria-label="${esc(m.grp)}">` : '') + `<button type="button" data-m="${m.id}" aria-pressed="${m === S.m || (m.id === 'edrr' && !!S.m.pinv)}">${esc(m.label)}</button>`).join('') + '</div>') + (selHTML ? blk('sel', 'Selections', selHTML, 'selblk') : '') +
-    '</div><div class="qsec" data-sec="res"><div class="qlab">Answer</div><div class="anslegend" id="anslegend" aria-hidden="true"></div>' + blk('results', 'Results', ANS.used ? SUMH.replace(ANS.used, '') : SUMH, 'res') + '</div><div class="qsec" data-sec="charts"><div class="qlab">More</div>' + (PHQ() && !S.m.find ? phVizBlk(qVizOn(q) ? `<div id="qviz">${qVizHTML()}</div>` : '') : '') + (q.id === 'cult' && !S.m.find && !CULTM() ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find && !['defrel', 'defrate'].includes(S.m.id) ? blk('tvw', 'Model weights', S.m.id === 'tfall' ? `<div id="tfwts">${tfWeightsHTML()}</div>` : `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find && !PHQ() ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div><div class="qsec" data-sec="about">' + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) + '</div></div>';
-  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire(); migWire(); legCopy(); stackSync(); quickPick(); mapPlay(); qFilter();
+    '</div><div class="qsec" data-sec="res">' + blk('results', 'Results', ANS.used ? SUMH.replace(ANS.used, '') : SUMH, 'res') + '</div><div class="qsec" data-sec="charts">' + (PHQ() && !S.m.find ? phVizBlk(qVizOn(q) ? `<div id="qviz">${qVizHTML()}</div>` : '') : '') + (q.id === 'cult' && !S.m.find && !CULTM() ? blk('viz', 'Visualizations', `<div id="cultviz">${cultCharts()}</div>`) : '') + (q.id === 'geo' && !S.m.find ? blk('viz', 'Visualizations', `<div id="geoviz">${geoCharts(lv)}</div>`) : '') + (q.id === 'rest' && !S.m.find ? blk('rw', 'Model weights', `<div id="rwts">${restWeightsHTML()}</div>`) : '') + (q.id === 'tvul' && !S.m.find && !['defrel', 'defrate'].includes(S.m.id) ? blk('tvw', 'Model weights', S.m.id === 'tfall' ? `<div id="tfwts">${tfWeightsHTML()}</div>` : `<div id="tvwts">${tvWeightsHTML()}</div>`) : '') + (qVizOn(q) && !S.m.find && !PHQ() ? blk('viz', 'Visualizations', `<div id="qviz">${q.id === 'eff' && S.m.id === 'od' ? visCtl() : ''}${q.id === 'wx' ? wxCtl() : ''}${qVizHTML()}</div>`) : '') + (q.id === 'land' && S.m.id === 'acq' ? blk('viz', 'Visualizations', `<div id="acqviz">${acqChart()}</div>`) : '') + '</div><div class="qsec" data-sec="about">' + blk('about', 'About this data', `<p class="use">${esc(q.use)}</p>`) + '</div></div>';
+  const sc = scroller(el), st = sc.scrollTop; el.innerHTML = h; if (sc.scrollTop !== st) sc.scrollTop = st; phWire(); migWire(); stackSync(); quickPick(); mapPlay(); qFilter();
   const ld = PHQ() && PHD[phSp().key] && PHD[phSp().key].st === 'loading';
   if (S.keepH && !ld){ const k = S.keepH; S.keepH = null; requestAnimationFrame(() => { el.style.minHeight = '';
     const nu = k.top == null ? null : (k.sels || []).map(s => document.querySelector(s)).find(Boolean); if (nu){ const d = nu.getBoundingClientRect().top - k.top; if (Math.abs(d) >= 1) scroller(nu).scrollTop += d; } }); } }
@@ -6147,6 +6145,7 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
       let top, left; if (zr && zr.height){ top = zr.bottom - w.top + 8; left = zr.left - w.left; }
       else { const sec = $('#section'), sr = sec && sec.offsetParent ? sec.getBoundingClientRect() : null; top = (sr ? sr.bottom - w.top : 50) + 8; left = 10; }
       bar.style.top = Math.round(top) + 'px'; bar.style.left = Math.round(left) + 'px'; lvHead();
+      if (typeof phTickPos === 'function') phTickPos();
       document.documentElement.style.setProperty('--levb', Math.round(top + bar.offsetHeight + 18) + 'px'); };
     window.lvPlace = lvPlace; addEventListener('resize', () => setTimeout(lvPlace, 70)); setTimeout(lvPlace, 0); setTimeout(lvPlace, 700);
     if (window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--levb', Math.round(bar.offsetTop + bar.offsetHeight + 18) + 'px')).observe(bar);

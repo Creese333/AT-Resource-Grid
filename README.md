@@ -50,6 +50,7 @@ Full citations, methods and caveats are under **About the data** on the dashboar
 
 ```
 index.html          the dashboard (GitHub Pages serves it at grid.trailassessment.org; see CNAME)
+manifest.webmanifest, sw.js  make it installable on phones and let it work offline (Save for offline)
 data/               files the dashboard loads, written by the workflows
   phen/             flowering and forest pest records, one file per species
 scripts/            the build scripts the workflows run (build_*.py)
@@ -57,7 +58,7 @@ inputs/             tables kept by hand that the builds read: bird guilds, invas
                     geologic map footprints, the Forest Service risk map (nidrm2024_composite_risk.tif); put at_centerline.zip here to override the trail line for Trail slope
 cache/              kept between runs so later builds can reuse them; the dashboard never loads these
 tools/              stand-alone helper pages (phenology checks)
-images/             screenshots for this page
+images/             screenshots for this page, app icons and launch screens, tour and bird photos
 .github/workflows/  the scheduled builds
 ```
 
