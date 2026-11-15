@@ -3,7 +3,7 @@ Forest height and biomass for the A.T. Resource Grid ("What shape is the forest 
 International Space Station, in its 1 km gridded products (ORNL DAAC):
   - GEDI L3 Gridded Land Surface Metrics, Version 2 (doi:10.3334/ORNLDAAC/1952), April 2019 to March 2023:
     rh100_mean (average height of the top of the canopy in each 1 km square) and counts (GEDI footprints in the square).
-  - GEDI L4B Gridded Aboveground Biomass Density, Version 2 (doi:10.3334/ORNLDAAC/2017), April 2019 to August 2021:
+  - GEDI L4B Gridded Aboveground Biomass Density, Version 2.1 (doi:10.3334/ORNLDAAC/2299), April 2019 to March 2023:
     MU (mean aboveground biomass density, Mg/ha) and NS (high-quality footprints used).
 GEDI samples strips of 25 m footprints, so 1 km squares off its tracks are empty, and some cells hold only a few footprints.
 
@@ -26,7 +26,8 @@ warnings.filterwarnings('ignore')
 from nasa_common import grids, footprint, login, Labeler, write, log, rnd, LEVELS
 
 NAME, THEME = 'forest_structure', 'gedi'
-L3_DOI, L4B_DOI = '10.3334/ORNLDAAC/1952', '10.3334/ORNLDAAC/2017'
+L3_DOI = '10.3334/ORNLDAAC/1952'
+L4B_DOIS = ('10.3334/ORNLDAAC/2299', '10.3334/ORNLDAAC/2017')   # Version 2.1 (to March 2023), then Version 2 (to August 2021)
 MIN_SHOTS = 20
 
 
@@ -64,7 +65,10 @@ def read_window(path, fp):
 def main():
     G = grids(); fp = footprint(G); ea = login(); tmp = tempfile.mkdtemp()
     try:
-        l3, l4 = links(ea, L3_DOI), links(ea, L4B_DOI)
+        l3 = links(ea, L3_DOI); l4 = []
+        for d in L4B_DOIS:
+            l4 = links(ea, d)
+            if l4: break
         want = {'h': newest(l3, 'rh100_mean'), 'hn': newest(l3, 'counts'), 'b': newest(l4, 'MU'), 'bn': newest(l4, 'NS')}
         for k, u in want.items(): log(k, u)
         if not want['h'] or not want['hn']: raise SystemExit('GEDI L3 canopy height files not found.')
@@ -88,7 +92,7 @@ def main():
                     log(f'{ext} {lv} {fv}: {len(m)} of {len(sn)} cells with {MIN_SHOTS}+ footprints, median {np.median(m) if m else 0:.1f}')
         meta = {'built': date.today().isoformat(), 'min_shots': MIN_SHOTS,
                 'files': {k: os.path.basename(u) for k, u in want.items() if u},
-                'source': 'GEDI L3 Gridded Land Surface Metrics, Version 2 (Dubayah et al. 2021, ORNL DAAC, doi:10.3334/ORNLDAAC/1952), April 2019 to March 2023; GEDI L4B Gridded Aboveground Biomass Density, Version 2 (Dubayah et al. 2022, ORNL DAAC, doi:10.3334/ORNLDAAC/2017), April 2019 to August 2021. 1 km.'}
+                'source': 'GEDI L3 Gridded Land Surface Metrics, Version 2 (Dubayah et al. 2021, ORNL DAAC, doi:10.3334/ORNLDAAC/1952), April 2019 to March 2023; GEDI L4B Gridded Aboveground Biomass Density, Version 2.1 (Dubayah et al. 2023, ORNL DAAC, doi:10.3334/ORNLDAAC/2299), April 2019 to March 2023. 1 km.'}
         write(NAME, THEME, G, fields, meta)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
