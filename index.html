@@ -918,6 +918,11 @@ body.stackui #base.bsdock span{display:none !important}
   header:has(#jerrybtn:not([hidden])) h1{font-size:16px !important}
 }
 @media (max-width:360px){ header:has(#jerrybtn:not([hidden])) h1{font-size:13.5px !important} header:has(#jerrybtn:not([hidden])) .hctl{gap:4px !important} .hctl #jerrybtn{width:28px !important;height:28px !important} header:has(#jerrybtn:not([hidden])) #aboutbtn{padding-left:5px !important;padding-right:5px !important} }
+
+/* phones: typing fields at 16px so iPhones don't zoom the page when they're tapped (the hint text stays smaller) */
+body.stackui #find{font-size:16px !important}
+body.stackui #find::placeholder{font-size:14px !important}
+@media (max-width:760px){ #jerrylock input{font-size:16px !important} }
 </style>
 </head>
 <body>
@@ -6117,6 +6122,10 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
     const pr = $('#profile'); if (pr) new MutationObserver(() => setTimeout(place, 30)).observe(pr, {attributes:true, attributeFilter:['class']});
     new MutationObserver(() => setTimeout(place, 30)).observe(document.body, {attributes:true, attributeFilter:['class']});
     document.addEventListener('click', e => { const p = $('#layerspanel'); if (p && !p.hidden && !e.target.closest('#layers')){ p.hidden = true; $('#layerstog').setAttribute('aria-expanded', 'false'); } }); } }
+
+/* iPhone and iPad: stop the automatic zoom when a search box or drop-down is tapped (pinch zoom still works on iOS) */
+{ const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1), vm = document.querySelector('meta[name=viewport]');
+  if (ios && vm && !/maximum-scale/.test(vm.content)) vm.content += ', maximum-scale=1'; }
 })();
 </script>
 </body>
