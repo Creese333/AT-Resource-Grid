@@ -3706,7 +3706,7 @@ map.on('locationerror', e => { if (!LOC.on) return; const denied = e.code === 1;
   /* it lines up with the first row of map controls that leaves room for it at the right (on phones, the basemap and layers row),
      and drops below the controls only when neither row does */
   const place = () => { const d = document.querySelector('.locctl'), c = document.getElementById('ctls'); if (!d) return; d.style.marginTop = '';
-    if (!c) return; const m = map.getContainer().getBoundingClientRect(), b = d.getBoundingClientRect();
+    if (!c || document.body.classList.contains('stackui')) return;   /* phones keep the locate button in the top row */ const m = map.getContainer().getBoundingClientRect(), b = d.getBoundingClientRect();
     const rows = ['ctlrow1', 'ctlrow2'].map(id => document.getElementById(id)).filter(r => r && r.offsetParent !== null).map(r => {
       let right = 0, top = Infinity, bottom = 0; for (const k of r.children){ if (k.hidden || k.offsetParent === null) continue; const q = k.getBoundingClientRect(); if (!q.width) continue; right = Math.max(right, q.right); top = Math.min(top, q.top); bottom = Math.max(bottom, q.bottom); }
       return {right, top, bottom}; }).filter(r => r.right);
@@ -6012,9 +6012,10 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
     const place = () => { const loc = document.querySelector('.leaflet-top.leaflet-right .leaflet-control'); if (!loc) return;
       const w = wrap.getBoundingClientRect(), r = loc.getBoundingClientRect(), phone = document.body.classList.contains('stackui'), c = $('#ctls'), sec = $('#section');
       if (typeof layersUI === 'function') layersUI();
+      if (phone && document.body.classList.contains('ctlopen')) return;   /* Options open: leave the row as it is */
       if (phone){ ly.style.top = (r.top - w.top) + 'px'; ly.style.right = (w.right - r.left + 6) + 'px'; ly.style.height = r.height + 'px';
         const cr = w.right - r.left + 6 + ly.offsetWidth + 6; if (c) c.style.setProperty('right', cr + 'px', 'important');
-        if (sec && c){ const sw = Math.max(70, Math.round(c.getBoundingClientRect().left - sec.getBoundingClientRect().left - 6)); sec.style.setProperty('width', sw + 'px', 'important'); sec.style.setProperty('max-width', sw + 'px', 'important'); } }
+        if (sec && c){ const cb = $('#ctlbtn') || c, sw = Math.max(70, Math.round(cb.getBoundingClientRect().left - sec.getBoundingClientRect().left - 6)); sec.style.setProperty('width', sw + 'px', 'important'); sec.style.setProperty('max-width', sw + 'px', 'important'); } }
       else { const pf = $('#profile'), po = pf && pf.classList.contains('open') && pf.offsetParent ? pf.getBoundingClientRect() : null;
         if (po && po.left < r.right){ ly.style.top = (po.top - w.top) + 'px'; ly.style.right = (w.right - po.left + 8) + 'px'; }
         else { ly.style.top = (r.bottom - w.top + 8) + 'px'; ly.style.right = (w.right - r.right) + 'px'; }
