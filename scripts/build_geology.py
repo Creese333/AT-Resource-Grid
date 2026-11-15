@@ -23,6 +23,7 @@ Usage: python build_geology.py            (needs geopandas, pyogrio, shapely, py
        python build_geology.py --sgmc FILE (use a local SGMC file or folder instead of downloading)
 """
 import json, math, os, re, sys, time, urllib.parse, urllib.request, zipfile, tempfile, glob
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__))); from page import read_page   # index.html + data/app.js + data/grid.json
 from datetime import date
 import warnings
 warnings.filterwarnings('ignore')
@@ -65,7 +66,7 @@ def rings_of(L):
 
 
 def load_grids():
-    h = open(INDEX, encoding='utf-8').read()
+    h = read_page(INDEX)
     m = re.search(r'<script id="payload" type="application/json">(.*?)</script>', h, re.S)
     P = json.loads(m.group(1)); grids = {'corr': {}, 'huc': {}}
     for lv in ('hex', 'cog', 'wheel'):

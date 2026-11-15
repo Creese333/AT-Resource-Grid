@@ -26,6 +26,7 @@ Standard library only. Run:  python build_phenology.py           (every species)
                              python build_phenology.py bloodroot  (species whose key contains the text)
 """
 import csv, json, math, os, re, sys, time, urllib.parse, urllib.request
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__))); from page import read_page   # index.html + data/app.js + data/grid.json
 from datetime import date, datetime, timezone
 
 SCRIPTS = os.path.dirname(os.path.abspath(__file__))          # scripts/
@@ -61,7 +62,7 @@ def get(path, params):
 
 def read_config():
     """The iNaturalist project and the PHEN species list from index.html."""
-    h = open(os.path.join(HERE, 'index.html'), encoding='utf-8').read()
+    h = read_page(os.path.join(HERE, 'index.html'))
     m = re.search(r"project:\s*'([^']*)'", h)
     project = m.group(1) if m else ''
     a = h.index('const PHEN = [') + len('const PHEN = ')

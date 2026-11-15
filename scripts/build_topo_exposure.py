@@ -24,6 +24,7 @@ Writes data/topo_exposure.json (A.T. corridor cells; the treadway question is co
 Terrain does not change: run it once, and again only if the grid changes.
 """
 import json, os, re, sys, time, urllib.parse, urllib.request
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__))); from page import read_page   # index.html + data/app.js + data/grid.json
 from datetime import date
 import numpy as np, geopandas as gpd, shapely, rasterio
 from shapely.geometry import Polygon
@@ -50,7 +51,7 @@ def rings_of(L):
 
 
 def load_grids():
-    h = open(INDEX, encoding='utf-8').read()
+    h = read_page(INDEX)
     P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', h, re.S).group(1))
     g = {'corr': {lv: gpd.GeoDataFrame({'id': P['levels'][lv]['id']}, geometry=rings_of(P['levels'][lv]), crs=4326) for lv in ('hex', 'cog', 'wheel')}}
     return g
@@ -214,7 +215,7 @@ def main():
     dem = DEM(); v = tpi(dem, lon, lat); ok = np.isfinite(v)
     print(f'{len(lon):,} trail points; median TPI {np.nanmedian(v):.0f} m; {np.mean(v[ok] > EXPOSED) * 100:.0f}% exposed ({time.time() - t0:.0f} s, {len(dem.t)} tiles)', flush=True)
     meta = {'built': date.today().isoformat(), 'source': 'USGS 3D Elevation Program, 1 arc-second DEM (read at about 60 m), on the A.T. centerline every 30 m', 'radius_m': RADIUS, 'exposed_m': EXPOSED, 'missing_tiles': dem.bad}
-    h = open(ts.INDEX, encoding='utf-8').read()
+    h = read_page(ts.INDEX)
     P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', h, re.S).group(1))
     st = [f for f in (P.get('feat') or []) if f[0] in SITES and f[3] is not None]
     slat = np.array([f[3] for f in st], float); slon = np.array([f[4] for f in st], float)

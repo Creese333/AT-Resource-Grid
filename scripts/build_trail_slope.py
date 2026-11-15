@@ -45,6 +45,7 @@ The dashboard does not load the GeoPackage; it loads data/trail_segments.json, w
                                                  the GeoPackage and data/trail_segments.json without measuring the trail again
 """
 import json, os, re, sys, time, urllib.parse, urllib.request
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__))); from page import read_page   # index.html + data/app.js + data/grid.json
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 import warnings
@@ -105,7 +106,7 @@ def rings_of(L):
 
 
 def load_grids():
-    h = open(INDEX, encoding='utf-8').read()
+    h = read_page(INDEX)
     P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', h, re.S).group(1))
     grids = {'corr': {lv: gpd.GeoDataFrame({'id': P['levels'][lv]['id']}, geometry=rings_of(P['levels'][lv]), crs=4326).to_crs(AEA) for lv in ('hex', 'cog', 'wheel')}}
     if os.path.exists(HUCFILE):
@@ -410,7 +411,7 @@ def segments_only():
     try: seg = segment_rings(seg)
     except Exception as e: print(f'elevation rings not read: {e}', flush=True)
     os.remove(SEGFILE); seg.to_file(SEGFILE, layer='trail_slope_segments', driver='GPKG')
-    P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', open(INDEX, encoding='utf-8').read(), re.S).group(1))
+    P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', read_page(INDEX), re.S).group(1))
     write_segment_json(seg, P)
 
 
@@ -431,7 +432,7 @@ def main():
     meta = {'built': date.today().isoformat(), 'step_m': STEP, 'offset_m': OFF, 'smooth_m': STEP * SMOOTH, 'grade_m': 2 * GRADE_HALF * STEP, 'shrink_steps': SHRINK_K, 'window_steps': WINDOW, 'fall_deg': FALL_DEG, 'on_slope_pct': ON_SLOPE,
             'miles': round(len(x) * STEP / 1609.344, 1), 'source': 'USGS 3DEP (elevation service at 1 m; 1/3 arc-second tiles where it had no value)'}
     try:
-        P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', open(INDEX, encoding='utf-8').read(), re.S).group(1))
+        P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', read_page(INDEX), re.S).group(1))
         seg = segments(x, y, part, grade, side, saa, grids['corr']['hex'], dict(zip(P['levels']['hex']['id'], P['levels']['hex']['mi'])))
         write_segment_json(seg, P)
     except Exception as e:

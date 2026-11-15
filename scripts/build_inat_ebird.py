@@ -38,6 +38,7 @@ its previous summaries are kept and the rest of the build goes on.
 Standard library only.
 """
 import base64, csv, gzip, hashlib, io, json, math, os, re, sys, time, urllib.parse, urllib.request, zipfile
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__))); from page import read_page   # index.html + data/app.js + data/grid.json
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
@@ -122,7 +123,7 @@ VISITS = {'inat': {}, 'ebird': {}, 'edd': []}   # (observer, date, hex id) -> [l
 
 # ---------------------------------------------------------------- grid (from the dashboard itself)
 def load_grid():
-    h = open(INDEX, encoding='utf-8').read()
+    h = read_page(INDEX)
     m = re.search(r'<script id="payload" type="application/json">(.*?)</script>', h, re.S)
     D = json.loads(m.group(1)); levels = {}
     for lv in ('hex', 'cog', 'wheel'):

@@ -17,6 +17,7 @@ Writes data/forest_risk.json (corridor) and data/forest_risk_huc10.json (HUC10 s
 The map is updated every few years; run this again when a new one comes out.
 """
 import glob, json, os, re, zipfile
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__))); from page import read_page   # index.html + data/app.js + data/grid.json
 from datetime import date
 import numpy as np, geopandas as gpd, rasterio
 from rasterio import features, windows
@@ -50,7 +51,7 @@ def rings_of(L):
 
 
 def load_grids():
-    h = open(INDEX, encoding='utf-8').read()
+    h = read_page(INDEX)
     P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', h, re.S).group(1))
     g = {'corr': {lv: gpd.GeoDataFrame({'id': P['levels'][lv]['id']}, geometry=rings_of(P['levels'][lv]), crs=4326) for lv in ('hex', 'cog', 'wheel')}}
     if os.path.exists(HUCFILE):

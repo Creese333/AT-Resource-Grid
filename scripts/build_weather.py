@@ -22,6 +22,7 @@ if one cannot be read, the run goes on, and the fields from that source keep the
 Needs geopandas, pyogrio, shapely, rasterio, xarray, netCDF4 and numpy. Runs in GitHub Actions (.github/workflows/weather.yml).
 """
 import csv, gzip, io, json, math, os, re, sys, tempfile, time, urllib.request, zipfile
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__))); from page import read_page   # index.html + data/app.js + data/grid.json
 from collections import defaultdict
 from datetime import date
 import warnings
@@ -96,7 +97,7 @@ def rings_of(L):
 
 
 def load_grids():
-    h = open(INDEX, encoding='utf-8').read()
+    h = read_page(INDEX)
     P = json.loads(re.search(r'<script id="payload" type="application/json">(.*?)</script>', h, re.S).group(1))
     grids = {'corr': {lv: gpd.GeoDataFrame({'id': P['levels'][lv]['id']}, geometry=rings_of(P['levels'][lv]), crs=4326) for lv in ('hex', 'cog', 'wheel')}}
     if os.path.exists(HUCFILE):
