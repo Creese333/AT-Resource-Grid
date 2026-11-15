@@ -6012,6 +6012,7 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
     const place = () => { const loc = document.querySelector('.leaflet-top.leaflet-right .leaflet-control'); if (!loc) return;
       const w = wrap.getBoundingClientRect(), r = loc.getBoundingClientRect(), phone = document.body.classList.contains('stackui'), c = $('#ctls'), sec = $('#section');
       if (typeof layersUI === 'function') layersUI();
+      ctlAcross(phone);
       if (phone && document.body.classList.contains('ctlopen')) return;   /* Options open: leave the row as it is */
       if (phone){ ly.style.top = (r.top - w.top) + 'px'; ly.style.right = (w.right - r.left + 6) + 'px'; ly.style.height = r.height + 'px';
         const cr = w.right - r.left + 6 + ly.offsetWidth + 6; if (c) c.style.setProperty('right', cr + 'px', 'important');
@@ -6021,6 +6022,13 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
         else { ly.style.top = (r.bottom - w.top + 8) + 'px'; ly.style.right = (w.right - r.right) + 'px'; }
         ly.style.height = '';
         if (c) c.style.removeProperty('right'); if (sec){ sec.style.removeProperty('width'); sec.style.removeProperty('max-width'); } } };
+    /* phones: the Options controls open in rows across the map's width, under the top row */
+    function ctlAcross(phone){ const c = $('#ctls'), rows = ['#ctlrow1', '#ctlrow2', '#note'].map(q => $(q)).filter(Boolean), open = phone && document.body.classList.contains('ctlopen');
+      rows.forEach(r => ['position', 'left', 'width', 'top', 'justify-content', 'flex-wrap'].forEach(k => r.style.removeProperty(k)));
+      if (!open || !c) return; rows.forEach(r => r.style.setProperty('position', 'absolute', 'important')); const w = wrap.getBoundingClientRect(), cr = c.getBoundingClientRect(); let y = ($('#ctlbtn') ? $('#ctlbtn').offsetHeight : 34) + 6;
+      rows.forEach(r => { if (r.hidden || !r.textContent.trim() && !r.children.length) return; r.style.setProperty('position', 'absolute', 'important'); r.style.setProperty('left', (w.left + 10 - cr.left) + 'px', 'important'); r.style.setProperty('width', (w.width - 20) + 'px', 'important');
+        r.style.setProperty('top', y + 'px', 'important'); r.style.setProperty('justify-content', 'flex-start', 'important'); r.style.setProperty('flex-wrap', 'wrap', 'important'); if (r.offsetHeight) y += r.offsetHeight + 6; }); }
+    { const r1 = $('#ctlrow1'); let h1 = 0; if (r1 && window.ResizeObserver) new ResizeObserver(() => { if (r1.offsetHeight !== h1){ h1 = r1.offsetHeight; ctlAcross(document.body.classList.contains('stackui')); } }).observe(r1); }
     window.layersPlace = place;
     ly.addEventListener('click', e => { if (!e.target.closest('#layerstog')) return; const pn = $('#layerspanel'); if (document.body.classList.contains('stackui')) pn.style.top = Math.round(ly.getBoundingClientRect().bottom + 6) + 'px'; else pn.style.top = ''; });
     addEventListener('resize', () => setTimeout(place, 60)); addEventListener('load', () => setTimeout(place, 50)); setTimeout(place, 0); setTimeout(place, 600);
