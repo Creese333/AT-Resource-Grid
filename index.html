@@ -923,6 +923,16 @@ body.stackui #base.bsdock span{display:none !important}
 body.stackui #find{font-size:16px !important}
 body.stackui #find::placeholder{font-size:14px !important}
 @media (max-width:760px){ #jerrylock input{font-size:16px !important} }
+
+#offline{margin-top:18px;padding-top:12px;border-top:1px solid var(--line)}
+#offline h3{margin:0 0 6px}
+#offline p{margin:0 0 8px}
+#offline .offrow{display:flex;gap:8px;flex-wrap:wrap}
+#offsave{background:#F0C419;color:#142235;border:0;border-radius:6px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer}
+#offsave[disabled]{opacity:.6;cursor:default}
+#offdel{background:none;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
+#offbar{height:8px;border-radius:4px;background:#26384F;overflow:hidden;margin:10px 0 4px}#offbar i{display:block;height:100%;width:0;background:#3FB27F;transition:width .3s}
+#offstat{font-size:13px;color:var(--muted);min-height:1em}
 </style>
 </head>
 <body>
@@ -1104,6 +1114,13 @@ body.stackui #find::placeholder{font-size:14px !important}
 <li><b>Basemaps.</b> USGS The National Map; NAIP aerial imagery (USDA Farm Service Agency, served by the USGS); OpenTopoMap; © OpenStreetMap contributors. <a href="https://basemap.nationalmap.gov" target="_blank" rel="noopener">basemap.nationalmap.gov</a></li>
 <li id="biodl" hidden></li>
 </ul>
+    <section id="offline" aria-labelledby="offh">
+      <h3 id="offh">Use it offline</h3>
+      <p>Save every data file and the aerial imagery along the whole trail to this phone or computer, so the map, questions and cells work with no signal. It is about 300 MB, so use Wi-Fi; it takes several minutes, and you can keep using the map while it runs. Side trails and administrative areas still need a signal, and the imagery stops sharpening past trail level.</p>
+      <div class="offrow"><button type="button" id="offsave">Save for offline</button><button type="button" id="offdel" hidden>Remove offline copy</button></div>
+      <div id="offbar" hidden><i></i></div>
+      <p id="offstat" role="status"></p>
+    </section>
     <button class="close" type="button" id="aboutclose">Close</button>
   </div>
 </dialog>
@@ -6126,6 +6143,45 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
 /* iPhone and iPad: stop the automatic zoom when a search box or drop-down is tapped (pinch zoom still works on iOS) */
 { const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1), vm = document.querySelector('meta[name=viewport]');
   if (ios && vm && !/maximum-scale/.test(vm.content)) vm.content += ', maximum-scale=1'; }
+
+/* ---------- Save for offline: data files, imagery tiles along the trail, and the trail line, mile points and point layers ---------- */
+{ const OFFC = 'atoffline-1', OKEY = 'atgrid_offline', btn = $('#offsave'), del = $('#offdel'), st = $('#offstat'), bar = $('#offbar');
+  const offInfo = () => { try { return JSON.parse(localStorage.getItem(OKEY) || 'null'); } catch (e){ return null; } };
+  const mb = n => n >= 1e9 ? (n / 1e9).toFixed(1) + ' GB' : Math.round(n / 1e6) + ' MB';
+  const offShow = async () => { const o = offInfo(); del.hidden = !o; btn.textContent = o ? 'Update offline copy' : 'Save for offline';
+    if (o){ let used = ''; try { const e = await navigator.storage.estimate(); used = ' · ' + mb(e.usage) + ' stored on this device'; } catch (x) {}
+      st.textContent = `Saved ${new Date(o.t).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})}: ${fmt(o.files, 0)} data files and ${fmt(o.tiles, 0)} imagery tiles${o.miss ? ` (${fmt(o.miss, 0)} could not be saved)` : ''}${used}.`; } };
+  const tiles = () => { const C = D.levels.hex.c, out = new Set();
+    const T = (la, lo, z) => { const n = 2 ** z, r = la * Math.PI / 180; return [Math.floor((lo + 180) / 360 * n), Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n)]; };
+    for (let z = 5; z <= 14; z++){ const rad = z >= 9 ? 1 : 0; for (const [la, lo] of C){ const [x, y] = T(la, lo, z); for (let dx = -rad; dx <= rad; dx++) for (let dy = -rad; dy <= rad; dy++) out.add(TNM + 'USGSImageryOnly/MapServer/tile/' + z + '/' + (y + dy) + '/' + (x + dx)); } }
+    return [...out]; };
+  const files = async () => { try { const r = await fetch('https://api.github.com/repos/Creese333/AT-Resource-Grid/git/trees/main?recursive=1'); const j = await r.json();
+      const f = (j.tree || []).filter(t => t.type === 'blob' && /^(data|images)\//.test(t.path)).map(t => t.path); if (f.length) return f; } catch (e) {}
+    return [...new Set(performance.getEntriesByType('resource').map(e => new URL(e.name)).filter(u => u.origin === location.origin && /^\/(data|images)\//.test(u.pathname)).map(u => u.pathname.slice(1)))]; };
+  let busy = false;
+  btn.onclick = async () => { if (busy) return; if (!('caches' in window)){ st.textContent = 'This browser cannot save the dashboard for offline use.'; return; }
+    busy = true; btn.disabled = true; bar.hidden = false; const fill = bar.querySelector('i'); st.textContent = 'Getting the list of files…';
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+      const c = await caches.open(OFFC), F = await files(), Tl = tiles(), jobs = F.map(p => ({u:p, data:1})).concat(Tl.map(u => ({u})));
+      let done = 0, miss = 0, nf = 0, nt = 0, i = 0; const total = jobs.length;
+      const one = async j => { try { if (j.data){ const r = await fetch(j.u, {cache:'no-cache'}); if (!r.ok) throw 0; await c.put(j.u, r); nf++; }
+          else { if (await c.match(j.u)){ nt++; return; } let r; try { r = await fetch(j.u, {mode:'cors'}); if (!r.ok) throw 0; } catch (e){ r = await fetch(j.u, {mode:'no-cors'}); } await c.put(j.u, r); nt++; } }
+        catch (e){ miss++; } finally { done++; if (done % 20 === 0 || done === total){ fill.style.width = (done / total * 100).toFixed(1) + '%'; st.textContent = `Saving ${fmt(done, 0)} of ${fmt(total, 0)}…`; } } };
+      const worker = async () => { while (i < jobs.length) await one(jobs[i++]); };
+      /* the trail line, mile points and point layers go through the app's own requests, so the offline copy matches exactly */
+      const live = Promise.allSettled([arcQuery(SVC + 'ANST_Centerline/FeatureServer/0', {outFields:'OBJECTID', maxAllowableOffset:'0.0003', geometryPrecision:5}), typeof milePts === 'function' ? milePts() : null]
+        .concat(LIVE.filter(l => l.type === 'pt' && !l.local && !l.bbox).map(l => Promise.all([arcQuery(l.url, {outFields:'*', geometryPrecision:6}), (l.meta = null, arcMeta(l))]))));
+      await Promise.all(Array.from({length:6}, worker)); await live;
+      localStorage.setItem(OKEY, JSON.stringify({t:Date.now(), files:nf, tiles:nt, miss}));
+      fill.style.width = '100%'; await offShow(); if (!navigator.serviceWorker || !navigator.serviceWorker.controller) st.textContent += ' Close and reopen the app once so it can use the saved copy.';
+    } catch (e){ st.textContent = 'Saving stopped: ' + (e && e.name === 'QuotaExceededError' ? 'this device does not have enough free space.' : 'the connection dropped. Tap the button again to finish; files already saved are kept.'); }
+    busy = false; btn.disabled = false; setTimeout(() => { bar.hidden = true; }, 1500); };
+  del.onclick = async () => { await caches.delete(OFFC); await caches.delete('atlive-1'); try { localStorage.removeItem(OKEY); } catch (e) {} st.textContent = 'The offline copy was removed.'; del.hidden = true; btn.textContent = 'Save for offline'; };
+  offShow();
+  /* with no signal, imagery layers stop asking for sharper images than the saved trail-level tiles, and stretch those instead */
+  const offBase = () => { const off = !navigator.onLine; BASEDEF.forEach(b => { const l = b[2]; if (!(l instanceof ImgLayer)) return; if (!l._o) l._o = {n:l.options.naipFrom, m:l.options.maxNativeZoom};
+      l.options.naipFrom = off ? 99 : l._o.n; l.options.maxNativeZoom = off ? 14 : l._o.m; if (map.hasLayer(l)) l.redraw(); }); };
+  addEventListener('online', offBase); addEventListener('offline', offBase); if (!navigator.onLine) offBase(); }
 })();
 </script>
 </body>
