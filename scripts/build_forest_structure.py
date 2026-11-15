@@ -1,7 +1,7 @@
 """
 Forest height and biomass for the A.T. Resource Grid ("What shape is the forest in?"), from NASA's GEDI lidar on the
 International Space Station, in its 1 km gridded products (ORNL DAAC):
-  - GEDI L3 Gridded Land Surface Metrics, Version 2 (doi:10.3334/ORNLDAAC/1952), April 2019 to March 2023:
+  - GEDI L3 Gridded Land Surface Metrics, Version 2 (doi:10.3334/ORNLDAAC/1952), from April 2019 (the latest release runs to 2025):
     rh100_mean (average height of the top of the canopy in each 1 km square) and counts (GEDI footprints in the square).
   - GEDI L4B Gridded Aboveground Biomass Density, Version 2.1 (doi:10.3334/ORNLDAAC/2299), April 2019 to March 2023:
     MU (mean aboveground biomass density, Mg/ha) and NS (high-quality footprints used).
@@ -13,7 +13,7 @@ For each cell (corridor and HUC10 shell; 1, 7 and 49 sq mi) it writes, from the 
   FS_HN    GEDI footprints behind FS_H
   FS_AGB   aboveground biomass density, Mg/ha
   FS_BN    footprints behind FS_AGB
-Cells with fewer than MIN_SHOTS footprints are left empty (FS_HN and FS_BN still say how many there were).
+Cells with fewer than MIN_SHOTS footprints are left empty, and 1 km squares above MAX are left out (FS_HN and FS_BN still say how many there were).
 
   python scripts/build_forest_structure.py
 Needs the EARTHDATA_TOKEN secret (or EARTHDATA_USERNAME and EARTHDATA_PASSWORD). Writes data/forest_structure.json and
@@ -28,7 +28,8 @@ from nasa_common import grids, footprint, login, Labeler, write, log, rnd, LEVEL
 NAME, THEME = 'forest_structure', 'gedi'
 L3_DOI = '10.3334/ORNLDAAC/1952'
 L4B_DOIS = ('10.3334/ORNLDAAC/2299', '10.3334/ORNLDAAC/2017')   # Version 2.1 (to March 2023), then Version 2 (to August 2021)
-MIN_SHOTS = 20
+MIN_SHOTS = 50
+MAX = {'h': 50, 'b': 600}   # 1 km squares above these (m; Mg/ha) are errors (they turn up over water): no eastern forest reaches them
 
 
 def newest(files, layer):
@@ -81,6 +82,8 @@ def main():
             v, crs, tr, nd = R[val]; n, _, _, nd2 = R[cnt]
             ok = np.isfinite(v) & (v != (nd if nd is not None else -9999)) & (v >= 0) & (n > 0) & (n < 60000)
             if val == 'h' and np.nanmedian(v[ok]) > 100: v = v / 100        # in case heights come in centimeters
+            bad = ok & (v > MAX[val]); ok &= ~bad
+            log(f'{fv}: {int(bad.sum())} squares over {MAX[val]} left out')
             lab = Labeler(G, crs, tr, v.shape, coarse=True)
             for ext in G:
                 for lv in LEVELS:
@@ -92,7 +95,7 @@ def main():
                     log(f'{ext} {lv} {fv}: {len(m)} of {len(sn)} cells with {MIN_SHOTS}+ footprints, median {np.median(m) if m else 0:.1f}')
         meta = {'built': date.today().isoformat(), 'min_shots': MIN_SHOTS,
                 'files': {k: os.path.basename(u) for k, u in want.items() if u},
-                'source': 'GEDI L3 Gridded Land Surface Metrics, Version 2 (Dubayah et al. 2021, ORNL DAAC, doi:10.3334/ORNLDAAC/1952), April 2019 to March 2023; GEDI L4B Gridded Aboveground Biomass Density, Version 2.1 (Dubayah et al. 2023, ORNL DAAC, doi:10.3334/ORNLDAAC/2299), April 2019 to March 2023. 1 km.'}
+                'source': 'GEDI L3 Gridded Land Surface Metrics, Version 2 (Dubayah et al. 2021, ORNL DAAC, doi:10.3334/ORNLDAAC/1952); GEDI L4B Gridded Aboveground Biomass Density, Version 2.1 (Dubayah et al. 2023, ORNL DAAC, doi:10.3334/ORNLDAAC/2299), April 2019 to March 2023. 1 km.'}
         write(NAME, THEME, G, fields, meta)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
