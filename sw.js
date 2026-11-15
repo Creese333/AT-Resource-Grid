@@ -3,10 +3,10 @@
    fetched in the background. If the page changed, the app shows "Updated - tap to reload".
    "Save for offline" (at the bottom of About the data) stores all the data files and the imagery tiles along the trail
    in a separate store, OFF, which survives updates to this file. */
-const VER = 'atgrid-v3';
+const VER = 'atgrid-v4';
 const OFF = 'atoffline-1';          /* filled by Save for offline; never cleared here */
 const LIVE = 'atlive-1';            /* last copy of the trail line, mile points and point layers (shelters, campsites...) */
-const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'images/icon-192.png', 'images/icon-512.png'];
+const SHELL = ['./', 'index.html', 'data/app.js', 'data/inat.js', 'data/grid.json', 'manifest.webmanifest', 'images/icon-192.png', 'images/icon-512.png'];
 const STATIC = ['cdnjs.cloudflare.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 const TILEHOST = 'basemap.nationalmap.gov';
 const SVCHOST = 'services1.arcgis.com';
@@ -30,7 +30,7 @@ function fastThenFresh(e, r, isPage) {
   const saved = caches.match(key, {ignoreSearch: true});
   const fresh = fetch(r, {cache: 'no-cache'}).then(async res => {
     if (res.ok && res.type === 'basic') {
-      if (isPage) {
+      if (isPage || /\/data\/(app\.js|grid\.json)$/.test(new URL(r.url).pathname)) {
         const old = await saved, tag = h => h && (h.headers.get('etag') || h.headers.get('last-modified'));
         if (old && tag(old) && tag(res) && tag(old) !== tag(res)) tellPages({type: 'updated'});
       }
