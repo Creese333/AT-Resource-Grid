@@ -1,0 +1,43 @@
+# Builds green_up.json (A.T. corridor) and green_up_huc10.json (HUC10 shell) for "What shape is the forest in?": green-up and leaf-off dates
+# from NASA's MODIS Land Cover Dynamics (MCD12Q2, 500 m, yearly from 2001). Runs each August, after NASA adds a year,
+# or press "Run workflow" on the Actions tab.
+# Needs the EARTHDATA_TOKEN secret (or EARTHDATA_USERNAME and EARTHDATA_PASSWORD): Settings > Secrets and variables > Actions.
+name: Green-up and leaf-off
+
+on:
+  schedule:
+    - cron: '29 8 10 8 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install geopandas pyogrio shapely pyproj rasterio numpy earthaccess pyhdf
+      - name: Build green_up.json
+        env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+          EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+        run: python scripts/build_green_up.py
+      - name: Commit if changed
+        run: |
+          git config user.name  "green-up-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for f in data/green_up.json data/green_up_huc10.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          git diff --cached --quiet && exit 0
+          git commit -m "Update green-up and leaf-off summaries"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1

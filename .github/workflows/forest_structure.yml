@@ -1,0 +1,43 @@
+# Builds forest_structure.json (A.T. corridor) and forest_structure_huc10.json (HUC10 shell) for "What shape is the forest in?": canopy height
+# and aboveground biomass from NASA's GEDI lidar (1 km gridded products, ORNL DAAC). Runs once a year in case a new release appears,
+# or press "Run workflow" on the Actions tab.
+# Needs the EARTHDATA_TOKEN secret (or EARTHDATA_USERNAME and EARTHDATA_PASSWORD): Settings > Secrets and variables > Actions.
+name: Forest height and biomass
+
+on:
+  schedule:
+    - cron: '17 8 3 2 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install geopandas pyogrio shapely pyproj rasterio numpy earthaccess
+      - name: Build forest_structure.json
+        env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+          EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+        run: python scripts/build_forest_structure.py
+      - name: Commit if changed
+        run: |
+          git config user.name  "forest-structure-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for f in data/forest_structure.json data/forest_structure_huc10.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          git diff --cached --quiet && exit 0
+          git commit -m "Update forest height and biomass summaries"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1

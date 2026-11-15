@@ -1,0 +1,57 @@
+# Builds climate_change.json (A.T. corridor) and climate_change_huc10.json (HUC10 shell) for "What climate shapes the trail here?": how
+# January lows, July highs, heavy-rain days, the frost-free season and the April snowpack changed from 1981-2000 to the latest 20 years,
+# from Daymet (1 km daily, ORNL DAAC). Runs each June, after Daymet adds a year, or press "Run workflow" on the Actions tab.
+# The first run reads about 40 years of daily data and can take most of six hours; what it has read is kept (cache/daymet, in the
+# Actions cache, not in the repository), so if it stops, run it again and it picks up where it left off.
+name: Climate change since 1980
+
+on:
+  schedule:
+    - cron: '53 7 12 6 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore what earlier runs read
+        uses: actions/cache/restore@v4
+        with:
+          path: cache/daymet
+          key: daymet-${{ github.run_id }}
+          restore-keys: daymet-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install geopandas pyogrio shapely pyproj numpy netCDF4 requests
+      - name: Build climate_change.json
+        timeout-minutes: 320          # stop before the job's limit, so what was read is still kept below
+        env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+          EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+        run: python scripts/build_climate_change.py
+      - name: Keep what this run read, even if it stopped
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: cache/daymet
+          key: daymet-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Commit if changed
+        run: |
+          git config user.name  "climate-change-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for f in data/climate_change.json data/climate_change_huc10.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          git diff --cached --quiet && exit 0
+          git commit -m "Update climate change summaries"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1

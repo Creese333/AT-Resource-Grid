@@ -1,0 +1,50 @@
+# Builds canopy_loss.json (A.T. corridor) and canopy_loss_huc10.json (HUC10 shell) for "What shape is the forest in?": confirmed loss of
+# tree canopy by month, from NASA's OPERA Land Surface Disturbance Alert (30 m, from Landsat and Sentinel-2), on tree cover in ESA WorldCover.
+# Runs on the 6th of each month and adds the latest months. The first run builds the history back to 2023 (an hour or more).
+# Needs the EARTHDATA_TOKEN secret (or EARTHDATA_USERNAME and EARTHDATA_PASSWORD): Settings > Secrets and variables > Actions.
+name: Canopy loss
+
+on:
+  schedule:
+    - cron: '41 7 6 * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'latest = add the latest months; history = rebuild everything since 2023'
+        type: choice
+        options: [latest, history]
+        default: latest
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install geopandas pyogrio shapely pyproj rasterio numpy earthaccess
+      - name: Build canopy_loss.json
+        env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+          EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
+          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+        run: |
+          if [ "${{ github.event.inputs.mode }}" = "history" ]; then python scripts/build_canopy_loss.py history; else python scripts/build_canopy_loss.py; fi
+      - name: Commit if changed
+        run: |
+          git config user.name  "canopy-loss-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for f in data/canopy_loss.json data/canopy_loss_huc10.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          git diff --cached --quiet && exit 0
+          git commit -m "Update canopy loss summaries"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1
