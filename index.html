@@ -3960,7 +3960,20 @@ $('#cellsbtn').onclick = () => { S.cells = !S.cells; map.getPane('cells').style.
   b.setAttribute('aria-pressed', S.cells); b.querySelector('span').textContent = S.cells ? 'Cells on' : 'Cells off';
   if (shown){ if (S.cells) GROUP[shown].addTo(map); else { map.removeLayer(GROUP[shown]); tip.remove(); } } };
 
-function trailMid(){ if (!isPhone()) return; /* phones: the whole trail fits below the search rows and above the legend button, with Katahdin   (the northern end) right under the locate button */   const L_ = D.levels.wheel, mc = map.getContainer(), mr = mc.getBoundingClientRect(), sp = $('.secpick'), lb = $('#legtog'), loc = $('.leaflet-top.leaflet-right .leaflet-control');   const top = (sp ? sp.getBoundingClientRect().bottom - mr.top : 90) + 34, bot = lb ? Math.max(40, mr.bottom - lb.getBoundingClientRect().top + 12) : 60;   const lx = loc ? loc.getBoundingClientRect().left + loc.getBoundingClientRect().width / 2 - mr.left : mr.width - 28;   let n = 0; for (let i = 1; i < L_.id.length; i++) if (L_.mi[i] > L_.mi[n]) n = i;   /* work out the view first and move the map once, only when it is not already there, so the basemap is not dropped and reloaded */   const cz = map._getBoundsCenterZoom(L.latLngBounds(L_.c), {paddingTopLeft:L.point(22, top), paddingBottomRight:L.point(Math.max(10, mr.width - lx), bot)}), z = cz.zoom;   const sz = map.getSize(), cp = map.project(L_.c[n], z).subtract(L.point(lx, top)).add(sz.divideBy(2)), ctr = map.unproject(cp, z);   if (map._loaded && Math.abs(map.getZoom() - z) < 1e-6 && map.project(map.getCenter(), z).distanceTo(cp) < 3) return;   map.setView(ctr, z, {animate:false}); }
+function trailMid(){ if (!isPhone()) return; /* phones: the default view - Springer Mountain near the lower left and Katahdin near the upper right,
+   at the same places on the map as the agreed reference view (Nov 2026), scaled to the phone's width */
+  const L_ = D.levels.hex.mi ? D.levels.hex : D.levels.wheel; let s0 = 0, n = 0; for (let i = 1; i < L_.id.length; i++){ if (L_.mi[i] < L_.mi[s0]) s0 = i; if (L_.mi[i] > L_.mi[n]) n = i; }
+  const sz = map.getSize(), A = {x:.0462, y:.8295}, B = {x:.9285, y:.2545};   /* Springer and Katahdin as shares of the map's width and height */
+  const pS0 = map.project(L_.c[s0], 0), pK0 = map.project(L_.c[n], 0);
+  /* on shorter screens, keep both ends clear of the control row and the legend button */
+  const mr = map.getContainer().getBoundingClientRect(), row = $('#section'), lb = $('#legtog');
+  const topMin = row && row.offsetParent ? row.getBoundingClientRect().bottom - mr.top + 24 : 0, botMax = lb && lb.offsetParent ? lb.getBoundingClientRect().top - mr.top - 16 : sz.y - 40;
+  const yK = Math.max(sz.y * B.y, topMin), yS = Math.min(sz.y * A.y, botMax);
+  const z = Math.min(Math.log2(sz.x * (B.x - A.x) / Math.max(1e-9, pK0.x - pS0.x)), Math.log2(Math.max(40, yS - yK) / Math.max(1e-9, pS0.y - pK0.y)));
+  const cp = map.project(L_.c[s0], z).subtract(L.point(sz.x * A.x, yS)).add(sz.divideBy(2)), ctr = map.unproject(cp, z);
+  /* move the map once, and only when it is not already there, so the basemap is not dropped and reloaded */
+  if (map._loaded && Math.abs(map.getZoom() - z) < 1e-6 && map.project(map.getCenter(), z).distanceTo(cp) < 3) return;
+  map.setView(ctr, z, {animate:false}); }
 function fitSection(){ const lv = 'wheel', L_ = D.levels[lv], pts = [];
   for (let c = 0; c < L_.id.length; c++) if (inSec(lv, c)) pts.push(L_.c[c]);
   if (pts.length){ map.fitBounds(L.latLngBounds(pts).pad(.08)); if (S.sec === 'all') trailMid(); } }
