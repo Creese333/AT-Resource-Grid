@@ -4102,6 +4102,7 @@ const LIVE = [
   {id:'vistas', name:'Vistas', url:SVC + 'ANST_Facilities/FeatureServer/5', type:'pt', color:'#B38E2F'},
   {id:'sidetrails', name:'Side trails', url:SVC + 'ANST_Facilities/FeatureServer/6', type:'line', bbox:1, minZoom:10, color:'#35A7FF'},
   {id:'lands', name:'Administrative areas', url:SVC + 'AT_Lands/FeatureServer/1', type:'poly', bbox:1, minZoom:11, fields:'NAME,ADMIN,ACRES,TRACT1,LEGEND3', color:'rgb(0,77,168)'},
+  {id:'mland', name:'Maintained landscapes', file:'data/maintained_landscapes.json', type:'poly', color:'#B5A33A'},
   {id:'nrhp', name:'National Register (NPS)', local:1, hist:'nr', type:'pt', color:'#8C5A2B'},
   {id:'osmcem', name:'Cemeteries (OpenStreetMap)', local:1, type:'pt', color:'#4F6B5A'}
 ];
@@ -4127,8 +4128,9 @@ async function arcMeta(l){ if (l.meta) return l.meta; try { const r = await fetc
 const tcase = s => String(s || '').toLowerCase().replace(/(^|[\s\-\/(])([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Nps|Usfs|Usfws|Appa|Hafe|Grsm|Blri|Shen|Choh|Dewa|Nhp|Nra|Nf|Np|Wma|Atc|Row|Us|Usa|Dcr|Dec|Dep|Dnr|Dcnr|Tva|Llc|Inc|Ii|Iii)\b/g, x => x.toUpperCase()).replace(/ (Of|The|And|For|At|In) /g, x => x.toLowerCase());
 function featName(l, p){ const bad = /^(na|n\/a|none|null|unknown|unnamed|tbd|[\s?.\-_]*)$/i, df = (l.meta || {}).displayField, k = [df, 'Name', 'NAME', 'Label'].find(k => k && p[k] != null && !bad.test(String(p[k]).trim())); return k ? String(p[k]).trim() : ''; }
 /* Popups for the live layers show the feature's name only, until the source attributes are reliable. Vistas also keep their photo buttons. */
-function featPopup(l, p){ const kind = ({lands:'Administrative area', shelters:'Shelter', campsites:'Campsite', parking:'Parking area', privies:'Privy', bridges:'Bridge', vistas:'Vista', sidetrails:'Side trail'})[l.id] || l.name;
+function featPopup(l, p){ const kind = ({mland:'Maintained landscape', lands:'Administrative area', shelters:'Shelter', campsites:'Campsite', parking:'Parking area', privies:'Privy', bridges:'Bridge', vistas:'Vista', sidetrails:'Side trail'})[l.id] || l.name;
   const nm = l.id === 'lands' ? tcase(p.NAME) : featName(l, p); let h = `<h4>${esc(nm || 'Unnamed ' + kind.toLowerCase())}</h4>`;
+  if (l.id === 'mland'){ if (p.Type) h += `<div><span class="k">Type</span> ${esc(p.Type === 'Agricultural Crop/Pasture' ? 'Farm field or pasture' : p.Type === 'Meadow/Field' ? 'Meadow or field' : p.Type)}</div>`; if (p.Acres > 0) h += `<div><span class="k">Acres</span> ${fmt(p.Acres, p.Acres < 100 ? 1 : 0)}</div>`; if (p.Trail_Club) h += `<div><span class="k">Club section</span> ${esc(p.Trail_Club)}</div>`; }
   if (l.id === 'lands'){ const ad = String(p.ADMIN == null ? '' : p.ADMIN).trim(), ac = p.ACRES == null || p.ACRES === '' ? NaN : +p.ACRES, tr = String(p.TRACT1 == null ? '' : p.TRACT1).trim();
     if (ad) h += `<div><span class="k">Administered by</span> ${esc(tcase(ad))}</div>`;
     if (isFinite(ac) && ac > 0) h += `<div><span class="k">Acres</span> ${fmt(ac, ac < 100 ? 1 : 0)}</div>`;
@@ -4157,7 +4159,7 @@ function liveDraw(l, feats){ l.group.clearLayers();
       else mk = L.circleMarker(ll, {renderer:featR, pane:'feat', radius:Math.max(2.5, Math.min(5, z * .55 - .5)), color:'#fff', weight:1, fillColor:l.color, fillOpacity:1, bubblingMouseEvents:false});
       mk.on('click', () => featOpen(l, f.properties, mk.getLatLng(), [0, -6])).addTo(l.group); mk._p = f.properties || {}; mk._nm = featName(l, mk._p); }); }
   else L.geoJSON({type:'FeatureCollection', features:feats.filter(f => f.geometry)}, {renderer:l.type === 'poly' ? landsR : featR, pane:l.type === 'poly' ? 'lands' : 'feat', bubblingMouseEvents:false,
-    style:f => l.type === 'poly' ? {color:'#4A4A4A', weight:.6, fillColor:(LANDMAP.get((f.properties || {}).LEGEND3) || [0, 0, '#BBBBBB'])[2], fillOpacity:.5} : {color:l.color, weight:2.2, dashArray:'6 4', opacity:.95},
+    style:f => l.id === 'mland' ? {color:MLCOL[(f.properties || {}).Type] || '#B5A33A', weight:1.8, fillColor:MLCOL[(f.properties || {}).Type] || '#B5A33A', fillOpacity:.45} : l.type === 'poly' ? {color:'#4A4A4A', weight:.6, fillColor:(LANDMAP.get((f.properties || {}).LEGEND3) || [0, 0, '#BBBBBB'])[2], fillOpacity:.5} : {color:l.color, weight:2.2, dashArray:'6 4', opacity:.95},
     onEachFeature:(f, ly) => { if (l.type === 'line') ly._nm = featName(l, f.properties || {}); return ly.on('click', e => featOpen(l, f.properties, e.latlng)); }}).addTo(l.group);
   labelSync(l); }
 /* Keep a popup or the pinned value label clear of everything that sits on top of the map: the cell-size, Map tools, basemap and Map layers controls,
@@ -4377,6 +4379,7 @@ document.addEventListener('click', e => { if (e.target.closest('[data-acqplay]')
 document.addEventListener('input', e => { if (e.target.id === 'acqyr'){ if (acqTimer) acqPlay(false); S.acqYr = +e.target.value; acqFrame(); } });
 document.addEventListener('change', e => { if (e.target.id === 'acqyr') side(); });
 async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZoom(); if (l.local) return histLayer(l, my);
+  if (l.file){ if (!l.loaded){ liveStatus(l, 'Loading…'); try { const j = await (await fetch(l.file)).json(); if (my !== l.req) return; liveDraw(l, j.features); l.loaded = true; liveStatus(l, fmt(j.features.length, 0) + ' meadows, fields, farm fields and balds'); } catch (e){ liveStatus(l, 'Could not load this layer just now'); } } return; }
   try {
     if (l.bbox){ if (z < l.minZoom){ l.group.clearLayers(); liveStatus(l, 'Zoom in to see these'); return; }
       liveStatus(l, 'Loading…'); const b = map.getBounds().pad(.15), px = (b.getEast() - b.getWest()) / (map.getSize().x * 1.3); await arcMeta(l);
@@ -4386,10 +4389,10 @@ async function liveLoad(l){ if (!l.on) return; const my = ++l.req, z = map.getZo
   } catch (e){ if (my === l.req) liveStatus(l, 'Could not load this layer just now'); } }
 function liveToggle(l, on){ l.on = on; if (on){ l.group.addTo(map); liveLoad(l); if (l.type === 'pt' && l.loaded) liveDraw(l); } else { map.removeLayer(l.group); l.req++; liveStatus(l, ''); } labelSync(); layersUI(); writeHash(); }
 function layersUI(){ const n = LIVE.filter(l => l.on).length; $('#layerstog span').innerHTML = (document.body.classList.contains('stackui') ? 'Layers' : 'Map layers') + (n ? ` <b>${n}</b>` : '');
-  const lk = $('#landkey'); if (lk) lk.hidden = !LIVE.find(l => l.id === 'lands').on; }
+  const lk = $('#landkey'); if (lk) lk.hidden = !LIVE.find(l => l.id === 'lands').on; const mk = $('#mlkey'); if (mk) mk.hidden = !LIVE.find(l => l.id === 'mland').on; }
 $('#layerspanel').innerHTML = `<label><input type="checkbox" id="stlines"${stOn ? ' checked' : ''}><i class="ln" style="background:#C4A57C;justify-self:center"></i><span>State lines</span><span class="st"></span></label>` + LIVE.map(l => `<label><input type="checkbox" data-live="${l.id}">${l.type === 'pt' ? glyphHTML(l, 18) : `<i class="${l.type === 'poly' ? 'sq' : 'ln'}" style="background:${l.color};justify-self:center"></i>`}<span>${l.name}</span><span class="st" data-st="${l.id}"></span></label>` +
-  (l.id === 'lands' ? `<div class="lk" id="landkey" hidden>${LANDKEY.map(k => `<div><i style="background:${k[2]}"></i><span>${k[1]}</span></div>`).join('')}</div>` : '')).join('') +
-  '<p>State lines: APPA AT_States layer. The other layers load live from the National Park Service and Appalachian Trail Conservancy map services.</p>';
+  (l.id === 'mland' ? `<div class="lk" id="mlkey" hidden>${[['Meadow/Field','Meadow or field'],['Agricultural Crop/Pasture','Farm field or pasture'],['Bald','Bald']].map(k => `<div><i style="background:${MLCOL[k[0]]}"></i><span>${k[1]}</span></div>`).join('')}</div>` : '') + (l.id === 'lands' ? `<div class="lk" id="landkey" hidden>${LANDKEY.map(k => `<div><i style="background:${k[2]}"></i><span>${k[1]}</span></div>`).join('')}</div>` : '')).join('') +
+  '<p>State lines: APPA AT_States layer. Maintained landscapes: A.T. facilities inventory. The other layers load live from the National Park Service and Appalachian Trail Conservancy map services.</p>';
 $('#layerspanel').addEventListener('change', e => { const l = LIVE.find(x => x.id === e.target.dataset.live); if (l) liveToggle(l, e.target.checked); });
 $('#layerstog').onclick = () => { const p = $('#layerspanel'); p.hidden = !p.hidden; $('#layerstog').setAttribute('aria-expanded', !p.hidden); };
 { let lt; map.on('moveend', () => { clearTimeout(lt); lt = setTimeout(() => LIVE.forEach(l => { if (!l.on) return; if (l.bbox) liveLoad(l); else if (l.type === 'pt' && l.loaded){ liveDraw(l); } else labelSync(l); }), 350); }); }
