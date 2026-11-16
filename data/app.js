@@ -5099,7 +5099,8 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
   addEventListener('online', offBase); addEventListener('offline', offBase); if (!navigator.onLine) offBase(); }
 
 /* the loading screen goes once the map is drawn */
-{ const sp = document.getElementById('splash'); const go = () => { if (!sp || sp.dataset.gone) return; sp.dataset.gone = 1; sp.style.opacity = 0; setTimeout(() => sp.remove(), 300); };
+{ const sp = document.getElementById('splash'); const go = () => { if (!sp || sp.dataset.gone) return; sp.dataset.gone = 1; const b = sp.querySelector('.spblaze'); if (b) b.style.setProperty('--p', 1);   /* finish painting the blaze, then fade */
+    setTimeout(() => { sp.style.opacity = 0; setTimeout(() => sp.remove(), 300); }, b ? 450 : 0); };
   /* on long enough to read: at least 1.2 s from launch and 0.5 s after the map is ready */ requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(go, Math.max(500, 1200 - performance.now())))); setTimeout(go, 6000); }
 /* a newer version was found in the background: offer a reload */
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (!e.data || e.data.type !== 'updated' || $('#updtoast')) return;
