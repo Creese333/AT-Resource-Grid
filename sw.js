@@ -1,15 +1,19 @@
 /* A.T. Resource Grid service worker.
    Opening the app: the saved copy of the page and its data files is shown straight away, and a fresh copy is
-   fetched in the background. If the page changed, the app shows "Updated - tap to reload".
+   fetched in the background. If the page or its code changed, the app shows "Updated - tap to reload".
    "Save for offline" (at the bottom of About the data) stores all the data files and the imagery tiles along the trail
-   in a separate store, OFF, which survives updates to this file. */
-const VER = 'atgrid-v4';
+   in a separate store, OFF, which survives updates to this file.
+   v5: saved copies are looked up by exact address in the two stores that hold them (a search that ignores ?query text reads
+   every saved tile, which made opening slow once the trail's imagery was saved), and "updated" compares the files' contents:
+   every publish gives all files a new date and tag, even when they have not changed. */
+const VER = 'atgrid-v5';
 const OFF = 'atoffline-1';          /* filled by Save for offline; never cleared here */
 const LIVE = 'atlive-1';            /* last copy of the trail line, mile points and point layers (shelters, campsites...) */
 const SHELL = ['./', 'index.html', 'data/app.js', 'data/inat.js', 'data/grid.json', 'manifest.webmanifest', 'images/icon-192.png', 'images/icon-512.png'];
 const STATIC = ['cdnjs.cloudflare.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 const TILEHOST = 'basemap.nationalmap.gov';
 const SVCHOST = 'services1.arcgis.com';
+const WATCH = /\/data\/(app\.js|inat\.js|grid\.json)$/;   /* besides the page: the files whose change means a new version */
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VER).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -22,24 +26,38 @@ self.addEventListener('activate', e => {
 });
 
 const keep = (name, r, res) => { if (res && (res.ok || res.type === 'opaque')) { const cp = res.clone(); caches.open(name).then(c => c.put(r, cp)).catch(() => {}); } return res; };
-const tellPages = msg => self.clients.matchAll({type: 'window'}).then(cs => cs.forEach(c => c.postMessage(msg)));
+let told = false;
+const tellPages = msg => { if (told) return; told = true; setTimeout(() => { told = false; }, 30000);
+  return self.clients.matchAll({type: 'window'}).then(cs => cs.forEach(c => c.postMessage(msg))); };
 
-/* the saved copy right away; a fresh copy in the background (and a note to the page when the page itself changed) */
+/* the saved copy of an address: this version's store first, then the offline store (exact address, no scan) */
+async function savedCopy(key) {
+  for (const name of [VER, OFF]) { const c = await caches.open(name), m = await c.match(key); if (m) return m; }
+  return undefined;
+}
+async function sameBody(a, b) {
+  const [x, y] = await Promise.all([a.arrayBuffer(), b.arrayBuffer()]);
+  if (x.byteLength !== y.byteLength) return false;
+  const [h1, h2] = await Promise.all([crypto.subtle.digest('SHA-256', x), crypto.subtle.digest('SHA-256', y)]);
+  const u = new Uint8Array(h1), v = new Uint8Array(h2); for (let i = 0; i < u.length; i++) if (u[i] !== v[i]) return false; return true;
+}
+
+/* the saved copy right away; a fresh copy in the background (and a note to the page when the page or its code really changed) */
 function fastThenFresh(e, r, isPage) {
-  const key = isPage ? 'index.html' : r;
-  const saved = caches.match(key, {ignoreSearch: true});
+  const u = new URL(r.url), key = isPage ? new URL('index.html', self.registration.scope).href : u.origin + u.pathname;
+  const saved = savedCopy(key);
   const fresh = fetch(r, {cache: 'no-cache'}).then(async res => {
     if (res.ok && res.type === 'basic') {
-      if (isPage || /\/data\/(app\.js|grid\.json)$/.test(new URL(r.url).pathname)) {
-        const old = await saved, tag = h => h && (h.headers.get('etag') || h.headers.get('last-modified'));
-        if (old && tag(old) && tag(res) && tag(old) !== tag(res)) tellPages({type: 'updated'});
+      if (isPage || WATCH.test(u.pathname)) {
+        const old = await saved;
+        if (old && !(await sameBody(old, res.clone()).catch(() => true))) tellPages({type: 'updated'});
       }
       const c = await caches.open(VER); await c.put(key, res.clone());
     }
     return res;
   });
   e.waitUntil(fresh.catch(() => {}));
-  return saved.then(m => m || fresh).catch(() => fresh);
+  return saved.then(m => m ? m.clone() : fresh).catch(() => fresh);   /* the page gets a copy; the saved one is kept for the comparison */
 }
 
 self.addEventListener('fetch', e => {
@@ -50,11 +68,11 @@ self.addEventListener('fetch', e => {
   if (u.origin === self.location.origin) {
     const isPage = r.mode === 'navigate' || u.pathname.endsWith('/') || u.pathname.endsWith('/index.html');
     if (isPage || u.pathname.includes('/data/') || u.pathname.includes('/images/')) {
-      e.respondWith(fastThenFresh(e, r, isPage).catch(() => caches.match(r, {ignoreSearch: true}).then(m => m || Response.error())));
+      e.respondWith(fastThenFresh(e, r, isPage).catch(() => savedCopy(u.origin + u.pathname).then(m => m || Response.error())));
       return;
     }
     e.respondWith(fetch(r).then(res => res.type === 'basic' ? keep(VER, r, res) : res)
-      .catch(() => caches.match(r, {ignoreSearch: true}).then(m => m || Response.error())));
+      .catch(() => savedCopy(u.origin + u.pathname).then(m => m || Response.error())));
     return;
   }
 
@@ -66,12 +84,12 @@ self.addEventListener('fetch', e => {
 
   /* trail line, mile points and point layers: network first, last copy offline (area-by-area queries are not kept) */
   if (u.hostname === SVCHOST && !u.searchParams.has('geometry')) {
-    e.respondWith(fetch(r).then(res => keep(LIVE, r, res)).catch(() => caches.match(r.url).then(m => m || Response.error())));
+    e.respondWith(fetch(r).then(res => keep(LIVE, r, res)).catch(() => caches.open(LIVE).then(c => c.match(r.url)).then(m => m || Response.error())));
     return;
   }
 
   /* Leaflet and fonts: kept once fetched */
   if (STATIC.includes(u.hostname)) {
-    e.respondWith(caches.match(r).then(m => m || fetch(r).then(res => keep(VER, r, res))));
+    e.respondWith(caches.open(VER).then(c => c.match(r)).then(m => m || fetch(r).then(res => keep(VER, r, res))));
   }
 });
