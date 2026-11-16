@@ -37,21 +37,21 @@ NCLOCK = threading.Lock()                  # the netCDF library is not safe to c
 
 
 def session():
-    """an Earthdata session: the Daymet service sends requests through the NASA sign-in (urs.earthdata.nasa.gov)"""
+    """an Earthdata session. The ORNL DAAC service now hands requests on to NASA's OPeNDAP server (opendap.earthdata.nasa.gov),
+    which asks for the Earthdata login; the token has to travel with the request through each hand-off, so it is kept on every
+    NASA and ORNL host (a plain session drops it when the host changes)."""
     import requests
-    try:
-        from nasa_common import login
-        S = login().get_requests_https_session(); log('signed in to Earthdata (earthaccess)')
-    except BaseException as ex:
-        log(f'earthaccess not used ({str(ex)[:80]}); using the token directly')
-        class KeepAuth(requests.Session):
-            """keeps the Earthdata token when the service sends the request on to the NASA sign-in and back"""
-            def rebuild_auth(self, prepared, response):
-                host = requests.utils.urlparse(prepared.url).hostname or ''
-                if host.endswith('earthdata.nasa.gov') or host.endswith('ornl.gov') or host.endswith('nasa.gov'): return
-                return super().rebuild_auth(prepared, response)
-        S = KeepAuth(); sign_in(S)
-    S.headers['User-Agent'] = 'AT-Resource-Grid (github.com/Creese333/AT-Resource-Grid)'
+    class KeepAuth(requests.Session):
+        def rebuild_auth(self, prepared, response):
+            host = requests.utils.urlparse(prepared.url).hostname or ''
+            if host.endswith('.nasa.gov') or host.endswith('.ornl.gov'): return     # keep the login
+            return super().rebuild_auth(prepared, response)
+    for k in ('EARTHDATA_TOKEN', 'EARTHDATA_USERNAME', 'EARTHDATA_PASSWORD'):
+        if not os.environ.get(k, '').strip(): os.environ.pop(k, None)
+    S = KeepAuth(); S.headers['User-Agent'] = 'AT-Resource-Grid (github.com/Creese333/AT-Resource-Grid)'
+    if os.environ.get('EARTHDATA_TOKEN'): sign_in(S); log('using the Earthdata token')
+    elif os.environ.get('EARTHDATA_USERNAME'): S.auth = (os.environ['EARTHDATA_USERNAME'], os.environ.get('EARTHDATA_PASSWORD', '')); log('using the Earthdata username and password')
+    else: log('no Earthdata login; trying without')
     return S
 
 
@@ -71,7 +71,7 @@ def get(S, var, year, box, t0, t1, tries=5):
             if r.status_code == 200 and r.content[:4] in (b'\x89HDF', b'CDF\x01', b'CDF\x02'): return r.content
             if r.status_code == 400 and q['accept'] == 'netcdf4': q['accept'] = 'netcdf'; continue   # older servers: plain netCDF
             if r.status_code == 401 and sign_in(S): continue                                         # the service asks for the Earthdata login
-            if r.status_code in (400, 401, 403, 404): raise RuntimeError(f'{r.status_code} for {r.url[:160]}')
+            if r.status_code in (400, 401, 403, 404): raise RuntimeError(f'{r.status_code} for {r.url[:160]} ' + ' -> '.join(h.url[:60] for h in r.history) + f' {r.text[:160]!r}')
             if r.status_code == 200: raise RuntimeError(f'not a netCDF file from {r.url[:120]}: {r.text[:120]!r}')
         except RuntimeError: raise
         except Exception: pass
