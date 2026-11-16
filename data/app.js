@@ -5119,7 +5119,11 @@ let upTouched = false; ['pointerdown', 'keydown', 'wheel'].forEach(t => addEvent
 if (!window.__updH && 'serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (!e.data || e.data.type !== 'updated' || $('#updtoast')) return;   /* the split page's loader handles this itself, from the first moment */
   let last = 0; try { last = +sessionStorage.getItem('atgrid_autoreload') || 0; } catch (x) {}
   if (!upTouched && performance.now() < 20000 && Date.now() - last > 60000){ try { sessionStorage.setItem('atgrid_autoreload', Date.now()); } catch (x) {} location.reload(); return; }
-  const t = document.createElement('button'); t.id = 'updtoast'; t.type = 'button'; t.textContent = 'Updated · tap to reload';
-  t.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:3000;background:#F0C419;color:#142235;border:0;border-radius:999px;padding:9px 16px;font:inherit;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.5)';
-  t.onclick = () => location.reload(); document.body.appendChild(t); setTimeout(() => t.remove(), 60000); });
+  { var t = document.createElement('div'); t.id = 'updtoast'; t.setAttribute('role', 'alertdialog'); t.setAttribute('aria-label', 'A new version is ready');
+      t.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3000;width:min(320px,calc(100vw - 40px));box-sizing:border-box;background:#142235;border:2px solid #05D16D;border-radius:14px;padding:18px 18px 14px;text-align:center;font:inherit;box-shadow:0 12px 40px rgba(0,0,0,.6)';
+      t.innerHTML = '<div style="color:#05D16D;font-weight:700;font-size:17px;line-height:1.3;margin-bottom:12px">A new version is ready</div>' +
+        '<button type="button" data-upd="go" style="display:block;width:100%;background:#05D16D;color:#0F1C2E;border:0;border-radius:999px;padding:11px 16px;font:inherit;font-size:16px;font-weight:700;cursor:pointer">Tap to reload</button>' +
+        '<button type="button" data-upd="later" style="margin-top:8px;background:none;border:0;color:#9FB2C8;font:inherit;font-size:14px;padding:6px 10px;cursor:pointer">Later</button>';
+      t.addEventListener('click', function(ev){ var b = ev.target.closest('[data-upd]'); if (!b) return; if (b.dataset.upd === 'go') location.reload(); else t.remove(); });
+      document.body.appendChild(t); t.querySelector('[data-upd=go]').focus({preventScroll:true}); } });
 })();
