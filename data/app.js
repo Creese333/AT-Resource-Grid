@@ -2359,6 +2359,9 @@ const MON3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov',
 const dlMonName = m => m == null ? '' : `${MON3[m % 12]} ${2021 + Math.floor(m / 12)}`;
 const doyName = d => { if (d == null) return '–'; const t = new Date(Date.UTC(2023, 0, 1) + (Math.round(d) - 1) * 864e5); return `${MON3[t.getUTCMonth()]} ${t.getUTCDate()}`; };
 const ftOf = m => m * 3.28084, tpaOf = mgha => mgha * 0.44609;
+/* the years a GEDI file covers, from its name: GEDI03_..._2019108_2025190_... (year and day) or GEDI04_B_MW019MW223_... (mission weeks from 18 April 2019) */
+function gediYrs(k){ const f = ((NASAMETA.gedi || {}).files || {})[k] || ''; let m = f.match(/_(\d{4})\d{3}_(\d{4})\d{3}_/); if (m) return m[1] === m[2] ? m[1] : `${m[1]} to ${m[2]}`;
+  m = f.match(/MW(\d{3})MW(\d{3})/); if (m){ const y = w => new Date(Date.UTC(2019, 3, 18) + (+w - 19) * 7 * 864e5).getUTCFullYear(); return `${y(m[1])} to ${y(m[2])}`; } return 'since 2019'; }
 const sgn = (v, d) => (v > 0 ? '+' : v < 0 ? '−' : '') + fmt(Math.abs(v), d);
 
 /* canopy loss: the whole record, or through the month shown while Play runs (S.dlMon) */
@@ -2377,7 +2380,7 @@ function dlLegend(f, lv, sh){ if (!nasaHas('dist')) return ''; const B = dlBrk(f
   let h = `<div class="row"><i style="background:${ZERO}"></i><span>None detected</span></div>`;
   B.cols.forEach((col, i) => { const t = !B.b.length ? 'Some loss' : i === 0 ? `up to ${sh(B.b[0])}` : i === B.cols.length - 1 ? `over ${sh(B.b[i - 1])}` : `${sh(B.b[i - 1])} to ${sh(B.b[i])}`; h += `<div class="row"><i style="background:${col}"></i><span>${t}</span></div>`; });
   return h + `<p class="sub">${S.dlMon != null ? `Loss first detected from ${dlSince()} through ${dlMonName(S.dlMon)}.` : dlRange() ? `Loss first detected ${dlSince()} to ${dlMonName(dlRange()[1])}.` : ''}</p>`; }
-const dlPctShow = v => v > 0 && v < .1 ? 'under 0.1%' : fmt(v, v < 1 ? 2 : 1) + '%', dlAcShow = v => v > 0 && v < 1 ? 'under 1 acre' : fmt(v, v < 10 ? 1 : 0) + ' acres';
+const dlPctShow = v => v > 0 && v < .01 ? 'under 0.01%' : fmt(v, v < 1 ? 2 : 1) + '%', dlAcShow = v => v > 0 && v < 1 ? 'under 1 acre' : fmt(v, v < 10 ? 1 : 0) + ' acres';
 
 /* changes: two hues around "about the same", with classes in even steps from the data */
 function divBrk(m, lv){ const key = 'dv' + m.q.id + m.id + lv + S.ext; if (BRK.has(key)) return BRK.get(key); const n = D.levels[lv].id.length, a = [];
@@ -2410,7 +2413,7 @@ function showLegend(m, lv){ if (!nasaHas(m.th)) return ''; const B = breaks(m, l
     h += `<div class="row"><i style="background:${col}"></i><span>${esc(t)}</span></div>`; });
   return h; }
 Q.push({id:'fcond', th:'dist', hue:HUE.fcond, ramp:'fcond', title:'What shape is the forest in?',
-  use:'Forest condition from NASA satellites. Canopy loss: confirmed loss of vegetation on tree-covered 30 m pixels, from the OPERA Land Surface Disturbance Alert (Landsat and Sentinel-2, every 2 to 4 days), by the month it was first seen; it catches blowdowns, defoliation, die-off, fire and clearing, and Play steps through the months. Forest height and biomass: GEDI lidar from the International Space Station, 2019 to 2023, in 1 km squares; GEDI samples strips of ground, so some cells hold too few samples to show. Green-up and leaf-off: the yearly dates leaves come out and drop, from MODIS since 2001, and how they have shifted. Use it to spot fresh damage worth a field check, compare forest structure along the trail, and follow the growing season. Satellite measures, not stand surveys.',
+  use:'Forest condition from NASA satellites. Canopy loss: confirmed loss of vegetation on tree-covered 30 m pixels, from the OPERA Land Surface Disturbance Alert (Landsat and Sentinel-2, every 2 to 4 days), by the month it was first seen; it catches blowdowns, defoliation, die-off, fire and clearing, and Play steps through the months. Forest height and biomass: GEDI lidar from the International Space Station, since 2019, in 1 km squares; GEDI samples strips of ground, so some cells hold too few samples to show. Green-up and leaf-off: the yearly dates leaves come out and drop, from MODIS since 2001, and how they have shifted. Use it to spot fresh damage worth a field check, compare forest structure along the trail, and follow the growing season. Satellite measures, not stand surveys.',
   m:[nasaM('dist', {id:'loss', dlAnim:1, d:2, fn:(lv,c) => { const fa = val('dist','DL_FAC',lv,c); if (!fa) return null; if (S.dlMon == null) return val('dist','DL_PCT',lv,c); return Math.min(100, 100 * dlCum(lv, c, S.dlMon) / fa); },
        get label(){ return S.dlMon != null ? `Canopy loss through ${dlMonName(S.dlMon)}` : 'Canopy loss, share of forest'; }, showFn:dlPctShow, zeroText:'None detected', noneText:'No forest assessed',
        colorFn:(v, lv) => dlCol('DL_PCT', v, lv), legendFn:lv => dlLegend('DL_PCT', lv, dlPctShow), stripTop:lv => { const B = dlBrk('DL_PCT', lv); return B.b.length ? B.b[B.b.length - 1] : 1; },
@@ -2419,14 +2422,16 @@ Q.push({id:'fcond', th:'dist', hue:HUE.fcond, ramp:'fcond', title:'What shape is
        get label(){ return S.dlMon != null ? `Canopy loss through ${dlMonName(S.dlMon)}, acres` : 'Canopy loss, acres'; }, showFn:dlAcShow, zeroText:'None detected', noneText:'No forest assessed',
        colorFn:(v, lv) => dlCol('DL_AC', v, lv), legendFn:lv => dlLegend('DL_AC', lv, dlAcShow), stripTop:lv => { const B = dlBrk('DL_AC', lv); return B.b.length ? B.b[B.b.length - 1] : 1; },
        note:'Acres of tree cover with confirmed loss of vegetation. Large cells hold more forest, so compare cells of one size.'}),
-     nasaM('dist', {id:'lossnew', label:'Latest canopy loss', f:'DL_LAST', ramp:RAMP.fcond, d:0, showFn:dlMonName, noneText:'None detected',
-       note:'The latest month with at least half an acre of new canopy loss in the cell. Recent months are darkest: fresh damage worth a look.'}),
+     nasaM('dist', {id:'lossrecent', label:'Recent canopy loss', d:2, fn:(lv,c) => { const fa = val('dist','DL_FAC',lv,c); if (!fa) return null; const r = dlRange(); if (!r) return null;
+         const a = dlM(lv, c); let s = 0; if (a) for (let i = 0; i < a.length; i += 2) if (a[i] > r[1] - 3) s += a[i + 1] / 10; return Math.min(100, 100 * s / fa); },
+       ramp:RAMP.fcond, showFn:dlPctShow, zero:1, get zeroText(){ return 'None in the last 3 months'; }, noneText:'No forest assessed',
+       get note(){ const r = dlRange(); return `Share of the cell’s tree cover with canopy loss first seen in the last 3 months${r ? ` (${dlMonName(r[1] - 2)} to ${dlMonName(r[1])})` : ''}. Fresh damage, sized against the cell’s forest: the darkest cells are worth a field check. Loss in the latest weeks can take a while to be confirmed.`; }}),
      floorM(nasaM('gedi', {id:'height', grp:'Forest height and biomass (GEDI lidar)', label:'Canopy height', fn:(lv,c) => { const v = val('gedi','FS_H',lv,c); return v == null ? null : ftOf(v); }, ramp:RAMP.tall, d:0,
-       showFn:v => fmt(Math.round(v), 0) + ' ft', noneText:'Too few GEDI samples', note:'Average height of the top of the canopy, from GEDI lidar footprints, April 2019 to March 2023, over all land in the cell (fields and towns lower it). Cells with fewer than 20 footprints are left blank.'}), 0),
+       showFn:v => fmt(Math.round(v), 0) + ' ft', noneText:'Too few GEDI samples', get note(){ return `Average height of the top of the canopy, from GEDI lidar footprints, ${gediYrs('h')}, over all land in the cell (fields, water and towns lower it). Cells with fewer than 50 footprints are left blank.`; }}), 0),
      nasaM('gedi', {id:'agb', grp:'Forest height and biomass (GEDI lidar)', label:'Aboveground biomass', fn:(lv,c) => { const v = val('gedi','FS_AGB',lv,c); return v == null ? null : tpaOf(v); }, ramp:RAMP.tall, d:0,
-       showFn:v => fmt(Math.round(v), 0) + ' tons/acre', noneText:'Too few GEDI samples', note:'Dry weight of live trees and shrubs above ground, in short tons per acre, from GEDI lidar, April 2019 to March 2023 (1 Mg/ha is 0.45 tons/acre). A guide to stored carbon (about half the weight). Cells with fewer than 20 footprints are left blank.'}),
+       showFn:v => fmt(Math.round(v), 0) + ' tons/acre', noneText:'Too few GEDI samples', get note(){ return `Dry weight of live trees and shrubs above ground, in short tons per acre, from GEDI lidar, ${gediYrs('b')} (1 Mg/ha is 0.45 tons/acre). A guide to stored carbon (about half the weight). Cells with fewer than 50 footprints are left blank.`; }}),
      nasaM('gedi', {id:'shots', grp:'Forest height and biomass (GEDI lidar)', label:'GEDI samples', f:'FS_HN', int:1, zero:1, zeroText:'None', noun:['footprint','footprints'],
-       note:'GEDI lidar footprints (25 m across) in the cell, 2019 to 2023. GEDI samples strips of ground along its orbit, so some cells get few. Fewer than 20: height and biomass are not shown.'}),
+       get note(){ return `GEDI lidar footprints (25 m across) in the cell, ${gediYrs('h')}. GEDI samples strips of ground along its orbit, so some cells get few. Fewer than 50: height and biomass are not shown.`; }}),
      floorM(nasaM('lsp', {id:'gu', grp:'Green-up and leaf-off (MODIS)', label:'Green-up date', f:'LSP_GU', ramp:RAMP.doy, d:0, showFn:doyName,
        get note(){ const m = NASAMETA.lsp || {}; return `The day leaves come out: the average date the vegetation index starts its spring rise, ${m.last ? m.last[0] + '–' + m.last[1] : 'the latest five years'} (MODIS, 500 m). Earlier is darker green.`; }}), 60),
      floorM(nasaM('lsp', {id:'do', grp:'Green-up and leaf-off (MODIS)', label:'Leaf-off date', f:'LSP_DO', ramp:RAMP.doy, d:0, showFn:doyName,
@@ -2439,7 +2444,7 @@ Q.push({id:'fcond', th:'dist', hue:HUE.fcond, ramp:'fcond', title:'What shape is
 QVIZ.fcond = {title:'Canopy loss by month', get note(){ return 'Acres of tree cover with confirmed loss, by the month it was first seen (OPERA Land Surface Disturbance Alert). Tap a month to show the loss through then on the map.'; },
   html:(lv, cells) => dlChart(lv, cells), fn:() => []};
 QVIZ.fcond.pick = id => {
-  if (['height','agb','shots'].includes(id)) return {th:'gedi', title:id === 'agb' ? 'Biomass by state' : 'Canopy height by state', note:'Averages of the cells with 20 or more GEDI footprints, by state.' + VSTNOTE, html:null, fn(lv, cells){
+  if (['height','agb','shots'].includes(id)) return {th:'gedi', title:id === 'agb' ? 'Biomass by state' : 'Canopy height by state', note:'Averages of the cells with 50 or more GEDI footprints, by state.' + VSTNOTE, html:null, fn(lv, cells){
     const f = id === 'agb' ? 'FS_AGB' : 'FS_H', cv = id === 'agb' ? tpaOf : ftOf, s = VST.map(() => 0), n = VST.map(() => 0);
     cells.forEach(c => { const st = vStOf(lv, c), v = val('gedi', f, lv, c); if (st < 0 || v == null) return; s[st] += cv(v); n[st]++; });
     return VST.map((v, i) => [v[1], HUE.fcond, n[i] ? s[i] / n[i] : 0, n[i] ? (id === 'agb' ? `${fmt(s[i] / n[i], 0)} tons/acre` : `${fmt(s[i] / n[i], 0)} ft`) : '', `${v[1]}: ${n[i] ? fmt(s[i] / n[i], 0) : '–'} over ${nCells(n[i])}`]).filter((x, i) => n[i] > 0); }};
