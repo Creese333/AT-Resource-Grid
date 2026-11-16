@@ -5113,9 +5113,13 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
 { const sp = document.getElementById('splash'); const go = () => { if (!sp || sp.dataset.gone) return; sp.dataset.gone = 1; const b = sp.querySelector('.spblaze'); if (b) b.style.setProperty('--p', 1);   /* finish painting the blaze, then fade */
     setTimeout(() => { sp.style.opacity = 0; setTimeout(() => sp.remove(), 300); }, b ? 450 : 0); };
   /* on long enough to read: at least 1.2 s from launch and 0.5 s after the map is ready */ requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(go, Math.max(500, 1200 - performance.now())))); setTimeout(go, 6000); }
-/* a newer version was found in the background: offer a reload */
-if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (!e.data || e.data.type !== 'updated' || $('#updtoast')) return;
+/* a newer version was found in the background. If the page has only just opened and nothing has been touched yet, load it right away
+   (once; a second notice within a minute only offers it); otherwise offer a reload */
+let upTouched = false; ['pointerdown', 'keydown', 'wheel'].forEach(t => addEventListener(t, () => { upTouched = true; }, {once:true, passive:true, capture:true}));
+if (!window.__updH && 'serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (!e.data || e.data.type !== 'updated' || $('#updtoast')) return;   /* the split page's loader handles this itself, from the first moment */
+  let last = 0; try { last = +sessionStorage.getItem('atgrid_autoreload') || 0; } catch (x) {}
+  if (!upTouched && performance.now() < 20000 && Date.now() - last > 60000){ try { sessionStorage.setItem('atgrid_autoreload', Date.now()); } catch (x) {} location.reload(); return; }
   const t = document.createElement('button'); t.id = 'updtoast'; t.type = 'button'; t.textContent = 'Updated · tap to reload';
   t.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:3000;background:#F0C419;color:#142235;border:0;border-radius:999px;padding:9px 16px;font:inherit;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.5)';
-  t.onclick = () => location.reload(); document.body.appendChild(t); setTimeout(() => t.remove(), 15000); });
+  t.onclick = () => location.reload(); document.body.appendChild(t); setTimeout(() => t.remove(), 60000); });
 })();
