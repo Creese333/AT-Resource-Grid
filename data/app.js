@@ -416,7 +416,7 @@ function phYrBlock(ys, y, multi){ const A = phAgg(dispLevel()); if (!A) return '
       return `<button type="button" data-phyr="${v}" aria-pressed="${sel.includes(v)}" class="${thin ? 'thin' : ''}${multi && v === y && sel.length > 1 ? ' now' : ''}" title="${v}: ${fmt(n, 0)} ${phMain() === 5 ? '' : PHWORD[phMain()] + ' '}${A.eplaced ? 'iNaturalist ' : ''}${n === 1 ? 'record' : 'records'}${thin ? ' (few records)' : ''}"><b>’${String(v).slice(2)}</b><i style="height:${Math.max(1, Math.round(14 * n / mx))}px"></i><span>${n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n}</span></button>`; }).join('') + '</div>'; }
 function phPlay(on){ if (phTimer){ clearInterval(phTimer); phTimer = null; }
   if (on && S.m.yr === 'y'){ phTimer = setInterval(() => { const A = phAgg(dispLevel()); if (!A || !A.years.length) return; const ys = A.years, y = phYear();
-      S.ph.yr = !y || y >= ys[ys.length - 1] ? ys[0] : y + 1; phFrame(); }, 1000); }
+      S.ph.yr = !y || y >= ys[ys.length - 1] ? ys[0] : y + 1; phFrame(); }, 800); }
   else if (on){ const sel = phSel(); if (sel.length > 1 && !sel.includes(S.ph.yr)) S.ph.yr = sel[0]; const yrs = phSelText() ? 1 : 0, [sw0, sw1] = phSeason(); if (!S.ph.resume || S.ph.wk < sw0 || S.ph.wk > sw1){ S.ph.wk = sw0; phFrame(); } phTimer = setInterval(() => { if (S.ph.wk < sw1) S.ph.wk++; else { S.ph.wk = sw0;
         const sel = phSel(); if (sel.length > 1){ const i = sel.indexOf(S.ph.yr); S.ph.yr = sel[(i + 1) % sel.length]; } }
       phFrame(); }, yrs ? 380 : 550); }
@@ -1387,8 +1387,8 @@ function wxClimo(lv, cells, hiMon){ const P = Array(12).fill(0), T = Array(12).f
   const W = 272, H = 150, pl = 26, pr = 28, top = 10, base = 124, pw = W - pl - pr, bw = pw / 12, pm = Math.max(1, Math.ceil(Math.max(...P))), tlo = Math.floor(Math.min(...T, 20) / 10) * 10, thi = Math.ceil(Math.max(...T, 70) / 10) * 10;
   const yp = v => base - (base - top) * v / pm, yt = v => base - (base - top) * (v - tlo) / (thi - tlo), f = v => v.toFixed(1);
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Average precipitation and temperature by month">`;
-  for (let v = 0; v <= pm; v += pm > 6 ? 2 : 1) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(yp(v))}" y2="${f(yp(v))}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 4}" y="${f(yp(v) + 3)}" text-anchor="end" font-size="9" fill="#9FB2C8">${v}</text>`;
-  for (let v = tlo; v <= thi; v += 20) g += `<text x="${W - pr + 4}" y="${f(yt(v) + 3)}" font-size="9" fill="#F0A47A">${v}°</text>`;
+  for (let v = 0; v <= pm; v += pm > 6 ? 2 : 1) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(yp(v))}" y2="${f(yp(v))}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 4}" y="${f(yp(v) + 3)}" text-anchor="end" font-size="9" fill="#9FB2C8">${v}${v && v + (pm > 6 ? 2 : 1) > pm ? ' in' : ''}</text>`;
+  for (let v = tlo; v <= thi; v += 20) g += `<text x="${W - pr + 4}" y="${f(yt(v) + 3)}" font-size="9" fill="#F0A47A">${v}°${v + 20 > thi ? 'F' : ''}</text>`;
   P.forEach((v, i) => { const on = hiMon != null && hiMon === i; g += `<g${S.m.wxAnim === 'mon' ? ` data-wxm="${i}" style="cursor:pointer"` : ''}><rect x="${f(pl + i * bw + 2)}" y="${f(yp(v))}" width="${f(bw - 4)}" height="${f(base - yp(v))}" rx="1.5" fill="${on ? '#FFFFFF' : HUE.wx}" opacity="${hiMon == null || on ? 1 : .55}"/>` +
     `<text x="${f(pl + (i + .5) * bw)}" y="${base + 12}" text-anchor="middle" font-size="9" fill="${on ? '#FFFFFF' : '#C9D4E2'}"${on ? ' font-weight="700"' : ''}>${wxMonths[i][0]}</text><title>${MONTHS_LONG[i]}: ${fmt(v, 1)} in of precipitation, ${fmt(T[i], 0)}°F average${S.m.wxAnim === 'mon' ? '. Tap to show this month on the map' : ''}</title></g>`; });
   g += `<polyline points="${T.map((v, i) => f(pl + (i + .5) * bw) + ',' + f(yt(v))).join(' ')}" fill="none" stroke="#F0A47A" stroke-width="2" stroke-linejoin="round"/>`;
@@ -1442,7 +1442,7 @@ function wxPlay(on){ if (wxTimer){ clearInterval(wxTimer); wxTimer = null; } con
     if (mon){ if (S.wxMon == null || S.wxMon >= 11) S.wxMon = -1; } else if (ys){ if (!S.wxYr || S.wxYr >= ys[1]) S.wxYr = ys[0] - 1; } else return;
     wxTimer = setInterval(() => { if (S.q.id !== 'wx' || S.m !== m){ clearInterval(wxTimer); wxTimer = null; return; }
       if (mon ? S.wxMon >= 11 : S.wxYr >= ys[1]){ clearInterval(wxTimer); wxTimer = null; S.wxMon = null; S.wxYr = null; wxFrame(true); return; }
-      if (mon) S.wxMon++; else S.wxYr++; wxFrame(false); const r = $('#wxyr'); if (r && S.wxYr) r.value = S.wxYr; }, mon ? 900 : 650);
+      if (mon) S.wxMon++; else S.wxYr++; wxFrame(false); const r = $('#wxyr'); if (r && S.wxYr) r.value = S.wxYr; }, mon ? 650 : 800);
     wxFrame(false); return; }
   wxFrame(true); }
 document.addEventListener('click', e => { if (e.target.closest('[data-wxplay]')) wxPlay(!wxTimer);
@@ -2456,9 +2456,9 @@ QVIZ.fcond.pick = id => {
 function dlChart(lv, cells){ const r = dlRange(); if (!r || !nasaHas('dist')) return '';
   const s = new Map(); for (let m = r[0]; m <= r[1]; m++) s.set(m, 0); let n = 0;
   cells.forEach(c => { const a = dlM(lv, c); if (val('dist','DL_FAC',lv,c)) n++; if (!a) return; for (let i = 0; i < a.length; i += 2) if (s.has(a[i])) s.set(a[i], s.get(a[i]) + a[i + 1] / 10); });
-  if (!n) return ''; const Y = [...s], mx = Math.max(...Y.map(e => e[1]), .1), W = 272, H = 130, pl = 30, pr = 6, top = 8, base = 108, pw = W - pl - pr, bw = pw / Y.length, f = v => v.toFixed(1);
+  if (!n) return ''; const Y = [...s], mx = Math.max(...Y.map(e => e[1]), .1), W = 272, H = 130, pl = 44, pr = 6, top = 8, base = 108, pw = W - pl - pr, bw = pw / Y.length, f = v => v.toFixed(1);
   const st = niceNum(mx / 3) || .1; let h = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Canopy loss by month">`;
-  for (let v = 0; v <= mx + 1e-9; v += st){ const y = base - (base - top) * v / mx; h += `<line x1="${pl}" x2="${W - pr}" y1="${f(y)}" y2="${f(y)}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 4}" y="${f(y + 3)}" text-anchor="end" font-size="9" fill="#9FB2C8">${fmt(v, st >= 1 ? 0 : 1)}</text>`; }
+  for (let v = 0; v <= mx + 1e-9; v += st){ const y = base - (base - top) * v / mx; h += `<line x1="${pl}" x2="${W - pr}" y1="${f(y)}" y2="${f(y)}" stroke="#2E4460" stroke-width=".6"/><text x="${pl - 4}" y="${f(y + 3)}" text-anchor="end" font-size="9" fill="#9FB2C8">${fmt(v, st >= 1 ? 0 : 1)}${v && v + st > mx ? ' ac' : ''}</text>`; }
   Y.forEach(([m, v], i) => { const on = S.dlMon === m, hh = (base - top) * v / mx; h += `<g data-dlm="${m}" style="cursor:pointer"><rect x="${f(pl + i * bw)}" y="${top}" width="${f(bw)}" height="${base - top}" fill="transparent"/><rect x="${f(pl + i * bw + .4)}" y="${f(base - hh)}" width="${f(Math.max(.8, bw - .8))}" height="${f(hh)}" fill="${on ? '#FFFFFF' : RAMP.fcond[3]}"/><title>${dlMonName(m)}: ${fmt(v, v < 10 ? 1 : 0)} acres. Tap to show the loss through this month</title></g>`;
     if (m % 12 === 0) h += `<text x="${f(pl + (i + .5) * bw)}" y="${base + 12}" text-anchor="${i >= Y.length - 3 ? 'end' : 'middle'}" font-size="9" fill="#C9D4E2">${2021 + m / 12}</text>`; });
   const tot = Y.reduce((a, e) => a + e[1], 0), big = Y.slice().sort((a, b) => b[1] - a[1])[0];
@@ -2488,7 +2488,7 @@ function dlFrame(full){ const l = $('#dlml'), r = $('#dlmo'), v = $('#qviz'), R 
 function dlPlay(on){ if (dlTimer){ clearInterval(dlTimer); dlTimer = null; } const R = dlRange();
   if (on && R){ if (S.dlMon == null || S.dlMon >= R[1]) S.dlMon = R[0] - 1;
     dlTimer = setInterval(() => { if (!dlAnimOn()){ clearInterval(dlTimer); dlTimer = null; return; }
-      if (S.dlMon >= R[1]){ dlPlay(false); S.dlMon = null; dlFrame(); return; } S.dlMon++; dlFrame(); }, 450); }
+      if (S.dlMon >= R[1]){ dlPlay(false); S.dlMon = null; dlFrame(); return; } S.dlMon++; dlFrame(); }, 650); }
   const b = document.querySelector('[data-dlplay]'); if (b){ b.textContent = dlTimer ? 'Pause' : 'Play'; b.setAttribute('aria-pressed', String(!!dlTimer)); }
   if (!on) dlFrame(true); }
 document.addEventListener('click', e => { if (e.target.closest('[data-dlplay]')) dlPlay(!dlTimer);
@@ -3203,7 +3203,7 @@ function visFrame(full){ const l = $('#visyl'), r = $('#visyr'); if (l) l.textCo
 function visPlay(on){ if (visTimer){ clearInterval(visTimer); visTimer = null; } const yr = visYears();
   if (on && yr){ if (!S.visYr || S.visYr >= yr[1]) S.visYr = yr[0] - 1;
     visTimer = setInterval(() => { if (S.q.id !== 'eff' || S.m.id !== 'od'){ clearInterval(visTimer); visTimer = null; return; }
-      if (S.visYr >= yr[1]){ visPlay(false); return; } S.visYr++; visFrame(); }, 750); }
+      if (S.visYr >= yr[1]){ visPlay(false); return; } S.visYr++; visFrame(); }, 800); }
   const b = document.querySelector('[data-visplay]'); if (b){ b.textContent = visTimer ? 'Pause' : 'Play years'; b.setAttribute('aria-pressed', String(!!visTimer)); }
   if (!on) visFrame(true); }
 document.addEventListener('click', e => { if (e.target.closest('[data-visplay]')) visPlay(!visTimer); else if (e.target.closest('[data-visavg]')){ S.visYr = null; visFrame(true); } });
@@ -3225,6 +3225,17 @@ function acqBlock(){ if (S.ext !== 'corr') return '<p class="none">Land protecti
   return `<div class="acqctl">` + (ok ? `<button type="button" class="phplay" data-acqplay="1" aria-pressed="${!!acqTimer}">${acqTimer ? 'Pause' : 'Play'}</button>` +
     `<label class="acqyr"><span id="acqyl">By ${y}</span><input type="range" id="acqyr" min="${ACQ.y0}" max="${ACQ.y1}" step="1" value="${y}" aria-label="Year"></label>` : '') + `</div>` +
     `<p class="phstat" id="acqstat" role="status">${esc(acqStatus())}</p>`; }
+/* ---------- chart text at a readable size ----------
+   The charts are drawn in small coordinate systems (viewBox) and stretched to the panel's width, so on wide panels their labels
+   came out oversized. This measures how much each chart is stretched and resizes its text to read at about 10.5px everywhere.
+   It runs from a MutationObserver, which fires before the browser paints, so the resized text is the only text ever shown. */
+function chFit(){ document.querySelectorAll('svg.phch').forEach(sv => { const vb = sv.viewBox && sv.viewBox.baseVal, w = sv.clientWidth || sv.getBoundingClientRect().width;
+    if (!vb || !vb.width || !w) return; const key = Math.round(100 * w / vb.width); if (+sv.dataset.fitk === key) return; sv.dataset.fitk = key; const k = key / 100;
+    sv.querySelectorAll('text').forEach(t => { let b = +t.dataset.fs; if (!b){ b = parseFloat(t.getAttribute('font-size')) || 9; t.dataset.fs = b; }
+      const r = b * k, want = r > 11.5 ? 11.5 : r < 8.5 ? Math.min(8.5, r * 1.25) : r;   /* shrink outsized text; nudge tiny text up a little */
+      t.setAttribute('font-size', (want / k).toFixed(2)); }); }); }
+{ new MutationObserver(chFit).observe(document.body, {childList:true, subtree:true});
+  let chT = 0; addEventListener('resize', () => { clearTimeout(chT); chT = setTimeout(() => { document.querySelectorAll('svg.phch').forEach(sv => delete sv.dataset.fitk); chFit(); }, 150); }); }
 function acqChart(){ if (!ACQ || ACQ.st !== 'done') return '<p class="phstat">The chart appears once the tracts have loaded.</p>';
   const ys = []; for (let y = ACQ.y0; y <= ACQ.y1; y++) ys.push(y); const sel = S.acqYr || ACQ.y1;
   const W = 272, H = 150, pl = 34, pr = 34, pt = 12, pb = 18, pw = W - pl - pr, ph = H - pt - pb, bw = pw / ys.length, f = v => v.toFixed(1);
@@ -3232,22 +3243,22 @@ function acqChart(){ if (!ACQ || ACQ.st !== 'done') return '<p class="phstat">Th
   const mx = Math.max(1, ...per), sp = [100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000].find(s => mx / s <= 4) || 50000, top = Math.ceil(mx / sp) * sp, tot = cum[cum.length - 1] || 1;
   const Y = v => pt + ph - ph * v / top, Yc = v => pt + ph - ph * v / tot, X = i => pl + bw * i + bw / 2;
   let g = `<svg class="phch" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Acres of A.T. tracts conveyed each year">`;
-  for (let v = 0; v <= top; v += sp) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="${v ? '#2E4460' : '#4A6182'}" stroke-width="${v ? .6 : .9}"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${v >= 1000 ? fmt(v / 1000, v % 1000 ? 1 : 0) + 'k' : v}</text>`;
+  for (let v = 0; v <= top; v += sp) g += `<line x1="${pl}" x2="${W - pr}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="${v ? '#2E4460' : '#4A6182'}" stroke-width="${v ? .6 : .9}"/><text x="${pl - 3}" y="${f(Y(v) + 3)}" text-anchor="end" font-size="8.5" fill="#A8B8CA">${v >= 1000 ? fmt(v / 1000, v % 1000 ? 1 : 0) + 'k' : v}${v && v + sp > top ? ' ac' : ''}</text>`;
   [0, .5, 1].forEach(fr => { g += `<text x="${W - pr + 3}" y="${f(Yc(tot * fr) + 3)}" font-size="8.5" fill="#7FE0B8">${fmt(Math.round(tot * fr / 1000), 0)}k</text>`; });
   ys.forEach((y, i) => { if (!per[i]) return; const y0 = Y(per[i]), on = y === sel;
     g += `<rect x="${f(pl + bw * i + .4)}" y="${f(y0)}" width="${f(Math.max(.8, bw - .8))}" height="${f(Y(0) - y0)}" fill="${on ? '#FFFFFF' : HUE.lands}" opacity="${y > sel ? .3 : 1}"><title>${y}: ${fmt(Math.round(per[i]), 0)} acres in ${(ACQ.by.get(y) || {n:0}).n} tracts</title></rect>`; });
   g += `<polyline points="${ys.map((y, i) => f(X(i)) + ',' + f(Yc(cum[i]))).join(' ')}" fill="none" stroke="#7FE0B8" stroke-width="1.6"/>`;
   { const i = ys.indexOf(sel); if (i >= 0) g += `<circle cx="${f(X(i))}" cy="${f(Yc(cum[i]))}" r="3" fill="#FFFFFF" stroke="#7FE0B8"/>`; }
-  ys.forEach((y, i) => { if ((y % 5 === 0 && Math.abs(y - sel) >= 5) || y === sel) g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${y === sel ? '#FFE014' : '#A8B8CA'}"${y === sel ? ' font-weight="700"' : ''}>${y === sel || y % 10 === 0 ? y : '’' + String(y).slice(2)}</text>`; });
+  ys.forEach((y, i) => { if (y % 5) return; g += `<text x="${f(X(i))}" y="${H - 5}" text-anchor="middle" font-size="8.5" fill="${y === sel ? '#FFE014' : '#A8B8CA'}">${y % 10 === 0 ? y : '’' + String(y).slice(2)}</text>`; });   /* fixed ticks: the playing year is shown by the white bar, dot and caption */
   const i = ys.indexOf(sel), byN = ACQ.tracts.filter(t => t.y <= sel).length;
-  return `<h4 class="phh">Acres conveyed each year, the whole trail</h4><p class="phflow">By ${sel}, ${fmt(Math.round(cum[i]), 0)} acres in ${fmt(byN, 0)} tracts (${Math.round(100 * cum[i] / tot)}% of the dated acres); ${fmt(Math.round(per[i]), 0)} acres in ${sel} itself.</p>` + g + '</svg>' +
+  return `<h4 class="phh">Acres conveyed each year, the whole trail</h4><p class="phflow acqsub">By ${sel}: ${fmt(Math.round(cum[i]), 0)} acres · ${fmt(byN, 0)} tracts · ${Math.round(100 * cum[i] / tot)}% of the dated acres · ${fmt(Math.round(per[i]), 0)} acres in ${sel} itself</p>` + g + '</svg>' +
     `<div class="phkey"><span class="thin"><i style="background:${HUE.lands}"></i>acres conveyed that year · <i style="background:#7FE0B8"></i>running total (right axis)</span></div>`; }
 function acqFrame(full){ const y = S.acqYr, l = $('#acqyl'), r = $('#acqyr'), v = $('#acqviz'); if (l) l.textContent = 'By ' + y; if (r) r.value = y;
   if (v) v.innerHTML = acqChart(); BRK.clear(); restyle(); strip(); legend(); phTick(); if (full) side(); }
 function acqPlay(on){ if (acqTimer){ clearInterval(acqTimer); acqTimer = null; }
   if (on && ACQ && ACQ.st === 'done'){ if (S.acqYr >= ACQ.y1) S.acqYr = ACQ.y0 - 1;
     acqTimer = setInterval(() => { if (S.q.id !== 'land' || S.m.id !== 'acq'){ clearInterval(acqTimer); acqTimer = null; return; }   /* another measure was picked */
-      if (S.acqYr >= ACQ.y1){ acqPlay(false); return; } S.acqYr++; acqFrame(); }, 650); }
+      if (S.acqYr >= ACQ.y1){ acqPlay(false); return; } S.acqYr++; acqFrame(); }, 800); }
   const b = document.querySelector('[data-acqplay]'); if (b){ b.textContent = acqTimer ? 'Pause' : 'Play'; b.setAttribute('aria-pressed', String(!!acqTimer)); }
   if (!on) acqFrame(true); }
 document.addEventListener('click', e => { if (e.target.closest('[data-acqplay]')) acqPlay(!acqTimer); });
