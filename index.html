@@ -939,10 +939,16 @@ body.stackui #find::placeholder{font-size:14px !important}
 #offdel{background:none;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
 #offbar{height:8px;border-radius:4px;background:#26384F;overflow:hidden;margin:10px 0 4px}#offbar i{display:block;height:100%;width:0;background:#3FB27F;transition:width .3s}
 #offstat{font-size:13px;color:var(--muted);min-height:1em}
+/* loading screen: the blaze is painted white from the bottom up as the dashboard loads (--p from 0 to 1) */
+#splash .spblaze{position:relative;width:30px;height:80px;margin:0 auto;--p:0}
+#splash .spblaze i,#splash .spblaze b{position:absolute;inset:0;-webkit-mask:var(--blaze) center/100% 100% no-repeat;mask:var(--blaze) center/100% 100% no-repeat}
+#splash .spblaze i{background:rgba(255,255,255,.14)}
+#splash .spblaze b{background:#fff;-webkit-clip-path:inset(calc(100% - var(--p) * 100%) 0 0 0);clip-path:inset(calc(100% - var(--p) * 100%) 0 0 0);transition:-webkit-clip-path .45s ease-out,clip-path .45s ease-out}
+@media (prefers-reduced-motion: reduce){#splash .spblaze b{transition:none}}
 </style>
 </head>
 <body>
-<div id="splash" style="position:fixed;inset:0;z-index:99999;background:#142235;color:#EEF3F8;font:700 19px system-ui,-apple-system,sans-serif;text-align:center;transition:opacity .3s"><div style="position:absolute;left:0;right:0;top:calc(50% - 60px)"><img src="images/icon-192.png" alt="" width="72" height="72" style="display:block;margin:0 auto;border-radius:16px"><div style="margin-top:14px">A.T. Resource Grid</div><div class="spmsg" style="margin-top:8px;font-weight:400;font-size:13px;color:#9FB2C7">Loading…</div></div></div>
+<div id="splash" style="position:fixed;inset:0;z-index:99999;background:#142235;color:#EEF3F8;font:700 19px system-ui,-apple-system,sans-serif;text-align:center;transition:opacity .3s"><div style="position:absolute;left:0;right:0;top:calc(50% - 60px)"><div class="spblaze" aria-hidden="true"><i></i><b></b></div><div style="margin-top:14px">A.T. Resource Grid</div><div class="spmsg" style="margin-top:8px;font-weight:400;font-size:13px;color:#9FB2C7">Loading…</div></div></div>
 <header>
   <span class="blaze" aria-hidden="true"></span>
   <h1>A.T. Resource Grid</h1>
@@ -1148,9 +1154,15 @@ body.stackui #find::placeholder{font-size:14px !important}
   window.addEventListener = function(t, f, o){ if (t === 'load' && document.readyState === 'complete'){ setTimeout(f, 0); return; } return ael(t, f, o); };
   var say = function(t){ var e = document.querySelector('#splash .spmsg'); if (e) e.textContent = t; };
   var add = function(src){ return new Promise(function(ok, no){ var e = document.createElement('script'); e.src = src; e.async = false; e.onload = ok; e.onerror = no; document.body.appendChild(e); }); };
-  fetch('data/grid.json').then(function(r){ if (!r.ok) throw 0; return r.text(); })
-    .then(function(t){ window.__GRID = t; return new Promise(function(r){ requestAnimationFrame(function(){ setTimeout(r, 0); }); }); })
-    .then(function(){ return add('data/inat.js'); }).then(function(){ return add('data/app.js'); })
+  /* the blaze on the loading screen is painted white as things arrive: the grid file by bytes read, then the code */
+  var pr = function(v){ var b = document.querySelector('#splash .spblaze'); if (!b || v <= +(b.dataset.p || 0)) return; b.dataset.p = v; b.style.setProperty('--p', v); };
+  requestAnimationFrame(function(){ pr(.08); });
+  fetch('data/grid.json').then(function(r){ if (!r.ok) throw 0; var tot = Math.max(+r.headers.get('content-length') || 0, 6e6);
+      if (!r.body || !r.body.getReader || !window.Blob || !Blob.prototype.text) return r.text();
+      var rd = r.body.getReader(), got = 0, parts = [];
+      return (function pump(){ return rd.read().then(function(x){ if (x.done) return new Blob(parts).text(); parts.push(x.value); got += x.value.length; pr(.08 + .6 * Math.min(1, got / tot)); return pump(); }); })(); })
+    .then(function(t){ window.__GRID = t; pr(.7); return new Promise(function(r){ requestAnimationFrame(function(){ setTimeout(r, 0); }); }); })
+    .then(function(){ return add('data/inat.js'); }).then(function(){ pr(.78); return add('data/app.js'); }).then(function(){ pr(.9); })
     .catch(function(){ say('Could not load the data. Check the connection and reopen the app.'); });
 })();
 </script>
