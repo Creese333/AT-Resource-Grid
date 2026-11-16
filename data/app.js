@@ -5025,8 +5025,8 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
         if (sec && c){ const cb = $('#ctlbtn') || c, sw = Math.max(70, Math.round(cb.getBoundingClientRect().left - sec.getBoundingClientRect().left - 6)); sec.style.setProperty('width', sw + 'px', 'important'); sec.style.setProperty('max-width', sw + 'px', 'important'); } }
       else { const pf = $('#profile'), po = pf && pf.classList.contains('open') && pf.offsetParent ? pf.getBoundingClientRect() : null;
         if (po && po.left < r.right){ ly.style.top = (po.top - w.top) + 'px'; ly.style.right = (w.right - po.left + 8) + 'px'; }
-        else { ly.style.top = (r.bottom - w.top + 8) + 'px'; ly.style.right = (w.right - r.right) + 'px'; }
-        ly.style.height = '';
+        else { ly.style.top = (r.top - w.top) + 'px'; ly.style.right = (w.right - r.left + 8) + 'px'; }   /* beside the locate button */
+        ly.style.height = po && po.left < r.right ? '' : r.height + 'px';
         if (c) c.style.removeProperty('right'); if (sec){ sec.style.removeProperty('width'); sec.style.removeProperty('max-width'); } } };
     /* phones: the Options controls open in rows across the map's width, under the top row */
     function ctlAcross(phone){ const c = $('#ctls'), rows = ['#ctlrow1', '#ctlrow2', '#note'].map(q => $(q)).filter(Boolean), open = phone && document.body.classList.contains('ctlopen');
@@ -5036,14 +5036,15 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
       rows.forEach(r => { if (r.hidden || !r.offsetHeight) return; r.style.setProperty('max-width', (w.width - 20) + 'px', 'important'); r.style.setProperty('width', 'max-content', 'important'); r.style.setProperty('flex-wrap', 'wrap', 'important'); r.style.setProperty('justify-content', 'flex-start', 'important');
         const rw = r.offsetWidth, x = Math.max(w.left + 10, Math.min(br.left, w.right - 10 - rw)); r.style.setProperty('left', (x - cr.left) + 'px', 'important'); r.style.setProperty('top', y + 'px', 'important'); y += r.offsetHeight + 6; }); }
     { const r1 = $('#ctlrow1'); let h1 = 0; if (r1 && window.ResizeObserver) new ResizeObserver(() => { if (r1.offsetHeight !== h1){ h1 = r1.offsetHeight; ctlAcross(document.body.classList.contains('stackui')); } }).observe(r1); }
-    /* cell size and basemap: two drop-downs of the same size side by side on the map's left edge, under the zoom buttons (phones: under the top row) */
+    /* cell size and basemap: two drop-downs of the same size side by side, beside the zoom-out button (phones: under the top row) */
     const lvEl = $('#levels'), bsEl = $('#base'), bar = document.createElement('div'); bar.id = 'lvbar'; wrap.appendChild(bar);
     if (lvEl){ bar.appendChild(lvEl); lvEl.classList.add('lvdock'); } if (bsEl){ bar.appendChild(bsEl); bsEl.classList.add('bsdock'); }
     const lvHead = () => { const t = $('#levels .lvt'); if (!t) return; const lv = typeof dispLevel === 'function' ? dispLevel() : null, nm = {wheel:'49', cog:'7', hex:'1'}[lv] || '';
       t.textContent = (S.level === 'auto' ? 'Auto' + (nm ? ' · ' + nm : '') : nm) + ' sq mi'; };
     window.lvHead = lvHead; { const r1 = redraw; redraw = function(){ r1(); lvHead(); }; } map.on('zoomend', () => setTimeout(lvHead, 0));
     const lvPlace = () => { const w = wrap.getBoundingClientRect(), z = document.querySelector('.leaflet-control-zoom'), zr = z && z.offsetParent ? z.getBoundingClientRect() : null;
-      let top, left; if (zr && zr.height){ top = zr.bottom - w.top + 8; left = zr.left - w.left; }
+      let top, left; if (zr && zr.height){ const mi = z.querySelector('.leaflet-control-zoom-out'), mr = mi ? mi.getBoundingClientRect() : zr;   /* beside the zoom-out button */
+        top = mr.top - w.top + (mr.height - bar.offsetHeight) / 2; left = zr.right - w.left + 8; }
       else { const sec = $('#section'), sr = sec && sec.offsetParent ? sec.getBoundingClientRect() : null; top = (sr ? sr.bottom - w.top : 50) + 8; left = 10; }
       bar.style.top = Math.round(top) + 'px'; bar.style.left = Math.round(left) + 'px'; lvHead();
       if (typeof phTickPos === 'function') phTickPos();
