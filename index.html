@@ -1160,6 +1160,17 @@ body.stackui #find::placeholder{font-size:14px !important}
   /* the blaze on the loading screen is painted white as things arrive: the grid file by bytes read, then the code */
   var pr = function(v){ var b = document.querySelector('#splash .spblaze'); if (!b || v <= +(b.dataset.p || 0)) return; b.dataset.p = v; b.style.setProperty('--p', v); };
   requestAnimationFrame(function(){ pr(.08); });
+  /* "a newer version is out" from the service worker: listened for here, from the first moment, because the worker often finds it before
+     the app's code has run. Untouched and just opened: load it right away (once a minute at most); otherwise offer a reload. */
+  window.__updH = true; var touched = false;
+  ['pointerdown', 'keydown', 'wheel'].forEach(function(t){ addEventListener(t, function(){ touched = true; }, {once:true, passive:true, capture:true}); });
+  if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', function(e){
+    if (!e.data || e.data.type !== 'updated' || document.getElementById('updtoast')) return;
+    var last = 0; try { last = +sessionStorage.getItem('atgrid_autoreload') || 0; } catch (x) {}
+    if (!touched && performance.now() < 20000 && Date.now() - last > 60000){ try { sessionStorage.setItem('atgrid_autoreload', Date.now()); } catch (x) {} location.reload(); return; }
+    var go = function(){ if (!document.body) return setTimeout(go, 200); var t = document.createElement('button'); t.id = 'updtoast'; t.type = 'button'; t.textContent = 'Updated \u00b7 tap to reload';
+      t.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:3000;background:#F0C419;color:#142235;border:0;border-radius:999px;padding:9px 16px;font:inherit;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.5)';
+      t.onclick = function(){ location.reload(); }; document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 60000); }; go(); });
   /* the map library loads here, not in the page, so it does not hold up the loading screen; its styles must be in before the app runs */
   var LF = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
   var css = new Promise(function(r){ var l = document.getElementById('lfcss'); if (!l || l.media === 'all') return r(); l.addEventListener('load', function(){ setTimeout(r, 0); }); l.addEventListener('error', r); setTimeout(r, 5000); });
