@@ -2020,10 +2020,9 @@ const Q = [
 for (let i = Q.length - 1; i >= 0; i--) if (!D.themes[Q[i].th]) Q.splice(i, 1);
 { const p = Q.find(q => q.id === 'phen'); Q.push(Object.assign({}, p, {id:'pest', hue:HUE.pest, title:'Where are forest pests showing up?',
     use:'Where forest pests have been recorded along the trail since 2010, year by year, from research-grade iNaturalist records and EDDMapS reports, updated weekly: spotted lanternfly, spongy moth, hemlock woolly adelgid, beech leaf disease, emerald ash borer, elongate hemlock scale, and others with 100 or more iNaturalist records, most recorded first. Year first recorded maps the cells with a record by the year shown, and Play steps through the years; Share of records, by year shows how much of each cell\u2019s iNaturalist records the pest makes up. Visualizations add its range along the trail and the cells with records by year. Records follow observers, so a first record marks when a pest was noticed, and a blank cell means nothing reported, not absence.'})); }
-/* forest health risk (USDA Forest Service NIDRM 2024): its own measures in the forest pests question, after the pest maps */
-{ const pq = Q.find(q => q.id === 'pest'); if (pq) pq.m = pq.m.concat([
-    {id:'fhr', fhr:1, th:'fhr', label:'Forest at risk of tree loss (USFS)', f:'FHR_PCT', unit:'%', d:0, zero:1, zeroText:'None at risk', none:'No trees mapped',
-     note:'Share of the treed area where 25% or more of the tree basal area is expected to die from insects and diseases over 2024 to 2038, without treatment (USDA Forest Service 2024 National Insect and Disease Risk Map, 240 m).'}]); }
+/* forest health risk (USDA Forest Service NIDRM 2024): in "What shape is the forest in?" (FHRM, added there) */
+const FHRM = {id:'fhr', fhr:1, grp:'Risk of tree loss (USFS)', th:'fhr', label:'Forest at risk of tree loss (USFS)', f:'FHR_PCT', unit:'%', d:0, zero:1, zeroText:'None at risk', none:'No trees mapped',
+     note:'Share of the treed area where 25% or more of the tree basal area is expected to die from insects and diseases over 2024 to 2038, without treatment (USDA Forest Service 2024 National Insect and Disease Risk Map, 240 m).'};
 /* tree fall vulnerability (screening): factors [key, label, weight, note, part] */
 const WFG = {load:'Wind loading', weak:'Tree weakness', people:'People at risk'};
 const WFDEF = [
@@ -2413,7 +2412,7 @@ function showLegend(m, lv){ if (!nasaHas(m.th)) return ''; const B = breaks(m, l
     h += `<div class="row"><i style="background:${col}"></i><span>${esc(t)}</span></div>`; });
   return h; }
 Q.push({id:'fcond', th:'dist', hue:HUE.fcond, ramp:'fcond', title:'What shape is the forest in?',
-  use:'Forest condition from NASA satellites. Canopy loss: confirmed loss of vegetation on tree-covered 30 m pixels, from the OPERA Land Surface Disturbance Alert (Landsat and Sentinel-2, every 2 to 4 days), by the month it was first seen; it catches blowdowns, defoliation, die-off, fire and clearing, and Play steps through the months. Forest height and biomass: GEDI lidar from the International Space Station, since 2019, in 1 km squares; GEDI samples strips of ground, so some cells hold too few samples to show. Green-up and leaf-off: the yearly dates leaves come out and drop, from MODIS since 2001, and how they have shifted. Use it to spot fresh damage worth a field check, compare forest structure along the trail, and follow the growing season. Satellite measures, not stand surveys.',
+  use:'Forest condition from NASA satellites and the U.S. Forest Service. Canopy loss: confirmed loss of vegetation on tree-covered 30 m pixels, from the OPERA Land Surface Disturbance Alert (Landsat and Sentinel-2, every 2 to 4 days), by the month it was first seen; it catches blowdowns, defoliation, die-off, fire and clearing, and Play steps through the months. Risk of tree loss: the share of treed area where insects and diseases are expected to kill a quarter or more of the trees by 2038 without treatment, from the 2024 National Insect and Disease Risk Map. Forest height and biomass: GEDI lidar from the International Space Station, since 2019, in 1 km squares; GEDI samples strips of ground, so some cells hold too few samples to show. Green-up and leaf-off: the yearly dates leaves come out and drop, from MODIS since 2001, and how they have shifted. Use it to spot fresh damage worth a field check, compare forest structure along the trail, and follow the growing season. Satellite measures, not stand surveys.',
   m:[nasaM('dist', {id:'loss', dlAnim:1, d:2, fn:(lv,c) => { const fa = val('dist','DL_FAC',lv,c); if (!fa) return null; if (S.dlMon == null) return val('dist','DL_PCT',lv,c); return Math.min(100, 100 * dlCum(lv, c, S.dlMon) / fa); },
        get label(){ return S.dlMon != null ? `Canopy loss through ${dlMonName(S.dlMon)}` : 'Canopy loss, share of forest'; }, showFn:dlPctShow, zeroText:'None detected', noneText:'No forest assessed',
        colorFn:(v, lv) => dlCol('DL_PCT', v, lv), legendFn:lv => dlLegend('DL_PCT', lv, dlPctShow), stripTop:lv => { const B = dlBrk('DL_PCT', lv); return B.b.length ? B.b[B.b.length - 1] : 1; },
@@ -2426,6 +2425,7 @@ Q.push({id:'fcond', th:'dist', hue:HUE.fcond, ramp:'fcond', title:'What shape is
          const a = dlM(lv, c); let s = 0; if (a) for (let i = 0; i < a.length; i += 2) if (a[i] > r[1] - 3) s += a[i + 1] / 10; return Math.min(100, 100 * s / fa); },
        ramp:RAMP.fcond, showFn:dlPctShow, zero:1, get zeroText(){ return 'None in the last 3 months'; }, noneText:'No forest assessed',
        get note(){ const r = dlRange(); return `Share of the cell’s tree cover with canopy loss first seen in the last 3 months${r ? ` (${dlMonName(r[1] - 2)} to ${dlMonName(r[1])})` : ''}. Fresh damage, sized against the cell’s forest: the darkest cells are worth a field check. Loss in the latest weeks can take a while to be confirmed.`; }}),
+     FHRM,
      floorM(nasaM('gedi', {id:'height', grp:'Forest height and biomass (GEDI lidar)', label:'Canopy height', fn:(lv,c) => { const v = val('gedi','FS_H',lv,c); return v == null ? null : ftOf(v); }, ramp:RAMP.tall, d:0,
        showFn:v => fmt(Math.round(v), 0) + ' ft', noneText:'Too few GEDI samples', get note(){ return `Average height of the top of the canopy, from GEDI lidar footprints, ${gediYrs('h')}, over all land in the cell (fields, water and towns lower it). Cells with fewer than 50 footprints are left blank.`; }}), 0),
      nasaM('gedi', {id:'agb', grp:'Forest height and biomass (GEDI lidar)', label:'Aboveground biomass', fn:(lv,c) => { const v = val('gedi','FS_AGB',lv,c); return v == null ? null : tpaOf(v); }, ramp:RAMP.tall, d:0,
@@ -2444,6 +2444,7 @@ Q.push({id:'fcond', th:'dist', hue:HUE.fcond, ramp:'fcond', title:'What shape is
 QVIZ.fcond = {title:'Canopy loss by month', get note(){ return 'Acres of tree cover with confirmed loss, by the month it was first seen (OPERA Land Surface Disturbance Alert). Tap a month to show the loss through then on the map.'; },
   html:(lv, cells) => dlChart(lv, cells), fn:() => []};
 QVIZ.fcond.pick = id => {
+  if (id === 'fhr') return {th:'fhr', title:QVIZ.pest.title, note:QVIZ.pest.note, html:null, fn:QVIZ.pest.fn};
   if (['height','agb','shots'].includes(id)) return {th:'gedi', title:id === 'agb' ? 'Biomass by state' : 'Canopy height by state', note:'Averages of the cells with 50 or more GEDI footprints, by state.' + VSTNOTE, html:null, fn(lv, cells){
     const f = id === 'agb' ? 'FS_AGB' : 'FS_H', cv = id === 'agb' ? tpaOf : ftOf, s = VST.map(() => 0), n = VST.map(() => 0);
     cells.forEach(c => { const st = vStOf(lv, c), v = val('gedi', f, lv, c); if (st < 0 || v == null) return; s[st] += cv(v); n[st]++; });
@@ -2538,7 +2539,7 @@ const QGRP = {rest:'Priorities', tvul:'Priorities', pri:'Priorities', inv:'Threa
   hist:'Cultural resources', cult:'Cultural resources', feat:'Stewardship', eff:'Plants and wildlife', land:'Stewardship'};
 const QGOFF = new Set();   // folded question groups (filled from this browser's settings below)
 const qVis = x => x.id !== 'pri' || JERRY;
-{ const ord = ['rest','tvul','pri','feat','land','inv','pest','fcond','pinv','veg','bird','mig','phen','rec','eff','geo','soil','wet','wx','hist','cult']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','tvul','pri','feat','land','inv','fcond','pest','pinv','veg','bird','mig','phen','rec','eff','geo','soil','wet','wx','hist','cult']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
@@ -2600,7 +2601,7 @@ const secName = () => secSel.options[secSel.selectedIndex].text;
 
 /* ---------- classing ---------- */
 const BRK = new Map();
-{ const pq = Q.find(q => q.id === 'pest'); if (pq) pq.m.filter(m => m.fhr).forEach(m => m.ramp = ['#E9B97A','#D98B45','#C0602A','#94401C','#682812']); }
+{ FHRM.ramp = ['#E9B97A','#D98B45','#C0602A','#94401C','#682812']; }
 function fRamp(hex){ const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)), mix = t => '#' + c.map(v => Math.round(v + (255 - v) * t).toString(16).padStart(2, '0')).join('').toUpperCase(),
     shade = t => '#' + c.map(v => Math.round(v * (1 - t)).toString(16).padStart(2, '0')).join('').toUpperCase();
   return [mix(.3), mix(.18), mix(.07), hex, shade(.18)]; }
@@ -4172,7 +4173,7 @@ const EXPORTBTNS = '<button type="button" class="exp" id="pextxt" title="Downloa
    rating is included only when it has been unlocked on this page, as in the exports. */
 const DESC = [['rest', ['grass', 'forest']], ['tvul', ['score', 'grade', 'defrel', 'tfall']], ['feat', ['atmi', 'shel', 'camp', 'park', 'vist', 'side']],
   ['land', ['mgrs', 'appa']], ['veg', ['type', 'cover', 'types']], ['soil', ['vuln', 'high', 'hydric']], ['wet', ['type', 'acres']],
-  ['inv', ['edrr', 'spp', 'pct', 'pest']], ['pest', ['fhr']], ['bird', ['bcc', 'spp']], ['rec', ['obs', 'spp']], ['eff', ['od', 'peak']],
+  ['inv', ['edrr', 'spp', 'pct', 'pest']], ['fcond', ['loss', 'fhr']], ['bird', ['bcc', 'spp']], ['rec', ['obs', 'spp']], ['eff', ['od', 'peak']],
   ['geo', ['lith', 'age']], ['wx', ['ppt', 'heavy', 'p25']], ['hist', ['hany', 'hnr']], ['cult', ['spp']], ['pri', ['tier']]];
 const DESCR = new Map(), DESCSUM = new Set(['feat.atmi', 'feat.shel', 'feat.camp', 'feat.park', 'feat.vist', 'feat.side', 'wet.acres', 'hist.hany', 'hist.hnr', 'inv.pest', 'rec.obs']);
 /* a range written once: "41 to 78 of 100", "1 to 3 vistas" */
