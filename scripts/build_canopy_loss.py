@@ -8,7 +8,7 @@ out a year after it starts). For each tile this reads the latest few files befor
 pixel, and counts pixels that are
   - confirmed loss (status 3, 6, 7 or 8: confirmed, under or over 50%, ongoing or finished), and
   - tree cover in ESA WorldCover 2021 (10 m, class 10), so mowing, harvest of crops and building work are left out,
-by the month loss was first seen. Only the 100 km core of each tile (and only its own UTM zone) is counted, so overlaps count once.
+by the month loss was first seen. Each pixel is counted once, by the tile whose 100 km MGRS square center is nearest.
 
 A snapshot covers the 11 months before it. The first run takes snapshots every six months back to 2023, then each run adds the
 latest snapshot and keeps the older months from the last file. For each cell (corridor and HUC10 shell; 1, 7 and 49 sq mi) it writes
@@ -36,7 +36,6 @@ CONFIRMED = (3, 6, 7, 8)
 PX_AC = 900 / 4046.8564224                     # one 30 m pixel, in acres
 BASE = np.datetime64('2020-12-31')             # day 0 of VEG-DIST-DATE
 M0 = np.datetime64('2021-01', 'M')             # month 0 of DL_M
-CORE = 163                                     # 4.9 km of overlap on each side of a 3660-pixel tile
 PER_TILE = 4                                   # newest alert files read per tile and snapshot
 WC = 'https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_{}_Map.tif'
 
@@ -111,17 +110,32 @@ def worldcover_forest(dst_crs, transform, shape):
     return out == 10
 
 
-def core_mask(crs, transform, shape, tile):
-    """the tile's 100 km core, west and east limited to its own UTM zone"""
+def tile_centers(tiles):
+    """the center of each tile's 100 km MGRS square, in longitude and latitude"""
+    import mgrs
+    m = mgrs.MGRS(); out = {}
+    for t in tiles:
+        try: la, lo = m.toLatLon(t + '5000050000'); out[t] = (lo, la)
+        except Exception: pass
+    return out
+
+
+def own_mask(crs, transform, shape, tile, centers):
+    """the pixels this tile owns: those nearer its MGRS square's center than any other tile's (measured on the tile's own map
+    grid). Inside a UTM zone that is exactly the 100 km square (the tile's extra 9.8 km on the east and south belongs to the next
+    tile); at zone edges, where the squares are cut short, each pixel goes to the nearest tile, so overlaps count once and nothing
+    falls between zones."""
     from pyproj import Transformer
-    H, W = shape; m = np.zeros(shape, bool); m[CORE:H - CORE, CORE:W - CORE] = True
-    zone = int(tile[:2]); lo0, lo1 = -180 + 6 * (zone - 1), -180 + 6 * zone
-    cols = np.arange(W) + .5; rows = np.arange(H) + .5
-    xs = transform.c + cols * transform.a; ys = transform.f + rows * transform.e
-    X, Y = np.meshgrid(xs[::10], ys[::10])                  # every tenth pixel is plenty for a longitude limit
-    lon = Transformer.from_crs(crs, 'EPSG:4326', always_xy=True).transform(X, Y)[0]
-    ok = (lon >= lo0) & (lon < lo1)
-    return m & np.repeat(np.repeat(ok, 10, 0), 10, 1)[:H, :W]
+    H, W = shape; k = 6
+    tr = Transformer.from_crs('EPSG:4326', crs, always_xy=True)
+    xs = transform.c + (np.arange(0, W, k) + .5) * transform.a; ys = transform.f + (np.arange(0, H, k) + .5) * transform.e
+    X, Y = np.meshgrid(xs, ys); cx, cy = X.mean(), Y.mean()
+    pts = {t: tr.transform(*centers[t]) for t in centers}
+    near = [t for t, (x, y) in pts.items() if abs(x - cx) < 300000 and abs(y - cy) < 300000]
+    if tile not in near: return np.ones(shape, bool)
+    d = np.stack([(X - pts[t][0]) ** 2 + (Y - pts[t][1]) ** 2 for t in near])
+    mine = np.argmin(d, 0) == near.index(tile)
+    return np.repeat(np.repeat(mine, k, 0), k, 1)[:H, :W]
 
 
 def read_tile(ea, files, tmp):
@@ -150,7 +164,8 @@ def main():
     NM = months_since_2021(date.today()) + 1
     # the alert files for every snapshot, by tile
     picks = [pick_granules(ea, fp, s) for s in snaps]
-    tiles = sorted(set(t for p in picks for t in p))
+    tiles = sorted(set(t for p in picks for t in p)); centers = tile_centers(tiles)
+    log(f'{len(tiles)} tiles: ' + ' '.join(tiles))
     if not picks[-1]: raise SystemExit('No alert files for the latest snapshot: nothing written.')
     win = []                                  # months each snapshot covers (the 11 months before it)
     for s in snaps:
@@ -170,7 +185,7 @@ def main():
             shutil.rmtree(tmp, ignore_errors=True)
             if st is None: continue
             if F is None or F.shape != st.shape:     # forest and cells on this tile's grid, once per tile
-                F = worldcover_forest(crs, transform, st.shape) & core_mask(crs, transform, st.shape, tile)
+                F = worldcover_forest(crs, transform, st.shape) & own_mask(crs, transform, st.shape, tile, centers)
                 lab = Labeler(G, crs, transform, st.shape)
             conf = np.isin(st, CONFIRMED) & (dt > 0) & F
             mon = np.zeros(st.shape, 'int32')
