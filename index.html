@@ -29,8 +29,9 @@
 <meta name="description" content="Land, vegetation, wildlife records and review priorities for the Appalachian Trail corridor, summarized on one nested grid.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<!-- the font and the map styles load without holding up the first screen (the loading screen needs neither) -->
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link id="lfcss" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" media="print" onload="this.media='all'">
 <style>
 :root{
   --hdr:#1C3B5A; --ink:#EEF3F8; --ink2:#2B5478; --ground:#1F3049; --panel:#142235; --line:#33465F; --onlight:#142235;
@@ -1144,7 +1145,7 @@ body.stackui #find::placeholder{font-size:14px !important}
   </div>
 </dialog>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
 
 
 <script>
@@ -1157,12 +1158,16 @@ body.stackui #find::placeholder{font-size:14px !important}
   /* the blaze on the loading screen is painted white as things arrive: the grid file by bytes read, then the code */
   var pr = function(v){ var b = document.querySelector('#splash .spblaze'); if (!b || v <= +(b.dataset.p || 0)) return; b.dataset.p = v; b.style.setProperty('--p', v); };
   requestAnimationFrame(function(){ pr(.08); });
+  /* the map library loads here, not in the page, so it does not hold up the loading screen; its styles must be in before the app runs */
+  var LF = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+  var css = new Promise(function(r){ var l = document.getElementById('lfcss'); if (!l || l.media === 'all') return r(); l.addEventListener('load', function(){ setTimeout(r, 0); }); l.addEventListener('error', r); setTimeout(r, 5000); });
   fetch('data/grid.json').then(function(r){ if (!r.ok) throw 0; var tot = Math.max(+r.headers.get('content-length') || 0, 6e6);
       if (!r.body || !r.body.getReader || !window.Blob || !Blob.prototype.text) return r.text();
       var rd = r.body.getReader(), got = 0, parts = [];
       return (function pump(){ return rd.read().then(function(x){ if (x.done) return new Blob(parts).text(); parts.push(x.value); got += x.value.length; pr(.08 + .6 * Math.min(1, got / tot)); return pump(); }); })(); })
     .then(function(t){ window.__GRID = t; pr(.7); return new Promise(function(r){ requestAnimationFrame(function(){ setTimeout(r, 0); }); }); })
-    .then(function(){ return add('data/inat.js'); }).then(function(){ pr(.78); return add('data/app.js'); }).then(function(){ pr(.9); })
+    .then(function(){ return add(LF); }).then(function(){ pr(.74); return add('data/inat.js'); })
+    .then(function(){ pr(.78); return css; }).then(function(){ return add('data/app.js'); }).then(function(){ pr(.9); })
     .catch(function(){ say('Could not load the data. Check the connection and reopen the app.'); });
 })();
 </script>
