@@ -5035,7 +5035,8 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
       const w = wrap.getBoundingClientRect(), cr = c.getBoundingClientRect(), btn = $('#ctlbtn'), br = btn ? btn.getBoundingClientRect() : cr; let y = (btn ? btn.offsetHeight : 34) + 6;
       rows.forEach(r => { if (r.hidden || !r.offsetHeight) return; r.style.setProperty('max-width', (w.width - 20) + 'px', 'important'); r.style.setProperty('width', 'max-content', 'important'); r.style.setProperty('flex-wrap', 'wrap', 'important'); r.style.setProperty('justify-content', 'flex-start', 'important');
         const rw = r.offsetWidth, x = Math.max(w.left + 10, Math.min(br.left, w.right - 10 - rw)); r.style.setProperty('left', (x - cr.left) + 'px', 'important'); r.style.setProperty('top', y + 'px', 'important'); y += r.offsetHeight + 6; }); }
-    { const r1 = $('#ctlrow1'); let h1 = 0; if (r1 && window.ResizeObserver) new ResizeObserver(() => { if (r1.offsetHeight !== h1){ h1 = r1.offsetHeight; ctlAcross(document.body.classList.contains('stackui')); } }).observe(r1); }
+    { const r1 = $('#ctlrow1'); let h1 = 0, w1 = 0; if (r1 && window.ResizeObserver) new ResizeObserver(() => { if (r1.offsetHeight !== h1){ h1 = r1.offsetHeight; ctlAcross(document.body.classList.contains('stackui')); }
+      if (r1.offsetWidth !== w1){ w1 = r1.offsetWidth; if (window.lvPlace) window.lvPlace(); } }).observe(r1); }
     /* cell size and basemap: two drop-downs of the same size side by side, beside the zoom-out button (phones: under the top row) */
     const lvEl = $('#levels'), bsEl = $('#base'), bar = document.createElement('div'); bar.id = 'lvbar'; wrap.appendChild(bar);
     if (lvEl){ bar.appendChild(lvEl); lvEl.classList.add('lvdock'); } if (bsEl){ bar.appendChild(bsEl); bsEl.classList.add('bsdock'); }
@@ -5047,6 +5048,10 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
         top = mr.top - w.top + (mr.height - bar.offsetHeight) / 2; left = zr.right - w.left + 8; }
       else { const sec = $('#section'), sr = sec && sec.offsetParent ? sec.getBoundingClientRect() : null; top = (sr ? sr.bottom - w.top : 50) + 8; left = 10; }
       bar.style.top = Math.round(top) + 'px'; bar.style.left = Math.round(left) + 'px'; lvHead();
+      /* desktop: the basemap drop-down runs out to the right end of the Map tools row above it */
+      if (bsEl){ const r1 = $('#ctlrow1'), cb = $('#ctls'), wide = zr && zr.height && !document.body.classList.contains('stackui');
+        if (wide && r1 && r1.offsetWidth){ const want = Math.round(Math.max(r1.getBoundingClientRect().right, cb ? cb.getBoundingClientRect().right : 0) - bsEl.getBoundingClientRect().left);
+          bsEl.style.width = Math.max(170, want) + 'px'; } else bsEl.style.removeProperty('width'); }
       if (typeof phTickPos === 'function') phTickPos();
       document.documentElement.style.setProperty('--levb', Math.round(top + bar.offsetHeight + 18) + 'px'); };
     window.lvPlace = lvPlace; addEventListener('resize', () => setTimeout(lvPlace, 70)); setTimeout(lvPlace, 0); setTimeout(lvPlace, 700);
