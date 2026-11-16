@@ -28,7 +28,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install
-        run: pip install geopandas pyogrio shapely pyproj rasterio numpy earthaccess
+        run: pip install geopandas pyogrio shapely pyproj rasterio numpy earthaccess mgrs
       - name: Build canopy_loss.json
         env:
           EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
