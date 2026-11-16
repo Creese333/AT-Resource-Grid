@@ -2,7 +2,8 @@
 Climate change since 1980 for the A.T. Resource Grid ("What climate shapes the trail here?"), from Daymet Version 4 R1
 (Thornton et al., ORNL DAAC, doi:10.3334/ORNLDAAC/2129): daily weather on a 1 km grid for North America from 1980, a year behind.
 
-For each year it reads, through the ORNL DAAC THREDDS subset service, half-degree boxes covering the cells:
+For each year it reads, through NASA's OPeNDAP server (opendap.earthdata.nasa.gov; the ORNL DAAC THREDDS service now hands requests
+there and no longer subsets), half-degree boxes covering the cells, by their rows and columns on Daymet's 1 km grid:
   daily precipitation (heavy-rain days: 1 inch or more), daily low (frost-free season: days between the last spring and the first
   fall low of 32 F or colder, split at 1 July; and the January average low), July daily highs (July average high) and the snowpack
   on 1 April (snow water equivalent).
@@ -28,7 +29,9 @@ warnings.filterwarnings('ignore')
 from nasa_common import grids, footprint, write, log, rnd, LEVELS, HERE
 
 NAME, THEME = 'climate_change', 'dym'
-NCSS = 'https://thredds.daac.ornl.gov/thredds/ncss/grid/ornldaac/2129/daymet_v4_daily_na_{var}_{year}.nc'
+CCID = 'C2532426483-ORNL_CLOUD'           # Daymet_Daily_V4R1_2129 in NASA's catalog
+OPD = 'https://opendap.earthdata.nasa.gov/collections/' + CCID + '/granules/'
+LCC = '+proj=lcc +lat_1=25 +lat_2=60 +lat_0=42.5 +lon_0=-100 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs'   # Daymet's map grid
 EARLY = (1981, 2000); SPAN = 20
 STEP = 0.5
 CACHE = os.path.join(HERE, 'cache', 'daymet')
@@ -61,45 +64,98 @@ def sign_in(S):
     return False
 
 
-def get(S, var, year, box, t0, t1, tries=5):
-    w, s, e, n = box
-    q = {'var': var, 'north': n, 'south': s, 'east': e, 'west': w, 'horizStride': 1, 'time_start': t0, 'time_end': t1, 'timeStride': 1, 'accept': 'netcdf4'}
-    url = NCSS.format(var=var, year=year)
+URS = {}          # (var, year) -> the file's OPeNDAP address
+GRID = {}         # 'x', 'y': Daymet's column and row coordinates (m)
+
+
+def find_files(years):
+    """the OPeNDAP address of each daily file (North America), from NASA's catalog"""
+    try:
+        from nasa_common import login
+        ea = login()
+    except BaseException as ex:
+        ea = None; log(f'catalog search not available ({str(ex)[:80]}); using the usual file names')
+    for y in years:
+        found = False
+        if ea:
+            try:
+                for g in ea.search_data(concept_id=CCID, temporal=(f'{y}-06-01', f'{y}-06-02')):
+                    ur = g['umm'].get('GranuleUR', '')
+                    for v in ('prcp', 'tmin', 'tmax', 'swe'):
+                        if f'_na_{v}_{y}' in ur:
+                            URS[(v, y)] = OPD + ur; found = True
+            except Exception as ex:
+                log(f'  catalog {y}: {str(ex)[:100]}')
+        if not found:
+            for v in ('prcp', 'tmin', 'tmax', 'swe'): URS[(v, y)] = OPD + f'Daymet_Daily_V4R1.daymet_v4_daily_na_{v}_{y}.nc'
+
+
+def dap(S, url, ce, tries=5):
+    """one OPeNDAP request (DAP4, answered as netCDF-4)"""
     for k in range(tries):
         try:
-            r = S.get(url, params=q, timeout=300)
+            r = S.get(url + '.dap.nc4', params={'dap4.ce': ce}, timeout=300)
             if r.status_code == 200 and r.content[:4] in (b'\x89HDF', b'CDF\x01', b'CDF\x02'): return r.content
-            if r.status_code == 400 and q['accept'] == 'netcdf4': q['accept'] = 'netcdf'; continue   # older servers: plain netCDF
-            if r.status_code == 401 and sign_in(S): continue                                         # the service asks for the Earthdata login
-            if r.status_code in (400, 401, 403, 404): raise RuntimeError(f'{r.status_code} for {r.url[:160]} ' + ' -> '.join(h.url[:60] for h in r.history) + f' {r.text[:160]!r}')
+            if r.status_code == 401 and sign_in(S): continue
+            if r.status_code in (400, 401, 403, 404): raise RuntimeError(f'{r.status_code} for {r.url[:200]} {r.text[:200]!r}')
             if r.status_code == 200: raise RuntimeError(f'not a netCDF file from {r.url[:120]}: {r.text[:120]!r}')
         except RuntimeError: raise
         except Exception: pass
         time.sleep(5 * (k + 1))
-    raise RuntimeError(f'no answer for {var} {year} {box}')
+    raise RuntimeError(f'no answer from {url[-60:]}')
 
 
-def open_nc(b, var):
+def read_nc(b, names):
     import netCDF4
     with tempfile.NamedTemporaryFile(suffix='.nc', delete=False) as f: f.write(b); p = f.name
     try:
         with NCLOCK:
-            d = netCDF4.Dataset(p); a = d.variables[var][:]; lat = d.variables['lat'][:]; lon = d.variables['lon'][:]
-            a = np.ma.filled(a.astype('float32'), np.nan); lat = np.asarray(lat); lon = np.asarray(lon); d.close()
-        return a, lat, lon
+            d = netCDF4.Dataset(p); out = []
+            for n in names:
+                v = d.variables.get(n) if n in d.variables else next((d.variables[k] for k in d.variables if k.split('/')[-1] == n), None)
+                if v is None: raise RuntimeError(f'{n} missing from the answer ({list(d.variables)[:8]})')
+                out.append(np.ma.filled(v[:].astype('float64'), np.nan))
+            d.close()
+        return out
     finally:
         os.remove(p)
 
 
+def load_grid(S, year):
+    if GRID: return
+    x, y = read_nc(dap(S, URS[('prcp', year)], '/x;/y'), ['x', 'y']); GRID['x'], GRID['y'] = x, y
+    log(f'Daymet grid: {len(x)} columns, {len(y)} rows')
+
+
+def box_index(b):
+    """the rows and columns of Daymet's grid that cover a box of longitude and latitude"""
+    from pyproj import Transformer
+    w, s, e, n = b; t = np.linspace(0, 1, 11)
+    lo = np.concatenate([w + (e - w) * t, np.full(11, e), w + (e - w) * t, np.full(11, w)])
+    la = np.concatenate([np.full(11, s), s + (n - s) * t, np.full(11, n), s + (n - s) * t])
+    X, Y = Transformer.from_crs('EPSG:4326', LCC, always_xy=True).transform(lo, la)
+    ix = np.where((GRID['x'] >= min(X) - 1000) & (GRID['x'] <= max(X) + 1000))[0]
+    iy = np.where((GRID['y'] >= min(Y) - 1000) & (GRID['y'] <= max(Y) + 1000))[0]
+    return int(iy.min()), int(iy.max()), int(ix.min()), int(ix.max())
+
+
+def get(S, var, year, b, d0, d1, ll=False):
+    """days d0..d1 (0 = 1 January; Daymet years have 365 days) of one variable over a box; with ll, the pixels' latitude and longitude too"""
+    y0, y1, x0, x1 = box_index(b)
+    ce = f'/{var}[{d0}:1:{d1}][{y0}:1:{y1}][{x0}:1:{x1}]'
+    if ll: ce += f';/lat[{y0}:1:{y1}][{x0}:1:{x1}];/lon[{y0}:1:{y1}][{x0}:1:{x1}]'
+    return read_nc(dap(S, URS[(var, year)], ce), [var] + (['lat', 'lon'] if ll else []))
+
+
 def latest_year(S):
-    """the latest year with daily files: asks each year, newest first, for one day of a small box"""
-    tiny = (-77.8, 39.3, -77.7, 39.4)
+    """the latest year with daily files, newest first"""
     for y in range(date.today().year - 1, date.today().year - 6, -1):
+        find_files([y])
         try:
-            get(S, 'prcp', y, tiny, f'{y}-12-01T12:00:00Z', f'{y}-12-01T12:00:00Z', tries=2); log(f'Daymet has {y}'); return y
+            load_grid(S, y); get(S, 'prcp', y, (-77.8, 39.3, -77.7, 39.4), 334, 334); log(f'Daymet has {y}'); return y
         except Exception as ex:
-            log(f'  {y}: {str(ex)[:200]}')
-    raise SystemExit('Could not read Daymet from the ORNL DAAC THREDDS service (see the lines above).')
+            log(f'  {y}: {str(ex)[:300]}')
+    raise SystemExit('Could not read Daymet from NASA OPeNDAP (see the lines above).')
 
 
 def boxes(fp):
@@ -116,13 +172,12 @@ def one(S, year, b):
     """the yearly figures for one box: per pixel heavy-rain days, frost-free days, January low, July high (C) and 1 April snowpack (mm)"""
     p = os.path.join(CACHE, f'{year}_{b[0]}_{b[1]}.npz')
     if os.path.exists(p): return p
-    y = str(year)
-    pr, lat, lon = open_nc(get(S, 'prcp', year, b, y + '-01-01T12:00:00Z', y + '-12-31T12:00:00Z'), 'prcp')
-    tn, _, _ = open_nc(get(S, 'tmin', year, b, y + '-01-01T12:00:00Z', y + '-12-31T12:00:00Z'), 'tmin')
-    tx, _, _ = open_nc(get(S, 'tmax', year, b, y + '-07-01T12:00:00Z', y + '-07-31T12:00:00Z'), 'tmax')
-    sw, _, _ = open_nc(get(S, 'swe', year, b, y + '-04-01T12:00:00Z', y + '-04-01T12:00:00Z'), 'swe')
+    pr, lat, lon = get(S, 'prcp', year, b, 0, 364, ll=True)
+    tn, = get(S, 'tmin', year, b, 0, 364)
+    tx, = get(S, 'tmax', year, b, 181, 211)                         # July
+    sw, = get(S, 'swe', year, b, 90, 90)                            # 1 April
     heavy = np.sum(pr >= 25.4, 0).astype('float32'); heavy[np.isnan(pr).all(0)] = np.nan
-    frost = tn <= 0; dmid = 181                                     # Daymet years have 365 days; day 182 is 1 July
+    frost = tn <= 0; dmid = 181                                     # day 181 (from 0) is 1 July
     spring = frost[:dmid]; fall = frost[dmid:]
     last = np.where(spring.any(0), dmid - 1 - np.argmax(spring[::-1], 0), -1)
     firstf = np.where(fall.any(0), dmid + np.argmax(fall, 0), tn.shape[0])
@@ -137,6 +192,7 @@ def main():
     G = grids(); fp = footprint(G); S = session()
     y1 = latest_year(S); late = (y1 - SPAN + 1, y1)
     years = list(range(EARLY[0], EARLY[1] + 1)) + list(range(late[0], late[1] + 1))
+    find_files(years)
     bx = boxes(fp); log(f'Daymet through {y1}: periods {EARLY[0]}-{EARLY[1]} and {late[0]}-{late[1]}, {len(bx)} boxes, {len(years) * len(bx)} box-years')
     jobs = [(y, b) for y in years for b in bx]; done = 0; fails = []
     t0 = time.time()
