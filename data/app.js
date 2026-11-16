@@ -5050,8 +5050,10 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
       bar.style.top = Math.round(top) + 'px'; bar.style.left = Math.round(left) + 'px'; lvHead();
       /* desktop: the basemap drop-down runs out to the right end of the Map tools row above it */
       if (bsEl){ const r1 = $('#ctlrow1'), cb = $('#ctls'), wide = zr && zr.height && !document.body.classList.contains('stackui');
-        if (wide && r1 && r1.offsetWidth){ const want = Math.round(Math.max(r1.getBoundingClientRect().right, cb ? cb.getBoundingClientRect().right : 0) - bsEl.getBoundingClientRect().left);
-          bsEl.style.width = Math.max(170, want) + 'px'; } else bsEl.style.removeProperty('width'); }
+        if (wide && r1 && r1.offsetWidth){   /* the right edge of the last control showing in the row (the row's own box can run wider) */
+          const end = Math.max(0, ...[...r1.querySelectorAll('button, label, a, select, input')].filter(x => x.offsetParent && x.offsetWidth && getComputedStyle(x).visibility !== 'hidden').map(x => x.getBoundingClientRect().right)), ly = $('#layers'), lr = ly && ly.offsetParent ? ly.getBoundingClientRect().left - 8 : Infinity;
+          const want = Math.round(Math.min(end || r1.getBoundingClientRect().right, lr) - bsEl.getBoundingClientRect().left);
+          bsEl.style.width = Math.max(170, Math.min(want, 420)) + 'px'; } else bsEl.style.removeProperty('width'); }
       if (typeof phTickPos === 'function') phTickPos();
       document.documentElement.style.setProperty('--levb', Math.round(top + bar.offsetHeight + 18) + 'px'); };
     window.lvPlace = lvPlace; addEventListener('resize', () => setTimeout(lvPlace, 70)); setTimeout(lvPlace, 0); setTimeout(lvPlace, 700);
