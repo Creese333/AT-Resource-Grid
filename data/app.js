@@ -2705,16 +2705,29 @@ function naipUrl(lyr, c){ const ts = lyr.getTileSize(), m = lyr._map, crs = m.op
   const nw = crs.project(m.unproject(p0, c.z)), se = crs.project(m.unproject(p1, c.z));
   return (lyr.options.svc || NAIPX) + '?' + new URLSearchParams({bbox:[nw.x, se.y, se.x, nw.y].map(v => v.toFixed(2)).join(','), bboxSR:3857, imageSR:3857, size:Math.round(ts.x * NAIPDPR) + ',' + Math.round(ts.y * NAIPDPR),
     format:'jpg', compressionQuality:lyr.options.q || 92, interpolation:lyr.options.interp || 'RSP_BilinearInterpolation', f:'image'}); }
-const ImgLayer = L.TileLayer.extend({ getTileUrl(c){ return c.z >= this.options.naipFrom ? naipUrl(this, c) : L.Util.template(this._url, {z:c.z, x:c.x, y:c.y}); },
-  /* if the NAIP Plus service fails for a tile, that tile tries plain NAIP once */
-  createTile(c, done){ let alt = null; if (this.options.svc && c.z >= this.options.naipFrom){ const o = this.options.svc; this.options.svc = NAIPX; try { alt = naipUrl(this, c); } finally { this.options.svc = o; } }
-    const img = L.TileLayer.prototype.createTile.call(this, c, done); if (alt) img.addEventListener('error', () => { if (img.dataset.alt) return; img.dataset.alt = '1'; img.src = alt; });
+/* An imagery basemap is two layers drawn together. Underneath, the cached USGS imagery tiles: quick, kept by the browser, and always there.
+   On top, from zoom naipFrom in, the sharper picture the USGS image service draws on request. That service is slow and now and then fails,
+   so it is asked only once the map stops moving, for a quarter as many (larger) pictures, and each fades in over the cached imagery when it
+   arrives; a picture that fails is tried once more and otherwise the cached imagery simply stays. */
+const SharpLayer = L.TileLayer.extend({ getTileUrl(c){ return naipUrl(this, c); },
+  createTile(c, done){ let alt = null; if (this.options.svc){ const o = this.options.svc; this.options.svc = NAIPX; try { alt = naipUrl(this, c); } finally { this.options.svc = o; } }
+    const img = L.TileLayer.prototype.createTile.call(this, c, done); let n = 0;
+    img.addEventListener('error', () => { if (n++) return; const u = alt || img.src + '&r=1';   /* NAIP Plus falls back to plain NAIP; the others ask again */
+      setTimeout(() => { if (img.parentNode) img.src = u; }, alt ? 0 : 1500); });
     return img; } });
+const ImgLayer = L.LayerGroup.extend({
+  initialize(o){ L.LayerGroup.prototype.initialize.call(this);
+    this.under = L.tileLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, keepBuffer:3, updateWhenZooming:false, attribution:o.attribution});
+    this.sharp = new SharpLayer('', {svc:o.svc, interp:o.interp, q:o.q, minZoom:o.naipFrom, maxNativeZoom:18, tileSize:512, updateWhenIdle:true, updateWhenZooming:false, keepBuffer:1});
+    this.addLayer(this.under); this.addLayer(this.sharp); },
+  bringToBack(){ this.sharp.bringToBack(); this.under.bringToBack(); return this; },
+  /* with no signal only the cached imagery is drawn, from the tiles Save for offline keeps */
+  offline(off){ this.under.options.maxNativeZoom = off ? 14 : 16; if (off) this.removeLayer(this.sharp); else this.addLayer(this.sharp); if (this._map && this._map.hasLayer(this.under)) this.under.redraw(); } });
 const BASEDEF = [
   ['topo', 'USGS topo', L.tileLayer(TNM + 'USGSTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR, className:'muted-tiles'})],
-  ['hires', 'USGS imagery, highest resolution', new ImgLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {svc:NAIPPX, naipFrom:15, maxNativeZoom:19, interp:'RSP_CubicConvolution', q:94, updateWhenZooming:false, keepBuffer:3, attribution:NAIPPA}), 1],
-  ['naip', 'NAIP aerial (USDA)', new ImgLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {naipFrom:16, maxNativeZoom:18, updateWhenZooming:false, keepBuffer:3, attribution:NAIPA}), 1],
-  ['img', 'USGS imagery', new ImgLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {naipFrom:17, maxNativeZoom:18, updateWhenZooming:false, keepBuffer:3, attribution:ATTR}), 1],
+  ['hires', 'USGS imagery, highest resolution', new ImgLayer({svc:NAIPPX, naipFrom:15, interp:'RSP_CubicConvolution', q:94, attribution:NAIPPA}), 1],
+  ['naip', 'NAIP aerial (USDA)', new ImgLayer({naipFrom:16, attribution:NAIPA}), 1],
+  ['img', 'USGS imagery', new ImgLayer({naipFrom:17, attribution:ATTR}), 1],
   ['imgl', 'USGS imagery with labels', L.tileLayer(TNM + 'USGSImageryTopo/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR}), 1],
   ['relief', 'USGS shaded relief', L.tileLayer(TNM + 'USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR})],
   ['hydro', 'USGS hydrography', L.tileLayer(TNM + 'USGSHydroCached/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, attribution:ATTR})],
@@ -5125,8 +5138,7 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
   del.onclick = async () => { await caches.delete(OFFC); await caches.delete('atlive-1'); try { localStorage.removeItem(OKEY); } catch (e) {} st.textContent = 'The offline copy was removed.'; del.hidden = true; btn.textContent = 'Save for offline'; };
   offShow();
   /* with no signal, imagery layers stop asking for sharper images than the saved trail-level tiles, and stretch those instead */
-  const offBase = () => { const off = !navigator.onLine; BASEDEF.forEach(b => { const l = b[2]; if (!(l instanceof ImgLayer)) return; if (!l._o) l._o = {n:l.options.naipFrom, m:l.options.maxNativeZoom};
-      l.options.naipFrom = off ? 99 : l._o.n; l.options.maxNativeZoom = off ? 14 : l._o.m; if (map.hasLayer(l)) l.redraw(); }); };
+  const offBase = () => { const off = !navigator.onLine; BASEDEF.forEach(b => { const l = b[2]; if (l instanceof ImgLayer) l.offline(off); }); };
   addEventListener('online', offBase); addEventListener('offline', offBase); if (!navigator.onLine) offBase(); }
 
 /* the loading screen goes once the map is drawn */
