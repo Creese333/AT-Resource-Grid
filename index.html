@@ -941,6 +941,17 @@ body.stackui #find::placeholder{font-size:14px !important}
 #offdel{background:none;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
 #offbar{height:8px;border-radius:4px;background:#26384F;overflow:hidden;margin:10px 0 4px}#offbar i{display:block;height:100%;width:0;background:#3FB27F;transition:width .3s}
 #offstat{font-size:13px;color:var(--muted);min-height:1em}
+/* cell size: header shows the area; the list floats under the header, so opening it moves nothing */
+#levels.lvdock{width:248px !important;position:relative !important;height:auto}
+#levels.lvdock.open{border-radius:6px 6px 0 0}
+#levels.lvdock .lvh .lvac{color:var(--muted);font-weight:400}
+#levels.lvdock button:not(.lvh){display:flex !important;justify-content:space-between;gap:10px;text-align:left !important;padding:4px 10px !important;line-height:20px}
+#levels.lvdock:not(.open) button:not(.lvh){display:none !important}
+#levels.lvdock button:not(.lvh) .lvac{color:var(--muted);font-size:12px}
+#levels.lvdock button:not(.lvh)[aria-pressed=true] .lvac{color:inherit;opacity:.8}
+body.stackui #levels.lvdock{width:calc((100vw - 26px) / 2) !important;max-width:170px}
+body.stackui #levels.lvdock .lvh .lvac{display:none}
+body.stackui #levels.lvdock button:not(.lvh){padding:5px 10px !important}
 .tvwfor{margin:0 0 8px}
 #ctlrow2:not(:has(*)){display:none !important}   /* its controls moved beside the zoom buttons; an empty row would sit over them */
 /* loading screen: the blaze is painted white from the bottom up as the dashboard loads (--p from 0 to 1) */
