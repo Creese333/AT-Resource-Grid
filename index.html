@@ -276,6 +276,14 @@ button.tvapply:disabled{background:none;color:#8A97A6;border-color:#4A6182;curso
 #layerstog i{width:0;height:0;border:4.5px solid transparent;border-top:6px solid #C2CEDB;border-bottom:0;transition:transform .15s}
 #layerstog[aria-expanded=true] i{transform:rotate(180deg)}
 #layerstog:hover{background:var(--ground)}
+/* on a desktop screen the Map layers button and the locate button are a size easier to hit and read */
+@media (min-width:861px){
+  #layerstog{font-size:15px;gap:8px;padding:0 10px 0 11px;min-height:32px}
+  #layerstog i{border-width:5px;border-top-width:7px;border-bottom-width:0}
+  #layerstog b{font-size:13.5px;line-height:19px;padding:0 7px}
+  .leaflet-touch .locctl a,.locctl a{width:38px;height:38px;line-height:38px}
+  .locctl a svg{width:23px;height:23px}
+}
 #layerstog b{font-weight:600;color:var(--onlight);background:var(--ink);border-radius:9px;padding:0 6px;font-size:12.5px;line-height:17px}
 #layerspanel{position:absolute;top:calc(100% + 6px);left:-1px;width:250px;max-height:min(60vh,430px);overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.5);padding:6px 4px;color-scheme:dark}
 #layerspanel[hidden]{display:none}
