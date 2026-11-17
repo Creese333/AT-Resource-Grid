@@ -4883,23 +4883,26 @@ function elevLoad(){ const k = ELEVK(); ELEV = ELEVSRC.map(([m, f]) => [m * k, f
 const elevAt = mi => { if (!ELEV) return null; for (let i = 0; i < ELEV.length - 1; i++){ const [m0, f0] = ELEV[i], [m1, f1] = ELEV[i + 1]; if (mi <= m1) return f0 + (f1 - f0) * Math.max(0, (mi - m0) / (m1 - m0)); } return ELEV[ELEV.length - 1][1]; };
 /* the profile as an SVG area behind the bars (0 to 7,000 ft); with labels set, the landmarks, state lines and scale on top */
 /* label width in pixels, measured in the page font (the labels are 10px semibold) */
-let ELEVCTX = null;
-function elevTextW(t){ try { if (!ELEVCTX){ ELEVCTX = document.createElement('canvas').getContext('2d'); ELEVCTX.font = '600 10px ' + getComputedStyle(document.body).fontFamily; } return ELEVCTX.measureText(t).width; } catch (e){ return t.length * 5.6; } }
+let ELEVCTX = null, ELEVCTXK = 0;
+/* SBIG: the chart is being drawn at the desktop size, where the type is set larger to be read */
+let SBIG = false;
+const stxt = (big, small) => SBIG ? big : small;
+function elevTextW(t){ try { const f = stxt(12, 10); if (!ELEVCTX || ELEVCTXK !== f){ ELEVCTX = ELEVCTX || document.createElement('canvas').getContext('2d'); ELEVCTX.font = '600 ' + f + 'px ' + getComputedStyle(document.body).fontFamily; ELEVCTXK = f; } return ELEVCTX.measureText(t).width; } catch (e){ return t.length * .58 * stxt(12, 10); } }
 function elevSvg(pl, bw, top, base, W, pr, labels){ if (!ELEV) return ''; const pw = W - pl - pr, X = mi => pl + pw * mi / D.totalMi, Y = f => base - (base - top) * Math.min(1, Math.max(0, f) / 7000);
-  if (labels === true){ let g = [2000, 4000, 6000].map(f => `<text x="${pl + 3}" y="${(Y(f) + 3).toFixed(1)}" style="font-size:7px" fill="#9FB2C8" stroke="#142235" stroke-width="2" paint-order="stroke">${fmt(f, 0)} ft</text>`).join('');
+  if (labels === true){ let g = [2000, 4000, 6000].map(f => `<text x="${pl + 3}" y="${(Y(f) + 3).toFixed(1)}" style="font-size:${stxt(10, 7)}px" fill="#9FB2C8" stroke="#142235" stroke-width="2" paint-order="stroke">${fmt(f, 0)} ft</text>`).join('');
     const edges = [0, ...ELEVSTATES.map(s => s[0]), D.totalMi], names = [ELEVSTATES[0][1], ...ELEVSTATES.map(s => s[2])];
     ELEVSTATES.forEach(([mi]) => { const x = X(mi).toFixed(1); g += `<line x1="${x}" x2="${x}" y1="${top}" y2="${base}" stroke="#C9D6E3" stroke-opacity=".2" stroke-dasharray="2 3"/>`; });
     names.forEach((nm, i) => { const x0 = X(edges[i]), x1 = X(edges[i + 1]); if (x1 - x0 < 20) return;
-      g += `<text x="${((x0 + x1) / 2).toFixed(1)}" y="${base - 3}" text-anchor="middle" style="font-size:9px" font-weight="600" fill="#C9D6E3" stroke="#142235" stroke-width="2.2" paint-order="stroke">${nm}</text>`; });
+      g += `<text x="${((x0 + x1) / 2).toFixed(1)}" y="${base - stxt(5, 3)}" text-anchor="middle" style="font-size:${stxt(12, 9)}px" font-weight="600" fill="#C9D6E3" stroke="#142235" stroke-width="2.2" paint-order="stroke">${nm}</text>`; });
     if (top > 10){ const rows = [[], []], k = ELEVK(), placed = [];
       ELEVMARKS.filter(m => m[4] <= (pw > 1100 ? 14 : pw > 800 ? 10 : 6)).sort((a, b) => a[4] - b[4]).forEach(([fm, name, kind, ft]) => { const mi = fm * k, x = X(mi), txt = name + (ft ? ' ' + fmt(ft, 0) + '′' : ''), w = elevTextW(txt) + 8;
         const anc = x - w / 2 < pl ? 'start' : x + w / 2 > W - pr ? 'end' : 'middle', L0 = anc === 'start' ? x - 4 : anc === 'end' ? x - w + 4 : x - w / 2, R0 = L0 + w;
         const row = rows.findIndex(r => r.every(([a, b]) => R0 + 12 < a || L0 - 12 > b)); if (row < 0) return; rows[row].push([L0, R0]); placed.push([x, mi, kind, txt, anc, row]); });
-      placed.forEach(([x, mi, kind, txt, anc, row]) => { const ty = row ? top - 4 : top - 14, py = Y(elevAt(mi)), xs = x.toFixed(1);
+      placed.forEach(([x, mi, kind, txt, anc, row]) => { const ty = row ? top - stxt(6, 4) : top - stxt(22, 14), py = Y(elevAt(mi)), xs = x.toFixed(1);
         g += (kind === 's' ? `<path d="M${(x - 3.2).toFixed(1)},${(py + 2).toFixed(1)} L${xs},${(py - 3.5).toFixed(1)} L${(x + 3.2).toFixed(1)},${(py + 2).toFixed(1)} Z" fill="#fff" stroke="#142235" stroke-width=".8"/>`
                           : `<circle cx="${xs}" cy="${py.toFixed(1)}" r="2.3" fill="${kind === 'r' ? '#8EC5F0' : '#fff'}" stroke="#142235" stroke-width=".8"/>`) +
-          `<line x1="${xs}" x2="${xs}" y1="${ty + 2}" y2="${top}" stroke="#fff" stroke-opacity=".4"/>` +
-          `<text x="${xs}" y="${ty}" text-anchor="${anc}" style="font-size:10px" font-weight="600" fill="#fff" stroke="#142235" stroke-width="2.4" paint-order="stroke">${esc(txt).replace(/ ([\d,]+′)$/, '<tspan style="font-size:8px" font-weight="500" fill="#C9D6E3"> $1</tspan>')}</text>`; }); }
+          `<line x1="${xs}" x2="${xs}" y1="${ty + 2}" y2="${Math.max(top, py - 4).toFixed(1)}" stroke="#fff" stroke-opacity=".4"/>` +   /* down to its mark on the profile, so the two are read together */
+          `<text x="${xs}" y="${ty}" text-anchor="${anc}" style="font-size:${stxt(12, 10)}px" font-weight="600" fill="#fff" stroke="#142235" stroke-width="2.4" paint-order="stroke">${esc(txt).replace(/ ([\d,]+′)$/, `<tspan style="font-size:${stxt(10, 8)}px" font-weight="500" fill="#C9D6E3"> $1</tspan>`)}</text>`; }); }
     return g; }
   const P = ELEV.map(([mi, f]) => [X(mi), Y(f)]);
   let d = `M${pl},${base} L${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}`;
@@ -4913,11 +4916,12 @@ function elevSvg(pl, bw, top, base, W, pr, labels){ if (!ELEV) return ''; const 
   return g; }
 let stripLv = 'wheel';
 function strip(){ const m = S.m, lv = stripLv = dispLevel(), L_ = D.levels[lv], svg = $('#stripsvg');
-  const phone = document.body.classList.contains('stackui'); if (!phone && svg.style.height) svg.style.height = '';
+  const phone = document.body.classList.contains('stackui'); if (!phone) svg.style.height = '';   /* measure the height the page gives it */
   /* the chart is as tall as the page gives it (phones keep the short fixed chart). Below the baseline sits a band of
      44px for the region ticks and the Georgia and Maine labels, so the profile and the bars take the rest. */
   const W = svg.clientWidth || 800, H = phone ? 136 : Math.max(136, Math.round(svg.getBoundingClientRect().height) || 136);
-  const pl = 4, pr = 4, top = ELEV && W > 568 ? 36 : 6, base = H - 44, pw = W - pl - pr, bw = pw / NB;
+  SBIG = !phone;
+  const pl = 4, pr = 4, top = ELEV && W > 568 ? stxt(42, 36) : 6, base = H - stxt(48, 44), pw = W - pl - pr, bw = pw / NB;
   const bins = Array.from({length:NB}, () => ({v:[], clubs:new Map()}));
   for (let c = 0; c < L_.id.length; c++){ const b = bins[Math.min(NB-1, Math.floor(L_.mi[c] / BIN))]; const v = m.get(lv, c);
     b.clubs.set(L_.club[c], (b.clubs.get(L_.club[c]) || 0) + 1); if (m.stripCnt) b.all = (b.all || 0) + m.stripCnt(lv, c, true); if (v != null){ b.v.push(v); if (m.stripCnt) b.cnt = (b.cnt || 0) + m.stripCnt(lv, c); } }
@@ -4958,7 +4962,8 @@ function strip(){ const m = S.m, lv = stripLv = dispLevel(), L_ = D.levels[lv], 
   h += `<text class="end" x="${pl}" y="${H-4}">${wide ? 'Springer Mountain, Georgia' : 'Georgia'}</text><text class="end" x="${W-pr}" y="${H-4}" text-anchor="end">${wide ? 'Katahdin, Maine' : 'Maine'}</text>`;
   const endL = wide ? 215 : 70, endR = wide ? 135 : 55; /* room taken by the end labels */
   if (W > 620) [500,1000,1500].filter(mi => x(mi) - 32 > pl + endL && x(mi) + 32 < W - pr - endR).forEach(mi => { h += `<text x="${x(mi)}" y="${H-4}" text-anchor="middle">mile ${fmt(mi,0)}</text><line x1="${x(mi)}" x2="${x(mi)}" y1="${base}" y2="${base+4}" stroke="#71849B"/>`; });
-  svg.setAttribute('viewBox', `0 0 ${W} ${phone ? 94 : H}`); svg.style.height = phone ? '94px' : ''; svg.innerHTML = h;
+  /* the box is set to the height the drawing was made for, so the chart is never stretched or boxed in by blank bands */
+  svg.setAttribute('viewBox', `0 0 ${W} ${phone ? 94 : H}`); svg.style.height = (phone ? 94 : H) + 'px'; svg.innerHTML = h;
   svg._geo = {pl, pw, bw};
   $('#striptitle').textContent = `${m.label}, south to north (${LV[lv].name} cells)`;
   $('#stripread').textContent = 'Click to go there';
