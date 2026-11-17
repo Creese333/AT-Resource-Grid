@@ -2817,7 +2817,7 @@ function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
   const want = S.level === 'auto' ? autoLevel() : S.level, note = $('#note');
   if (want !== lv){ note.style.display = 'block'; note.textContent = 'Unique species ratings are shown at 7 and 49 sq mi, not for single square miles.'; } else note.style.display = 'none';
   document.querySelectorAll('#levels button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.lv === S.level);
-    if (b.dataset.lv === 'auto') b.textContent = (S.level === 'auto' && VW() > 860) ? 'Auto: ' + LV[lv].name : 'Auto'; });
+    if (b.dataset.lv === 'auto') b.innerHTML = `<span class="lvn">Auto</span><span class="lvac">fits the zoom</span>`; });   /* the header shows which size Auto picked */
   if (!S.m.find && document.activeElement !== $('#find')) $('#find').value = '';
   corrSync(lv); legend(); side(); refreshProfile(); pinSync(); }
 function redraw(){ draw(); strip(); writeHash(); }
@@ -2925,7 +2925,7 @@ $('#jerrybtn').addEventListener('click', jerryAsk);
 { let k = null; try { k = sessionStorage.getItem('jerrykey'); } catch (e) {} if (k) nrpzUnlock(k).then(z => nrpzOpen(z, false)).catch(() => { try { sessionStorage.removeItem('jerrykey'); } catch (e) {} }); }
 { let ct; map.on('moveend', () => { clearTimeout(ct); ct = setTimeout(cultVizRefresh, 150); }); }
 
-$('#levels').innerHTML = '<button type="button" class="lvh" aria-expanded="false"><span class="lvt">Cell size</span><i aria-hidden="true"></i></button>' + [['auto','Auto',''],['wheel','49',' sq mi'],['cog','7',' sq mi'],['hex','1',' sq mi']].map(x => `<button type="button" data-lv="${x[0]}">${x[1]}<span class="u">${x[2]}</span></button>`).join('');
+$('#levels').innerHTML = '<button type="button" class="lvh" aria-expanded="false"><span class="lvt">Cell size</span><i aria-hidden="true"></i></button>' + [['auto','Auto','',' fits the zoom'],['wheel','49',' sq mi',' 31,360 ac'],['cog','7',' sq mi',' 4,480 ac'],['hex','1',' sq mi',' 640 ac']].map(x => `<button type="button" data-lv="${x[0]}"><span class="lvn">${x[1]}<span class="u">${x[2]}</span></span><span class="lvac">${x[3]}</span></button>`).join('');
 $('#levels').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.classList.contains('lvh')){ const o = !$('#levels').classList.contains('open'); $('#levels').classList.toggle('open', o); b.setAttribute('aria-expanded', o); return; } S.level = b.dataset.lv; $('#levels').classList.remove('open'); $('#levels .lvh').setAttribute('aria-expanded', 'false'); redraw(); });
 const mbLogo = L.control({position:'bottomright'});
 mbLogo.onAdd = () => { const a = L.DomUtil.create('a', 'mblogo'); a.href = 'https://www.mapbox.com/'; a.target = '_blank'; a.rel = 'noopener'; a.setAttribute('aria-label', 'Mapbox homepage'); return a; };
@@ -5047,33 +5047,42 @@ if (S.pendingExt === 'huc' && EXTQ.includes(S.q.id) && !EXTNO.includes(S.q.id)) 
       rows.forEach(r => { if (r.hidden || !r.offsetHeight) return; r.style.setProperty('max-width', (w.width - 20) + 'px', 'important'); r.style.setProperty('width', 'max-content', 'important'); r.style.setProperty('flex-wrap', 'wrap', 'important'); r.style.setProperty('justify-content', 'flex-start', 'important');
         const rw = r.offsetWidth, x = Math.max(w.left + 10, Math.min(br.left, w.right - 10 - rw)); r.style.setProperty('left', (x - cr.left) + 'px', 'important'); r.style.setProperty('top', y + 'px', 'important'); y += r.offsetHeight + 6; }); }
     { const r1 = $('#ctlrow1'); let h1 = 0, w1 = 0; if (r1 && window.ResizeObserver) new ResizeObserver(() => { if (r1.offsetHeight !== h1){ h1 = r1.offsetHeight; ctlAcross(document.body.classList.contains('stackui')); }
-      if (r1.offsetWidth !== w1){ w1 = r1.offsetWidth; if (window.lvPlace) window.lvPlace(); } }).observe(r1); }
+      if (r1.offsetWidth !== w1){ w1 = r1.offsetWidth; } }).observe(r1); }
     /* cell size and basemap: two drop-downs of the same size side by side, beside the zoom-out button (phones: under the top row) */
     const lvEl = $('#levels'), bsEl = $('#base'), bar = document.createElement('div'); bar.id = 'lvbar'; wrap.appendChild(bar);
     if (lvEl){ bar.appendChild(lvEl); lvEl.classList.add('lvdock'); } if (bsEl){ bar.appendChild(bsEl); bsEl.classList.add('bsdock'); }
     const lvHead = () => { const t = $('#levels .lvt'); if (!t) return; const lv = typeof dispLevel === 'function' ? dispLevel() : null, nm = {wheel:'49', cog:'7', hex:'1'}[lv] || '';
-      t.textContent = (S.level === 'auto' ? 'Auto' + (nm ? ' · ' + nm : '') : nm) + ' sq mi'; };
+      const ac = {wheel:'31,360', cog:'4,480', hex:'640'}[lv] || '';   /* acres in one cell: 640 per square mile */
+      t.innerHTML = esc((S.level === 'auto' ? 'Auto' + (nm ? ' · ' + nm : '') : nm) + ' sq mi') + (ac ? `<span class="lvac"> · ${ac} ac</span>` : ''); };
     window.lvHead = lvHead; { const r1 = redraw; redraw = function(){ r1(); lvHead(); }; } map.on('zoomend', () => setTimeout(lvHead, 0));
     const lvPlace = () => { const w = wrap.getBoundingClientRect(), z = document.querySelector('.leaflet-control-zoom'), zr = z && z.offsetParent ? z.getBoundingClientRect() : null;
       let top, left; if (zr && zr.height){ const mi = z.querySelector('.leaflet-control-zoom-out'), mr = mi ? mi.getBoundingClientRect() : zr;   /* beside the zoom-out button */
-        top = mr.top - w.top + (mr.height - bar.offsetHeight) / 2; left = zr.right - w.left + 8; }
+        const tb = $('#tools'), tbr = tb && tb.offsetParent ? tb.getBoundingClientRect() : null;   /* left edge lined up with the Map tools box above */
+        top = mr.top - w.top + (mr.height - barH()) / 2; left = (tbr ? tbr.left : zr.right + 8) - w.left; }
       else { const sec = $('#section'), sr = sec && sec.offsetParent ? sec.getBoundingClientRect() : null; top = (sr ? sr.bottom - w.top : 50) + 8; left = 10; }
       bar.style.top = Math.round(top) + 'px'; bar.style.left = Math.round(left) + 'px'; lvHead();
-      /* desktop: the basemap drop-down runs out to the right end of the Map tools row above it */
-      if (bsEl){ const r1 = $('#ctlrow1'), cb = $('#ctls'), wide = zr && zr.height && !document.body.classList.contains('stackui');
-        if (wide && r1 && r1.offsetWidth){   /* the right edge of the last control showing in the row (the row's own box can run wider) */
-          const end = Math.max(0, ...[...r1.querySelectorAll('button, label, a, select, input')].filter(x => x.offsetParent && x.offsetWidth && getComputedStyle(x).visibility !== 'hidden').map(x => x.getBoundingClientRect().right)), ly = $('#layers'), lr = ly && ly.offsetParent ? ly.getBoundingClientRect().left - 8 : Infinity;
-          const want = Math.round(Math.min(end || r1.getBoundingClientRect().right, lr) - bsEl.getBoundingClientRect().left);
-          bsEl.style.width = Math.max(170, Math.min(want, 420)) + 'px'; } else bsEl.style.removeProperty('width'); }
+      justify(zr && zr.height && !document.body.classList.contains('stackui'));
       if (typeof phTickPos === 'function') phTickPos();
-      document.documentElement.style.setProperty('--levb', Math.round(top + bar.offsetHeight + 18) + 'px'); };
+      document.documentElement.style.setProperty('--levb', Math.round(top + barH() + 18) + 'px'); };
+    /* the bar's closed height: the Cells and Basemap boxes, without the open list */
+    function barH(){ const h = lvEl && lvEl.querySelector('.lvh'), a = h ? h.offsetHeight + 8 : 0, b = bsEl ? bsEl.offsetHeight : 0; return Math.max(a, b, 33); }
+    /* one right edge for the two control bars (desktop). The Map tools box is sized for its open state with "Clear selection"
+       showing, so opening, closing or selecting changes nothing; Basemap fills the Cells + Basemap bar out to the same edge. */
+    function toolsMaxW(){ const tl = $('#tools'); if (!tl) return 0; const hid = [...tl.querySelectorAll('[hidden]')], mw = tl.style.minWidth;
+      tl.style.minWidth = ''; hid.forEach(x => { x.hidden = false; }); const w = tl.getBoundingClientRect().width; hid.forEach(x => { x.hidden = true; }); tl.style.minWidth = mw; return w; }
+    function justify(wide){ const tl = $('#tools');
+      if (!wide || !tl || !bsEl || !lvEl){ if (tl) tl.style.removeProperty('min-width'); if (bsEl) bsEl.style.removeProperty('width'); return; }
+      const tr = tl.getBoundingClientRect(), lr = lvEl.getBoundingClientRect(), ly = $('#layers'), cap = ly && ly.offsetParent ? ly.getBoundingClientRect().left - 10 : Infinity;
+      const edge = Math.min(cap, Math.max(tr.left + toolsMaxW(), lr.right + 6 + 190));
+      tl.style.minWidth = Math.max(0, Math.round(edge - tr.left)) + 'px';
+      bsEl.style.width = Math.max(150, Math.round(edge - (lr.right + 6))) + 'px'; }
     window.lvPlace = lvPlace; addEventListener('resize', () => setTimeout(lvPlace, 70)); setTimeout(lvPlace, 0); setTimeout(lvPlace, 700);
-    if (window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--levb', Math.round(bar.offsetTop + bar.offsetHeight + 18) + 'px')).observe(bar);
+    /* (the bar's offset for the legend is set by lvPlace from its closed height, so opening the list moves nothing) */
     document.addEventListener('click', e => { if (lvEl && lvEl.classList.contains('open') && !e.target.closest('#levels')){ lvEl.classList.remove('open'); $('#levels .lvh').setAttribute('aria-expanded', 'false'); } });
     window.layersPlace = place;
     ly.addEventListener('click', e => { if (!e.target.closest('#layerstog')) return; const pn = $('#layerspanel'); if (document.body.classList.contains('stackui')) pn.style.top = Math.round(ly.getBoundingClientRect().bottom + 6) + 'px'; else pn.style.top = ''; });
     addEventListener('resize', () => setTimeout(place, 60)); addEventListener('load', () => setTimeout(place, 50)); setTimeout(place, 0); setTimeout(place, 600);
-    const pr = $('#profile'); if (pr) new MutationObserver(() => setTimeout(place, 30)).observe(pr, {attributes:true, attributeFilter:['class']});
+    const pr = $('#profile'); if (pr) new MutationObserver(() => { setTimeout(place, 30); setTimeout(() => window.lvPlace && window.lvPlace(), 60); }).observe(pr, {attributes:true, attributeFilter:['class']});
     new MutationObserver(() => setTimeout(place, 30)).observe(document.body, {attributes:true, attributeFilter:['class']});
     document.addEventListener('click', e => { const p = $('#layerspanel'); if (p && !p.hidden && !e.target.closest('#layers')){ p.hidden = true; $('#layerstog').setAttribute('aria-expanded', 'false'); } }); } }
 
