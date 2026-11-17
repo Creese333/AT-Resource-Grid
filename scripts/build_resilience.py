@@ -146,24 +146,47 @@ def gdb_rasters(g):
     if not subs:                                          # some packages need the raster named outright
         raw = gdal('gdalinfo', g)
         subs = re.findall(r'SUBDATASET_\d+_NAME=(\S+)', raw or '')
-        if not subs:
-            log('      no subdatasets; gdalinfo said: ' + ' | '.join((raw or '').strip().splitlines()[:4])[:300])
+    if not subs and j.get('size'):                        # a package holding one raster opens as that raster
+        log(f'      opens as a single raster, {j.get("size")}')
+        subs = [g]
     return subs
 
 
 def gdb_tables(g):
     """every table in a file geodatabase, the hidden ones included (a raster's value table is one of those)"""
-    out = gdal('ogrinfo', '-ro', '-so', '-oo', 'LIST_ALL_TABLES=YES', g)
-    return [m.group(1) for m in re.finditer(r'^\s*\d+:\s*([^\s(]+)', out or '', re.M)]
+    for args in (('-json', '-oo', 'LIST_ALL_TABLES=YES'), ('-json',), ('-ro', '-so', '-oo', 'LIST_ALL_TABLES=YES'), ('-ro', '-so')):
+        out = gdal('ogrinfo', *args, g)
+        if not out: continue
+        if '-json' in args:
+            try:
+                j = json.loads(out)
+                names = [l.get('name', '') for l in (j.get('layers') or [])] or \
+                        [l.get('name', '') for l in (j.get('layerNames') or []) if isinstance(l, dict)] or \
+                        [l for l in (j.get('layerNames') or []) if isinstance(l, str)]
+                if names: return [n for n in names if n]
+            except Exception:
+                pass
+        else:
+            names = [m.group(1) for m in re.finditer(r'^\s*\d+:\s*([^\s(]+)', out, re.M)]
+            if names: return names
+    log('      could not list the tables; ogrinfo said: ' + ' | '.join((gdal('ogrinfo', '-ro', g) or '(nothing)').strip().splitlines()[:4])[:300])
+    return []
 
 
 def read_vat(g, raster, tmp):
     """{pixel value: class name} from the raster's value table, which is where the network's classes are named"""
     tabs = gdb_tables(g)
+    log(f'    {len(tabs)} tables in the package: ' + ', '.join(tabs[:30]))
     short = raster.strip('"').rsplit(':', 1)[-1]
-    pick = [t for t in tabs if 'vat' in t.lower() and short.lower() in t.lower()] or \
-           [t for t in tabs if 'vat' in t.lower()] or [t for t in tabs if short.lower() in t.lower()]
-    for t in pick:
+    seen, pick = set(), []
+    for group in ([t for t in tabs if 'vat' in t.lower() and short.lower() in t.lower()],
+                  [t for t in tabs if 'vat' in t.lower()],
+                  [t for t in tabs if short.lower() in t.lower()],
+                  [t for t in tabs if re.search(r'rcn|desc|class|lut|legend', t, re.I)],
+                  tabs):
+        for t in group:
+            if t not in seen: seen.add(t); pick.append(t)
+    for t in pick[:14]:
         csv = os.path.join(tmp, 'vat.csv')
         if os.path.exists(csv): os.remove(csv)
         gdal('ogr2ogr', '-f', 'CSV', csv, g, t, '-oo', 'LIST_ALL_TABLES=YES')
@@ -188,16 +211,36 @@ def read_vat(g, raster, tmp):
     return {}
 
 
+def find_rat(node):
+    """the value table wherever gdalinfo puts it: at the top, on the band, or deeper"""
+    if isinstance(node, dict):
+        if 'row' in node and ('fieldDefn' in node or 'fieldDefn'.lower() in {k.lower() for k in node}):
+            return node
+        for v in node.values():
+            got = find_rat(v)
+            if got: return got
+    elif isinstance(node, list):
+        for v in node:
+            got = find_rat(v)
+            if got: return got
+    return None
+
+
 def read_info(src):
     j = json.loads(gdal('gdalinfo', '-json', src) or '{}')
     gt = j.get('geoTransform'); size = j.get('size')
     crs = (j.get('coordinateSystem', {}) or {}).get('wkt', '')
     rat = {}
-    for b in j.get('bands', []) or []:
-        for row in ((b.get('rat', {}) or {}).get('row', []) or []):
-            vals = row.get('f', [])
-            if len(vals) >= 2:
-                try: rat[int(vals[0])] = str(vals[-1])
+    t = find_rat(j) or {}
+    cols = [f.get('name', '') for f in (t.get('fieldDefn') or [])]
+    if cols:
+        vi = next((i for i, c in enumerate(cols) if c.lower() in ('value', 'val')), 0)
+        ti = next((i for i, c in enumerate(cols) if re.search(r'desc|class|name|label|type', c, re.I)), None)
+        log(f'    value table on the raster: columns {cols}')
+        for row in (t.get('row') or []):
+            f = row.get('f', [])
+            if ti is not None and len(f) > max(vi, ti):
+                try: rat[int(float(f[vi]))] = str(f[ti]).strip()
                 except Exception: pass
     return gt, size, crs, rat, j
 
@@ -396,8 +439,12 @@ def main():
                 hit = next((s for s, n in rs if s not in taken and pat.search(n)), None)
                 if not hit: log(f'  {field}: nothing in the package matches'); continue
                 taken.add(hit); log(f'  {field}: {hit.rsplit(":", 1)[-1]}')
-                gt, size, crs, rat, _ = read_info(hit)
+                gt, size, crs, rat, j = read_info(hit)
                 if not (gt and size and crs): log('    could not be read'); continue
+                bt = ((j.get('bands') or [{}])[0] or {}).get('type', '?')
+                if not str(bt).lower().startswith('float'):   # a score is continuous; anything else is a class raster
+                    log(f'    {bt} values' + (f', {len(rat)} named classes' if rat else '') + ': this is not a score layer, left out')
+                    continue
                 got = score_layer(field, hit, gt, size, crs, fp, tmp, None)
                 v = [x for x in got['corr']['wheel'][field] if x is not None]
                 log(f'    {len(v)} of {len(GRIDS["corr"]["wheel"])} corridor cells, values {min(v):.2f} to {max(v):.2f}' if v else '    no values landed in the cells')
