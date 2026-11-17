@@ -2700,6 +2700,34 @@ const NAIPX = 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImag
 const NAIPPX = 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage';
 const NAIPPA = 'Imagery: USGS NAIP Plus (NAIP and high resolution orthoimagery) via <a href="https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer" target="_blank" rel="noopener">USGS The National Map</a>';
 const NAIPA = 'Imagery: USDA NAIP via <a href="https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer" target="_blank" rel="noopener">USGS The National Map</a>';
+/* Basemap tiles come from map services that drop requests when too many arrive at once, and Leaflet leaves a hole where a
+   tile fails. So every tile waits its turn (a few at a time for each service) and a tile that fails is asked for again, a
+   little later each time; holes close themselves instead of staying for as long as the map is open. */
+const TILEQ = {}, TILEMAX = {'basemap.nationalmap.gov':10, 'imagery.nationalmap.gov':4}, TILETRY = 4;
+function tileQueue(host){ return TILEQ[host] || (TILEQ[host] = {n:0, wait:[], max:TILEMAX[host] || 8}); }
+function tilePump(q){ while (q.n < q.max && q.wait.length){ q.n++; q.wait.shift()(); } }
+function tileSlot(host, fn){ const q = tileQueue(host); q.wait.push(fn); tilePump(q); }
+function tileFree(host){ const q = tileQueue(host); if (q.n > 0) q.n--; tilePump(q); }
+{ const create = L.TileLayer.prototype.createTile;
+  L.TileLayer.prototype.createTile = function(c, done){
+    const img = create.call(this, c, done), url = img.src, lyr = this;
+    if (!/^https?:/.test(url)) return img;
+    let host; try { host = new URL(url).hostname; } catch (e){ return img; }
+    img.removeAttribute('src');                                  /* held back until this service has a slot free */
+    let n = 0, holds = false;
+    const free = () => { if (!holds) return; holds = false; tileFree(host); };
+    const go = () => { holds = true;
+      if (n && !img.parentNode){ free(); return; }                /* the map moved on: the tile is gone */
+      const u = (n && lyr.altTile ? lyr.altTile(c, n) : null) || url;
+      img.src = n ? u + (u.indexOf('?') < 0 ? '?' : '&') + 'again=' + n : u;
+      setTimeout(free, 25000); };                                /* a request that never answers stops holding the slot */
+    img.addEventListener('load', free);
+    img.addEventListener('error', () => { free();
+      if (n + 1 >= TILETRY || !lyr._map || !img.parentNode) return;
+      n++; setTimeout(() => tileSlot(host, go), 500 * n * (.7 + Math.random() * .6)); });
+    tileSlot(host, go);
+    return img; }; }
+
 const NAIPDPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
 function naipUrl(lyr, c){ const ts = lyr.getTileSize(), m = lyr._map, crs = m.options.crs, p0 = c.scaleBy(ts), p1 = p0.add(ts);
   const nw = crs.project(m.unproject(p0, c.z)), se = crs.project(m.unproject(p1, c.z));
@@ -2710,11 +2738,9 @@ function naipUrl(lyr, c){ const ts = lyr.getTileSize(), m = lyr._map, crs = m.op
    so it is asked only once the map stops moving, for a quarter as many (larger) pictures, and each fades in over the cached imagery when it
    arrives; a picture that fails is tried once more and otherwise the cached imagery simply stays. */
 const SharpLayer = L.TileLayer.extend({ getTileUrl(c){ return naipUrl(this, c); },
-  createTile(c, done){ let alt = null; if (this.options.svc){ const o = this.options.svc; this.options.svc = NAIPX; try { alt = naipUrl(this, c); } finally { this.options.svc = o; } }
-    const img = L.TileLayer.prototype.createTile.call(this, c, done); let n = 0;
-    img.addEventListener('error', () => { if (n++) return; const u = alt || img.src + '&r=1';   /* NAIP Plus falls back to plain NAIP; the others ask again */
-      setTimeout(() => { if (img.parentNode) img.src = u; }, alt ? 0 : 1500); });
-    return img; } });
+  /* a picture NAIP Plus could not draw is asked of plain NAIP instead */
+  altTile(c){ if (!this.options.svc) return null; const o = this.options.svc; this.options.svc = NAIPX;
+    try { return naipUrl(this, c); } finally { this.options.svc = o; } } });
 const ImgLayer = L.LayerGroup.extend({
   initialize(o){ L.LayerGroup.prototype.initialize.call(this);
     this.under = L.tileLayer(TNM + 'USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:16, keepBuffer:3, updateWhenZooming:false, attribution:o.attribution});
