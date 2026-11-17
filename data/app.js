@@ -1421,18 +1421,18 @@ function wxAnimOn(){ return S.q.id === 'wx' && !!S.m.wxAnim && !S.m.find; }
 function wxCtl(){ const m = S.m; if (!m.wxAnim) return '';
   if (m.wxAnim === 'mon'){ if (!wxHasList(dispLevel(), m.wxMonF)) return '';
     return `<div id="wxctl"><div class="acqctl"><button type="button" class="phplay" data-wxplay="1" aria-pressed="${!!wxTimer}">${wxTimer ? 'Pause' : 'Play months'}</button>` +
-      `<span class="wxnow">${S.wxMon != null ? 'Showing <b>' + MONTHS_LONG[S.wxMon] + '</b>' : 'Showing the <b>whole year</b>'}</span></div>` +
+      `<span class="wxnow">${S.wxMon != null ? 'Showing <b id="wxnowl">' + MONTHS_LONG[S.wxMon] + '</b>' : 'Showing the <b id="wxnowl">whole year</b>'}</span></div>` +
       `<div class="wxmon" role="group" aria-label="Month"><button type="button" data-wxall="1" aria-pressed="${S.wxMon == null}">All year</button>` +
       wxMonths.map((n, i) => `<button type="button" data-wxm="${i}" aria-pressed="${S.wxMon === i}" title="${MONTHS_LONG[i]}">${n}</button>`).join('') + '</div></div>'; }
   const ys = wxYears(); if (!ys) return '';
   return `<div id="wxctl"><div class="acqctl"><button type="button" class="phplay" data-wxplay="1" aria-pressed="${!!wxTimer}">${wxTimer ? 'Pause' : 'Play years'}</button>` +
-    `<span class="wxnow">${S.wxYr ? 'Showing <b>' + S.wxYr + '</b>' : 'Showing the <b>average year</b>'}</span></div>` +
+    `<span class="wxnow">${S.wxYr ? 'Showing <b id="wxnowl">' + S.wxYr + '</b>' : 'Showing the <b id="wxnowl">average year</b>'}</span></div>` +
     `<div class="wxyrs"><button type="button" data-wxall="1" aria-pressed="${!S.wxYr}">Average</button>` +
     `<label class="wxsl${S.wxYr ? '' : ' off'}"><span>${ys[0]}</span><input type="range" id="wxyr" min="${ys[0]}" max="${ys[1]}" step="1" value="${S.wxYr || ys[1]}" aria-label="Pick a year"><span>${ys[1]}</span></label></div>` +
     `<p class="phstat" style="margin-top:2px">${S.wxYr ? 'Drag the slider or tap a column to change the year; tap Average to go back.' : 'Drag the slider or tap a column to show one year.'}</p></div>`; }
 function wxCtlRefresh(){ const c = $('#wxctl'); if (c) c.outerHTML = wxCtl(); }
 function wxFrame(full, keepCtl){ if (!keepCtl) wxCtlRefresh(); else { const t = document.querySelector('#wxctl .wxnow'), sl = document.querySelector('#wxctl .wxsl'), av = document.querySelector('#wxctl [data-wxall]');
-    if (t) t.innerHTML = S.m.wxAnim === 'mon' ? (S.wxMon != null ? 'Showing <b>' + MONTHS_LONG[S.wxMon] + '</b>' : 'Showing the <b>whole year</b>') : (S.wxYr ? 'Showing <b>' + S.wxYr + '</b>' : 'Showing the <b>average year</b>');
+    if (t) t.innerHTML = S.m.wxAnim === 'mon' ? (S.wxMon != null ? 'Showing <b id="wxnowl">' + MONTHS_LONG[S.wxMon] + '</b>' : 'Showing the <b id="wxnowl">whole year</b>') : (S.wxYr ? 'Showing <b id="wxnowl">' + S.wxYr + '</b>' : 'Showing the <b id="wxnowl">average year</b>');
     if (sl) sl.classList.toggle('off', !S.wxYr); if (av) av.setAttribute('aria-pressed', String(S.m.wxAnim === 'mon' ? S.wxMon == null : !S.wxYr)); }
   BRK.clear(); restyle(); strip(); legend(); phTick(); qVizRefresh(); if (full) side(); }
 function wxReset(){ if (wxTimer){ clearInterval(wxTimer); wxTimer = null; } S.wxMon = null; S.wxYr = null; }
@@ -3428,14 +3428,16 @@ function keepPlace(el, sels, fn){ const t0 = el && el.isConnected ? el.getBoundi
 /* a question or measure with its own choices (species, years, scale) opens the Selections block */
 const hasSel = () => PHQ() || (S.q.id === 'inv' && S.m.id === 'edrr') || (S.q.id === 'land' && S.m.id === 'acq');
 /* questions with an animation (Play), in the list; and whether the one on screen has one now */
-const QANIM = new Set(['mig', 'phen', 'pest', 'inv', 'cult', 'land', 'fcond']);
-const PLAYQ = () => !S.m.find && (S.q.id === 'mig' || (S.q.id === 'land' && S.m.id === 'acq') || (typeof PHQ === 'function' && PHQ()) || (typeof dlAnimOn === 'function' && dlAnimOn()));
+const QANIM = new Set(['mig', 'phen', 'pest', 'inv', 'cult', 'land', 'fcond', 'wx', 'eff']);
+const PLAYQ = () => !S.m.find && (S.q.id === 'mig' || (S.q.id === 'land' && S.m.id === 'acq') || (typeof PHQ === 'function' && PHQ()) || (typeof dlAnimOn === 'function' && dlAnimOn())
+  || (typeof wxAnimOn === 'function' && wxAnimOn()) || (S.q.id === 'eff' && S.m.id === 'od' && typeof visYears === 'function' && !!visYears()));
 /* Play on the map, bottom left, for whatever animation is on screen; it presses the panel's own Play, so both stay in step */
-function mapPlay(){ let b = $('#mapplay'); const src = $('#migplay') || $('#phplay') || $('[data-acqplay]') || $('[data-dlplay]');
+const playSrc = () => $('#migplay') || $('#phplay') || $('[data-acqplay]') || $('[data-dlplay]') || $('[data-wxplay]') || $('[data-visplay]');
+function mapPlay(){ let b = $('#mapplay'); const src = playSrc();
   if (!b){ b = document.createElement('button'); b.type = 'button'; b.id = 'mapplay'; b.className = 'mapctl'; b.innerHTML = '<i aria-hidden="true">▶</i><span></span>';
-    b.onclick = () => { const r = $('#migplay') || $('#phplay') || $('[data-acqplay]') || $('[data-dlplay]'); if (r) r.click(); setTimeout(mapPlay, 60); }; if (window.L && L.DomEvent) L.DomEvent.disableClickPropagation(b); $('#mapwrap').append(b); }
+    b.onclick = () => { const r = playSrc(); if (r) r.click(); setTimeout(mapPlay, 60); }; if (window.L && L.DomEvent) L.DomEvent.disableClickPropagation(b); $('#mapwrap').append(b); }
   const on = !!src && PLAYQ(); b.hidden = !on; document.body.classList.toggle('hasplay', on); if (!on) return;
-  const pl = /pause/i.test(src.textContent), lab = ($('#migwkl') || $('#phwkl') || $('#acqyl') || $('#dlml') || {textContent:''}).textContent.split(' · ')[0];
+  const pl = /pause/i.test(src.textContent), lab = ($('#migwkl') || $('#phwkl') || $('#acqyl') || $('#dlml') || $('#wxnowl') || $('#visyl') || {textContent:''}).textContent.split(' · ')[0];
   const ic = pl ? '❚❚' : '▶'; if (b.firstChild.textContent !== ic) b.firstChild.textContent = ic; if (b.lastChild.textContent !== lab) b.lastChild.textContent = lab; b.classList.toggle('nolab', !lab);
   b.setAttribute('aria-label', (pl ? 'Pause' : 'Play') + ' the animation'); }
 if (window.MutationObserver) new MutationObserver(() => { clearTimeout(mapPlay.t); mapPlay.t = setTimeout(mapPlay, 30); }).observe($('#side'), {subtree:true, childList:true, characterData:true});
@@ -3543,14 +3545,14 @@ document.addEventListener('keydown', e => { if (HOWK < 0) return; if (e.key === 
   addEventListener('resize', () => { if (HOWK >= 0) howDraw(); });
   /* once, on a first visit (not when a link opens a tour) */
   setTimeout(() => { let seen = 0; try { seen = store.get('howseen', 0); } catch (e) {} if (!seen && !/tour=/.test(location.hash) && !(typeof TOUR !== 'undefined' && TOUR.id)) howStart(); }, 2200); }
-const EXTHUCQ = new Set(['inv', 'pest']);   /* questions that open on the HUC10 watershed cells */
+const EXTHUCQ = new Set(['inv', 'pest', 'wx']);   /* questions that open on the HUC10 watershed cells */
 function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
   segSync();
   if (S.lastQ !== q.id){ S.lastQ = q.id; if (EXTHUCQ.has(q.id)){ if (S.ext !== 'huc'){ S.extAuto = true; setTimeout(() => setExt('huc'), 0); } } else if (S.extAuto){ S.extAuto = false; if (S.ext === 'huc') setTimeout(() => setExt('corr'), 0); } } el.style.minHeight = S.keepH && S.keepH.q === q.id ? S.keepH.h + 'px' : '';
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
   const SUMH = S.m.find ? '' : summary(lv), ANS = {h:'', used:''};
   let h = `<section class="qhead" style="--hue:${q.hue}"><div class="qcrumb">${S.m.find ? 'Search' : 'Guiding question' + (QGRP[q.id] ? ' · ' + esc(QGRP[q.id]) : '')}</div><div class="qtitle"><h2>${S.m.find ? 'Search results' : esc(q.title)}</h2><button type="button" class="blktog qchange" data-blk="qs" aria-expanded="${!!S.side.qs}" aria-controls="qpick">All questions<i aria-hidden="true"></i></button></div>` +
-    '' + '<div class="qquick" id="qquick"></div>' + ANS.h + (typeof QTOUR !== 'undefined' && typeof TOURS !== 'undefined' && QTOUR[q.id] && !S.m.find && TOURS[QTOUR[q.id]] ? `<button type="button" class="qtour qtstart" data-tour="${QTOUR[q.id]}"><b>Take the ${esc(QTOUR[q.id])} tour</b> · ${TOURS[QTOUR[q.id]].steps.length} stops<span>Start</span></button>` : '') +
+    (PLAYQ() ? '<span class="qanim qanimh" title="This measure has an animation: press Play">\u25B6 Animated</span>' : '') + '<div class="qquick" id="qquick"></div>' + ANS.h + (typeof QTOUR !== 'undefined' && typeof TOURS !== 'undefined' && QTOUR[q.id] && !S.m.find && TOURS[QTOUR[q.id]] ? `<button type="button" class="qtour qtstart" data-tour="${QTOUR[q.id]}"><b>Take the ${esc(QTOUR[q.id])} tour</b> · ${TOURS[QTOUR[q.id]].steps.length} stops<span>Start</span></button>` : '') +
     `<div class="qpick" id="qpick"${S.side.qs ? '' : ' hidden'}><div class="qph"><b>Choose a question</b><button type="button" class="blktog qpx" data-blk="qs" aria-label="Close the question list">×</button></div><input class="qfilt" type="search" placeholder="Filter questions…" aria-label="Filter questions" autocomplete="off"><p class="qstart"><b>Start here:</b> pick a question to see its answer on the map. Not sure where to begin? <button type="button" class="qhow" data-howto="1">Show me how</button> · or try the <button type="button" class="qtour qtlink" data-tour="grassland">grassland tour</button>.</p>` +
     `<nav class="qs" aria-label="Guiding questions">` + Q.filter(qVis).map((x, i, a) => { const g = QGRP[x.id], off = g && QGOFF.has(g), cur = x === q && !S.m.find; return (g && (!i || QGRP[a[i - 1].id] !== g) ? `<button type="button" class="qgrp" data-qg="${esc(g)}" aria-expanded="${!off}"><span>${esc(g)}</span><i aria-hidden="true"></i></button>` : '') + (`<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${cur}"${off && !cur ? ' hidden data-folded="1"' : ''}>${esc(x.title)}${QANIM.has(x.id) ? '<span class="qanim" title="This question has an animation">▶ Animated</span>' : ''}${typeof QTOUR !== 'undefined' && QTOUR[x.id] ? `<span class="qtour" role="button" tabindex="0" data-tour="${QTOUR[x.id]}" title="Take a guided tour"><svg class="qnew" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>Tour<span class="vh"> (new)</span></span>` : ''}</button>`); }).join('') + '</nav></div></section>' +
     '<nav class="ptabs" aria-label="Open in the panel">' + [['show', 'Measures'], ['res', 'Results'], ['charts', 'Charts'], ['prof', 'Profile'], ['about', 'About'], ['cell', 'Cell']].map(([k, t]) => `<button type="button" data-ptab="${k}" aria-pressed="${PTAB === k}">${t}</button>`).join('') + '</nav>';
