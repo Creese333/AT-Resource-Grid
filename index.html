@@ -276,14 +276,7 @@ button.tvapply:disabled{background:none;color:#8A97A6;border-color:#4A6182;curso
 #layerstog i{width:0;height:0;border:4.5px solid transparent;border-top:6px solid #C2CEDB;border-bottom:0;transition:transform .15s}
 #layerstog[aria-expanded=true] i{transform:rotate(180deg)}
 #layerstog:hover{background:var(--ground)}
-/* on a desktop screen the Map layers button and the locate button are a size easier to hit and read */
-@media (min-width:861px){
-  #layerstog{font-size:15px;gap:8px;padding:0 10px 0 11px;min-height:32px}
-  #layerstog i{border-width:5px;border-top-width:7px;border-bottom-width:0}
-  #layerstog b{font-size:13.5px;line-height:19px;padding:0 7px}
-  .leaflet-touch .locctl a,.locctl a{width:38px;height:38px;line-height:38px}
-  .locctl a svg{width:23px;height:23px}
-}
+
 #layerstog b{font-weight:600;color:var(--onlight);background:var(--ink);border-radius:9px;padding:0 6px;font-size:12.5px;line-height:17px}
 #layerspanel{position:absolute;top:calc(100% + 6px);left:-1px;width:250px;max-height:min(60vh,430px);overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.5);padding:6px 4px;color-scheme:dark}
 #layerspanel[hidden]{display:none}
@@ -970,6 +963,42 @@ body.stackui #levels.lvdock button:not(.lvh){padding:5px 10px !important}
 #splash .spblaze i{background:rgba(255,255,255,.14)}
 #splash .spblaze b{background:#fff;-webkit-clip-path:inset(calc(100% - var(--p) * 100%) 0 0 0);clip-path:inset(calc(100% - var(--p) * 100%) 0 0 0);transition:-webkit-clip-path .45s ease-out,clip-path .45s ease-out}
 @media (prefers-reduced-motion: reduce){#splash .spblaze b{transition:none}}
+
+/* On a desktop screen every map control is one size: the Map tools row, the Cells and Basemap bar, Map layers, and the
+   zoom and locate buttons. The two bars and Map layers stand 40px tall with 15px type; the square buttons are 38px, which
+   square, the same 40. The plus button sits against the Map tools row and the minus against the Cells and Basemap bar,
+   with one 6px gap throughout; the wider zoom buttons move the bars' left edge over to keep the gap beside them. */
+@media (min-width:1100px){
+  #ctls{left:56px}
+  #ctlrow1,#ctlrow2{min-height:40px}
+  #ctlrow1>.mapctl,#ctlrow2>.mapctl{height:40px}
+  #tools{min-height:40px}
+  #toolstog{font-size:15px;gap:8px;padding:0 10px 0 11px}
+  #toolstog i{border-width:5px;border-left-width:7px;border-right-width:0}
+  #toolsbody{padding-left:6px;margin-left:4px}
+  #toolsbody button{font-size:15px;padding:0 11px;line-height:24px;gap:7px}
+  #cellsbtn i{width:12px;height:12px}
+  /* the header reads "Auto · 49 sq mi · 31,360 ac", which needs more room at this size; the box keeps one width so the
+     Basemap box beside it does not move when the cell size changes */
+  #levels.lvdock{width:288px !important}
+  #levels.lvdock .lvh{font-size:15px;padding:4px 10px;line-height:24px}
+  #levels.lvdock .lvh i,#layerstog i{border-width:5px;border-top-width:7px;border-bottom-width:0}
+  #levels.lvdock button:not(.lvh){font-size:15px;padding:5px 10px !important;line-height:22px}
+  #levels.lvdock button:not(.lvh) .lvac{font-size:13px}
+  #base.bsdock{min-height:40px !important;padding:3px 7px 3px 10px}
+  #base.bsdock,#base.bsdock select{font-size:15px}
+  #base.bsdock select{line-height:24px}
+  #layerstog{font-size:15px;gap:8px;padding:0 10px 0 11px;min-height:32px}
+  #layerstog b{font-size:13.5px;line-height:19px;padding:0 7px}
+  /* the locate button sits in a bordered box, so 38 inside makes its box 40 like the rest; Map layers follows that box */
+  .leaflet-touch .locctl a,.locctl a{width:38px;height:38px;line-height:38px}
+  .locctl a svg{width:23px;height:23px}
+  /* the two zoom buttons part, so the plus sits against the Map tools row and the minus against the Cells and Basemap
+     bar, with the same gap between them as between the two rows */
+  .leaflet-control-zoom{display:flex;flex-direction:column;gap:6px;border:0 !important;box-shadow:none !important;background:none}
+  .leaflet-control-zoom a,.leaflet-touch .leaflet-control-zoom a,.leaflet-control-zoom a:first-child{width:40px;height:40px;line-height:38px;font-size:23px;
+    border:1px solid var(--line) !important;border-radius:6px !important;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+}
 </style>
 </head>
 <body>
