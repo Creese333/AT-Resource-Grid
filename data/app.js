@@ -2347,7 +2347,7 @@ RAMP.fcond = ['#F7E9D4','#EDC28F','#DB8F55','#B85A2C','#7A2E14'];
 RAMP.tall = ['#E4EFD9','#B7D79A','#7FB765','#46903F','#1E5E2A'];
 RAMP.doy = ['#1E6B3A','#5E9E4F','#B4CF7A','#E6D58E','#C9974E'];
 const DIVRAMP = ['#2F64A0','#9DBCE0','#ECE7D8','#F3B37E','#B13B2C'];
-const NASAF = [['dist','canopy_loss','Canopy loss'],['gedi','forest_structure','Forest height and biomass'],['lsp','green_up','Green-up and leaf-off'],['dym','climate_change','Climate change since 1980']];
+const NASAF = [['dist','canopy_loss','Canopy loss'],['gedi','forest_structure','Forest height and biomass'],['lsp','green_up','Green-up and leaf-off'],['dym','climate_change','Climate change since 1980'],['res','resilience','Climate resilience']];
 const NASA = {}, NASAMETA = {};
 NASAF.forEach(([th, f]) => fetch('data/' + f + '.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ NASA[th] = j; NASAMETA[th] = j.meta || {}; if (S.ext === 'corr'){ nasaApply(); BRK.clear(); redraw(); if (typeof side === 'function') side(); } } }).catch(() => {}));
 function nasaApply(){ let any = false; for (const th in NASA){ const j = NASA[th]; if (j.done || S.ext !== 'corr') continue; j.done = true; D.themes[th] = thConv(j, th, D.levels); any = true; } if (any) extIndex(); }
@@ -2400,7 +2400,8 @@ function floorM(o, lo){ o.stripH = v => Math.max(.001, v - lo); return o; }
 const FCCITE = {dist:['OPERA Land Surface Disturbance Alert, Version 1 (NASA JPL OPERA, LP DAAC); tree cover from ESA WorldCover 2021', ''],
   gedi:['GEDI L3 Gridded Land Surface Metrics V2 and L4B Gridded Aboveground Biomass V2.1 (Dubayah et al., ORNL DAAC)', 'https://doi.org/10.3334/ORNLDAAC/1952'],
   lsp:['MODIS Land Cover Dynamics, MCD12Q2 Version 6.1 (Friedl, Gray and Sulla-Menashe, LP DAAC)', 'https://doi.org/10.5067/MODIS/MCD12Q2.061'],
-  dym:['Daymet Version 4 R1, daily 1 km (Thornton et al., ORNL DAAC)', 'https://doi.org/10.3334/ORNLDAAC/2129']};
+  dym:['Daymet Version 4 R1, daily 1 km (Thornton et al., ORNL DAAC)', 'https://doi.org/10.3334/ORNLDAAC/2129'],
+  res:['Resilient and Connected Network, The Nature Conservancy, Center for Resilient Conservation Science (Anderson and others, 2023)', 'https://doi.org/10.1073/pnas.2204434119']};
 /* a measure from one of these files: its source under the legend, "not built yet" until the file is there, and the legend in its own units
    (getters such as label and note stay live, so the object is filled in place) */
 function nasaM(th, o){ o.th = th; o.cite = FCCITE[th][0]; if (FCCITE[th][1]) o.citeUrl = FCCITE[th][1];
@@ -2536,12 +2537,49 @@ function dymBox(lv, cells){ const ci = cells.filter(c => has('dym', lv, c)); if 
     `</div><p class="none" style="font-size:13.5px;margin-top:8px">${m.late ? `${m.early[0]}–${m.early[1]} averages, then ${m.late[0]}–${m.late[1]}` : 'Early and recent 20-year averages'}, from Daymet (1 km daily, ORNL DAAC).</p></div>`; }
 const dymSection = (lv, c) => dymBox(lv, [c]);
 
+/* ---------- climate resilience ----------
+   The Resilient and Connected Network (The Nature Conservancy's Center for Resilient Conservation Science, 2024; a 30 m
+   map of the lower 48): the share of each cell's ground in the network, and in each of the network's classes. Built on
+   GitHub (build_resilience.py); cells matched by grid ID. The file names its own classes, so the page reads the names
+   from its meta and adds up whichever ones are there rather than holding a list that could fall out of step. */
+HUE.res = '#2E6F8E'; RAMP.res = ['#EAF1F5','#BFD8E4','#8ABACE','#4D93B1','#1C6184'];
+const RESCLS = () => (NASAMETA.res || {}).classes || {};
+const resNum = nm => { const m = /^(\d+)\s/.exec(nm || ''); return m ? +m[1] : null; };   /* TNC numbers the network's classes 10 to 93 */
+const resName = nm => (nm || '').replace(/^\d+\s+/, '');
+function resSum(lv, c, test){ const C = RESCLS(); let s = null;
+  for (const k in C){ if (!test(C[k], resNum(C[k]))) continue; const v = val('res', k, lv, c); if (v != null) s = (s || 0) + v; }
+  return s; }
+const resFlow = (nm, n) => n != null && n >= 10 && n <= 80;          /* resilient ground with climate flow through it */
+const resSecure = (nm, n) => n === 91 || n === 92;                   /* resilient ground already in conservation */
+const resOut = nm => /^resilient,? not in network$/i.test(nm || '');
+Q.push(
+ {id:'res', th:'res', hue:HUE.res, ramp:'res', title:'How well could this land hold up to a changing climate?',
+  use:'The Nature Conservancy\u2019s Resilient and Connected Network: the land their Center for Resilient Conservation Science picked out as most able to keep supporting species as the climate shifts, and the corridors that join it together. A place earns its way in on physical grounds \u2014 varied terrain, soils and elevation, and few roads or developments in the way \u2014 so that plants and animals can move and find the conditions they need without leaving. Cells here carry the share of their ground in the network and in each of its classes. Use it to see which stretches of the corridor already sit inside the network, where resilient land next door is still outside it, and how much of what is in the network is already protected. A national screening map at 30 m, not a site assessment.',
+  m:[nasaM('res', {id:'net', f:'RES_NET', label:'In the Resilient and Connected Network', unit:'%', d:0, zero:1, zeroText:'None of the cell', noneText:'Outside the mapped area',
+       note:'Share of the cell\u2019s ground inside the Resilient and Connected Network, counting every class of it. The network covers about a third of the country; along the A.T. it covers much more, because mountain land is varied and little developed.'}),
+     nasaM('res', {id:'flow', label:'Resilient and connected', unit:'%', d:0, zero:1, zeroText:'None of the cell', noneText:'Outside the mapped area', fn:(lv,c) => resSum(lv, c, resFlow),
+       note:'Share of the cell that is both resilient and carries climate flow \u2014 the network\u2019s core, where species moving in response to a changing climate have room to pass through. TNC\u2019s classes 10 through 80.'}),
+     nasaM('res', {id:'sec', label:'Resilient, already secured', unit:'%', d:0, zero:1, zeroText:'None of the cell', noneText:'Outside the mapped area', fn:(lv,c) => resSum(lv, c, resSecure),
+       note:'Share of the cell that is resilient land already held for conservation (TNC\u2019s secured classes 91 and 92). What is left of the network in a cell is the part that is not yet secured.'}),
+     nasaM('res', {id:'outside', label:'Resilient but outside the network', unit:'%', d:0, zero:1, zeroText:'None of the cell', noneText:'Outside the mapped area', fn:(lv,c) => resSum(lv, c, resOut),
+       note:'Share of the cell that scored as resilient but was not taken into the network, usually because the network already represents that kind of place nearby. Land to look at when the aim is to widen or join up what is there.'})]});
+function resBox(lv, cells){ const ci = cells.filter(c => has('res', lv, c)); if (!ci.length) return '';
+  const C = RESCLS(), avg = f => { const a = ci.map(c => val('res', f, lv, c)).filter(x => x != null); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : null; };
+  const net = avg('RES_NET');
+  const rows = Object.keys(C).map(k => [C[k], avg(k)]).filter(r => r[1] != null && r[1] >= .05).sort((a, b) => b[1] - a[1]);
+  if (net == null && !rows.length) return '';
+  return `<div class="sec" style="--hue:${HUE.res}"><h3>Climate resilience</h3><div class="facts">` +
+    (net == null ? '' : `<div><b>${fmt(net, 0)}%</b>in the Resilient and Connected Network</div>`) +
+    rows.map(r => `<div><b>${fmt(r[1], 1)}%</b>${esc(resName(r[0]))}</div>`).join('') +
+    `</div><p class="none" style="font-size:13.5px;margin-top:8px">The Nature Conservancy\u2019s Resilient and Connected Network, 2024 (30 m). Shares are of the cell\u2019s ground.</p></div>`; }
+const resSection = (lv, c) => resBox(lv, [c]);
+
 const QGRP = {rest:'Priorities', tvul:'Priorities', pri:'Priorities', inv:'Threats', pest:'Threats', fcond:'Threats', pinv:'Threats', veg:'Plants and wildlife', bird:'Plants and wildlife', mig:'Plants and wildlife',
-  phen:'Plants and wildlife', rec:'Plants and wildlife', geo:'Land, water and climate', soil:'Land, water and climate', wet:'Land, water and climate', wx:'Land, water and climate',
+  phen:'Plants and wildlife', rec:'Plants and wildlife', geo:'Land, water and climate', soil:'Land, water and climate', wet:'Land, water and climate', wx:'Land, water and climate', res:'Land, water and climate',
   hist:'Cultural resources', cult:'Cultural resources', feat:'Stewardship', eff:'Plants and wildlife', land:'Stewardship'};
 const QGOFF = new Set();   // folded question groups (filled from this browser's settings below)
 const qVis = x => x.id !== 'pri' || JERRY;
-{ const ord = ['rest','tvul','pri','feat','land','inv','fcond','pest','pinv','veg','bird','mig','phen','rec','eff','geo','soil','wet','wx','hist','cult']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','tvul','pri','feat','land','inv','fcond','pest','pinv','veg','bird','mig','phen','rec','eff','geo','soil','wet','wx','res','hist','cult']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
@@ -2810,8 +2848,8 @@ document.getElementById('map').addEventListener('click', e => { if (e.target.clo
 
 let shown = null;
 function autoLevel(){ const z = map.getZoom(); return z >= 10.5 ? 'hex' : z >= 8.5 ? 'cog' : 'wheel'; }
-function dispLevel(){ let lv = S.level === 'auto' ? autoLevel() : S.level;
-  if (!D.themes[S.m.th][lv] && Object.keys(D.themes[S.m.th]).length) lv = 'cog'; return lv; }   /* a layer not built yet keeps the chosen size */
+function dispLevel(){ let lv = S.level === 'auto' ? autoLevel() : S.level; const t = D.themes[S.m.th];
+  if (t && !t[lv] && Object.keys(t).length) lv = 'cog'; return lv; }   /* a layer not built yet, or still loading, keeps the chosen size */
 /* Cell fill thins out as you zoom in: full strength up to zoom 9, down to 40% opacity (60% transparent) at the closest zoom. */
 const FADE_FROM = 9, FADE_TO = 15, FILL_FAR = .86, FILL_NEAR = .4;
 function zoomFade(){ const k = Math.max(0, Math.min(1, (map.getZoom() - FADE_FROM) / (FADE_TO - FADE_FROM))); return (FILL_FAR - k * (FILL_FAR - FILL_NEAR)) / FILL_FAR; }
@@ -2865,7 +2903,7 @@ function redraw(){ draw(); strip(); writeHash(); }
    for soils and wetlands only. Those cells are in soils_wetlands_huc10.json beside this page and load the first time they are asked for.
    Switching swaps the grid and the soils data under the page, so the map, rankings, strip, selection and export all follow.
    Choosing another question, or searching for a species, switches back to the corridor. */
-const EXTFILE = 'data/soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest','fcond','pinv','cult','geo','wx','tvul'];
+const EXTFILE = 'data/soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest','fcond','pinv','cult','geo','wx','tvul','res'];
 const SOILCATS = ['VULN_DOM','SOIL_SERIES','SOIL_TEXTURE','SOIL_ORDER','SOIL_DRAIN','SOIL_HSG','SOIL_FARM','SOIL_ECOSITE','SOIL_MAPUNIT','WET_DOM','WET_LDOM'];
 let extLoading = null;
 function extSnapshot(){ const cats = {}; SOILCATS.forEach(k => { if (D.cats[k]) cats[k] = D.cats[k]; });
@@ -3859,7 +3897,7 @@ function profile(){ setTimeout(cultVizRefresh); if (S.box) return profileBox(); 
   let b = '';
   if (S.ext === 'huc'){ const note = S.q.id === 'hist' ? `${inCorr(lv, c) ? 'This cell is in the A.T. corridor grid.' : 'Outside the A.T. corridor grid, in the HUC10 shell.'} Switch the extent to A.T. corridor to see the corridor's other layers.`
       : (inCorr(lv, c) ? 'This cell is in the A.T. corridor grid. ' : 'Outside the A.T. corridor grid, in the HUC10 shell. ') + HUCONLY;
-    b = recSection(lv, c) + invSection(lv, c) + cultSection(lv, c) + birdSection(lv, c) + visSection(lv, c) + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c)) + geoSection(lv, c) + tvSection(lv, c) + wxSection(lv, c) + dymSection(lv, c) + fhrSection(lv, c) + fcSection(lv, c) + histSection(lv, c) + phSection(lv, c);
+    b = recSection(lv, c) + invSection(lv, c) + cultSection(lv, c) + birdSection(lv, c) + visSection(lv, c) + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c)) + geoSection(lv, c) + tvSection(lv, c) + wxSection(lv, c) + dymSection(lv, c) + resSection(lv, c) + fhrSection(lv, c) + fcSection(lv, c) + histSection(lv, c) + phSection(lv, c);
     finishProfile(`<p class="none" style="font-size:13.5px;margin:0 0 10px">${note}</p>` + b); inatLive([ring(lv, c)], L_.id[c]); return; }
   profileCorr(lv, c, false); }
 /* run fn with the A.T. corridor cells and layers in place (while the HUC10 extent is on), then put the watershed cells back.
@@ -3905,7 +3943,7 @@ function profileCorr(lv, c, fromHuc){ const L_ = D.levels[lv], par = parentOf(lv
   } else b += `<p class="none">No rare species priority zone ${viaParent ? 'in the surrounding 7 sq mi cell' : 'in this cell'}.</p>`;
   b += '</div>'; if (!JERRY) b = b.slice(0, jStart);
   b += S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c);
-  b += geoSection(lv, c) + tvSection(lv, c) + wxSection(lv, c) + dymSection(lv, c) + fhrSection(lv, c) + fcSection(lv, c);
+  b += geoSection(lv, c) + tvSection(lv, c) + wxSection(lv, c) + dymSection(lv, c) + resSection(lv, c) + fhrSection(lv, c) + fcSection(lv, c);
   b += featSection(lv, c);
   b += histSection(lv, c);
   b += phSection(lv, c);
@@ -4179,11 +4217,11 @@ function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerC
 /* records of a species in one cell once its full load is done; null before that */
 function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'done' ? st.counts[lv].get(c) || 0 : null; }
 /* panel sections follow the order of the questions; each question opens its own sections (survey effort has none of its own) */
-const QSEC = {geo:['geo'], wx:['wx','dym'], tvul:['tvul'], fcond:['fcond','fhr','tfall'], cult:['cult'], rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], mig:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:['vis'], land:['lands'], phen:['phen'], pest:['phen']};
+const QSEC = {geo:['geo'], wx:['wx','dym'], res:['res'], tvul:['tvul'], fcond:['fcond','fhr','tfall'], cult:['cult'], rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], mig:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:['vis'], land:['lands'], phen:['phen'], pest:['phen']};
 /* which question each popup section and export table belongs to; its place in the list of questions orders them, its color colors them */
 const SECQ = {'Restoration targets':'rest', 'Invasive species':'inv', 'Priority invasives':'pinv', 'iNaturalist Records':'rec', 'Forest pests':'pest', 'Flowering':'phen',
   'Plants of cultural significance':'cult', 'Birds':'bird', 'Unique species':'pri', 'Vegetation':'veg', 'Geology':'geo', 'Soils':'soil', 'Wetlands':'wet',
-  'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Citizen science observers':'eff', 'Land administrators':'land', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'Tree fall vulnerability':'fcond', 'Forest health risk':'fcond', 'Forest condition':'fcond', 'Climate change since 1980':'wx'};
+  'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Citizen science observers':'eff', 'Land administrators':'land', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'Tree fall vulnerability':'fcond', 'Forest health risk':'fcond', 'Forest condition':'fcond', 'Climate change since 1980':'wx', 'Climate resilience':'res'};
 const qRank = id => { const i = Q.findIndex(q => q.id === id); return i < 0 ? 98 : i; };
 const secRank = title => title === 'Cell by cell' ? -1 : SECQ[title] ? qRank(SECQ[title]) : 99;
 const secHue = title => { const q = Q.find(x => x.id === SECQ[title]); return q ? q.hue : null; };
@@ -4209,7 +4247,7 @@ function finishProfile(html){ $('#pbody').innerHTML = html;
       const rank = el => secRank((el.querySelector('h3') || {}).textContent);
       secs.map((el, i) => [rank(el), i, el]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([, , el]) => par.insertBefore(el, anchor)); anchor.remove(); } }
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
-  const SECKEY = {'Forest health risk':'fhr', 'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'Tree fall vulnerability':'tfall', 'Forest condition':'fcond', 'Climate change since 1980':'dym', 'iNaturalist Records':'live', 'Birds':'ebird', 'Citizen science observers':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Historic resources':'hist', 'Land administrators':'lands'};
+  const SECKEY = {'Forest health risk':'fhr', 'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'Tree fall vulnerability':'tfall', 'Forest condition':'fcond', 'Climate change since 1980':'dym', 'Climate resilience':'res', 'iNaturalist Records':'live', 'Birds':'ebird', 'Citizen science observers':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Historic resources':'hist', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent, hue = secHue(h.textContent); if (hue) sec.style.setProperty('--hue', hue);
     const open = key in S.secOpen ? S.secOpen[key] : S.m.find ? key === S.m.th : (QSEC[S.q.id] || []).includes(key);
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
