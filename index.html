@@ -401,10 +401,16 @@ details.gd .spp{margin:3px 0 8px;padding-left:12px}
 #stripread{font-size:13px;color:#D0DAE5;min-height:1.45em;text-align:right;flex:1 1 300px}
 /* the trail profile takes a share of the window's height, so a tall screen gets a taller profile and a short one
    keeps the map's room; the chart reads this height and draws to it */
-#stripsvg{display:block;width:100%;height:clamp(150px,22vh,220px);cursor:crosshair;touch-action:pan-y}
+#stripsvg{display:block;width:100%;height:clamp(170px,22vh,230px);cursor:crosshair;touch-action:pan-y}
 #stripsvg text{font-family:var(--body);font-size:13px;fill:#A8B8CA}
 #stripsvg .end{font-family:var(--cond);font-size:14px;font-weight:600;fill:#fff;letter-spacing:.01em}
 #stripsvg .reg{fill:#EEF3F8;font-size:13.5px;font-weight:500}
+/* the chart has room on a desktop screen, so its type is set to be read */
+@media (min-width:861px){
+  #stripsvg text{font-size:14.5px}
+  #stripsvg .end{font-size:16px}
+  #stripsvg .reg{fill:#EEF3F8;font-size:15.5px}
+}
 
 /* dialog */
 dialog{background:var(--panel);color-scheme:dark;border:1px solid var(--line);border-radius:8px;padding:0;max-width:640px;width:calc(100% - 32px);color:var(--ink);box-shadow:0 10px 40px rgba(20,41,74,.35)}
