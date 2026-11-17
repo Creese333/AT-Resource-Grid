@@ -5,8 +5,10 @@
    in a separate store, OFF, which survives updates to this file.
    v5: saved copies are looked up by exact address in the two stores that hold them (a search that ignores ?query text reads
    every saved tile, which made opening slow once the trail's imagery was saved), and "updated" compares the files' contents:
-   every publish gives all files a new date and tag, even when they have not changed. */
-const VER = 'atgrid-v5';
+   every publish gives all files a new date and tag, even when they have not changed.
+   v6: basemap tiles are left to the browser unless Save for offline has been used; when it has, the offline store is opened once
+   and kept open instead of being opened again for every tile. */
+const VER = 'atgrid-v6';
 const OFF = 'atoffline-1';          /* filled by Save for offline; never cleared here */
 const LIVE = 'atlive-1';            /* last copy of the trail line, mile points and point layers (shelters, campsites...) */
 const SHELL = ['./', 'index.html', 'data/app.js', 'data/inat.js', 'data/grid.json', 'manifest.webmanifest', 'images/icon-192.png', 'images/icon-512.png'];
@@ -29,6 +31,17 @@ const keep = (name, r, res) => { if (res && (res.ok || res.type === 'opaque')) {
 let told = false;
 const tellPages = msg => { if (told) return; told = true; setTimeout(() => { told = false; }, 30000);
   return self.clients.matchAll({type: 'window'}).then(cs => cs.forEach(c => c.postMessage(msg))); };
+
+/* the offline store, opened once and looked at again every 20 s (Save for offline and its removal happen in the page).
+   offStore() is null when there is no store, so tiles need not pass through here at all. */
+let offOpen = Promise.resolve(undefined), offHas, offAt = 0;
+function offStore() {
+  if (Date.now() - offAt > 20000) { offAt = Date.now();
+    const p = caches.has(OFF).then(h => { offHas = h; return h ? caches.open(OFF) : undefined; }).catch(() => undefined);
+    if (offHas === undefined) offOpen = p; else p.then(c => { offOpen = Promise.resolve(c); }); }
+  return offHas === false ? null : offOpen;
+}
+offStore();
 
 /* the saved copy of an address: this version's store first, then the offline store (exact address, no scan) */
 async function savedCopy(key) {
@@ -78,7 +91,8 @@ self.addEventListener('fetch', e => {
 
   /* imagery tiles: a saved tile is used straight away; others come from the network */
   if (u.hostname === TILEHOST && u.pathname.includes('/tile/')) {
-    e.respondWith(caches.open(OFF).then(c => c.match(r.url)).then(m => m || fetch(r)));
+    if (offStore() === null) return;   /* nothing saved: the browser fetches and keeps the tile itself */
+    e.respondWith(offOpen.then(c => c ? c.match(r.url) : undefined).then(m => m || fetch(r)).catch(() => fetch(r)));
     return;
   }
 
