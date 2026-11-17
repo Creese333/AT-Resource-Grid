@@ -47,11 +47,11 @@ LOOK = ['https://crcs.tnc.org/api/feed/dcat-us/1.1.json',
         'https://www.conservationgateway.org/ConservationByGeography/NorthAmerica/UnitedStates/edc/reportsdata/terrestrial/resilience/Pages/Downloads.aspx']
 WANT = re.compile(r'resilien|connected|landscape[_ -]?diversity|local[_ -]?connect|climate[_ -]?flow', re.I)
 FILE = re.compile(r'https?://[^\s"\'<>)]+\.(?:zip|tif|tiff|gdb|7z)\b', re.I)
-# which component a file name belongs to, in the order tried
-PARTS = [('RES_SCORE', re.compile(r'resilien(ce|t)[_ -]?(score|z|strat|setting)|^resil', re.I)),
-         ('RES_DIV', re.compile(r'landscape[_ -]?diversity|land[_ -]?div', re.I)),
-         ('RES_CONN', re.compile(r'local[_ -]?connect|connectedness', re.I)),
-         ('RES_FLOW', re.compile(r'climate[_ -]?flow|flow[_ -]?zone', re.I))]
+# which layer a raster's name belongs to; the narrow patterns are tried first so "resilience" does not swallow the rest
+PARTS = [('RES_DIV', re.compile(r'landscape[_ -]?div|land[_ -]?div|^ld$|_ld$', re.I)),
+         ('RES_CONN', re.compile(r'local[_ -]?connect|connectedness|^lc$|_lc$', re.I)),
+         ('RES_FLOW', re.compile(r'climate[_ -]?flow|flow[_ -]?zone|^flow|_flow', re.I)),
+         ('RES_SCORE', re.compile(r'resilien', re.I))]
 
 
 def http(url, stream=False):
@@ -127,26 +127,65 @@ def rasters_in(path):
         for d in list(dirs):
             if d.lower().endswith('.gdb'):
                 dirs.remove(d); g = os.path.join(root, d)
-                info = gdal('gdalinfo', '-json', g)
-                try:
-                    j = json.loads(info or '{}')
-                except Exception:
-                    j = {}
-                subs = [s.get('name', '') for s in (j.get('metadata', {}).get('SUBDATASETS', {}) or {}).values() if isinstance(s, str) is False]
-                for k, v in (j.get('metadata', {}).get('SUBDATASETS', {}) or {}).items():
-                    if k.endswith('_NAME'): subs.append(v)
-                if not subs: subs = [f'OpenFileGDB:{g}:{n}' for n in gdb_names(g)]
-                for s in subs: got.append((s, s.rsplit(':', 1)[-1]))
-                log(f'    {d}: {len(subs)} raster(s)')
+                subs = gdb_rasters(g)
+                for s in subs: got.append((s, s.rsplit(':', 1)[-1].strip('"')))
+                log(f'    {d}: {len(subs)} raster(s)' + (': ' + ', '.join(s.rsplit(':', 1)[-1] for s in subs) if subs else ''))
+                for t in gdb_tables(g)[:40]: log(f'      table: {t}')
         for f in files:
             if f.lower().endswith(('.tif', '.tiff')): got.append((os.path.join(root, f), f))
     return got
 
 
-def gdb_names(g):
-    """raster names in a file geodatabase, from ogrinfo's table list"""
-    out = gdal('ogrinfo', '-ro', '-so', g)
-    return [m.group(1) for m in re.finditer(r'^\s*\d+:\s*([^\s(]+)', out or '', re.M) if not m.group(1).startswith('GDB_')]
+def gdb_rasters(g):
+    """the raster datasets inside a file geodatabase"""
+    try:
+        j = json.loads(gdal('gdalinfo', '-json', g) or '{}')
+    except Exception:
+        j = {}
+    subs = [v for k, v in (j.get('metadata', {}).get('SUBDATASETS', {}) or {}).items() if k.endswith('_NAME')]
+    if not subs:                                          # some packages need the raster named outright
+        raw = gdal('gdalinfo', g)
+        subs = re.findall(r'SUBDATASET_\d+_NAME=(\S+)', raw or '')
+        if not subs:
+            log('      no subdatasets; gdalinfo said: ' + ' | '.join((raw or '').strip().splitlines()[:4])[:300])
+    return subs
+
+
+def gdb_tables(g):
+    """every table in a file geodatabase, the hidden ones included (a raster's value table is one of those)"""
+    out = gdal('ogrinfo', '-ro', '-so', '-oo', 'LIST_ALL_TABLES=YES', g)
+    return [m.group(1) for m in re.finditer(r'^\s*\d+:\s*([^\s(]+)', out or '', re.M)]
+
+
+def read_vat(g, raster, tmp):
+    """{pixel value: class name} from the raster's value table, which is where the network's classes are named"""
+    tabs = gdb_tables(g)
+    short = raster.strip('"').rsplit(':', 1)[-1]
+    pick = [t for t in tabs if 'vat' in t.lower() and short.lower() in t.lower()] or \
+           [t for t in tabs if 'vat' in t.lower()] or [t for t in tabs if short.lower() in t.lower()]
+    for t in pick:
+        csv = os.path.join(tmp, 'vat.csv')
+        if os.path.exists(csv): os.remove(csv)
+        gdal('ogr2ogr', '-f', 'CSV', csv, g, t, '-oo', 'LIST_ALL_TABLES=YES')
+        if not os.path.exists(csv): continue
+        import csv as _csv
+        with open(csv, newline='', encoding='utf-8', errors='replace') as f:
+            rows = list(_csv.DictReader(f))
+        if not rows: continue
+        cols = list(rows[0].keys())
+        val = next((c for c in cols if c.lower() in ('value', 'val')), cols[0])
+        txt = next((c for c in cols if re.search(r'desc|class|name|label|type', c, re.I)), None)
+        if not txt: txt = next((c for c in cols if c != val and not re.search(r'count|^oid|objectid', c, re.I)), None)
+        if not txt: continue
+        out = {}
+        for r in rows:
+            try: out[int(float(r[val]))] = (r[txt] or '').strip()
+            except Exception: pass
+        named = sum(1 for v in out.values() if v)
+        log(f'    value table {t}: {len(out)} values, {named} named, using "{val}" and "{txt}"')
+        if named: return out
+    log('    no value table found; the classes will have no names. Tables seen: ' + ', '.join(tabs[:25]))
+    return {}
 
 
 def read_info(src):
@@ -246,22 +285,38 @@ OFF = re.compile(r'not in (the )?network|^background|^no ?data|^other$|^none$', 
 
 
 def network_share(per, tot, codes, names, seen):
-    """RES_NET, and a field for each class that covers enough of the trail to be worth its own line in the file"""
-    out = {}
+    """The raster's values are composite codes, several hundred of them, and the value table says which class each one
+    belongs to. Cells are reported by class: RES_NET for the network as a whole, and RES_K01.. for each class that
+    covers enough of the trail to be worth its own measure. meta.classes says which name each key carries."""
+    lst = codes.tolist()
+    label = {v: (names.get(v) or '').strip() for v in lst}
+    groups = sorted(set(x for x in label.values() if x))
+    if not groups:
+        log('  the value table named nothing, so the classes cannot be grouped: only the raw codes are written')
+        groups = []
+    key = {g: f'RES_K{i + 1:02d}' for i, g in enumerate(groups)}
+    cols = {g: [i for i, v in enumerate(lst) if label[v] == g] for g in groups}
+    px = {g: sum(seen.get(lst[i], 0) for i in cols[g]) for g in groups}
     total = sum(seen.values()) or 1
-    big = [i for i, v in enumerate(codes.tolist()) if seen.get(v, 0) / total >= .005]   # a class under half a percent is counted in the total only
-    log(f'  {len(big)} of {len(codes)} classes cover at least 0.5% of the trail and get their own measure')
+    big = [g for g in groups if px[g] / total >= .005]
+    log(f'  {len(groups)} classes over the trail, {len(big)} of them at least 0.5% and given their own measure:')
+    for g in sorted(groups, key=lambda g: -px[g]):
+        log(f'    {key[g]} {100 * px[g] / total:5.1f}%  {g}' + ('' if g in big else '   (counted in the total only)'))
+    out = {}
     for ext in per:
         out[ext] = {}
         for lv in LEVELS:
             t = tot[ext][lv]; k = per[ext][lv]; f = {}
             with np.errstate(invalid='ignore', divide='ignore'):
                 share = lambda col: [rnd(x, 1) for x in np.where(t > 0, 100 * col / np.maximum(t, 1), np.nan)]
-                for i in big: f[f'RES_C{codes[i]}'] = share(k[:, i])
-                keep = [i for i, v in enumerate(codes.tolist()) if not OFF.search(names.get(v, '') or '')]
-                f['RES_NET'] = share(k[:, keep].sum(axis=1) if keep else np.zeros(len(t)))
+                for g in big: f[key[g]] = share(k[:, cols[g]].sum(axis=1))
+                keep = [i for g in groups if not OFF.search(g) for i in cols[g]]
+                if groups: f['RES_NET'] = share(k[:, keep].sum(axis=1) if keep else np.zeros(len(t)))
+                if not groups:
+                    for i, v in enumerate(lst):
+                        if seen.get(v, 0) / total >= .005: f[f'RES_C{v}'] = share(k[:, i])
             out[ext][lv] = f
-    return out
+    return out, {key[g]: g for g in big}
 
 
 def score_layer(field, src, gt, size, crs, fp, tmp, nodata=None):
@@ -307,38 +362,48 @@ def main():
             os.remove(z)
             rs = rasters_in(out)
             log(f'  {len(rs)} raster(s) in the package: ' + ', '.join(n for _, n in rs[:8]))
-            pick = next((s for s, n in rs if re.search(r'rcn|network', n, re.I)), rs[0][0] if rs else None)
+            pick = next((s for s, n in rs if re.search(r'national', n, re.I) and re.search(r'rcn|network', n, re.I)),
+                        next((s for s, n in rs if re.search(r'rcn|network', n, re.I)), rs[0][0] if rs else None))
             if pick:
                 gt, size, crs, rat, _ = read_info(pick)
-                log(f'  {pick}: {size}, {len(rat)} classes named in the table')
+                gdbdir = re.sub(r'^OpenFileGDB:', '', pick).rsplit(':', 1)[0].strip('"')
+                if not rat: rat = read_vat(gdbdir, pick, tmp)
+                log(f'  {pick}: {size}, {len(rat)} values named in the table')
                 if gt and size and crs:
                     tot, per, codes, seen = classes(pick, gt, size, crs, fp, rat, tmp)
                     names = {v: rat.get(v, '') for v in seen}
-                    merge(fields, network_share(per, tot, codes, names, seen))
-                    meta_classes = {str(v): names.get(v, '') for v in sorted(seen)}
+                    share, meta_classes = network_share(per, tot, codes, names, seen)
+                    merge(fields, share)
                     built.append('network')
                 else:
                     log('  could not read the raster: is gdal-bin installed and new enough for file geodatabases?')
             shutil.rmtree(out, ignore_errors=True)
 
-        for field, pat in PARTS:
-            hit = next((u for u in found if pat.search(u.rsplit('/', 1)[-1])), None)
-            if not hit: log(f'{field}: no download found yet'); continue
-            log(f'{field}: {hit}')
-            z = fetch_zip([hit], tmp)
-            src = None; out = os.path.join(tmp, field); os.makedirs(out, exist_ok=True)
-            if z:
-                with zipfile.ZipFile(z) as f: f.extractall(out)
-                os.remove(z); rs = rasters_in(out)
-                src = rs[0][0] if rs else None
-            elif hit.lower().endswith(('.tif', '.tiff')):
-                src = os.path.join(out, 'layer.tif')
-                with open(src, 'wb') as f: f.write(http(hit).content)
-            if src:
-                gt, size, crs, rat, _ = read_info(src)
-                if gt and size and crs:
-                    merge(fields, score_layer(field, src, gt, size, crs, fp, tmp, None)); built.append(field)
+        # The layers the network is built from travel together in one package, so it is fetched once and its rasters
+        # matched by name: resilience, landscape diversity, local connectedness, climate flow.
+        packs = [u for u in found if u.lower().endswith(('.zip', '.7z'))]
+        log('The layers behind the network:' if packs else 'The layers behind the network: no package found to try')
+        for pk in packs[:2]:
+            z = fetch_zip([pk], tmp)
+            if not z: continue
+            out = os.path.join(tmp, 'parts'); os.makedirs(out, exist_ok=True)
+            with zipfile.ZipFile(z) as f: f.extractall(out)
+            os.remove(z)
+            rs = rasters_in(out)
+            log(f'  {len(rs)} raster(s): ' + ', '.join(n for _, n in rs[:20]))
+            taken = set()
+            for field, pat in PARTS:
+                hit = next((s for s, n in rs if s not in taken and pat.search(n)), None)
+                if not hit: log(f'  {field}: nothing in the package matches'); continue
+                taken.add(hit); log(f'  {field}: {hit.rsplit(":", 1)[-1]}')
+                gt, size, crs, rat, _ = read_info(hit)
+                if not (gt and size and crs): log('    could not be read'); continue
+                got = score_layer(field, hit, gt, size, crs, fp, tmp, None)
+                v = [x for x in got['corr']['wheel'][field] if x is not None]
+                log(f'    {len(v)} of {len(GRIDS["corr"]["wheel"])} corridor cells, values {min(v):.2f} to {max(v):.2f}' if v else '    no values landed in the cells')
+                if v: merge(fields, got); built.append(field)
             shutil.rmtree(out, ignore_errors=True)
+            if any(f in built for f, _ in PARTS): break
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
