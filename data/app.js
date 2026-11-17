@@ -4913,7 +4913,11 @@ function elevSvg(pl, bw, top, base, W, pr, labels){ if (!ELEV) return ''; const 
   return g; }
 let stripLv = 'wheel';
 function strip(){ const m = S.m, lv = stripLv = dispLevel(), L_ = D.levels[lv], svg = $('#stripsvg');
-  const W = svg.clientWidth || 800, H = 136, pl = 4, pr = 4, top = ELEV && W > 568 ? 36 : 6, base = 92, pw = W - pl - pr, bw = pw / NB;
+  const phone = document.body.classList.contains('stackui'); if (!phone && svg.style.height) svg.style.height = '';
+  /* the chart is as tall as the page gives it (phones keep the short fixed chart). Below the baseline sits a band of
+     44px for the region ticks and the Georgia and Maine labels, so the profile and the bars take the rest. */
+  const W = svg.clientWidth || 800, H = phone ? 136 : Math.max(136, Math.round(svg.getBoundingClientRect().height) || 136);
+  const pl = 4, pr = 4, top = ELEV && W > 568 ? 36 : 6, base = H - 44, pw = W - pl - pr, bw = pw / NB;
   const bins = Array.from({length:NB}, () => ({v:[], clubs:new Map()}));
   for (let c = 0; c < L_.id.length; c++){ const b = bins[Math.min(NB-1, Math.floor(L_.mi[c] / BIN))]; const v = m.get(lv, c);
     b.clubs.set(L_.club[c], (b.clubs.get(L_.club[c]) || 0) + 1); if (m.stripCnt) b.all = (b.all || 0) + m.stripCnt(lv, c, true); if (v != null){ b.v.push(v); if (m.stripCnt) b.cnt = (b.cnt || 0) + m.stripCnt(lv, c); } }
@@ -4954,7 +4958,7 @@ function strip(){ const m = S.m, lv = stripLv = dispLevel(), L_ = D.levels[lv], 
   h += `<text class="end" x="${pl}" y="${H-4}">${wide ? 'Springer Mountain, Georgia' : 'Georgia'}</text><text class="end" x="${W-pr}" y="${H-4}" text-anchor="end">${wide ? 'Katahdin, Maine' : 'Maine'}</text>`;
   const endL = wide ? 215 : 70, endR = wide ? 135 : 55; /* room taken by the end labels */
   if (W > 620) [500,1000,1500].filter(mi => x(mi) - 32 > pl + endL && x(mi) + 32 < W - pr - endR).forEach(mi => { h += `<text x="${x(mi)}" y="${H-4}" text-anchor="middle">mile ${fmt(mi,0)}</text><line x1="${x(mi)}" x2="${x(mi)}" y1="${base}" y2="${base+4}" stroke="#71849B"/>`; });
-  svg.setAttribute('viewBox', `0 0 ${W} ${document.body.classList.contains('stackui') ? 94 : H}`); svg.style.height = document.body.classList.contains('stackui') ? '94px' : ''; svg.innerHTML = h;
+  svg.setAttribute('viewBox', `0 0 ${W} ${phone ? 94 : H}`); svg.style.height = phone ? '94px' : ''; svg.innerHTML = h;
   svg._geo = {pl, pw, bw};
   $('#striptitle').textContent = `${m.label}, south to north (${LV[lv].name} cells)`;
   $('#stripread').textContent = 'Click to go there';
