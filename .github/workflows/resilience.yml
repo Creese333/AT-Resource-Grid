@@ -1,0 +1,56 @@
+# Builds resilience.json (A.T. corridor) and resilience_huc10.json (HUC10 shell) for climate resilience: The Nature
+# Conservancy's Resilient and Connected Network (30 m) and the terrestrial resilience layers behind it.
+# Press "Run workflow" on the Actions tab. The data changes every few years, so there is no schedule.
+# Needs no secret. The network comes from a file geodatabase, which is why GDAL is installed first.
+# If TNC moves the download, paste a direct link into "Address of the network download" when starting the run;
+# the log lists every address the script tried and every resilience file it could find on TNC's pages.
+name: Climate resilience (TNC)
+
+on:
+  workflow_dispatch:
+    inputs:
+      rcn_url:
+        description: 'Address of the network download (leave empty to use the published one)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
+          df -h /
+      - name: Install GDAL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdal-bin
+          gdalinfo --version
+          ogrinfo --formats | grep -i filegdb || echo "no file geodatabase driver"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install geopandas pyogrio shapely pyproj rasterio numpy requests
+      - name: Build resilience.json
+        env:
+          RCN_URL: ${{ inputs.rcn_url }}
+        run: python scripts/build_resilience.py
+      - name: Commit if changed
+        run: |
+          git config user.name  "resilience-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for f in data/resilience.json data/resilience_huc10.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          git diff --cached --quiet && exit 0
+          git commit -m "Update climate resilience summaries"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1
