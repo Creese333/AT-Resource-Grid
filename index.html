@@ -395,11 +395,13 @@ details.gd summary:hover{background:var(--ground)}
 details.gd .spp{margin:3px 0 8px;padding-left:12px}
 
 /* strip */
-#strip{grid-area:strip;background:#142235;color:#fff;border-top:1px solid #0A131F;padding:8px 16px 16px}
+#strip{grid-area:strip;background:#142235;color:#fff;border-top:1px solid #0A131F;padding:8px 16px 12px}
 .striphead{display:flex;justify-content:space-between;gap:16px;align-items:baseline;flex-wrap:wrap}
 .striphead h2{font-size:16px;color:#fff;letter-spacing:.01em}
 #stripread{font-size:13px;color:#D0DAE5;min-height:1.45em;text-align:right;flex:1 1 300px}
-#stripsvg{display:block;width:100%;height:136px;cursor:crosshair;touch-action:pan-y}
+/* the trail profile takes a share of the window's height, so a tall screen gets a taller profile and a short one
+   keeps the map's room; the chart reads this height and draws to it */
+#stripsvg{display:block;width:100%;height:clamp(150px,22vh,220px);cursor:crosshair;touch-action:pan-y}
 #stripsvg text{font-family:var(--body);font-size:13px;fill:#A8B8CA}
 #stripsvg .end{font-family:var(--cond);font-size:14px;font-weight:600;fill:#fff;letter-spacing:.01em}
 #stripsvg .reg{fill:#EEF3F8;font-size:13.5px;font-weight:500}
