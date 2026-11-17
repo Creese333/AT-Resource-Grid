@@ -4341,8 +4341,13 @@ function tourGo(k){ const T = TOURS[TOUR.id]; if (!T) return;  TOUR.k = Math.max
   let bd = null; if (cells.length){ bd = L.latLngBounds([]); cells.forEach(c => ring(lv, c).forEach(p => bd.extend(p))); bd = bd.pad(st.pick.top ? .05 : .6); }
   else if (st.view === 'trail') bd = trailLine.getBounds(); else if (Array.isArray(st.view)) bd = L.latLngBounds(st.view);
   if (ph){ map.stop(); if (st.zoom && cells.length) map.setView(st.pick.near, st.zoom, {animate:false}); else if (bd) map.fitBounds(bd, {animate:false, maxZoom:12}); }
-  else { /* a wide map view sits to the right of the tour panel so nothing hides behind it */
-    let pl = 0; if (Array.isArray(st.view) && !cells.length){ const tr = $('#tour'), mw = $('#mapwrap'); if (tr && mw){ const r1 = tr.getBoundingClientRect(), r0 = mw.getBoundingClientRect(); pl = Math.max(0, Math.min(r1.right - r0.left + 12, r0.width * .55)); } }
+  else { /* a wide map view sits in the middle of the map; it slides east only on a window too narrow to keep the trail
+             clear of the tour panel, by about the width the trail would otherwise be hidden by */
+    let pl = 0; if (Array.isArray(st.view) && !cells.length){ const tr = $('#tour'), mw = $('#mapwrap');
+      if (tr && mw && typeof trailLine !== 'undefined' && trailLine && bd){ const r1 = tr.getBoundingClientRect(), r0 = mw.getBoundingClientRect();
+        const z = map.getBoundsZoom(bd, false), mid = bd.getCenter();
+        const x = map.getSize().x / 2 + map.project(L.latLng(mid.lat, trailLine.getBounds().getWest()), z).x - map.project(mid, z).x;
+        pl = Math.max(0, Math.min(2 * (r1.right - r0.left + 16 - x), r0.width * .55)); } }
     if (bd) map.flyToBounds(bd, {duration:1.2, maxZoom:12, paddingTopLeft:[pl, 0]}); if (st.zoom && cells.length) setTimeout(() => { if (TOUR.id) map.flyTo(st.pick.near, st.zoom, {duration:.8}); }, 1300); }
   if (ph) tourScroll(); }
 function tourDraw(lv, cells){ const T = TOURS[TOUR.id], st = T.steps[TOUR.k], N = T.steps.length; let d = $('#tour');
