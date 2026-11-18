@@ -33,11 +33,18 @@ PAGES = [f'https://irma.nps.gov/DataStore/Reference/Profile/{REF}',
          f'https://irmaservices.nps.gov/datastore/v7/rest/Profile/{REF}',
          f'https://irmaservices.nps.gov/datastore/v6/rest/Profile/{REF}']
 DL = re.compile(r'/DataStore/DownloadFile/(\d+)')
+FNAME = re.compile(r'^[^\\/:*?"<>|]{3,160}\.[A-Za-z0-9]{2,5}$')   # looks like a file name, not a sentence
 # which layer a file holds, narrowest first so "existing" does not swallow "impact"
-PARTS = [('SND_IMP', re.compile(r'impact|excess|above[_ -]?natural', re.I)),
+PARTS = [('SND_IMP', re.compile(r'impact|excess|above[_ -]?natural|minus[_ -]?natural', re.I)),
          ('SND_NAT', re.compile(r'natur', re.I)),
          ('SND_EXIST', re.compile(r'exist|ambient|measured', re.I))]
-SKIP = re.compile(r'alaska|hawaii|\bak\b|\bhi\b|puerto', re.I)   # the release covers more than the lower 48
+SKIP = re.compile(r'alaska|hawaii|puerto|guam|samoa|virgin'                    # the release is wider than the lower 48
+                  r'|(?<![A-Za-z])(ak|hi|pr|gu|as|vi)(?![A-Za-z])', re.I)      # AK_, _HI_: an underscore is no \b
+RAST = ('.tif', '.tiff', '.img', '.vrt', '.zip', '.gdb', '.7z', '.gz', '.tar')
+# a national file is the one to take; a per-park or per-region file is a fallback
+BIG = re.compile(r'conus|contiguous|lower[_ -]?48|national|\bus\b|usa', re.I)
+L50 = re.compile(r'l50|dba', re.I)
+SUMMER = re.compile(r'summer', re.I)
 
 
 def http(url, stream=False):
@@ -46,31 +53,113 @@ def http(url, stream=False):
                         headers={'User-Agent': 'AT-Resource-Grid/1.0 (+https://grid.trailassessment.org)'})
 
 
+def json_names(body, out):
+    """Pull {file id: file name} out of a DataStore reply without knowing its field names: any object that carries
+    one number that could be a file id and one string that looks like a file name pairs the two."""
+    try:
+        doc = json.loads(body)
+    except Exception:
+        return
+    def walk(o):
+        if isinstance(o, dict):
+            num = {k: str(v) for k, v in o.items()
+                   if isinstance(v, (int, str)) and str(v).isdigit() and 4 < len(str(v)) < 10}
+            # a key called something like an id, if there is one: a file's size is a number of this shape too
+            ids = [v for k, v in num.items() if re.search(r'id$|identifier|guid', k, re.I)] or list(num.values())
+            nms = [v for v in o.values() if isinstance(v, str) and FNAME.match(v.strip())]
+            if len(nms) == 1:
+                for fid in ids: out.setdefault(fid, nms[0].strip())
+            for v in o.values(): walk(v)
+        elif isinstance(o, list):
+            for v in o: walk(v)
+    walk(doc)
+
+
+def probe(url):
+    """the name and size of one file, from the download itself: the first byte is asked for and the body dropped,
+    so this costs a request and not a download. Content-Disposition is how NPS names a DownloadFile reply."""
+    import requests
+    for head in ({'Range': 'bytes=0-0'}, {}):      # a server that will not do ranges is asked plainly, body dropped
+        try:
+            r = requests.get(url, timeout=60, stream=True, allow_redirects=True,
+                             headers={'User-Agent': 'AT-Resource-Grid/1.0 (+https://grid.trailassessment.org)', **head})
+            cd = r.headers.get('Content-Disposition') or ''
+            cr = r.headers.get('Content-Range') or ''
+            n = int((re.search(r'/(\d+)$', cr) or [0, 0])[1]) or int(r.headers.get('Content-Length') or 0)
+            m = re.search(r'filename\*?=(?:UTF-8\'\')?"?([^";]+)', cd)
+            ct = r.headers.get('Content-Type') or '?'
+            r.close()
+            if m: return (m.group(1).strip(), n, '')
+            note = f'{r.status_code} {ct} {n / 1e6:.0f} MB, no name in the reply'
+        except Exception as e:
+            note = f'not read ({str(e)[:60]})'
+    return ('', 0, note)
+
+
 def find_files():
-    """Every file on the DataStore reference, as (name, address). The profile page lists them; the API is tried too,
-    in case the page changes. Everything found is printed, so a run always says what NPS is offering."""
-    got, seen = [], set()
+    """Every file on the DataStore reference, as (name, address, size). Names matter — they are what says which layer
+    a file holds — so they are taken from the reply if it gives them and asked of each download if it does not.
+    Everything found is printed, so a run always says what NPS is offering and under what names."""
+    import concurrent.futures as cf
+    names, order = {}, []
     for page in PAGES:
         try:
             r = http(page); body = r.text
         except Exception as e:
             log(f'  {page}: not read ({str(e)[:70]})'); continue
         ids = DL.findall(body)
-        log(f'  {page}: {r.status_code}, {len(body)} bytes, {len(set(ids))} file links')
-        for fid in ids:
-            if fid in seen: continue
-            seen.add(fid)
-            # the file's name usually sits near its link on the page
-            m = re.search(r'/DataStore/DownloadFile/%s["\'][^>]*>([^<]{3,120})' % fid, body)
-            name = (m.group(1).strip() if m else '')
-            got.append((name, f'https://irma.nps.gov/DataStore/DownloadFile/{fid}'))
-        for f in (r.json().get('files', []) if 'json' in (r.headers.get('Content-Type') or '') else []):
-            fid = str(f.get('resourceId') or f.get('fileId') or '')
-            if fid and fid not in seen:
-                seen.add(fid); got.append((f.get('fileName') or '', f'https://irma.nps.gov/DataStore/DownloadFile/{fid}'))
-        if got: break
-    for n, u in got: log(f'      {u}  {n}')
+        before = set(names)
+        json_names(body, names)
+        # a file counts whether its download address is spelled out in the reply or only its id is
+        for fid in ids + [f for f in names if f not in before]:
+            if fid not in order: order.append(fid)
+        # a name sitting beside its link, for the HTML page
+        for fid in set(ids):
+            if names.get(fid): continue
+            m = re.search(r'/DataStore/DownloadFile/%s["\'][^>]*>\s*([^<]{3,160})' % fid, body)
+            if m and FNAME.match(m.group(1).strip()): names[fid] = m.group(1).strip()
+        log(f'  {page}: {r.status_code}, {len(body)} bytes, {len(order)} files so far, '
+            f'{sum(1 for f in order if names.get(f))} of them named')
+        if order and all(names.get(f) for f in order): break
+    if not order: return []
+
+    ask = [f for f in order if not names.get(f)]
+    if ask:
+        log(f'  {len(ask)} files are unnamed in the listing; asking each download what it is called')
+        urls = {f: f'https://irma.nps.gov/DataStore/DownloadFile/{f}' for f in ask}
+        quiet = 0
+        with cf.ThreadPoolExecutor(8) as ex:
+            for fid, (nm, n, note) in zip(ask, ex.map(probe, [urls[f] for f in ask])):
+                if nm: names[fid] = nm
+                if n: SIZE[fid] = n
+                if note and quiet < 5:            # say what came back instead of a name, so a bad run is diagnosable
+                    quiet += 1; log(f'    {urls[fid]}: {note}')
+    got = [(names.get(f, ''), f'https://irma.nps.gov/DataStore/DownloadFile/{f}', SIZE.get(f, 0)) for f in order]
+    for n, u, s in got: log(f'      {n or "(unnamed)"}   {s / 1e6:.0f} MB   {u}')
     return got
+
+
+SIZE = {}
+
+
+def score(name, size):
+    """how likely a file is the national raster rather than one park's copy or a picture of the map"""
+    s = size / 1e9
+    if BIG.search(name): s += 100
+    if L50.search(name): s += 40
+    if SUMMER.search(name): s += 40
+    if name.lower().endswith(('.tif', '.tiff', '.img')): s += 20
+    return s
+
+
+def pick(files, pat, taken):
+    """the best file for one layer: it has to name the layer and be something a raster can come out of"""
+    cand = [(n, u, sz) for n, u, sz in files
+            if u not in taken and n and not SKIP.search(n) and n.lower().endswith(RAST) and pat.search(n)]
+    if not cand: return None
+    cand.sort(key=lambda t: -score(t[0], t[2]))
+    if len(cand) > 1: log('    also matched: ' + ', '.join(n for n, _, _ in cand[1:5]))
+    return cand[0]
 
 
 def fetch(url, into, name=''):
@@ -228,16 +317,18 @@ def main():
     try:
         picked, taken = {}, set()
         for field, pat in PARTS:
-            hit = next(((n, u) for n, u in files if u not in taken and not SKIP.search(n) and pat.search(n)), None)
+            hit = pick(files, pat, taken)
             if not hit: log(f'{field}: nothing on the reference matches'); continue
-            taken.add(hit[1]); log(f'{field}: {hit[0]}')
+            taken.add(hit[1]); log(f'{field}: {hit[0]}  ({hit[2] / 1e6:.0f} MB)')
             p = fetch(hit[1], tmp, hit[0])
             if not p: continue
             rs = rasters_in(p)
             log(f'    {len(rs)} raster(s): ' + ', '.join(os.path.basename(x) for x in rs[:6]))
             if rs: picked[field] = rs[0]
         if 'SND_EXIST' not in picked and 'SND_NAT' not in picked:
-            raise SystemExit('Neither the existing nor the natural layer could be read; nothing to summarize.')
+            raise SystemExit('Neither the existing nor the natural layer could be read. Every file on the reference is '
+                             'listed above with its name and size; the two wanted are the national existing and natural '
+                             'sound level rasters.')
 
         # every layer must sit on the same grid to be read window by window together
         base = picked.get('SND_EXIST') or picked.get('SND_NAT')
