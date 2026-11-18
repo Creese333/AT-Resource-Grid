@@ -34,17 +34,21 @@ PAGES = [f'https://irma.nps.gov/DataStore/Reference/Profile/{REF}',
          f'https://irmaservices.nps.gov/datastore/v6/rest/Profile/{REF}']
 DL = re.compile(r'/DataStore/DownloadFile/(\d+)')
 FNAME = re.compile(r'^[^\\/:*?"<>|]{3,160}\.[A-Za-z0-9]{2,5}$')   # looks like a file name, not a sentence
-# which layer a file holds, narrowest first so "existing" does not swallow "impact"
-PARTS = [('SND_IMP', re.compile(r'impact|excess|above[_ -]?natural|minus[_ -]?natural', re.I)),
-         ('SND_NAT', re.compile(r'natur', re.I)),
-         ('SND_EXIST', re.compile(r'exist|ambient|measured', re.I))]
+# Which layer a file holds, narrowest first so "existing" does not swallow "impact". NPS shortens the three to
+# _imp, _nat and _exi (CONUS_sumDay_L50dBA_nat.tif), so a whole word or that abbreviation both count; the word has
+# to stand on its own, or "Extractive" and "Industrial" would look like layers.
+W = r'(?<![A-Za-z])%s(?![A-Za-z])'
+PARTS = [('SND_IMP', re.compile('|'.join(W % p for p in ('imp', 'impact', 'excess', r'above[_ -]?nat\w*',
+                                                         r'minus[_ -]?nat\w*')), re.I)),
+         ('SND_NAT', re.compile('|'.join(W % p for p in ('nat', 'natural', 'natamb')), re.I)),
+         ('SND_EXIST', re.compile('|'.join(W % p for p in ('exi', 'exist', 'existing', 'ambient', 'measured')), re.I))]
 SKIP = re.compile(r'alaska|hawaii|puerto|guam|samoa|virgin'                    # the release is wider than the lower 48
                   r'|(?<![A-Za-z])(ak|hi|pr|gu|as|vi)(?![A-Za-z])', re.I)      # AK_, _HI_: an underscore is no \b
 RAST = ('.tif', '.tiff', '.img', '.vrt', '.zip', '.gdb', '.7z', '.gz', '.tar')
 # a national file is the one to take; a per-park or per-region file is a fallback
 BIG = re.compile(r'conus|contiguous|lower[_ -]?48|national|\bus\b|usa', re.I)
 L50 = re.compile(r'l50|dba', re.I)
-SUMMER = re.compile(r'summer', re.I)
+SUMMER = re.compile(r'summer|sum[_ -]?day', re.I)   # the published layers are a summer day
 
 
 def http(url, stream=False):
@@ -330,18 +334,24 @@ def main():
                              'listed above with its name and size; the two wanted are the national existing and natural '
                              'sound level rasters.')
 
-        # every layer must sit on the same grid to be read window by window together
-        base = picked.get('SND_EXIST') or picked.get('SND_NAT')
-        gt, size, crs, j = read_info(base)
-        log(f'  grid: {size} at {abs(gt[1]):.0f} m, {crs[:60]}')
-        nodata = ((j.get('bands') or [{}])[0] or {}).get('noDataValue')
-        fields, srcs = [], []
+        # Every layer must sit on the same grid to be read window by window together, so the grid the most layers
+        # agree on wins and any odd one out is left behind, whichever layer that turns out to be.
+        info = {}
         for f in ('SND_EXIST', 'SND_NAT', 'SND_IMP'):
             if f not in picked: continue
-            g2, s2, _, _ = read_info(picked[f])
-            if s2 != size or [round(x, 3) for x in (g2 or [])] != [round(x, 3) for x in gt]:
-                log(f'  {f} sits on a different grid ({s2}); left out'); continue
-            fields.append(f); srcs.append(picked[f])
+            g2, s2, c2, j2 = read_info(picked[f])
+            if not g2 or not s2: log(f'  {f} could not be read; left out'); continue
+            info[f] = (tuple(s2) + tuple(round(x, 3) for x in g2), g2, s2, c2, j2)
+        if not info: raise SystemExit('None of the chosen files could be read as a raster.')
+        from collections import Counter
+        same = Counter(v[0] for v in info.values()).most_common(1)[0][0]
+        fields = [f for f in ('SND_EXIST', 'SND_NAT', 'SND_IMP') if info.get(f) and info[f][0] == same]
+        for f in info:
+            if f not in fields: log(f'  {f} sits on a different grid ({info[f][2]}); left out')
+        gt, size, crs, j = info[fields[0]][1:]
+        srcs = [picked[f] for f in fields]
+        log(f'  grid: {size} at {abs(gt[1]):.0f} m, {crs[:60]}')
+        nodata = ((j.get('bands') or [{}])[0] or {}).get('noDataValue')
         log('  reading: ' + ', '.join(fields))
         impact_from = 'SND_IMP' not in fields and 'SND_EXIST' in fields and 'SND_NAT' in fields
         if impact_from: log('  noise above natural is not published here, so it is worked out as existing minus natural')
