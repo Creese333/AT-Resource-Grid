@@ -2347,7 +2347,7 @@ RAMP.fcond = ['#F7E9D4','#EDC28F','#DB8F55','#B85A2C','#7A2E14'];
 RAMP.tall = ['#E4EFD9','#B7D79A','#7FB765','#46903F','#1E5E2A'];
 RAMP.doy = ['#1E6B3A','#5E9E4F','#B4CF7A','#E6D58E','#C9974E'];
 const DIVRAMP = ['#2F64A0','#9DBCE0','#ECE7D8','#F3B37E','#B13B2C'];
-const NASAF = [['dist','canopy_loss','Canopy loss'],['gedi','forest_structure','Forest height and biomass'],['lsp','green_up','Green-up and leaf-off'],['dym','climate_change','Climate change since 1980']];
+const NASAF = [['dist','canopy_loss','Canopy loss'],['gedi','forest_structure','Forest height and biomass'],['lsp','green_up','Green-up and leaf-off'],['dym','climate_change','Climate change since 1980'],['snd','soundscape','Soundscape']];
 const NASA = {}, NASAMETA = {};
 NASAF.forEach(([th, f]) => fetch('data/' + f + '.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.themes){ NASA[th] = j; NASAMETA[th] = j.meta || {}; if (S.ext === 'corr'){ nasaApply(); BRK.clear(); redraw(); if (typeof side === 'function') side(); } } }).catch(() => {}));
 function nasaApply(){ let any = false; for (const th in NASA){ const j = NASA[th]; if (j.done || S.ext !== 'corr') continue; j.done = true; D.themes[th] = thConv(j, th, D.levels); any = true; } if (any) extIndex(); }
@@ -2400,7 +2400,8 @@ function floorM(o, lo){ o.stripH = v => Math.max(.001, v - lo); return o; }
 const FCCITE = {dist:['OPERA Land Surface Disturbance Alert, Version 1 (NASA JPL OPERA, LP DAAC); tree cover from ESA WorldCover 2021', ''],
   gedi:['GEDI L3 Gridded Land Surface Metrics V2 and L4B Gridded Aboveground Biomass V2.1 (Dubayah et al., ORNL DAAC)', 'https://doi.org/10.3334/ORNLDAAC/1952'],
   lsp:['MODIS Land Cover Dynamics, MCD12Q2 Version 6.1 (Friedl, Gray and Sulla-Menashe, LP DAAC)', 'https://doi.org/10.5067/MODIS/MCD12Q2.061'],
-  dym:['Daymet Version 4 R1, daily 1 km (Thornton et al., ORNL DAAC)', 'https://doi.org/10.3334/ORNLDAAC/2129']};
+  dym:['Daymet Version 4 R1, daily 1 km (Thornton et al., ORNL DAAC)', 'https://doi.org/10.3334/ORNLDAAC/2129'],
+  snd:['Geospatial sound modeling, NPS Natural Sounds and Night Skies Division (Mennitt and Fristrup)', 'https://irma.nps.gov/DataStore/Reference/Profile/2217356']};
 /* a measure from one of these files: its source under the legend, "not built yet" until the file is there, and the legend in its own units
    (getters such as label and note stay live, so the object is filled in place) */
 function nasaM(th, o){ o.th = th; o.cite = FCCITE[th][0]; if (FCCITE[th][1]) o.citeUrl = FCCITE[th][1];
@@ -2536,12 +2537,43 @@ function dymBox(lv, cells){ const ci = cells.filter(c => has('dym', lv, c)); if 
     `</div><p class="none" style="font-size:13.5px;margin-top:8px">${m.late ? `${m.early[0]}–${m.early[1]} averages, then ${m.late[0]}–${m.late[1]}` : 'Early and recent 20-year averages'}, from Daymet (1 km daily, ORNL DAAC).</p></div>`; }
 const dymSection = (lv, c) => dymBox(lv, [c]);
 
+/* ---------- soundscape ----------
+   The National Park Service models the sound level across the country from recordings at hundreds of sites: a 270 m map
+   of a typical summer day in L50 dBA, the level exceeded half the time. Three layers come from it \u2014 what a person
+   hears, what the place would sound like without us, and the difference between them. Built on GitHub
+   (build_soundscape.py); cells matched by grid ID. Quiet is a resource the Park Service manages for, so the measure that
+   leads is the one NPS leads with: how many decibels of what you hear here are ours. */
+HUE.snd = '#7E6BB0'; RAMP.snd = ['#F0EDF7','#D6CDEA','#B3A4D6','#8B76BE','#5F4A95'];
+const SNDQ = () => (NASAMETA.snd || {}).near_natural || 3;
+Q.push(
+ {id:'snd', th:'snd', hue:HUE.snd, ramp:'snd', title:'How quiet is it here?',
+  use:'What the trail sounds like, from the National Park Service\u2019s model of sound across the country. It predicts a typical summer daytime hour from recordings made at hundreds of sites, as L50 dBA \u2014 the level exceeded half the time, so an ordinary moment rather than a passing truck. Two layers are modelled: what a person standing there would actually hear, and what the place would sound like with human sources taken out. The gap between them is the noise we add. Use it to find the stretches where the trail still sounds like itself, and the stretches where roads, towns and aircraft reach it. A national model at 270 m from 2013 to 2015 recordings, so it tells you about lengths of trail, not about one overlook.',
+  m:[nasaM('snd', {id:'imp', f:'SND_IMP', label:'Noise above natural', unit:' dBA', d:1, zero:1, zeroText:'Nothing above natural', noneText:'Outside the mapped area',
+       note:'How many decibels human noise adds on top of the natural soundscape. Three decibels is about where people start to notice us; ten means human sound dominates. This is the measure the Park Service manages against, because it separates a place that is loud from a place that is loud because of us \u2014 a waterfall is not an intrusion.'}),
+     nasaM('snd', {id:'near', f:'SND_Q3', label:'Still near-natural', unit:'%', d:0, zero:1, zeroText:'None of the cell', noneText:'Outside the mapped area',
+       note:'Share of the cell where human noise adds less than three decibels \u2014 ground that still sounds close to what it would without us. A cell can hold both: a quiet hollow and a road corridor.'}),
+     nasaM('snd', {id:'exist', f:'SND_EXIST', label:'Sound level as it is', unit:' dBA', d:1, zero:0, noneText:'Outside the mapped area',
+       note:'What a person would hear on a typical summer day, people and nature together. Around 20 dBA is a very quiet night in a wild place; 35 is a rural daytime; 45 and up carries steady human sound.'}),
+     nasaM('snd', {id:'nat', f:'SND_NAT', label:'Natural sound level', unit:' dBA', d:1, zero:0, noneText:'Outside the mapped area',
+       note:'What the place would sound like with human sources taken out. It is not silence: wind in the canopy, running water and birds all raise it, so a loud natural reading often means a stream or an exposed ridge rather than a problem.'})]});
+function sndBox(lv, cells){ const ci = cells.filter(c => has('snd', lv, c)); if (!ci.length) return '';
+  const avg = f => { const a = ci.map(c => val('snd', f, lv, c)).filter(x => x != null); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : null; };
+  const im = avg('SND_IMP'), ex = avg('SND_EXIST'), na = avg('SND_NAT'), q = avg('SND_Q3');
+  if (im == null && ex == null) return '';
+  return `<div class="sec" style="--hue:${HUE.snd}"><h3>Soundscape</h3><div class="facts">` +
+    (im == null ? '' : `<div><b>${fmt(im, 1)} dBA</b>of what you hear here is noise we add</div>`) +
+    (q == null ? '' : `<div><b>${fmt(q, 0)}%</b>of the cell is still near-natural, under ${SNDQ()} dBA above natural</div>`) +
+    (ex == null ? '' : `<div><b>${fmt(ex, 1)} dBA</b>sound level on a typical summer day</div>`) +
+    (na == null ? '' : `<div><b>${fmt(na, 1)} dBA</b>without us: wind, water and birds</div>`) +
+    `</div><p class="none" style="font-size:13.5px;margin-top:8px">National Park Service sound model, 270 m, L50 dBA for a typical summer day.</p></div>`; }
+const sndSection = (lv, c) => sndBox(lv, [c]);
+
 const QGRP = {rest:'Priorities', tvul:'Priorities', pri:'Priorities', inv:'Threats', pest:'Threats', fcond:'Threats', pinv:'Threats', veg:'Plants and wildlife', bird:'Plants and wildlife', mig:'Plants and wildlife',
-  phen:'Plants and wildlife', rec:'Plants and wildlife', geo:'Land, water and climate', soil:'Land, water and climate', wet:'Land, water and climate', wx:'Land, water and climate',
+  phen:'Plants and wildlife', rec:'Plants and wildlife', geo:'Land, water and climate', soil:'Land, water and climate', wet:'Land, water and climate', wx:'Land, water and climate', snd:'Land, water and climate',
   hist:'Cultural resources', cult:'Cultural resources', feat:'Stewardship', eff:'Plants and wildlife', land:'Stewardship'};
 const QGOFF = new Set();   // folded question groups (filled from this browser's settings below)
 const qVis = x => x.id !== 'pri' || JERRY;
-{ const ord = ['rest','tvul','pri','feat','land','inv','fcond','pest','pinv','veg','bird','mig','phen','rec','eff','geo','soil','wet','wx','hist','cult']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
+{ const ord = ['rest','tvul','pri','feat','land','inv','fcond','pest','pinv','veg','bird','mig','phen','rec','eff','geo','soil','wet','wx','snd','hist','cult']; Q.sort((a,b) => ord.indexOf(a.id) - ord.indexOf(b.id)); }
 Q.forEach(q => q.m.forEach(m => { m.q = q; m.th = m.th || q.th; m.kind = m.kind || 'seq';
   m.get = m.fn || ((lv,c) => val(m.th, m.f, lv, c));
   /* counts where a cell with none should stay unfilled, so every cell that has one stands out */
@@ -2865,7 +2897,7 @@ function redraw(){ draw(); strip(); writeHash(); }
    for soils and wetlands only. Those cells are in soils_wetlands_huc10.json beside this page and load the first time they are asked for.
    Switching swaps the grid and the soils data under the page, so the map, rankings, strip, selection and export all follow.
    Choosing another question, or searching for a species, switches back to the corridor. */
-const EXTFILE = 'data/soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest','fcond','pinv','cult','geo','wx','tvul'];
+const EXTFILE = 'data/soils_wetlands_huc10.json', EXT = {corr:null, huc:null}, EXTQ = ['soil','wet','rec','inv','bird','eff','phen','pest','fcond','pinv','cult','geo','wx','tvul','snd'];
 const SOILCATS = ['VULN_DOM','SOIL_SERIES','SOIL_TEXTURE','SOIL_ORDER','SOIL_DRAIN','SOIL_HSG','SOIL_FARM','SOIL_ECOSITE','SOIL_MAPUNIT','WET_DOM','WET_LDOM'];
 let extLoading = null;
 function extSnapshot(){ const cats = {}; SOILCATS.forEach(k => { if (D.cats[k]) cats[k] = D.cats[k]; });
@@ -3859,7 +3891,7 @@ function profile(){ setTimeout(cultVizRefresh); if (S.box) return profileBox(); 
   let b = '';
   if (S.ext === 'huc'){ const note = S.q.id === 'hist' ? `${inCorr(lv, c) ? 'This cell is in the A.T. corridor grid.' : 'Outside the A.T. corridor grid, in the HUC10 shell.'} Switch the extent to A.T. corridor to see the corridor's other layers.`
       : (inCorr(lv, c) ? 'This cell is in the A.T. corridor grid. ' : 'Outside the A.T. corridor grid, in the HUC10 shell. ') + HUCONLY;
-    b = recSection(lv, c) + invSection(lv, c) + cultSection(lv, c) + birdSection(lv, c) + visSection(lv, c) + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c)) + geoSection(lv, c) + tvSection(lv, c) + wxSection(lv, c) + dymSection(lv, c) + fhrSection(lv, c) + fcSection(lv, c) + histSection(lv, c) + phSection(lv, c);
+    b = recSection(lv, c) + invSection(lv, c) + cultSection(lv, c) + birdSection(lv, c) + visSection(lv, c) + (S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c)) + geoSection(lv, c) + tvSection(lv, c) + wxSection(lv, c) + dymSection(lv, c) + sndSection(lv, c) + fhrSection(lv, c) + fcSection(lv, c) + histSection(lv, c) + phSection(lv, c);
     finishProfile(`<p class="none" style="font-size:13.5px;margin:0 0 10px">${note}</p>` + b); inatLive([ring(lv, c)], L_.id[c]); return; }
   profileCorr(lv, c, false); }
 /* run fn with the A.T. corridor cells and layers in place (while the HUC10 extent is on), then put the watershed cells back.
@@ -3905,7 +3937,7 @@ function profileCorr(lv, c, fromHuc){ const L_ = D.levels[lv], par = parentOf(lv
   } else b += `<p class="none">No rare species priority zone ${viaParent ? 'in the surrounding 7 sq mi cell' : 'in this cell'}.</p>`;
   b += '</div>'; if (!JERRY) b = b.slice(0, jStart);
   b += S.q.id === 'wet' ? wetSection(lv, c) + soilSection(lv, c) : soilSection(lv, c) + wetSection(lv, c);
-  b += geoSection(lv, c) + tvSection(lv, c) + wxSection(lv, c) + dymSection(lv, c) + fhrSection(lv, c) + fcSection(lv, c);
+  b += geoSection(lv, c) + tvSection(lv, c) + wxSection(lv, c) + dymSection(lv, c) + sndSection(lv, c) + fhrSection(lv, c) + fcSection(lv, c);
   b += featSection(lv, c);
   b += histSection(lv, c);
   b += phSection(lv, c);
@@ -4179,11 +4211,11 @@ function prioRefresh(p, progressOnly){ const e = FIDX && FIDX.get(p.sci.toLowerC
 /* records of a species in one cell once its full load is done; null before that */
 function prioCount(p, lv, c){ const st = prioState(p); return st && st.st === 'done' ? st.counts[lv].get(c) || 0 : null; }
 /* panel sections follow the order of the questions; each question opens its own sections (survey effort has none of its own) */
-const QSEC = {geo:['geo'], wx:['wx','dym'], tvul:['tvul'], fcond:['fcond','fhr','tfall'], cult:['cult'], rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], mig:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:['vis'], land:['lands'], phen:['phen'], pest:['phen']};
+const QSEC = {geo:['geo'], wx:['wx','dym'], snd:['snd'], tvul:['tvul'], fcond:['fcond','fhr','tfall'], cult:['cult'], rest:['rest'], veg:['veg'], rec:['live'], inv:['inat'], bird:['ebird'], mig:['ebird'], pri:['nrpz'], soil:['soil'], wet:['wet'], feat:['feat'], hist:['hist'], eff:['vis'], land:['lands'], phen:['phen'], pest:['phen']};
 /* which question each popup section and export table belongs to; its place in the list of questions orders them, its color colors them */
 const SECQ = {'Restoration targets':'rest', 'Invasive species':'inv', 'Priority invasives':'pinv', 'iNaturalist Records':'rec', 'Forest pests':'pest', 'Flowering':'phen',
   'Plants of cultural significance':'cult', 'Birds':'bird', 'Unique species':'pri', 'Vegetation':'veg', 'Geology':'geo', 'Soils':'soil', 'Wetlands':'wet',
-  'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Citizen science observers':'eff', 'Land administrators':'land', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'Tree fall vulnerability':'fcond', 'Forest health risk':'fcond', 'Forest condition':'fcond', 'Climate change since 1980':'wx'};
+  'Facilities and landscapes':'feat', 'Historic resources':'hist', 'Citizen science observers':'eff', 'Land administrators':'land', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'Tree fall vulnerability':'fcond', 'Forest health risk':'fcond', 'Forest condition':'fcond', 'Climate change since 1980':'wx', 'Soundscape':'snd'};
 const qRank = id => { const i = Q.findIndex(q => q.id === id); return i < 0 ? 98 : i; };
 const secRank = title => title === 'Cell by cell' ? -1 : SECQ[title] ? qRank(SECQ[title]) : 99;
 const secHue = title => { const q = Q.find(x => x.id === SECQ[title]); return q ? q.hue : null; };
@@ -4209,7 +4241,7 @@ function finishProfile(html){ $('#pbody').innerHTML = html;
       const rank = el => secRank((el.querySelector('h3') || {}).textContent);
       secs.map((el, i) => [rank(el), i, el]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(([, , el]) => par.insertBefore(el, anchor)); anchor.remove(); } }
   { const d = document.querySelector('#pbody details.t10'); if (d) d.addEventListener('toggle', () => { S.t10 = d.open; }); }
-  const SECKEY = {'Forest health risk':'fhr', 'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'Tree fall vulnerability':'tfall', 'Forest condition':'fcond', 'Climate change since 1980':'dym', 'iNaturalist Records':'live', 'Birds':'ebird', 'Citizen science observers':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Historic resources':'hist', 'Land administrators':'lands'};
+  const SECKEY = {'Forest health risk':'fhr', 'Vegetation':'veg', 'Invasive species':'inat', 'Plants of cultural significance':'cult', 'Geology':'geo', 'Weather and climate':'wx', 'Trail vulnerability':'tvul', 'Tree fall vulnerability':'tfall', 'Forest condition':'fcond', 'Climate change since 1980':'dym', 'Soundscape':'snd', 'iNaturalist Records':'live', 'Birds':'ebird', 'Citizen science observers':'vis', 'Unique species':'nrpz', 'Soils':'soil', 'Wetlands':'wet', 'Facilities and landscapes':'feat', 'Restoration targets':'rest', 'Flowering':'phen', 'Forest pests':'phen', 'Priority invasives':'phen', 'Cell by cell':'cells', 'Historic resources':'hist', 'Land administrators':'lands'};
   document.querySelectorAll('#pbody .sec').forEach((sec, k) => { const h = sec.querySelector('h3'), key = SECKEY[h.textContent] || h.textContent, hue = secHue(h.textContent); if (hue) sec.style.setProperty('--hue', hue);
     const open = key in S.secOpen ? S.secOpen[key] : S.m.find ? key === S.m.th : (QSEC[S.q.id] || []).includes(key);
     const body = document.createElement('div'); body.className = 'secbody'; body.id = 'secbody' + k; body.hidden = !open;
