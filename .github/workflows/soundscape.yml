@@ -1,0 +1,55 @@
+# Builds soundscape.json (A.T. corridor) and soundscape_huc10.json (HUC10 shell) from the National Park Service's
+# geospatial sound model: existing and natural sound levels, and the noise people add on top.
+# Press "Run workflow" on the Actions tab. NPS republishes every few years, so there is no schedule.
+# Needs no secret: the files are public on the NPS DataStore. GDAL is installed to read and window the rasters.
+# If NPS moves the data to another reference, put its number in "NPS DataStore reference" when starting the run;
+# the log lists every file on the reference and which one was taken for each layer.
+name: Soundscape (NPS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      reference:
+        description: 'NPS DataStore reference (leave empty for the published one)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
+          df -h /
+      - name: Install GDAL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdal-bin
+          gdalinfo --version
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install geopandas pyogrio shapely pyproj rasterio numpy requests
+      - name: Build soundscape.json
+        env:
+          NPS_REF: ${{ inputs.reference }}
+        run: python scripts/build_soundscape.py
+      - name: Commit if changed
+        run: |
+          git config user.name  "soundscape-bot"
+          git config user.email "actions@users.noreply.github.com"
+          for f in data/soundscape.json data/soundscape_huc10.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          git diff --cached --quiet && exit 0
+          git commit -m "Update soundscape summaries"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 10
+          done
+          exit 1

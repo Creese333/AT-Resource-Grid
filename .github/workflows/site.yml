@@ -19,7 +19,8 @@ on:
   workflow_run:            # data workflows commit with the built-in token, which does not trigger "push"
     workflows: ["Bird profile photos", "Forest health risk", "Geology", "Historic resources", "iNaturalist, eBird and EDDMapS",
                 "Phenology and forest pests", "Place names", "Topographic exposure", "Trail slope", "Weather",
-                "Canopy loss", "Forest height and biomass", "Green-up and leaf-off", "Climate change since 1980"]
+                "Canopy loss", "Forest height and biomass", "Green-up and leaf-off", "Climate change since 1980",
+                "Soundscape (NPS)"]
     types: [completed]
 
 permissions:
