@@ -2568,6 +2568,9 @@ const VSPT = () => ((NASAMETA.vs || {}).points || [])[0] || null;
 const VSNAME = () => (VSPT() || {}).name || 'the overlook';
 Q.push(
  {id:'vs', th:'vs', hue:HUE.vs, ramp:'vs', title:'What can be seen from the trail?',
+  openAt:() => { const p = VSPT(); if (!p) return null;
+    const r = ((NASAMETA.vs || {}).radius_mi || 10) / 69, c = r / Math.max(.2, Math.cos(p.lat * Math.PI / 180));
+    return L.latLngBounds([p.lat - r, p.lon - c], [p.lat + r, p.lon + c]); },
   get use(){ const p = VSPT(), m = (NASAMETA.vs || {}).radius_mi || 10;
     return 'Which land is in view from an overlook on the A.T. — and so where a new building, tower, quarry or clearing would be seen from the trail. '
       + 'Rays are cast from the overlook across USGS 3DEP terrain, allowing for the curve of the earth and the bending of light, out to '
@@ -2931,7 +2934,23 @@ function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
     if (b.dataset.lv === 'auto') b.innerHTML = `<span class="lvn">Auto</span><span class="lvac">fits the zoom</span>`; });   /* the header shows which size Auto picked */
   if (!S.m.find && document.activeElement !== $('#find')) $('#find').value = '';
   corrSync(lv); legend(); side(); refreshProfile(); pinSync(); }
-function redraw(){ draw(); strip(); writeHash(); }
+/* A question whose data covers one place opens there. At whole-trail zoom a layer built around a single point is a
+   handful of cells in two thousand miles: it reads as an empty map rather than as a local layer. Fires once when the
+   question changes, so panning afterwards is left alone. The theme file arrives after the first draw, so this keeps
+   trying until the data can say where to go. */
+let QSEEN = null, QFIT = false, QTRY = 0, QTT = 0;
+function qOpenAt(){ const q = S.q; if (!q) return;
+  if (q.id !== QSEEN){ QSEEN = q.id; QFIT = false; QTRY = 0; }
+  if (QFIT || typeof q.openAt !== 'function') return;
+  if (document.body.classList.contains('touring')) return;   // a tour sets its own view; never fight it
+  const at = q.openAt(), sz = map.getSize();
+  /* on a phone the map is stacked under the panel and has no size on the first draw, and the theme file may not
+     have arrived either; both settle shortly, so come back rather than give the one chance away */
+  if (!at || !sz || sz.x < 60 || sz.y < 60){
+    if (++QTRY < 40){ clearTimeout(QTT); QTT = setTimeout(qOpenAt, 150); }
+    return; }
+  try { map.fitBounds(at, {padding:[28, 28], maxZoom:12, animate:false}); QFIT = true; } catch (e){} }
+function redraw(){ qOpenAt(); draw(); strip(); writeHash(); }
 /* ---------- soils and wetlands extent ----------
    "A.T. corridor": the grid cells along the trail that every layer uses. "HUC10 watershed": every grid cell in the HUC10 shell,
    for soils and wetlands only. Those cells are in soils_wetlands_huc10.json beside this page and load the first time they are asked for.
@@ -5092,7 +5111,8 @@ $('#about').addEventListener('click', e => { if (e.target === $('#about')) $('#a
 if (isPhone()) trailMid(); else map.fitBounds(L.latLngBounds(D.levels.wheel.c).pad(.03)); baseSync();
 /* phones: the page settles (address bar, fonts, panel) after the first draw, so center again until the person moves the map */
 { let moved = false; map.once('dragstart zoomstart', e => { if (e && e.originalEvent !== undefined) moved = true; }); map.getContainer().addEventListener('touchstart', () => { moved = true; }, {once:true, passive:true});
-  const again = () => { if (moved || !isPhone() || S.sec !== 'all' || S.cell != null || (typeof TOUR !== 'undefined' && TOUR.id)) return; map.invalidateSize({pan:false}); trailMid(); };
+  /* QFIT: a question that opens at its own place has already set the view, and settling must not drag it back */
+  const again = () => { if (moved || QFIT || !isPhone() || S.sec !== 'all' || S.cell != null || (typeof TOUR !== 'undefined' && TOUR.id)) return; map.invalidateSize({pan:false}); trailMid(); };
   [300, 900, 2000, 3500].forEach(t => setTimeout(again, t)); if (window.visualViewport) visualViewport.addEventListener('resize', () => setTimeout(again, 150)); } mapGestures();
 if (S.sec !== 'all') fitSection();
 /* ---------- quarterly iNaturalist and eBird summaries from inat_ebird.json ----------
