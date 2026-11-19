@@ -3,7 +3,9 @@
 # Press "Run workflow" on the Actions tab. Terrain rarely changes, so there is no schedule.
 # Needs no secret: elevation comes from the public AWS Terrain Tiles (USGS 3DEP over the lower 48), which is why
 # this works unattended here while the Earth Engine version in the notebook needs someone to sign in.
-# To add an overlook, add it to POINTS in scripts/build_viewshed.py and run this again.
+# To add an overlook, add it to POINTS in scripts/build_viewshed.py and run this again. The overlook is placed from the
+# A.T. vista inventory by name; canopy comes from the Meta and WRI canopy height model, and if it cannot be read the run
+# builds bare earth alone and says so in the log.
 name: Viewshed (3DEP)
 
 on:
@@ -14,9 +16,9 @@ on:
         required: false
         default: ''
       surfaces:
-        description: 'Surfaces to build (bare)'
+        description: 'Surfaces to build (bare, canopy)'
         required: false
-        default: 'bare'
+        default: 'bare,canopy'
 
 permissions:
   contents: write
