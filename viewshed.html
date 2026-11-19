@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>A.T. Viewshed</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap">
@@ -24,6 +29,13 @@ header .sub{font-size:13px;color:#BFD4E8;white-space:nowrap}
 header .spacer{flex:1}
 .back{font-size:13.5px;color:#EEF3F8;text-decoration:none;border:1px solid rgba(238,243,248,.45);border-radius:6px;padding:5px 10px;white-space:nowrap}
 .back:hover{background:rgba(238,243,248,.12)}
+.back.wide{width:100%;text-align:center;font:inherit;font-size:13.5px;background:transparent;cursor:pointer}
+.sw.dot{border-radius:50%;border:2px solid #fff}
+.sw.ln{height:4px;border-radius:2px;border:0;box-shadow:0 0 0 1.5px #fff}
+[hidden]{display:none!important}
+#grip{display:none;width:100%;justify-content:center;align-items:center;gap:8px;background:none;border:0;padding:8px 0 10px;cursor:pointer;color:var(--muted);font:inherit;font-size:12px}
+#grip i{display:block;width:40px;height:5px;border-radius:3px;background:#4A5E78}
+#grip:focus-visible{outline:2px solid var(--blaze);outline-offset:-2px;border-radius:6px}
 .back .short{display:none}
 #wrap{flex:1;display:flex;min-height:0}
 #map{flex:1;min-width:0;background:var(--ground);overflow:hidden}
@@ -57,11 +69,16 @@ h3{margin:18px 0 7px;font-size:11.5px;font-weight:700;letter-spacing:.9px;text-t
 #warn{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:5;background:#3A2A12;border:1px solid #8a6a2a;
   color:#FBE6C2;font-size:13px;border-radius:7px;padding:7px 12px;max-width:min(560px,86vw)}
 @media (max-width:860px){
-  body{overflow:auto}
+  /* phone: the map fills the screen and the controls live in a sheet along the bottom, as on the dashboard */
   #wrap{flex-direction:column}
-  #map{height:52vh;min-height:280px;flex:none}
-  #panel{order:1;width:auto;border-right:0;border-top:1px solid var(--line);overflow:visible;
-    padding-right:max(16px,env(safe-area-inset-right,0px))}
+  #map{flex:1;min-height:0}
+  #panel{order:1;flex:none;width:auto;max-height:46vh;overflow:auto;overscroll-behavior:contain;
+    border-right:0;border-top:1px solid var(--line);border-radius:14px 14px 0 0;margin-top:-14px;position:relative;z-index:3;
+    box-shadow:0 -4px 18px rgba(0,0,0,.35);padding-top:4px;
+    padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:max(14px,env(safe-area-inset-bottom,0px))}
+  #panel.min{max-height:100px;overflow:hidden}   /* the handle, the name and where it is */
+  #grip{display:flex}
+  .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{bottom:14px}   /* clear the sheet's rounded edge */
   header h1{font-size:15px}
   header .sub{display:none}
   .back .long{display:none}
@@ -69,79 +86,92 @@ h3{margin:18px 0 7px;font-size:11.5px;font-weight:700;letter-spacing:.9px;text-t
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+</head>
+<body>
 <header>
   <div class="mark" aria-hidden="true"></div>
   <h1>A.T. Resource Grid</h1>
   <div class="sub">Viewshed</div>
   <div class="spacer"></div>
-  <a class="back" id="back" href="#"><span class="long">Back to the grid</span><span class="short">Grid</span></a>
+  <a class="back" id="back" href="index.html#q=vs"><span class="long">Back to the grid</span><span class="short">Grid</span></a>
 </header>
 
 <div id="wrap">
   <aside id="panel">
-    <h2 id="pname">Weverton Cliffs</h2>
-    <p class="where" id="pwhere">Maryland, above the Potomac at Weverton</p>
+    <button type="button" id="grip" aria-expanded="true" aria-controls="panel"><i aria-hidden="true"></i><span id="griplab">Hide controls</span></button>
+    <h2 id="pname">Loading the overlook</h2>
+    <p class="where" id="pwhere"></p>
 
     <div class="stats">
-      <div class="stat"><b id="sAc">22,417</b><span>acres in view</span></div>
-      <div class="stat"><b id="sPct">11.3%</b><span>of the circle</span></div>
-      <div class="stat"><b id="sElev">831 ft</b><span>overlook elevation</span></div>
-      <div class="stat"><b id="sRad">10 mi</b><span>analysis radius</span></div>
+      <div class="stat"><b id="sAc">–</b><span>acres in view</span></div>
+      <div class="stat"><b id="sPct">–</b><span>of the circle</span></div>
+      <div class="stat"><b id="sElev">–</b><span>overlook elevation</span></div>
+      <div class="stat"><b id="sRad">–</b><span>analysis radius</span></div>
     </div>
 
     <h3>Surface</h3>
     <div class="seg" id="surf">
-      <button type="button" data-s="bare" class="on">Bare earth</button>
-      <button type="button" data-s="canopy" disabled>With canopy</button>
+      <button type="button" id="s-bare" data-s="bare" class="on">Bare earth</button>
+      <button type="button" id="s-canopy" data-s="canopy">With canopy</button>
     </div>
-    <p class="note" id="surfnote">Terrain only, no trees or buildings: the leaf-off case, and the conservative one for judging what a change would be seen from.</p>
+    <p class="note" id="surfnote"></p>
 
     <h3>What is in view</h3>
     <div class="zones" id="zones"></div>
     <p class="note">Distance decides how much a change reads from the trail. The Forest Service treats the first half mile as foreground, out to four miles as middleground, and beyond that as background, where only large or bright things register.</p>
 
+    <h3>Trail layers</h3>
+    <div class="zones" id="layers">
+      <label class="zone"><input type="checkbox" id="l-trail" data-l="trail" checked><span class="sw ln" style="background:#14294A"></span>A.T. centerline<span class="ac" id="n-trail"></span></label>
+      <label class="zone"><input type="checkbox" id="l-shelters" data-l="shelters" checked><span class="sw dot" style="background:#D62839"></span>Shelters<span class="ac" id="n-shelters"></span></label>
+      <label class="zone"><input type="checkbox" id="l-parking" data-l="parking" checked><span class="sw dot" style="background:#23436B"></span>Parking<span class="ac" id="n-parking"></span></label>
+    </div>
+
     <h3>Display</h3>
-    <label class="row" for="op">Overlay opacity <input type="range" id="op" min="0.15" max="1" step="0.05" value="0.62"></label>
-    <label class="row" for="ex">Terrain relief <input type="range" id="ex" min="1" max="3" step="0.1" value="1.6"></label>
     <label class="row" for="bm">Basemap
       <select id="bm">
-        <option value="imgtopo">USGS imagery + topo</option>
+        <option value="topo" selected>USGS topo</option>
         <option value="img">USGS imagery</option>
-        <option value="topo">USGS topo</option>
       </select>
     </label>
-    <div class="row"><button type="button" class="back" id="reset" style="width:100%;text-align:center">Back to the overlook</button></div>
+    <label class="row" for="op">Overlay opacity <input type="range" id="op" min="0.15" max="1" step="0.05" value="0.55"></label>
+    <label class="row" for="ex">Exaggerate relief <input type="range" id="ex" min="1" max="3" step="0.1" value="1.4"></label>
+    <p class="note">Display only. Relief is stretched to make the ridges easier to read; the viewshed was computed on true elevations and does not change.</p>
+    <div class="row"><button type="button" class="back wide" id="reset">Back to the overlook</button></div>
 
-    <p class="src" id="src">Viewshed computed from USGS 3DEP terrain with earth curvature and atmospheric refraction. Distance zones follow the USDA Forest Service Scenery Management System. Terrain and imagery: USGS The National Map; elevation tiles via AWS Terrain Tiles.</p>
+    <p class="src" id="src">Viewshed computed from USGS 3DEP terrain with earth curvature and atmospheric refraction; canopy from the Meta and WRI global canopy height model. Distance zones follow the USDA Forest Service Scenery Management System. Trail, shelters and parking from the A.T. facilities map service. Basemaps: USGS The National Map; elevation tiles via AWS Terrain Tiles.</p>
   </aside>
 
   <div id="map"></div>
 </div>
 <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 <script>
-/* The viewshed page. It reads the files the build workflow writes into the repo's data/ folder; when those are not
-   beside it (as in this preview) it falls back to a copy published next to the page, so the same file works in both. */
+/* The viewshed page. It reads what the Viewshed (3DEP) workflow writes into data/: viewshed.json for the overlook,
+   where the observer stands and the acres per zone, and one GeoJSON per surface for the shapes. Trail, shelters and
+   parking come live from the same A.T. facilities service the dashboard uses. */
 const BASE = {
-  imgtopo:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}',
-  img:    'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}',
-  topo:   'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}'
+  topo: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
+  img:  'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}'
 };
 const TERRAIN = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
-const SHAPES = ['data/viewshed_weverton-cliffs_bare.geojson', 'viewshed-weverton.json'];
-const METAS  = ['data/viewshed.json'];
-const GRID   = 'index.html';                       /* the dashboard, beside this page in the repo */
-const FALLBACK = {points:[{id:'weverton-cliffs', name:'Weverton Cliffs', lat:39.3306567, lon:-77.6769357,
-    elev_ft:831, where:'Maryland, above the Potomac at Weverton'}], radius_mi:10,
-  zones:[{code:2,label:'Foreground (0-0.5 mi)',rgb:[214,40,40]},
-         {code:3,label:'Middleground (0.5-4 mi)',rgb:[247,127,0]},
-         {code:4,label:'Background (4+ mi)',rgb:[252,191,73]}]};
-const ACRES = {2:70, 3:8997, 4:13350};             /* replaced by the real figures when the data is read */
+const SVC = 'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/';
+const LAYERS = {
+  trail:    {url:SVC + 'ANST_Centerline/FeatureServer/0', kind:'line'},
+  shelters: {url:SVC + 'ANST_Facilities/FeatureServer/4', kind:'pt', color:'#D62839', noun:['shelter', 'shelters']},
+  parking:  {url:SVC + 'ANST_Facilities/FeatureServer/2', kind:'pt', color:'#23436B', noun:['parking area', 'parking areas']}
+};
+const NOTE = {
+  bare:'Terrain only, no trees or buildings: the leaf-off case, and the conservative one for judging what a change would be seen from.',
+  canopy:'Terrain plus modeled tree height, with the overlook itself treated as open rock: closer to a leaf-on summer view.'
+};
 
 const $ = id => document.getElementById(id);
-const fmt = (v, d = 0) => v == null ? '–' : Number(v).toLocaleString(undefined, {maximumFractionDigits:d, minimumFractionDigits:d});
-let meta = FALLBACK, pt = FALLBACK.points[0], shapes = null, on = new Set([2, 3, 4]);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = (v, d = 0) => v == null || !isFinite(v) ? '–' : Number(v).toLocaleString(undefined, {maximumFractionDigits:d, minimumFractionDigits:d});
+let meta = null, pt = null, surface = 'bare', on = new Set([2, 3, 4]);
+const shapes = {};
 
-async function first(paths){ for (const p of paths){ try { const r = await fetch(p, {cache:'no-cache'}); if (r.ok) return await r.json(); } catch (e){} } return null; }
+async function getJSON(u){ const r = await fetch(u, {cache:'no-cache'}); if (!r.ok) throw new Error(r.status); return r.json(); }
 
 /* a circle of `km` around the overlook, for the edge of the analysis area */
 function ring(lon, lat, km, n = 180){
@@ -153,84 +183,143 @@ function ring(lon, lat, km, n = 180){
 }
 
 const map = new maplibregl.Map({
-  container:'map', center:[pt.lon, pt.lat], zoom:11.2, pitch:62, bearing:-28, maxPitch:80, attributionControl:false,
+  container:'map', center:[-77.6766, 39.3323], zoom:11.4, pitch:60, bearing:-30, maxPitch:80, attributionControl:false,
   style:{version:8,
     sources:{
-      base:{type:'raster', tiles:[BASE.imgtopo], tileSize:256, maxzoom:16, attribution:'USGS The National Map'},
+      base:{type:'raster', tiles:[BASE.topo], tileSize:256, maxzoom:16, attribution:'USGS The National Map'},
       dem:{type:'raster-dem', encoding:'terrarium', tileSize:256, maxzoom:14, tiles:[TERRAIN], attribution:'AWS Terrain Tiles'}
     },
     layers:[{id:'base', type:'raster', source:'base'},
-            {id:'hs', type:'hillshade', source:'dem', paint:{'hillshade-exaggeration':0.22}}],
-    terrain:{source:'dem', exaggeration:1.6},
+            {id:'hs', type:'hillshade', source:'dem', paint:{'hillshade-exaggeration':0.12}}],
+    terrain:{source:'dem', exaggeration:1.4},
     sky:{'sky-color':'#7FA8CC','horizon-color':'#CBDCE8','fog-color':'#B9CBDA','sky-horizon-blend':0.5,'horizon-fog-blend':0.6,'fog-ground-blend':0.25}}
 });
-map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), 'top-right');
-map.addControl(new maplibregl.ScaleControl({unit:'imperial'}), 'bottom-right');
-map.addControl(new maplibregl.AttributionControl({compact:true}), 'bottom-right');
+const PHONE = matchMedia('(max-width:860px)').matches;
+/* on a phone the zoom and compass sit low on the right, within reach of a thumb; the scale moves to the left */
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), PHONE ? 'bottom-right' : 'top-right');
+map.addControl(new maplibregl.ScaleControl({unit:'imperial'}), PHONE ? 'bottom-left' : 'bottom-right');
+map.addControl(new maplibregl.AttributionControl({compact:true}), PHONE ? 'top-right' : 'bottom-right');
+/* on a phone the credits start folded to their (i) button rather than as a banner across the map */
+if (PHONE){ const fold = () => document.querySelectorAll('.maplibregl-compact-show').forEach(e => e.classList.remove('maplibregl-compact-show'));
+  map.once('idle', fold); setTimeout(fold, 3000); }   /* idle waits for tiles; the timer covers a slow connection */
 
-function zoneRows(){
-  $('zones').innerHTML = meta.zones.map(z =>
-    `<label class="zone"><input type="checkbox" data-z="${z.code}" checked>
-       <span class="sw" style="background:rgb(${z.rgb.join(',')})"></span>${z.label}
-       <span class="ac">${fmt(ACRES[z.code] || 0)} ac</span></label>`).join('');
+/* ---------- the panel ---------- */
+function stats(){ return ((pt && pt.stats) || {})[surface] || null; }
+function paintPanel(){
+  const st = stats();
+  $('sAc').textContent = st ? fmt(st.acres) : '–';
+  $('sPct').textContent = st ? fmt(st.pct, 1) + '%' : '–';
+  $('surfnote').textContent = NOTE[surface] || '';
+  $('zones').innerHTML = (meta ? meta.zones : []).map(z =>
+    `<label class="zone"><input type="checkbox" data-z="${z.code}"${on.has(z.code) ? ' checked' : ''}>
+       <span class="sw" style="background:rgb(${z.rgb.join(',')})"></span>${esc(z.label)}
+       <span class="ac">${st ? fmt(st.zones[String(z.code)]) + ' ac' : ''}</span></label>`).join('');
   $('zones').querySelectorAll('input').forEach(i => i.onchange = () => {
     const c = +i.dataset.z; i.checked ? on.add(c) : on.delete(c); filter(); });
+  ['bare', 'canopy'].forEach(s => { const b = $('s-' + s);
+    b.hidden = !(pt && (pt.surfaces || []).includes(s));
+    b.classList.toggle('on', s === surface); });
 }
-function filter(){ if (map.getLayer('vs')) map.setFilter('vs', ['in', ['get', 'zone'], ['literal', [...on]]]); }
 
-function drawShapes(){
-  if (!shapes || !map.style || !map.isStyleLoaded()) return;
-  if (map.getSource('vs')) return;
+/* ---------- the viewshed ---------- */
+function filter(){ if (map.getLayer('vs')) map.setFilter('vs', ['in', ['get', 'zone'], ['literal', [...on]]]); }
+async function loadSurface(s){
+  if (!shapes[s]) shapes[s] = await getJSON(`data/viewshed_${pt.id}_${s}.geojson`).catch(() => null);
+  return shapes[s];
+}
+async function showSurface(s){
+  const gj = await loadSurface(s); if (!gj) return;
+  surface = s; paintPanel();
+  if (map.getSource('vs')) map.getSource('vs').setData(gj); else addViewshed(gj);
+}
+function addViewshed(gj){
   const colors = ['match', ['get', 'zone']];
   meta.zones.forEach(z => colors.push(z.code, `rgb(${z.rgb.join(',')})`));
   colors.push('#8899aa');
-  map.addSource('vs', {type:'geojson', data:shapes});
-  map.addLayer({id:'vs', type:'fill', source:'vs',
-    paint:{'fill-color':colors, 'fill-opacity':+$('op').value, 'fill-antialias':false}});
+  map.addSource('vs', {type:'geojson', data:gj});
+  map.addLayer({id:'vs', type:'fill', source:'vs', paint:{'fill-color':colors, 'fill-opacity':+$('op').value, 'fill-antialias':false}});
   map.addSource('ring', {type:'geojson', data:ring(pt.lon, pt.lat, (meta.radius_mi || 10) * 1.609344)});
-  map.addLayer({id:'ring', type:'line', source:'ring',
-    paint:{'line-color':'#EEF3F8','line-width':1.4,'line-dasharray':[3,2],'line-opacity':.75}});
-  filter();
-  document.body.dataset.ready = 'viewshed';   /* a hook for checks that the layer is up */
+  map.addLayer({id:'ring', type:'line', source:'ring', paint:{'line-color':'#14294A','line-width':1.4,'line-dasharray':[3,2],'line-opacity':.8}});
+  filter(); trailLayers();
   const el = document.createElement('div'); el.id = 'pin';
   new maplibregl.Marker({element:el}).setLngLat([pt.lon, pt.lat])
     .setPopup(new maplibregl.Popup({offset:14, closeButton:false})
-      .setHTML(`<b>${pt.name}</b><br>${fmt(pt.elev_ft)} ft · eye height 5.6 ft`)).addTo(map);
+      .setHTML(`<b>${esc(pt.name)}</b><br>${fmt(pt.elev_ft)} ft · eye height ${fmt(meta.observer_ft || 5.6, 1)} ft`)).addTo(map);
+  document.body.dataset.ready = 'viewshed';   /* a hook for checks that the layer is up */
 }
 
-function home(){ map.flyTo({center:[pt.lon, pt.lat], zoom:11.2, pitch:62, bearing:-28, duration:1400, essential:true}); }
-
-(async () => {
-  const m = await first(METAS);
-  if (m && m.meta && m.meta.points && m.meta.points.length){ meta = m.meta; pt = meta.points[0]; }
-  shapes = await first(SHAPES);
-  if (shapes){
-    const seen = {};
-    for (const f of shapes.features){ const z = f.properties.zone; if (f.properties.acres) seen[z] = f.properties.acres; }
-    Object.assign(ACRES, seen);
-  } else {
-    const w = document.createElement('div'); w.id = 'warn';
-    w.textContent = 'The viewshed file is not beside this page, so the map shows terrain only.';
-    $('map').appendChild(w);
+/* ---------- trail, shelters and parking, live from the A.T. facilities service ---------- */
+async function arc(url, bbox, fields){
+  const out = {type:'FeatureCollection', features:[]};
+  for (let off = 0, pg = 0; pg < 8; pg++, off += 2000){
+    const q = new URLSearchParams({where:'1=1', geometry:bbox.join(','), geometryType:'esriGeometryEnvelope', inSR:4326,
+      spatialRel:'esriSpatialRelIntersects', outFields:fields, outSR:4326, f:'geojson', resultOffset:off, resultRecordCount:2000});
+    const j = await getJSON(url + '/query?' + q); out.features.push(...(j.features || []));
+    if (!(j.exceededTransferLimit || (j.properties && j.properties.exceededTransferLimit))) break;
   }
+  return out;
+}
+async function trailLayers(){
+  const r = ((meta.radius_mi || 10) + 1) / 69, c = r / Math.cos(pt.lat * Math.PI / 180);
+  const bbox = [pt.lon - c, pt.lat - r, pt.lon + c, pt.lat + r];
+  for (const [id, L] of Object.entries(LAYERS)){
+    let gj; try { gj = await arc(L.url, bbox, L.kind === 'line' ? '' : 'Name'); } catch (e){ $('n-' + id).textContent = 'not available'; continue; }
+    map.addSource(id, {type:'geojson', data:gj});
+    if (L.kind === 'line'){
+      map.addLayer({id:id + '-case', type:'line', source:id, layout:{'line-join':'round','line-cap':'round'},
+        paint:{'line-color':'#ffffff','line-width':5,'line-opacity':.9}});
+      map.addLayer({id:id, type:'line', source:id, layout:{'line-join':'round','line-cap':'round'},
+        paint:{'line-color':'#14294A','line-width':2.2}});
+      $('n-' + id).textContent = '';
+    } else {
+      map.addLayer({id:id, type:'circle', source:id,
+        paint:{'circle-radius':6,'circle-color':L.color,'circle-stroke-color':'#ffffff','circle-stroke-width':2}});
+      const n = gj.features.length; $('n-' + id).textContent = fmt(n);
+      map.on('click', id, e => { const f = e.features[0];
+        new maplibregl.Popup({offset:10, closeButton:false}).setLngLat(f.geometry.coordinates)
+          .setHTML(`<b>${esc(f.properties.Name || L.noun[0])}</b>`).addTo(map); });
+      map.on('mouseenter', id, () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', id, () => map.getCanvas().style.cursor = '');
+    }
+    showLayer(id, $('l-' + id).checked);
+  }
+}
+function showLayer(id, vis){ [id, id + '-case'].forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', vis ? 'visible' : 'none'); }); }
+
+function home(){ if (pt) map.flyTo({center:[pt.lon, pt.lat], zoom:11.4, pitch:60, bearing:-30, duration:1400, essential:true}); }
+
+/* ---------- start ---------- */
+async function start(){
+  try { meta = (await getJSON('data/viewshed.json')).meta; } catch (e){ meta = null; }
+  if (!meta || !meta.points || !meta.points.length){
+    $('pname').textContent = 'No viewshed built yet';
+    $('pwhere').textContent = 'Run the Viewshed (3DEP) workflow, then reload this page.'; return; }
+  const want = location.hash.slice(1);
+  pt = meta.points.find(p => p.id === want) || meta.points[0];
   $('pname').textContent = pt.name;
   $('pwhere').textContent = pt.where || '';
-  $('sAc').textContent = fmt(Object.values(ACRES).reduce((a, b) => a + b, 0));
   $('sElev').textContent = fmt(pt.elev_ft) + ' ft';
   $('sRad').textContent = fmt(meta.radius_mi || 10) + ' mi';
-  $('back').href = GRID + '#q=vs';
-  zoneRows();
-  map.setCenter([pt.lon, pt.lat]);
-  /* 'load' waits for tiles, which may never arrive on a bad connection; the style alone is enough to add layers */
-  if (map.isStyleLoaded()) drawShapes(); else map.once('style.load', drawShapes);
-  let n = 0; const poll = setInterval(() => { if (map.getLayer('vs') || ++n > 60) return clearInterval(poll); drawShapes(); }, 250);
-})();
+  map.jumpTo({center:[pt.lon, pt.lat]});
+  paintPanel();
+  let first = null; const go = () => first || (first = showSurface('bare'));   /* once, however many times it is asked */
+  /* 'load' waits for every tile, which may never come on a poor connection; the style alone is enough */
+  if (map.isStyleLoaded()) go(); else map.once('style.load', go);
+  let n = 0; const poll = setInterval(() => { if (map.getLayer('vs') || ++n > 60) return clearInterval(poll); if (map.isStyleLoaded()) go(); }, 250);
+}
+start();
 
+$('surf').onclick = e => { const b = e.target.closest('button[data-s]'); if (b && !b.hidden && b.dataset.s !== surface) showSurface(b.dataset.s); };
+$('layers').querySelectorAll('input').forEach(i => i.onchange = () => showLayer(i.dataset.l, i.checked));
 $('op').oninput = e => { if (map.getLayer('vs')) map.setPaintProperty('vs', 'fill-opacity', +e.target.value); };
 $('ex').oninput = e => map.setTerrain({source:'dem', exaggeration:+e.target.value});
 $('bm').onchange = e => map.getSource('base').setTiles([BASE[e.target.value]]);
-$('reset').onclick = e => { e.preventDefault(); home(); };
-$('surf').onclick = e => { const b = e.target.closest('button[data-s]'); if (!b || b.disabled) return;
-  $('surf').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+$('reset').onclick = home;
+/* the sheet folds down to the overlook's name and figures, and the map takes the room */
+$('grip').onclick = () => { const p = $('panel'), min = p.classList.toggle('min');
+  $('grip').setAttribute('aria-expanded', String(!min)); $('griplab').textContent = min ? 'Show controls' : 'Hide controls';
+  p.scrollTop = 0; setTimeout(() => map.resize(), 60); };
 map.on('error', e => { if (e && e.error && /terrain|dem/i.test(String(e.error.message || ''))) map.setTerrain(null); });
 </script>
+</body>
+</html>
