@@ -7,8 +7,11 @@
    every saved tile, which made opening slow once the trail's imagery was saved), and "updated" compares the files' contents:
    every publish gives all files a new date and tag, even when they have not changed.
    v6: basemap tiles are left to the browser unless Save for offline has been used; when it has, the offline store is opened once
-   and kept open instead of being opened again for every tile. */
-const VER = 'atgrid-v6';
+   and kept open instead of being opened again for every tile.
+   v7: only the dashboard itself is the shell. Another page at the top level (viewshed.html) is saved under its own address;
+   before this, every navigation was saved and looked up as index.html, so a second page was served the dashboard and then
+   overwrote the dashboard's saved copy with itself. */
+const VER = 'atgrid-v7';
 const OFF = 'atoffline-1';          /* filled by Save for offline; never cleared here */
 const LIVE = 'atlive-1';            /* last copy of the trail line, mile points and point layers (shelters, campsites...) */
 const SHELL = ['./', 'index.html', 'data/app.js', 'data/inat.js', 'data/grid.json', 'manifest.webmanifest', 'images/icon-192.png', 'images/icon-512.png'];
@@ -56,12 +59,12 @@ async function sameBody(a, b) {
 }
 
 /* the saved copy right away; a fresh copy in the background (and a note to the page when the page or its code really changed) */
-function fastThenFresh(e, r, isPage) {
-  const u = new URL(r.url), key = isPage ? new URL('index.html', self.registration.scope).href : u.origin + u.pathname;
+function fastThenFresh(e, r, isShell) {
+  const u = new URL(r.url), key = isShell ? new URL('index.html', self.registration.scope).href : u.origin + u.pathname;
   const saved = savedCopy(key);
   const fresh = fetch(r, {cache: 'no-cache'}).then(async res => {
     if (res.ok && res.type === 'basic') {
-      if (isPage || WATCH.test(u.pathname)) {
+      if (isShell || WATCH.test(u.pathname)) {
         const old = await saved;
         if (old && !(await sameBody(old, res.clone()).catch(() => true))) tellPages({type: 'updated'});
       }
@@ -79,9 +82,10 @@ self.addEventListener('fetch', e => {
   const u = new URL(r.url);
 
   if (u.origin === self.location.origin) {
-    const isPage = r.mode === 'navigate' || u.pathname.endsWith('/') || u.pathname.endsWith('/index.html');
+    const isShell = u.pathname.endsWith('/') || u.pathname.endsWith('/index.html');   /* the dashboard, under either address */
+    const isPage = r.mode === 'navigate' || isShell;
     if (isPage || u.pathname.includes('/data/') || u.pathname.includes('/images/')) {
-      e.respondWith(fastThenFresh(e, r, isPage).catch(() => savedCopy(u.origin + u.pathname).then(m => m || Response.error())));
+      e.respondWith(fastThenFresh(e, r, isShell).catch(() => savedCopy(u.origin + u.pathname).then(m => m || Response.error())));
       return;
     }
     e.respondWith(fetch(r).then(res => res.type === 'basic' ? keep(VER, r, res) : res)
