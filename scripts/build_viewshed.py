@@ -162,13 +162,26 @@ def find_vista(p):
     except Exception as e:
         log(f'    vista inventory not read ({str(e)[:70]}); using the fallback point'); return None
     if not feats:
-        log(f"    no vista named like '{p['vista']}' near the fallback point; using it instead"); return None
+        # no name match: the nearest inventory viewpoint within 1 km is still better than a coordinate from the web
+        q2 = dict(q, where='1=1')
+        try:
+            r = requests.get(VISTAS + '/query', params=q2, timeout=60, headers=UA)
+            feats = [f for f in (r.json().get('features') or []) if (f.get('geometry') or {}).get('type') == 'Point']
+        except Exception:
+            feats = []
+        feats = [f for f in feats if math.hypot(f['geometry']['coordinates'][0] - p['lon'],
+                                                f['geometry']['coordinates'][1] - p['lat']) * 111000 <= 1000]
+        log(f"    no vista named like '{p['vista']}'; {len(feats)} inventory viewpoint(s) within 1 km of the fallback point")
+        if not feats:
+            log('    using the fallback point'); return None
     near = lambda f: math.hypot(f['geometry']['coordinates'][0] - p['lon'], f['geometry']['coordinates'][1] - p['lat'])
     f = min(feats, key=near)
     lon, lat = f['geometry']['coordinates'][:2]
     nm = (f.get('properties') or {}).get('Name') or p['name']
     log(f'    vista inventory: "{nm}" at {lat:.6f}, {lon:.6f} '
         f'({near(f) * 111000:.0f} m from the fallback point; {len(feats)} matched)')
+    props = {k: v for k, v in (f.get('properties') or {}).items() if v not in (None, '') and not str(k).startswith('Photo')}
+    log(f'    record: {json.dumps(props, default=str)[:600]}')
     return lat, lon, nm
 
 
@@ -376,13 +389,14 @@ def main():
         if not valid[int(r0), int(c0)]:
             log('    no elevation at the overlook; skipped'); continue
         seed_z = float(dem[int(r0), int(c0)])
-        sr, sc = snap(dem, r0, c0, RES_M, SNAP_M)
+        # an inventory viewpoint stands exactly where it was recorded; only a fallback coordinate is nudged onto the rock
+        sr, sc = (r0, c0) if hit else snap(dem, r0, c0, RES_M, SNAP_M)
         moved = math.hypot(sr - r0, sc - c0) * RES_M
         top_z = float(dem[int(sr), int(sc)])
         olon, olat = rc_to_lonlat(sr, sc, crs, tr)
         log(f'    ground at the point {seed_z:.0f} m ({seed_z * 3.28084:.0f} ft); observer nudged {moved:.0f} m to '
             f'{olat:.6f}, {olon:.6f} at {top_z:.0f} m ({top_z * 3.28084:.0f} ft)')
-        if moved > SNAP_M * .95:
+        if not hit and moved > SNAP_M * .95:
             log('    NOTE: the observer reached the edge of its search radius; check the point on the topo map.')
         r0, c0 = sr, sc
         d, inside = zones_of(n, r0, c0, RES_M, radius)
