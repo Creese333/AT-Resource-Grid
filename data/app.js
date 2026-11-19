@@ -2864,7 +2864,10 @@ function restyle(){ const zf = zoomFade(); const lv = dispLevel(), ps = POLY[lv]
     if (v == null && m.nullHide){ put(c, {fill:true, fillOpacity:0, stroke:false}); continue; }
     if (v == null || (v === 0 && zClear(m))) put(c, {fill:true, fillOpacity:0, stroke:!tiny, color:DARKBASE[S.base] ? '#C9D3CC' : '#7F8C84', weight:.5, opacity:ins ? .4 : .12});
     else if (strong){ const fc = colorOf(m, lv, v); put(c, {fill:true, fillColor:fc, fillOpacity:(!ins ? .1 : .9) * Math.max(zf, .85), stroke:true, color:px < 28 ? fc : m.th === 'hist' ? '#3B2C12' : '#0B2410', weight:px < 28 ? 1 : lv === 'hex' ? .7 : .9, opacity:ins ? .9 : .2}); }
-    else put(c, {fill:true, fillColor:colorOf(m, lv, v), fillOpacity:(!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf, stroke:true, color:tiny ? colorOf(m, lv, v) : '#fff', weight:w, opacity:tiny ? (!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf : ins ? .9 : .2}); } }
+    /* no outline on a filled cell at any size: the stroke carries the fill's own color and opacity, which keeps
+       neighbouring cells from showing a hairline seam between them without drawing a border around each one */
+    else { const fc = colorOf(m, lv, v), fo = (!ins ? .1 : faded(m, lv, c) ? .32 : .86) * zf;
+      put(c, {fill:true, fillColor:fc, fillOpacity:fo, stroke:true, color:fc, weight:w, opacity:fo}); } } }
 function draw(){ if (S.q.id === 'hist' && !S.m.find){ const sc = histScale();
     if (sc === 'huc' && S.ext !== 'huc' && !S.histHucFail) setExt('huc', true).then(() => { if (S.ext !== 'huc'){ S.histHucFail = true; S.extMsg = ''; redraw(); } });
     else if (sc !== 'huc' && S.ext === 'huc') setExt('corr', true); }
