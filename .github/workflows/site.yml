@@ -67,7 +67,7 @@ jobs:
       - name: Gather the files the website serves
         run: |
           mkdir _site
-          for f in index.html manifest.webmanifest sw.js CNAME data images; do [ -e "$f" ] && cp -r "$f" _site/; done
+          for f in index.html viewshed.html manifest.webmanifest sw.js CNAME data images; do [ -e "$f" ] && cp -r "$f" _site/; done
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
