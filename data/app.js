@@ -2401,7 +2401,7 @@ const FCCITE = {dist:['OPERA Land Surface Disturbance Alert, Version 1 (NASA JPL
   gedi:['GEDI L3 Gridded Land Surface Metrics V2 and L4B Gridded Aboveground Biomass V2.1 (Dubayah et al., ORNL DAAC)', 'https://doi.org/10.3334/ORNLDAAC/1952'],
   lsp:['MODIS Land Cover Dynamics, MCD12Q2 Version 6.1 (Friedl, Gray and Sulla-Menashe, LP DAAC)', 'https://doi.org/10.5067/MODIS/MCD12Q2.061'],
   dym:['Daymet Version 4 R1, daily 1 km (Thornton et al., ORNL DAAC)', 'https://doi.org/10.3334/ORNLDAAC/2129'],
-  snd:['Geospatial sound modeling, NPS Natural Sounds and Night Skies Division (Mennitt and Fristrup)', 'https://irma.nps.gov/DataStore/Reference/Profile/2217356']};
+  snd:['Geospatial sound model, National Park Service Natural Sounds and Night Skies Division (DataStore reference 2217356): Mennitt, D.J., and Fristrup, K.M., 2016, Influential factors and spatiotemporal patterns of environmental sound levels in the contiguous United States. Noise Control Engineering Journal 64(3): 342–353.', 'https://irma.nps.gov/DataStore/Reference/Profile/2217356']};
 /* a measure from one of these files: its source under the legend, "not built yet" until the file is there, and the legend in its own units
    (getters such as label and note stay live, so the object is filled in place) */
 function nasaM(th, o){ o.th = th; o.cite = FCCITE[th][0]; if (FCCITE[th][1]) o.citeUrl = FCCITE[th][1];
@@ -2538,7 +2538,7 @@ function dymBox(lv, cells){ const ci = cells.filter(c => has('dym', lv, c)); if 
 const dymSection = (lv, c) => dymBox(lv, [c]);
 
 /* ---------- soundscape ----------
-   The National Park Service models the sound level across the country from recordings at hundreds of sites: a 270 m map
+   The National Park Service models the sound level across the country from recordings at 492 sites: a 270 m map
    of a typical summer day in L50 dBA, the level exceeded half the time. Three layers come from it \u2014 what a person
    hears, what the place would sound like without us, and the difference between them. Built on GitHub
    (build_soundscape.py); cells matched by grid ID. Quiet is a resource the Park Service manages for, so the measure that
@@ -2547,7 +2547,7 @@ HUE.snd = '#7E6BB0'; RAMP.snd = ['#F0EDF7','#D6CDEA','#B3A4D6','#8B76BE','#5F4A9
 const SNDQ = () => (NASAMETA.snd || {}).near_natural || 3;
 Q.push(
  {id:'snd', th:'snd', hue:HUE.snd, ramp:'snd', title:'How quiet is it here?',
-  use:'What the trail sounds like, from the National Park Service\u2019s model of sound across the country. It predicts a typical summer daytime hour from recordings made at hundreds of sites, as L50 dBA \u2014 the level exceeded half the time, so an ordinary moment rather than a passing truck. Two layers are modelled: what a person standing there would actually hear, and what the place would sound like with human sources taken out. The gap between them is the noise we add. Use it to find the stretches where the trail still sounds like itself, and the stretches where roads, towns and aircraft reach it. A national model at 270 m from 2013 to 2015 recordings, so it tells you about lengths of trail, not about one overlook.',
+  use:'What the trail sounds like, from the National Park Service\u2019s model of sound across the country. It predicts a typical summer daytime hour from recordings made at 492 sites across the country, as L50 dBA \u2014 the level exceeded half the time, so an ordinary moment rather than a passing truck. Two layers are modelled: what a person standing there would actually hear, and what the place would sound like with human sources taken out. The gap between them is the noise we add. Use it to find the stretches where the trail still sounds like itself, and the stretches where roads, towns and aircraft reach it. A national model at 270 m, so it tells you about lengths of trail, not about one overlook.',
   m:[nasaM('snd', {id:'imp', f:'SND_IMP', label:'Noise above natural', unit:' dBA', d:1, zero:1, zeroText:'Nothing above natural', noneText:'Outside the mapped area',
        note:'How many decibels human noise adds on top of the natural soundscape. Three decibels is about where people start to notice us; ten means human sound dominates. This is the measure the Park Service manages against, because it separates a place that is loud from a place that is loud because of us \u2014 a waterfall is not an intrusion.'}),
      nasaM('snd', {id:'near', f:'SND_Q3', label:'Still near-natural', unit:'%', d:0, zero:1, zeroText:'None of the cell', noneText:'Outside the mapped area',
@@ -3465,10 +3465,17 @@ const PLAYQ = () => !S.m.find && (S.q.id === 'mig' || (S.q.id === 'land' && S.m.
   || (typeof wxAnimOn === 'function' && wxAnimOn()) || (S.q.id === 'eff' && S.m.id === 'od' && typeof visYears === 'function' && !!visYears()));
 /* Play on the map, bottom left, for whatever animation is on screen; it presses the panel's own Play, so both stay in step */
 const playSrc = () => $('#migplay') || $('#phplay') || $('[data-acqplay]') || $('[data-dlplay]') || $('[data-wxplay]') || $('[data-visplay]');
-function mapPlay(){ let b = $('#mapplay'); const src = playSrc();
-  if (!b){ b = document.createElement('button'); b.type = 'button'; b.id = 'mapplay'; b.className = 'mapctl'; b.innerHTML = '<i aria-hidden="true">▶</i><span></span>';
-    b.onclick = () => { const r = playSrc(); if (r) r.click(); setTimeout(mapPlay, 60); }; if (window.L && L.DomEvent) L.DomEvent.disableClickPropagation(b); $('#mapwrap').append(b); }
-  const on = !!src && PLAYQ(); b.hidden = !on; document.body.classList.toggle('hasplay', on); if (!on) return;
+function mapPlay(){ let b = $('#mapplay'), box = $('#mapplaybox'); const src = playSrc();
+  if (!b){ box = document.createElement('div'); box.id = 'mapplaybox';
+    b = document.createElement('button'); b.type = 'button'; b.id = 'mapplay'; b.className = 'mapctl'; b.innerHTML = '<i aria-hidden="true">▶</i><span></span>';
+    b.onclick = () => { const r = playSrc(); if (r) r.click(); setTimeout(mapPlay, 60); };
+    const note = document.createElement('div'); note.id = 'mapanim'; note.textContent = '▶ Animated';
+    note.title = 'This measure has an animation: press Play';
+    box.append(b, note); if (window.L && L.DomEvent) L.DomEvent.disableClickPropagation(box); $('#mapwrap').append(box); }
+  const on = !!src && PLAYQ(); box.hidden = !on; document.body.classList.toggle('hasplay', on);
+  // the legend sits above whatever height the button and its note come to
+  document.body.style.setProperty('--playh', (on ? box.offsetHeight : 0) + 'px');
+  if (!on) return;
   const pl = /pause/i.test(src.textContent), lab = ($('#migwkl') || $('#phwkl') || $('#acqyl') || $('#dlml') || $('#wxnowl') || $('#visyl') || {textContent:''}).textContent.split(' · ')[0];
   const ic = pl ? '❚❚' : '▶'; if (b.firstChild.textContent !== ic) b.firstChild.textContent = ic; if (b.lastChild.textContent !== lab) b.lastChild.textContent = lab; b.classList.toggle('nolab', !lab);
   b.setAttribute('aria-label', (pl ? 'Pause' : 'Play') + ' the animation'); }
@@ -3584,7 +3591,7 @@ function side(){ const lv = dispLevel(), el = $('#side'), q = S.q;
   const blk = (key, title, body, cls) => `<section class="blk${cls ? ' ' + cls : ''}"><h2><button type="button" class="blktog" data-blk="${key}" aria-expanded="${S.side[key]}"><span>${title}</span><i aria-hidden="true"></i></button></h2><div class="blkbody"${S.side[key] ? '' : ' hidden'}>${body}</div></section>`;
   const SUMH = S.m.find ? '' : summary(lv), ANS = {h:'', used:''};
   let h = `<section class="qhead" style="--hue:${q.hue}"><div class="qcrumb">${S.m.find ? 'Search' : 'Guiding question' + (QGRP[q.id] ? ' · ' + esc(QGRP[q.id]) : '')}</div><div class="qtitle"><h2>${S.m.find ? 'Search results' : esc(q.title)}</h2><button type="button" class="blktog qchange" data-blk="qs" aria-expanded="${!!S.side.qs}" aria-controls="qpick">All questions<i aria-hidden="true"></i></button></div>` +
-    (PLAYQ() ? '<span class="qanim qanimh" title="This measure has an animation: press Play">\u25B6 Animated</span>' : '') + '<div class="qquick" id="qquick"></div>' + ANS.h + (typeof QTOUR !== 'undefined' && typeof TOURS !== 'undefined' && QTOUR[q.id] && !S.m.find && TOURS[QTOUR[q.id]] ? `<button type="button" class="qtour qtstart" data-tour="${QTOUR[q.id]}"><b>Take the ${esc(QTOUR[q.id])} tour</b> · ${TOURS[QTOUR[q.id]].steps.length} stops<span>Start</span></button>` : '') +
+    '<div class="qquick" id="qquick"></div>' + ANS.h + (typeof QTOUR !== 'undefined' && typeof TOURS !== 'undefined' && QTOUR[q.id] && !S.m.find && TOURS[QTOUR[q.id]] ? `<button type="button" class="qtour qtstart" data-tour="${QTOUR[q.id]}"><b>Take the ${esc(QTOUR[q.id])} tour</b> · ${TOURS[QTOUR[q.id]].steps.length} stops<span>Start</span></button>` : '') +
     `<div class="qpick" id="qpick"${S.side.qs ? '' : ' hidden'}><div class="qph"><b>Choose a question</b><button type="button" class="blktog qpx" data-blk="qs" aria-label="Close the question list">×</button></div><input class="qfilt" type="search" placeholder="Filter questions…" aria-label="Filter questions" autocomplete="off"><p class="qstart"><b>Start here:</b> pick a question to see its answer on the map. Not sure where to begin? <button type="button" class="qhow" data-howto="1">Show me how</button> · or try the <button type="button" class="qtour qtlink" data-tour="grassland">grassland tour</button>.</p>` +
     `<nav class="qs" aria-label="Guiding questions">` + Q.filter(qVis).map((x, i, a) => { const g = QGRP[x.id], off = g && QGOFF.has(g), cur = x === q && !S.m.find; return (g && (!i || QGRP[a[i - 1].id] !== g) ? `<button type="button" class="qgrp" data-qg="${esc(g)}" aria-expanded="${!off}"><span>${esc(g)}</span><i aria-hidden="true"></i></button>` : '') + (`<button type="button" data-q="${x.id}" style="--hue:${x.hue}" aria-current="${cur}"${off && !cur ? ' hidden data-folded="1"' : ''}>${esc(x.title)}${QANIM.has(x.id) ? '<span class="qanim" title="This question has an animation">▶ Animated</span>' : ''}${typeof QTOUR !== 'undefined' && QTOUR[x.id] ? `<span class="qtour" role="button" tabindex="0" data-tour="${QTOUR[x.id]}" title="Take a guided tour"><svg class="qnew" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>Tour<span class="vh"> (new)</span></span>` : ''}</button>`); }).join('') + '</nav></div></section>' +
     '<nav class="ptabs" aria-label="Open in the panel">' + [['show', 'Measures'], ['res', 'Results'], ['charts', 'Charts'], ['prof', 'Profile'], ['about', 'About'], ['cell', 'Cell']].map(([k, t]) => `<button type="button" data-ptab="${k}" aria-pressed="${PTAB === k}">${t}</button>`).join('') + '</nav>';
