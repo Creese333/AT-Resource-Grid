@@ -68,6 +68,9 @@ jobs:
         run: |
           mkdir _site
           for f in index.html viewshed.html manifest.webmanifest sw.js CNAME data images; do [ -e "$f" ] && cp -r "$f" _site/; done
+          # The dashboard has moved to act.atconservation.com: redirect.html is published as the front page. index.html stays
+          # in the repository because the scripts read the grid and species lists from it. Delete the line below to go back.
+          if [ -e redirect.html ]; then cp redirect.html _site/index.html; fi
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
